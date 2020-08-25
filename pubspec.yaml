@@ -28,7 +28,7 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.example.launchdarkly_flutter_client_sdk
+        package: com.launchdarkly.launchdarkly_flutter_client_sdk
         pluginClass: LaunchdarklyFlutterClientSdkPlugin
       ios:
         pluginClass: LaunchdarklyFlutterClientSdkPlugin

@@ -1,4 +1,4 @@
-package com.example.launchdarkly_flutter_client_sdk
+package com.launchdarkly.launchdarkly_flutter_client_sdk
 
 import androidx.annotation.NonNull;
 
