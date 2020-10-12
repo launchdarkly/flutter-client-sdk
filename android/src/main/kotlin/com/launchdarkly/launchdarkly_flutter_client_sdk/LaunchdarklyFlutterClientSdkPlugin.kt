@@ -56,8 +56,27 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       return configBuilder.build()
     }
 
+    private val optionalFields: Map<String, Pair<(LDUser.Builder, String) -> Unit, (LDUser.Builder, String) -> Unit>> = mapOf(
+            "secondary" to Pair({u, s -> u.secondary(s)}, {u, s -> u.privateSecondary(s)}),
+            "ip" to Pair({u, s -> u.ip(s)}, {u, s -> u.privateIp(s)}),
+            "email" to Pair({u, s -> u.email(s)}, {u ,s -> u.privateEmail(s)}),
+            "name" to Pair({u, s -> u.name(s)}, {u, s -> u.privateName(s)}),
+            "firstName" to Pair({u, s -> u.firstName(s)}, {u, s -> u.privateFirstName(s)}),
+            "lastName" to Pair({u, s -> u.lastName(s)}, {u, s -> u.privateLastName(s)}),
+            "avatar" to Pair({u, s -> u.avatar(s)}, {u, s -> u.privateAvatar(s)}),
+            "country" to Pair({u, s -> u.country(s)}, {u, s -> u.privateCountry(s)}))
+
     fun userFromMap(map: Map<String, Any>): LDUser {
       val userBuilder = LDUser.Builder(map["key"] as String)
+      val anonymous = map["anonymous"] as? Boolean
+      if (anonymous is Boolean) userBuilder.anonymous(anonymous)
+      @Suppress("UNCHECKED_CAST")
+      val privateAttrs = (map["privateAttributeNames"] as? java.util.ArrayList<String>) ?: java.util.ArrayList<String>()
+      for (field in optionalFields.keys) {
+        if (map.containsKey(field) && map[field] != null) {
+          (if (privateAttrs.contains(field)) optionalFields[field]!!.second else optionalFields[field]!!.first)(userBuilder, map[field] as String)
+        }
+      }
       return userBuilder.build()
     }
   }

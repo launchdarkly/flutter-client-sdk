@@ -1,25 +1,26 @@
 part of launchdarkly_flutter_client_sdk;
 
 class LDUser {
-  String key;
-  //String secondary;
-  bool anonymous;
+  final String key;
+  final bool anonymous;
 
-  String ip;
-  String email;
-  String name;
-  String firstName;
-  String lastName;
-  String avatar;
-  String country;
+  final String secondary;
+  final String ip;
+  final String email;
+  final String name;
+  final String firstName;
+  final String lastName;
+  final String avatar;
+  final String country;
 
-  // custom TODO
+  final Map<String, LDValue> custom;
 
-  Set<String> privateAttributeNames;
+  final Set<String> privateAttributeNames;
 
   LDUser._builder(LDUserBuilder builder) :
         key = builder._key,
         anonymous = builder._anonymous,
+        secondary = builder._secondary,
         ip = builder._ip,
         email = builder._email,
         name = builder._name,
@@ -27,12 +28,14 @@ class LDUser {
         lastName = builder._lastName,
         avatar = builder._avatar,
         country = builder._country,
+        custom = builder._custom.isEmpty ? null : Map.unmodifiable(builder._custom),
         privateAttributeNames = builder._privateAttributeNames;
 
   Map<String, dynamic> _toMap() {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['key'] = key;
     result['anonymous'] = anonymous;
+    result['secondary'] = secondary;
     result['ip'] = ip;
     result['email'] = email;
     result['name'] = name;
@@ -40,25 +43,26 @@ class LDUser {
     result['lastName'] = lastName;
     result['avatar'] = avatar;
     result['country'] = country;
+    result['custom'] = custom == null ? null : custom.map((key, value) => MapEntry(key, value._codecValue()));
     result['privateAttributeNames'] = privateAttributeNames == null ? null : privateAttributeNames.toList(growable: false);
     return result;
   }
 }
 
 class LDUserBuilder {
-  final String IP = "ip";
-  final String COUNTRY = "country";
-  final String SECONDARY = "secondary";
-  final String FIRST_NAME = "firstName";
-  final String LAST_NAME = "lastName";
-  final String EMAIL = "email";
-  final String NAME = "name";
-  final String AVATAR = "avatar";
+  static const String _IP = "ip";
+  static const String _COUNTRY = "country";
+  static const String _SECONDARY = "secondary";
+  static const String _FIRST_NAME = "firstName";
+  static const String _LAST_NAME = "lastName";
+  static const String _EMAIL = "email";
+  static const String _NAME = "name";
+  static const String _AVATAR = "avatar";
 
   String _key;
-  //String secondary;
   bool _anonymous;
 
+  String _secondary;
   String _ip;
   String _email;
   String _name;
@@ -67,12 +71,27 @@ class LDUserBuilder {
   String _avatar;
   String _country;
 
-  // custom TODO
+  Map<String, LDValue> _custom = new Map();
 
   Set<String> _privateAttributeNames;
 
   LDUserBuilder(String key) {
     this._key = key;
+  }
+
+  LDUserBuilder anonymous(bool anonymous) {
+    this._anonymous = anonymous;
+    return this;
+  }
+
+  LDUserBuilder secondary(String secondary) {
+    this._secondary = secondary;
+    return this;
+  }
+
+  LDUserBuilder privateSecondary(String secondary) {
+    _privateAttributeNames.add(_SECONDARY);
+    return this.secondary(secondary);
   }
 
   LDUserBuilder ip(String ip) {
@@ -81,7 +100,7 @@ class LDUserBuilder {
   }
 
   LDUserBuilder privateIp(String ip) {
-    _privateAttributeNames.add(IP);
+    _privateAttributeNames.add(_IP);
     return this.ip(ip);
   }
 
@@ -91,7 +110,7 @@ class LDUserBuilder {
   }
 
   LDUserBuilder privateEmail(String email) {
-    _privateAttributeNames.add(EMAIL);
+    _privateAttributeNames.add(_EMAIL);
     return this.email(email);
   }
 
@@ -101,7 +120,7 @@ class LDUserBuilder {
   }
 
   LDUserBuilder privateName(String name) {
-    _privateAttributeNames.add(NAME);
+    _privateAttributeNames.add(_NAME);
     return this.name(name);
   }
 
@@ -111,7 +130,7 @@ class LDUserBuilder {
   }
 
   LDUserBuilder privateFirstName(String firstName) {
-    _privateAttributeNames.add(FIRST_NAME);
+    _privateAttributeNames.add(_FIRST_NAME);
     return this.firstName(firstName);
   }
 
@@ -121,7 +140,7 @@ class LDUserBuilder {
   }
 
   LDUserBuilder privateLastName(String lastName) {
-    _privateAttributeNames.add(LAST_NAME);
+    _privateAttributeNames.add(_LAST_NAME);
     return this.lastName(lastName);
   }
 
@@ -131,7 +150,7 @@ class LDUserBuilder {
   }
 
   LDUserBuilder privateAvatar(String avatar) {
-    _privateAttributeNames.add(AVATAR);
+    _privateAttributeNames.add(_AVATAR);
     return this.avatar(avatar);
   }
 
@@ -141,8 +160,18 @@ class LDUserBuilder {
   }
 
   LDUserBuilder privateCountry(String country) {
-    _privateAttributeNames.add(COUNTRY);
+    _privateAttributeNames.add(_COUNTRY);
     return this.country(country);
+  }
+
+  LDUserBuilder custom(String name, LDValue value) {
+    this._custom[name] = value;
+    return this;
+  }
+
+  LDUserBuilder privateCustom(String name, LDValue value) {
+    _privateAttributeNames.add(name);
+    return this.custom(name, value);
   }
 
   LDUser build() {
