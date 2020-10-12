@@ -1,5 +1,7 @@
 part of launchdarkly_flutter_client_sdk;
 
+part 'ld_value.dart';
+
 class LDUser {
   final String key;
   final bool anonymous;
