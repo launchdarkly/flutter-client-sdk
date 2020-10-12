@@ -1,8 +1,10 @@
 library launchdarkly_flutter_client_sdk;
 
 import 'dart:async';
-
 import 'package:flutter/services.dart';
+import 'ld_value.dart';
+
+export 'ld_value.dart';
 
 part 'ld_config.dart';
 part 'ld_user.dart';
@@ -36,6 +38,10 @@ class LaunchdarklyFlutterClientSdk {
 
   static Future<String> stringVariation(String flagKey, String fallback) async {
     return _channel.invokeMethod('stringVariation', {'flagKey': flagKey, 'fallback': fallback });
+  }
+
+  static Future<LDValue> jsonVariation(String flagKey, LDValue fallback) async {
+    return _channel.invokeMethod('jsonVariation', {'flagKey': flagKey, 'fallback': fallback.codecValue()});
   }
 
   static Future<void> flush() async {

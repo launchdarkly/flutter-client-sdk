@@ -1,4 +1,4 @@
-part of launchdarkly_flutter_client_sdk;
+library ld_value;
 
 enum LDValueType {
   NULL, BOOLEAN, NUMBER, STRING, ARRAY, OBJECT
@@ -7,7 +7,7 @@ enum LDValueType {
 abstract class LDValue {
   const LDValue._const();
   LDValueType getType();
-  dynamic _codecValue();
+  dynamic codecValue();
   bool booleanValue() => false;
   double doubleValue() => 0;
   String stringValue() => "";
@@ -28,7 +28,7 @@ class _LDValueNull extends LDValue {
   const _LDValueNull._const(): super._const();
 
   LDValueType getType() => LDValueType.NULL;
-  dynamic _codecValue() => null;
+  dynamic codecValue() => null;
 }
 
 class _LDValueBool extends LDValue {
@@ -44,7 +44,7 @@ class _LDValueBool extends LDValue {
   }
 
   LDValueType getType() => LDValueType.BOOLEAN;
-  dynamic _codecValue() => _value;
+  dynamic codecValue() => _value;
 
   @override bool booleanValue() => _value;
 }
@@ -59,7 +59,7 @@ class _LDValueNumber extends LDValue {
   }
 
   LDValueType getType() => LDValueType.NUMBER;
-  dynamic _codecValue() => _value;
+  dynamic codecValue() => _value;
 
   @override double doubleValue() => _value;
 }
@@ -74,7 +74,7 @@ class _LDValueString extends LDValue {
   }
 
   LDValueType getType() => LDValueType.STRING;
-  dynamic _codecValue() => _value;
+  dynamic codecValue() => _value;
 
   @override String stringValue() => _value;
 }
@@ -89,7 +89,7 @@ class _LDValueArray extends LDValue {
   }
 
   LDValueType getType() => LDValueType.ARRAY;
-  dynamic _codecValue() => List.unmodifiable(_values.map((value) => value._codecValue()));
+  dynamic codecValue() => List.unmodifiable(_values.map((value) => value.codecValue()));
 
   @override int size() => _values.length;
   @override Iterable<LDValue> values() => _values;
@@ -106,7 +106,7 @@ class _LDValueObject extends LDValue {
   }
 
   LDValueType getType() => LDValueType.OBJECT;
-  dynamic _codecValue() => _values.map((key, value) => MapEntry(key, value._codecValue()));
+  dynamic codecValue() => _values.map((key, value) => MapEntry(key, value.codecValue()));
 
   @override int size() => _values.length;
   @override Iterable<String> keys() => _values.keys;

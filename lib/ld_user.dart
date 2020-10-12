@@ -1,7 +1,5 @@
 part of launchdarkly_flutter_client_sdk;
 
-part 'ld_value.dart';
-
 class LDUser {
   final String key;
   final bool anonymous;
@@ -45,7 +43,7 @@ class LDUser {
     result['lastName'] = lastName;
     result['avatar'] = avatar;
     result['country'] = country;
-    result['custom'] = custom == null ? null : custom.map((key, value) => MapEntry(key, value._codecValue()));
+    result['custom'] = custom == null ? null : custom.map((key, value) => MapEntry(key, value.codecValue()));
     result['privateAttributeNames'] = privateAttributeNames == null ? null : privateAttributeNames.toList(growable: false);
     return result;
   }
