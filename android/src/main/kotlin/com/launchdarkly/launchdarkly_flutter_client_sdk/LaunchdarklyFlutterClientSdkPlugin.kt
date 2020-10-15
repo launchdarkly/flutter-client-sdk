@@ -46,11 +46,67 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
 
     fun configFromMap(map: Map<String, Any>): LDConfig {
       val configBuilder = LDConfig.Builder()
-      configBuilder.setMobileKey(map["mobileKey"] as String)
-      configBuilder.setBaseUri(Uri.parse(map["baseUri"] as String))
-      configBuilder.setEventsUri(Uri.parse(map["eventsUri"] as String))
-      configBuilder.setStreamUri(Uri.parse(map["streamUri"] as String))
-
+      if (map["mobileKey"] != null) {
+        configBuilder.setMobileKey(map["mobileKey"] as String)
+      }
+      if (map["baseUri"] != null) {
+        configBuilder.setBaseUri(Uri.parse(map["baseUri"] as String))
+      }
+      if (map["eventsUri"] != null) {
+        configBuilder.setEventsUri(Uri.parse(map["eventsUri"] as String))
+      }
+      if (map["streamUri"] != null) {
+        configBuilder.setStreamUri(Uri.parse(map["streamUri"] as String))
+      }
+      if (map["eventsCapacity"] != null) {
+        configBuilder.setEventsCapacity(map["eventsCapacity"] as Int)
+      }
+      if (map["eventsFlushIntervalMillis"] != null) {
+        configBuilder.setEventsFlushIntervalMillis(map["eventsFlushIntervalMillis"] as Int)
+      }
+      if (map["connectionTimeoutMillis"] != null) {
+        configBuilder.setConnectionTimeoutMillis(map["connectionTimeoutMillis"] as Int)
+      }
+      if (map["pollingIntervalMillis"] != null) {
+        configBuilder.setPollingIntervalMillis(map["pollingIntervalMillis"] as Int)
+      }
+      if (map["backgroundPollingIntervalMillis"] != null) {
+        configBuilder.setBackgroundPollingIntervalMillis(map["backgroundPollingIntervalMillis"] as Int)
+      }
+      if (map["diagnosticRecordingIntervalMillis"] != null) {
+        configBuilder.setDiagnosticRecordingIntervalMillis(map["diagnosticRecordingIntervalMillis"] as Int)
+      }
+      if (map["stream"] != null) {
+        configBuilder.setStream(map["stream"] as Boolean)
+      }
+      if (map["offline"] != null) {
+        configBuilder.setOffline(map["offline"] as Boolean)
+      }
+      if (map["disableBackgroundUpdating"] != null) {
+        configBuilder.setDisableBackgroundUpdating(map["disableBackgroundUpdating"] as Boolean)
+      }
+      if (map["useReport"] != null) {
+        configBuilder.setUseReport(map["useReport"] as Boolean)
+      }
+      if (map["inlineUsersInEvents"] != null) {
+        configBuilder.setInlineUsersInEvents(map["inlineUsersInEvents"] as Boolean)
+      }
+      if (map["evaluationReasons"] != null) {
+        configBuilder.setEvaluationReasons(map["evaluationReasons"] as Boolean)
+      }
+      if (map["diagnosticOptOut"] != null) {
+        configBuilder.setDiagnosticOptOut(map["diagnosticOptOut"] as Boolean)
+      }
+      if (map["allAttributesPrivate"] != null && map["allAttributesPrivate"] as Boolean) {
+        configBuilder.allAttributesPrivate()
+      }
+      if (map["privateAttributeNames"] != null) {
+        val privateAttributeNames = mutableSetOf<String>()
+        for (name in map["privateAttributeNames"] as List<*>) {
+          privateAttributeNames.add(name as String)
+        }
+        configBuilder.setPrivateAttributeNames(privateAttributeNames)
+      }
       configBuilder.setWrapperName("FlutterClientSdk")
       // TODO wrapper version
       return configBuilder.build()
@@ -73,7 +129,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       @Suppress("UNCHECKED_CAST")
       val privateAttrs = (map["privateAttributeNames"] as? java.util.ArrayList<String>) ?: java.util.ArrayList<String>()
       for (field in optionalFields.keys) {
-        if (map.containsKey(field) && map[field] != null) {
+        if (map[field] != null) {
           (if (privateAttrs.contains(field)) optionalFields[field]!!.second else optionalFields[field]!!.first)(userBuilder, map[field] as String)
         }
       }
