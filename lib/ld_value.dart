@@ -9,7 +9,9 @@ abstract class LDValue {
   LDValueType getType();
   dynamic codecValue();
   bool booleanValue() => false;
+  int intValue() => 0;
   double doubleValue() => 0;
+  num numValue() => 0;
   String stringValue() => "";
   int size() => 0;
   Iterable<String> keys() => [];
@@ -17,9 +19,89 @@ abstract class LDValue {
   LDValue get(int index) => _LDValueNull.INSTANCE;
   LDValue getFor(String key) => _LDValueNull.INSTANCE;
 
-//  LDValue _fromCodecValue(dynamic value) {
-//
-//  }
+  static LDValue normalize(LDValue value) => value ?? ofNull();
+  static LDValue ofNull() => _LDValueNull.INSTANCE;
+  static LDValue ofBool(bool value) => _LDValueBool.fromBool(value);
+  static LDValue ofNum(num value) => _LDValueNumber.fromNum(value);
+  static LDValue ofString(String value) => _LDValueString.fromString(value);
+  static ArrayBuilder buildArray() => ArrayBuilder();
+  static ObjectBuilder buildObject() => ObjectBuilder();
+
+  static LDValue fromCodecValue(dynamic value) {
+    if (value == null) {
+      return LDValue.ofNull();
+    }
+    if (value is bool) {
+      return LDValue.ofBool(value);
+    }
+    if (value is num) {
+      return LDValue.ofNum(value);
+    }
+    if (value is String) {
+      return LDValue.ofString(value);
+    }
+    if (value is List) {
+      var builder = ArrayBuilder();
+      value.forEach((element) {
+        builder.addValue(LDValue.fromCodecValue(element));
+      });
+      return builder.build();
+    }
+    if (value is Map) {
+      var builder = ObjectBuilder();
+      value.forEach((key, value) {
+        builder.addValue(key, LDValue.fromCodecValue(value));
+      });
+      return builder.build();
+    }
+    return LDValue.ofNull();
+  }
+}
+
+class ArrayBuilder {
+  List<LDValue> _builder = new List();
+  bool _copyOnWrite = false;
+
+  ArrayBuilder addValue(LDValue value) {
+    if (_copyOnWrite) {
+      _builder = new List.from(_builder);
+      _copyOnWrite = false;
+    }
+    _builder.add(LDValue.normalize(value));
+    return this;
+  }
+
+  ArrayBuilder addBool(bool value) => addValue(LDValue.ofBool(value));
+  ArrayBuilder addNum(num value) => addValue(LDValue.ofNum(value));
+  ArrayBuilder addString(String value) => addValue(LDValue.ofString(value));
+
+  LDValue build() {
+    _copyOnWrite = true;
+    return _LDValueArray.fromList(_builder);
+  }
+}
+
+class ObjectBuilder {
+  Map<String, LDValue> _builder = new Map();
+  bool _copyOnWrite = false;
+
+  ObjectBuilder addValue(String key, LDValue value) {
+    if (_copyOnWrite) {
+      _builder = new Map.from(_builder);
+      _copyOnWrite = false;
+    }
+    _builder[key] = LDValue.normalize(value);
+    return this;
+  }
+
+  ObjectBuilder addBool(String key, bool value) => addValue(key, LDValue.ofBool(value));
+  ObjectBuilder addNum(String key, num value) => addValue(key, LDValue.ofNum(value));
+  ObjectBuilder addString(String key, String value) => addValue(key, LDValue.ofString(value));
+
+  LDValue build() {
+    _copyOnWrite = true;
+    return _LDValueObject.fromMap(_builder);
+  }
 }
 
 class _LDValueNull extends LDValue {
@@ -50,18 +132,20 @@ class _LDValueBool extends LDValue {
 }
 
 class _LDValueNumber extends LDValue {
-  final double _value;
+  final num _value;
 
-  const _LDValueNumber._const(double value): _value = value, super._const();
+  const _LDValueNumber._const(num value): _value = value, super._const();
 
-  static LDValue fromDouble(double value) {
+  static LDValue fromNum(num value) {
     return value == null ? _LDValueNull.INSTANCE : _LDValueNumber._const(value);
   }
 
   LDValueType getType() => LDValueType.NUMBER;
   dynamic codecValue() => _value;
 
-  @override double doubleValue() => _value;
+  @override int intValue() => _value.toInt();
+  @override double doubleValue() => _value.toDouble();
+  @override num numValue() => _value;
 }
 
 class _LDValueString extends LDValue {
