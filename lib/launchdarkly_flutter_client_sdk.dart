@@ -45,7 +45,7 @@ class LaunchdarklyFlutterClientSdk {
   }
 
   static Future<Map<String, LDValue>> allFlags() async {
-    Map<String, dynamic> allFlagsDyn = await _channel.invokeMethod('allFlags');
+    Map<dynamic, dynamic> allFlagsDyn = await _channel.invokeMethod('allFlags');
     Map<String, LDValue> allFlagsRes = Map();
     allFlagsDyn.forEach((key, value) {
         allFlagsRes[key] = LDValue.fromCodecValue(value);
