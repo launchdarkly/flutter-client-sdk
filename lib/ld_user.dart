@@ -15,7 +15,7 @@ class LDUser {
 
   final Map<String, LDValue> custom;
 
-  final Set<String> privateAttributeNames;
+  final List<String> privateAttributeNames;
 
   LDUser._builder(LDUserBuilder builder) :
         key = builder._key,
@@ -29,7 +29,7 @@ class LDUser {
         avatar = builder._avatar,
         country = builder._country,
         custom = builder._custom.isEmpty ? null : Map.unmodifiable(builder._custom),
-        privateAttributeNames = builder._privateAttributeNames;
+        privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
 
   Map<String, dynamic> _toMap() {
     final Map<String, dynamic> result = <String, dynamic>{};
@@ -43,8 +43,8 @@ class LDUser {
     result['lastName'] = lastName;
     result['avatar'] = avatar;
     result['country'] = country;
-    result['custom'] = custom == null ? null : custom.map((key, value) => MapEntry(key, value.codecValue()));
-    result['privateAttributeNames'] = privateAttributeNames == null ? null : privateAttributeNames.toList(growable: false);
+    result['custom'] = custom?.map((key, value) => MapEntry(key, value.codecValue()));
+    result['privateAttributeNames'] = privateAttributeNames;
     return result;
   }
 }
@@ -73,7 +73,7 @@ class LDUserBuilder {
 
   Map<String, LDValue> _custom = new Map();
 
-  Set<String> _privateAttributeNames;
+  Set<String> _privateAttributeNames = new Set();
 
   LDUserBuilder(String key) {
     this._key = key;

@@ -24,24 +24,25 @@ class LaunchdarklyFlutterClientSdk {
     return _channel.invokeMethod('track', {'eventName': eventName });
   }
 
-  static Future<bool> boolVariation(String flagKey, bool fallback) async {
-    return _channel.invokeMethod('boolVariation', {'flagKey': flagKey, 'fallback': fallback });
+  static Future<bool> boolVariation(String flagKey, bool defaultValue) async {
+    return _channel.invokeMethod('boolVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
   }
 
-  static Future<int> intVariation(String flagKey, int fallback) async {
-    return _channel.invokeMethod('intVariation', {'flagKey': flagKey, 'fallback': fallback });
+  static Future<int> intVariation(String flagKey, int defaultValue) async {
+    return _channel.invokeMethod('intVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
   }
 
-  static Future<double> doubleVariation(String flagKey, double fallback) async {
-    return _channel.invokeMethod('doubleVariation', {'flagKey': flagKey, 'fallback': fallback });
+  static Future<double> doubleVariation(String flagKey, double defaultValue) async {
+    return _channel.invokeMethod('doubleVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
   }
 
-  static Future<String> stringVariation(String flagKey, String fallback) async {
-    return _channel.invokeMethod('stringVariation', {'flagKey': flagKey, 'fallback': fallback });
+  static Future<String> stringVariation(String flagKey, String defaultValue) async {
+    return _channel.invokeMethod('stringVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
   }
 
-  static Future<LDValue> jsonVariation(String flagKey, LDValue fallback) async {
-    return _channel.invokeMethod('jsonVariation', {'flagKey': flagKey, 'fallback': fallback.codecValue()});
+  static Future<LDValue> jsonVariation(String flagKey, LDValue defaultValue) async {
+    dynamic result = _channel.invokeMethod('jsonVariation', {'flagKey': flagKey, 'defaultValue': defaultValue.codecValue()});
+    return LDValue.fromCodecValue(result);
   }
 
   static Future<Map<String, LDValue>> allFlags() async {
