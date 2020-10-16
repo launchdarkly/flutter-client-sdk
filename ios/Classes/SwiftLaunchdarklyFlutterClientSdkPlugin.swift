@@ -13,13 +13,13 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
   func configFrom(dict: Dictionary<String, Any?>) -> LDConfig {
     var config = LDConfig(mobileKey: dict["mobileKey"] as! String)
     if let baseUrl = dict["baseUri"] as? String {
-        config.baseUrl = baseUrl
+        config.baseUrl = URL(string: baseUrl)!
     }
     if let eventsUrl = dict["eventsUri"] as? String {
-        config.eventsUrl = eventsUrl
+        config.eventsUrl = URL(string: eventsUrl)!
     }
     if let streamUrl = dict["streamUri"] as? String {
-        config.streamUrl = streamUrl
+        config.streamUrl = URL(string: streamUrl)!
     }
     if let eventsCapacity = dict["eventsCapacity"] as? Int {
         config.eventCapacity = eventsCapacity
@@ -63,7 +63,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     if let allAttributesPrivate = dict["allAttributesPrivate"] as? Bool {
         config.allUserAttributesPrivate = allAttributesPrivate
     }
-    if let privateAttributeNames = dict["privateAttributeNames"] as [Any] {
+    if let privateAttributeNames = dict["privateAttributeNames"] as? [Any] {
         config.privateUserAttributes = privateAttributeNames.compactMap { $0 as? String }
     }
     config.wrapperName = "FlutterClientSdk"
@@ -110,17 +110,17 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String))
     case "jsonVariation":
       let flagKey = args?["flagKey"] as! String
-      if let defaultValue = args["defaultValue"] as? Bool {
+      if let defaultValue = args?["defaultValue"] as? Bool {
         result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
-      } else if let defaultValue = args["defaultValue"] as? Int {
+      } else if let defaultValue = args?["defaultValue"] as? Int {
         result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
-      } else if let defaultValue = args["defaultValue"] as? Double {
+      } else if let defaultValue = args?["defaultValue"] as? Double {
         result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
-      } else if let defaultValue = args["defaultValue"] as? String {
+      } else if let defaultValue = args?["defaultValue"] as? String {
         result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
-      } else if let defaultValue = args["defaultValue"] as? [Any] {
+      } else if let defaultValue = args?["defaultValue"] as? [Any] {
         result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
-      } else if let defaultValue = args["defaultValue"] as? [String: Any] {
+      } else if let defaultValue = args?["defaultValue"] as? [String: Any] {
         result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
       } else {
         result(nil)
