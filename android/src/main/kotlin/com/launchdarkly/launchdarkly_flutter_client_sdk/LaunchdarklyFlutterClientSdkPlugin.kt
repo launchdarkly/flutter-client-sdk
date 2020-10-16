@@ -224,7 +224,8 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         result.success(null)
       }
       "track" -> {
-        LDClient.get().track(call.argument("eventName"))
+        val data = jsonElementFromBridge(call.argument("data"))
+        LDClient.get().track(call.argument("eventName"), data, call.argument("metricValue"))
         result.success(null)
       }
       "boolVariation" -> {

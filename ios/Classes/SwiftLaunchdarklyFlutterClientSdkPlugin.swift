@@ -99,7 +99,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
         result(nil)
       }
     case "track":
-      try! LDClient.get()!.track(key: args?["eventName"] as! String)
+        try? LDClient.get()!.track(key: args?["eventName"] as! String, data: args?["data"], metricValue: args?["metricValue"] as? Double)
     case "boolVariation":
       result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool))
     case "intVariation":

@@ -20,8 +20,9 @@ class LaunchdarklyFlutterClientSdk {
     return _channel.invokeMethod('identify', {'user': user._toMap()});
   }
 
-  static Future<void> track(String eventName) async {
-    return _channel.invokeMethod('track', {'eventName': eventName });
+  static Future<void> track(String eventName, {LDValue data, num metricValue}) async {
+    var args = {'eventName': eventName, 'data': LDValue.normalize(data).codecValue(), 'metricValue': metricValue?.toDouble()};
+    return _channel.invokeMethod('track', args);
   }
 
   static Future<bool> boolVariation(String flagKey, bool defaultValue) async {
