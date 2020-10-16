@@ -3,7 +3,7 @@ package com.launchdarkly.launchdarkly_flutter_client_sdk
 import android.app.Application
 import android.net.Uri
 
-import androidx.annotation.NonNull;
+import androidx.annotation.NonNull
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -133,6 +133,10 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
           (if (privateAttrs.contains(field)) optionalFields[field]!!.second else optionalFields[field]!!.first)(userBuilder, map[field] as String)
         }
       }
+      if (map["custom"] != null) {
+//        for (entry in (map["custom"] as Map<String, Any>)) {
+//        }
+      }
       return userBuilder.build()
     }
   }
@@ -171,6 +175,9 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       "stringVariation" -> {
         val evalResult = LDClient.get().stringVariation(call.argument("flagKey"), call.argument("fallback"))
         result.success(evalResult)
+      }
+      "allFlags" -> {
+        result.success(LDClient.get().allFlags())
       }
       "setOnline" -> {
         val online: Boolean? = call.argument("online")

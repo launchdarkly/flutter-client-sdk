@@ -44,6 +44,15 @@ class LaunchdarklyFlutterClientSdk {
     return _channel.invokeMethod('jsonVariation', {'flagKey': flagKey, 'fallback': fallback.codecValue()});
   }
 
+  static Future<Map<String, LDValue>> allFlags() async {
+    Map<String, dynamic> allFlagsDyn = await _channel.invokeMethod('allFlags');
+    Map<String, LDValue> allFlagsRes = Map();
+    allFlagsDyn.forEach((key, value) {
+        allFlagsRes[key] = LDValue.fromCodecValue(value);
+    });
+    return allFlagsRes;
+  }
+
   static Future<void> flush() async {
     return _channel.invokeMethod('flush');
   }
