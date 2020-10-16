@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 
 import androidx.annotation.NonNull
+import com.google.gson.*
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -127,7 +128,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       val anonymous = map["anonymous"] as? Boolean
       if (anonymous is Boolean) userBuilder.anonymous(anonymous)
       @Suppress("UNCHECKED_CAST")
-      val privateAttrs = (map["privateAttributeNames"] as? java.util.ArrayList<String>) ?: java.util.ArrayList<String>()
+      val privateAttrs = (map["privateAttributeNames"] as? ArrayList<String>) ?: ArrayList()
       for (field in optionalFields.keys) {
         if (map[field] != null) {
           (if (privateAttrs.contains(field)) optionalFields[field]!!.second else optionalFields[field]!!.first)(userBuilder, map[field] as String)
@@ -139,18 +140,86 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       }
       return userBuilder.build()
     }
+
+    fun jsonElementFromBridge(dyn: Any?): JsonElement {
+      when (dyn) {
+        null -> {
+          return JsonNull.INSTANCE
+        }
+        is Boolean -> {
+          return JsonPrimitive(dyn)
+        }
+        is Int -> {
+          return JsonPrimitive(dyn)
+        }
+        is Long -> {
+          return JsonPrimitive(dyn)
+        }
+        is Double -> {
+          return JsonPrimitive(dyn)
+        }
+        is String -> {
+          return JsonPrimitive(dyn)
+        }
+        is ArrayList<*> -> {
+          val jsonArr = JsonArray()
+          dyn.forEach {
+            jsonArr.add(jsonElementFromBridge(it))
+          }
+          return jsonArr
+        }
+        else -> {
+          val jsonObj = JsonObject()
+          (dyn as HashMap<*, *>).forEach {
+            jsonObj.add(it.key as String, jsonElementFromBridge(it.value))
+          }
+          return jsonObj
+        }
+      }
+    }
+
+    fun jsonElementToBridge(jsonElement: JsonElement?): Any? {
+      when {
+        jsonElement == null || jsonElement.isJsonNull -> {
+          return null;
+        }
+        jsonElement is JsonPrimitive && jsonElement.isBoolean -> {
+          return jsonElement.asBoolean
+        }
+        jsonElement is JsonPrimitive && jsonElement.isNumber -> {
+          return jsonElement.asDouble
+        }
+        jsonElement is JsonPrimitive -> {
+          return jsonElement.asString
+        }
+        jsonElement is JsonArray -> {
+          val res = ArrayList<Any?>()
+          jsonElement.forEach {
+            res.add(jsonElementToBridge(it))
+          }
+          return res
+        }
+        else -> {
+          val res = HashMap<String, Any?>()
+          jsonElement.asJsonObject.entrySet().forEach {
+            res[it.key] = jsonElementToBridge(it.value)
+          }
+          return res
+        }
+      }
+    }
   }
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "start" -> {
-        val ldConfig: LDConfig = LaunchdarklyFlutterClientSdkPlugin.configFromMap(call.argument("config")!!)
-        val ldUser: LDUser = LaunchdarklyFlutterClientSdkPlugin.userFromMap(call.argument("user")!!)
+        val ldConfig: LDConfig = configFromMap(call.argument("config")!!)
+        val ldUser: LDUser = userFromMap(call.argument("user")!!)
         val ldClient: LDClient = LDClient.init(application, ldConfig, ldUser, 5)
         result.success(null)
       }
       "identify" -> {
-        val ldUser: LDUser = LaunchdarklyFlutterClientSdkPlugin.userFromMap(call.argument("user")!!)
+        val ldUser: LDUser = userFromMap(call.argument("user")!!)
         LDClient.get().identify(ldUser).get()
         result.success(null)
       }
@@ -159,22 +228,26 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         result.success(null)
       }
       "boolVariation" -> {
-        val evalResult = LDClient.get().boolVariation(call.argument("flagKey"), call.argument("fallback"))
+        val evalResult = LDClient.get().boolVariation(call.argument("flagKey"), call.argument("defaultValue"))
         result.success(evalResult)
       }
       "intVariation" -> {
         // TODO: bridge can provide Long rather than int if number is larger than MAXINT
-        val evalResult = LDClient.get().intVariation(call.argument("flagKey"), call.argument("fallback"))
+        val evalResult = LDClient.get().intVariation(call.argument("flagKey"), call.argument("defaultValue"))
         result.success(evalResult)
       }
       "doubleVariation" -> {
-        val fallback: Double? = call.argument("fallback")
-        val evalResult = LDClient.get().floatVariation(call.argument("flagKey"), fallback?.toFloat())
+        val defaultValue: Double? = call.argument("defaultValue")
+        val evalResult = LDClient.get().floatVariation(call.argument("flagKey"), defaultValue?.toFloat())
         result.success(evalResult)
       }
       "stringVariation" -> {
-        val evalResult = LDClient.get().stringVariation(call.argument("flagKey"), call.argument("fallback"))
+        val evalResult = LDClient.get().stringVariation(call.argument("flagKey"), call.argument("defaultValue"))
         result.success(evalResult)
+      }
+      "jsonVariation" -> {
+        val evalResult = LDClient.get().jsonVariation(call.argument("flagKey"), jsonElementFromBridge(call.argument("defaultValue")))
+        result.success(jsonElementToBridge(evalResult))
       }
       "allFlags" -> {
         result.success(LDClient.get().allFlags())

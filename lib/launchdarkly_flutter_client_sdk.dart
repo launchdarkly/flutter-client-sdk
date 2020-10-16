@@ -41,7 +41,7 @@ class LaunchdarklyFlutterClientSdk {
   }
 
   static Future<LDValue> jsonVariation(String flagKey, LDValue defaultValue) async {
-    dynamic result = _channel.invokeMethod('jsonVariation', {'flagKey': flagKey, 'defaultValue': defaultValue.codecValue()});
+    dynamic result = await _channel.invokeMethod('jsonVariation', {'flagKey': flagKey, 'defaultValue': defaultValue.codecValue()});
     return LDValue.fromCodecValue(result);
   }
 
