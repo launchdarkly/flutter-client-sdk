@@ -111,17 +111,17 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     case "jsonVariation":
       let flagKey = args?["flagKey"] as! String
       if let defaultValue = args?["defaultValue"] as? Bool {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
+        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as Bool)
       } else if let defaultValue = args?["defaultValue"] as? Int {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
+        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as Int)
       } else if let defaultValue = args?["defaultValue"] as? Double {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
+        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as Double)
       } else if let defaultValue = args?["defaultValue"] as? String {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
+        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as String)
       } else if let defaultValue = args?["defaultValue"] as? [Any] {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
+        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as [Any])
       } else if let defaultValue = args?["defaultValue"] as? [String: Any] {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue))
+        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as [String: Any])
       } else {
         result(nil)
       }
