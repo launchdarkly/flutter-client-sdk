@@ -103,12 +103,24 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
         try? LDClient.get()!.track(key: args?["eventName"] as! String, data: args?["data"], metricValue: args?["metricValue"] as? Double)
     case "boolVariation":
       result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool))
+    case "boolVariationDetail":
+      let detail = LDClient.get()!.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool)
+      result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
     case "intVariation":
       result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Int))
+    case "intVariationDetail":
+      let detail = LDClient.get()!.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Int)
+      result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
     case "doubleVariation":
       result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Double))
+    case "doubleVariationDetail":
+      let detail = LDClient.get()!.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Double)
+      result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
     case "stringVariation":
       result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String))
+    case "stringVariationDetail":
+      let detail = LDClient.get()!.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String)
+      result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
     case "jsonVariation":
       let flagKey = args?["flagKey"] as! String
       if let defaultValue = args?["defaultValue"] as? Bool {
@@ -123,6 +135,29 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
         result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as [Any])
       } else if let defaultValue = args?["defaultValue"] as? [String: Any] {
         result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as [String: Any])
+      } else {
+        result(nil)
+      }
+    case "jsonVariationDetail":
+      let flagKey = args?["flagKey"] as! String
+      if let defaultValue = args?["defaultValue"] as? Bool {
+        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
+      } else if let defaultValue = args?["defaultValue"] as? Int {
+        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
+      } else if let defaultValue = args?["defaultValue"] as? Double {
+        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
+      } else if let defaultValue = args?["defaultValue"] as? String {
+        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
+      } else if let defaultValue = args?["defaultValue"] as? [Any] {
+        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
+      } else if let defaultValue = args?["defaultValue"] as? [String: Any] {
+        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
       } else {
         result(nil)
       }

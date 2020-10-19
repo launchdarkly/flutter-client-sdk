@@ -5,6 +5,10 @@ import android.net.Uri
 
 import androidx.annotation.NonNull
 import com.google.gson.*
+import com.launchdarkly.android.LDClient
+import com.launchdarkly.android.LDConfig
+import com.launchdarkly.android.LDUser
+import com.launchdarkly.android.EvaluationReason
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -12,15 +16,6 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
-
-import com.launchdarkly.android.LDAllFlagsListener
-import com.launchdarkly.android.ConnectionInformation
-import com.launchdarkly.android.FeatureFlagChangeListener
-import com.launchdarkly.android.LDClient
-import com.launchdarkly.android.LDConfig
-import com.launchdarkly.android.LDFailure
-import com.launchdarkly.android.LDStatusListener
-import com.launchdarkly.android.LDUser
 
 public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandler {
   private lateinit var channel : MethodChannel
@@ -220,7 +215,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
     fun jsonElementToBridge(jsonElement: JsonElement?): Any? {
       when {
         jsonElement == null || jsonElement.isJsonNull -> {
-          return null;
+          return null
         }
         jsonElement is JsonPrimitive && jsonElement.isBoolean -> {
           return jsonElement.asBoolean
@@ -247,6 +242,28 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         }
       }
     }
+
+    fun detailToBridge(value: Any?, variationIndex: Int, reason: EvaluationReason): Any? {
+      val res = HashMap<String, Any?>()
+      res["value"] = value
+      res["variationIndex"] = variationIndex
+      val reasonRes = HashMap<String, Any?>()
+      reasonRes["kind"] = reason.kind.name
+      when (reason) {
+        is EvaluationReason.RuleMatch -> {
+          reasonRes["ruleIndex"] = reason.ruleIndex
+          reasonRes["ruleId"] = reason.ruleId
+        }
+        is EvaluationReason.PrerequisiteFailed -> {
+          reasonRes["prerequisiteKey"] = reason.prerequisiteKey
+        }
+        is EvaluationReason.Error -> {
+          reasonRes["errorKind"] = reason.errorKind.name
+        }
+      }
+      res["reason"] = reasonRes
+      return res
+    }
   }
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
@@ -271,23 +288,45 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         val evalResult = LDClient.get().boolVariation(call.argument("flagKey"), call.argument("defaultValue"))
         result.success(evalResult)
       }
+      "boolVariationDetail" -> {
+        val evalResult = LDClient.get().boolVariationDetail(call.argument("flagKey"), call.argument("defaultValue"))
+        result.success(detailToBridge(evalResult.value, evalResult.variationIndex, evalResult.reason))
+      }
       "intVariation" -> {
-        // TODO: bridge can provide Long rather than int if number is larger than MAXINT
         val evalResult = LDClient.get().intVariation(call.argument("flagKey"), call.argument("defaultValue"))
         result.success(evalResult)
+      }
+      "intVariationDetail" -> {
+        val evalResult = LDClient.get().intVariationDetail(call.argument("flagKey"), call.argument("defaultValue"))
+        result.success(detailToBridge(evalResult.value, evalResult.variationIndex, evalResult.reason))
       }
       "doubleVariation" -> {
         val defaultValue: Double? = call.argument("defaultValue")
         val evalResult = LDClient.get().floatVariation(call.argument("flagKey"), defaultValue?.toFloat())
         result.success(evalResult)
       }
+      "doubleVariationDetail" -> {
+        val defaultValue: Double? = call.argument("defaultValue")
+        val evalResult = LDClient.get().floatVariationDetail(call.argument("flagKey"), defaultValue?.toFloat())
+        result.success(detailToBridge(evalResult.value, evalResult.variationIndex, evalResult.reason))
+      }
       "stringVariation" -> {
         val evalResult = LDClient.get().stringVariation(call.argument("flagKey"), call.argument("defaultValue"))
         result.success(evalResult)
       }
+      "stringVariationDetail" -> {
+        val evalResult = LDClient.get().stringVariationDetail(call.argument("flagKey"), call.argument("defaultValue"))
+        result.success(detailToBridge(evalResult.value, evalResult.variationIndex, evalResult.reason))
+      }
       "jsonVariation" -> {
-        val evalResult = LDClient.get().jsonVariation(call.argument("flagKey"), jsonElementFromBridge(call.argument("defaultValue")))
+        val defaultValue = jsonElementFromBridge(call.argument("defaultValue"))
+        val evalResult = LDClient.get().jsonVariation(call.argument("flagKey"), defaultValue)
         result.success(jsonElementToBridge(evalResult))
+      }
+      "jsonVariationDetail" -> {
+        val defaultValue = jsonElementFromBridge(call.argument("defaultValue"))
+        val evalResult = LDClient.get().jsonVariationDetail(call.argument("flagKey"), defaultValue)
+        result.success(detailToBridge(jsonElementToBridge(evalResult.value), evalResult.variationIndex, evalResult.reason))
       }
       "allFlags" -> {
         result.success(LDClient.get().allFlags())
