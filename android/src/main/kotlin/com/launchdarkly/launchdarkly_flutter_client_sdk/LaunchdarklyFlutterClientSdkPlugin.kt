@@ -135,8 +135,53 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         }
       }
       if (map["custom"] != null) {
-//        for (entry in (map["custom"] as Map<String, Any>)) {
-//        }
+        for (entry in (map["custom"] as Map<String, Any>)) {
+          val value = entry.value
+          if (value is Boolean) {
+            if (privateAttrs.contains(entry.key)) {
+              userBuilder.privateCustom(entry.key, value)
+            } else {
+              userBuilder.custom(entry.key, value)
+            }
+          }
+          else if (value is Number) {
+            if (privateAttrs.contains(entry.key)) {
+              userBuilder.privateCustom(entry.key, value)
+            } else {
+              userBuilder.custom(entry.key, value)
+            }
+          }
+          else if (value is String) {
+            if (privateAttrs.contains(entry.key)) {
+              userBuilder.privateCustom(entry.key, value)
+            } else {
+              userBuilder.custom(entry.key, value)
+            }
+          }
+          else if (value is List<*>) {
+            if (value.isEmpty()) {
+              if (privateAttrs.contains(entry.key)) {
+                userBuilder.privateCustomNumber(entry.key, ArrayList())
+              } else {
+                userBuilder.customNumber(entry.key, ArrayList())
+              }
+            }
+            else if (value[0] is Number) {
+              if (privateAttrs.contains(entry.key)) {
+                userBuilder.privateCustomNumber(entry.key, value as List<Number>)
+              } else {
+                userBuilder.customNumber(entry.key, value as List<Number>)
+              }
+            }
+            else if (value[0] is String) {
+              if (privateAttrs.contains(entry.key)) {
+                userBuilder.privateCustomString(entry.key, value as List<String>)
+              } else {
+                userBuilder.customString(entry.key, value as List<String>)
+              }
+            }
+          }
+        }
       }
       return userBuilder.build()
     }
@@ -149,13 +194,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         is Boolean -> {
           return JsonPrimitive(dyn)
         }
-        is Int -> {
-          return JsonPrimitive(dyn)
-        }
-        is Long -> {
-          return JsonPrimitive(dyn)
-        }
-        is Double -> {
+        is Number -> {
           return JsonPrimitive(dyn)
         }
         is String -> {

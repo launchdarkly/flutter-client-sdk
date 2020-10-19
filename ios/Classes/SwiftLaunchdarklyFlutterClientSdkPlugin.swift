@@ -83,6 +83,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     user.avatar = dict["avatar"] as? String
     user.country = dict["country"] as? String
     user.privateAttributes = dict["privateAttributeNames"] as? [String]
+    user.custom = dict["custom"] as? [String: Any]
     return user
   }
 
