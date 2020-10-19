@@ -243,12 +243,12 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       }
     }
 
-    fun detailToBridge(value: Any?, variationIndex: Int, reason: EvaluationReason): Any? {
+    fun detailToBridge(value: Any?, variationIndex: Int?, reason: EvaluationReason?): Any? {
       val res = HashMap<String, Any?>()
       res["value"] = value
       res["variationIndex"] = variationIndex
       val reasonRes = HashMap<String, Any?>()
-      reasonRes["kind"] = reason.kind.name
+      reasonRes["kind"] = reason?.kind?.name
       when (reason) {
         is EvaluationReason.RuleMatch -> {
           reasonRes["ruleIndex"] = reason.ruleIndex
