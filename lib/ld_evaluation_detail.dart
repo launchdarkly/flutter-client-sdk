@@ -21,10 +21,10 @@ class LDEvaluationReason {
   final LDErrorKind errorKind;
 
   static LDEvaluationReason _fromCodecValue(dynamic value) {
-    if (!(value is Map<String, dynamic>)) {
+    if (!(value is Map)) {
       return null;
     }
-    var map = value as Map<String, dynamic>;
+    Map<String, dynamic> map = Map.from(value as Map);
     switch (map['kind']) {
       case 'OFF': return off();
       case 'FALLTHROUGH': return fallthrough();
