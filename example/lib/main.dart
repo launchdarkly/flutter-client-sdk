@@ -124,8 +124,6 @@ class _MyAppState extends State<MyApp> {
               Row(children: [Text("$evalResult", textAlign: TextAlign.start)]),
               Spacer(),
               Divider(),
-              Row(children: [Expanded(child: Text('Connection Status\n\n\n', style: TextStyle(color: Colors.grey)))]),
-              Divider(),
               Row(children: [
                 Expanded(child: TextField(onChanged: (text) { setState(() { userKey = text; }); },
                     decoration: InputDecoration.collapsed(hintText: 'User Key', border: UnderlineInputBorder()))),
