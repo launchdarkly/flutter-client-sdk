@@ -4,9 +4,20 @@ import UIKit
 import LaunchDarkly
 
 public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
+  private let channel: FlutterMethodChannel
+  private let flagChangeListener: LDFlagChangeHandler
+  private var owners: [String: LDObserverOwner] = [:]
+
+  private init(channel: FlutterMethodChannel) {
+    self.channel = channel
+    self.flagChangeListener = { (changedFlag: LDChangedFlag) in
+      channel.invokeMethod("handleFlagUpdate", arguments: changedFlag.key)
+    }
+  }
+
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "launchdarkly_flutter_client_sdk", binaryMessenger: registrar.messenger())
-    let instance = SwiftLaunchdarklyFlutterClientSdkPlugin()
+    let instance = SwiftLaunchdarklyFlutterClientSdkPlugin(channel: channel)
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
@@ -66,8 +77,12 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     if let privateAttributeNames = dict["privateAttributeNames"] as? [Any] {
         config.privateUserAttributes = privateAttributeNames.compactMap { $0 as? String }
     }
-    config.wrapperName = "FlutterClientSdk"
-    // TODO wrapperVersion
+    if let wrapperName = dict["wrapperName"] as? String {
+        config.wrapperName = wrapperName
+    }
+    if let wrapperVersion = dict["wrapperVersion"] as? String {
+        config.wrapperVersion = wrapperVersion
+    }
     return config
   }
 
@@ -87,6 +102,35 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     return user
   }
 
+  func toBridge(failureReason: ConnectionInformation.LastConnectionFailureReason?) -> Dictionary<String, Any?>? {
+    switch failureReason {
+    case .httpError, .unauthorized:
+      return ["message": failureReason?.description, "failureType": "UNEXPECTED_RESPONSE_CODE"]
+    case .unknownError(let message):
+      return ["message": message, "failureType": "UNKNOWN_ERROR"]
+    default:
+      return nil
+    }
+  }
+
+  let connectionModeMap = [ConnectionInformation.ConnectionMode.streaming: "STREAMING",
+                           ConnectionInformation.ConnectionMode.establishingStreamingConnection: "STREAMING",
+                           ConnectionInformation.ConnectionMode.polling: "POLLING",
+                           ConnectionInformation.ConnectionMode.offline: "OFFLINE"]
+  func toBridge(connectionInformation: ConnectionInformation?) -> Dictionary<String, Any?>? {
+    guard let connectionInformation = connectionInformation
+    else { return nil }
+    var res: [String: Any?] = ["connectionState": connectionModeMap[connectionInformation.currentConnectionMode],
+                               "lastFailure": toBridge(failureReason: connectionInformation.lastConnectionFailureReason)]
+    if let lastSuccessfulConnection = connectionInformation.lastKnownFlagValidity {
+      res["lastSuccessfulConnection"] = Int64(floor(lastSuccessfulConnection.timeIntervalSince1970 * 1_000))
+    }
+    if let lastFailedConnection = connectionInformation.lastFailedConnection {
+      res["lastFailedConnection"] = Int64(floor(lastFailedConnection.timeIntervalSince1970 * 1_000))
+    }
+    return res
+  }
+
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? Dictionary<String, Any>
     switch call.method {
@@ -95,12 +139,15 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
                      user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
         result(nil)
       }
+      LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+      LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
     case "identify":
       LDClient.get()!.identify(user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
         result(nil)
       }
     case "track":
-        try? LDClient.get()!.track(key: args?["eventName"] as! String, data: args?["data"], metricValue: args?["metricValue"] as? Double)
+      try? LDClient.get()!.track(key: args?["eventName"] as! String, data: args?["data"], metricValue: args?["metricValue"] as? Double)
+      result(nil)
     case "boolVariation":
       result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool))
     case "boolVariationDetail":
@@ -163,17 +210,39 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       }
     case "allFlags":
         result(LDClient.get()!.allFlags)
+    case "flush":
+      LDClient.get()!.flush()
+      result(nil)
     case "setOnline":
       let online: Bool? = args?["online"] as? Bool
       if let online = online {
         LDClient.get()!.setOnline(online)
       }
       result(nil)
-    case "flush":
-      LDClient.get()!.flush()
+    case "isOnline":
+      result(LDClient.get()?.isOnline)
+    case "getConnectionInformation":
+      result(toBridge(connectionInformation: LDClient.get()!.getConnectionInformation()))
+    case "startFlagListening":
+      let flagKey = call.arguments as! String
+      let observerOwner = Owner();
+      owners[flagKey] = observerOwner;
+      LDClient.get()!.observe(key: flagKey, owner: observerOwner, handler: flagChangeListener)
+      result(nil)
+    case "stopFlagListening":
+      let flagKey = call.arguments as! String
+      if let owner = owners[flagKey] {
+        LDClient.get()!.stopObserving(owner: owner)
+        owners[flagKey] = nil
+      }
+      result(nil)
+    case "close":
+      LDClient.get()!.close()
       result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }
   }
 }
+
+private class Owner { }

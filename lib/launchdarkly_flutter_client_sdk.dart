@@ -2,6 +2,7 @@ library launchdarkly_flutter_client_sdk;
 
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:quiver/collection.dart';
 import 'ld_value.dart';
 
 export 'ld_value.dart';
@@ -9,16 +10,43 @@ export 'ld_value.dart';
 part 'ld_config.dart';
 part 'ld_user.dart';
 part 'ld_evaluation_detail.dart';
+part 'ld_connection_information.dart';
+
+typedef void LDFlagsReceivedCallback(List<String> changedFlagKeys);
+typedef void LDFlagUpdatedCallback(String flagKey);
 
 class LaunchdarklyFlutterClientSdk {
+  static const String _sdkVersion = "0.0.1";
   static const MethodChannel _channel = const MethodChannel('launchdarkly_flutter_client_sdk');
 
+  static List<LDFlagsReceivedCallback> _flagsReceivedCallbacks = [];
+  static SetMultimap<String, LDFlagUpdatedCallback> _flagUpdateCallbacks = SetMultimap();
+
+  static Future<void> handleCallbacks(MethodCall call) async {
+    switch (call.method) {
+      case 'handleFlagsReceived':
+        var changedFlags = List.castFrom<dynamic, String>(call.arguments ?? []);
+        _flagsReceivedCallbacks.forEach((callback) {
+          callback(changedFlags);
+        });
+        break;
+      case 'handleFlagUpdate':
+        if (call.arguments is! String) return;
+        var flagKey = call.arguments as String;
+        _flagUpdateCallbacks[flagKey].forEach((callback) {
+          callback(flagKey);
+        });
+        break;
+    }
+  }
+
   static Future<void> start(LDConfig config, LDUser user) async {
-    return _channel.invokeMethod('start', {'config': config._toMap(), 'user': user._toMap()});
+    _channel.setMethodCallHandler(handleCallbacks);
+    return _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'user': user._toCodecValue()});
   }
 
   static Future<void> identify(LDUser user) async {
-    return _channel.invokeMethod('identify', {'user': user._toMap()});
+    return _channel.invokeMethod('identify', {'user': user._toCodecValue()});
   }
 
   static Future<void> track(String eventName, {LDValue data, num metricValue}) async {
@@ -87,5 +115,41 @@ class LaunchdarklyFlutterClientSdk {
 
   static Future<void> setOnline(bool online) async {
     return _channel.invokeMethod('setOnline', {'online': online });
+  }
+
+  static Future<bool> isOnline() async {
+    return _channel.invokeMethod('isOnline');
+  }
+
+  static Future<LDConnectionInformation> getConnectionInformation() async {
+    Map<String, dynamic> result = await _channel.invokeMapMethod('getConnectionInformation');
+    return LDConnectionInformation._fromCodecValue(result);
+  }
+
+  static Future<void> close() async {
+    return _channel.invokeMethod('close');
+  }
+
+  static Future<void> registerFeatureFlagListener(String flagKey, LDFlagUpdatedCallback flagUpdateCallback) async {
+    var isOnlyListenerForFlag = _flagUpdateCallbacks[flagKey].isEmpty;
+    _flagUpdateCallbacks.add(flagKey, flagUpdateCallback);
+    if (isOnlyListenerForFlag) {
+      await _channel.invokeMethod('startFlagListening', flagKey);
+    }
+  }
+
+  static Future<void> unregisterFeatureFlagListener(String flagKey, LDFlagUpdatedCallback flagUpdateCallback) async {
+    _flagUpdateCallbacks.remove(flagKey, flagUpdateCallback);
+    if (_flagUpdateCallbacks[flagKey].isEmpty) {
+      await _channel.invokeMethod('stopFlagListening', flagKey);
+    }
+  }
+
+  static Future<void> registerFlagsReceivedListener(LDFlagsReceivedCallback flagsReceivedCallback) async {
+    _flagsReceivedCallbacks.add(flagsReceivedCallback);
+  }
+
+  static Future<void> unregisterFlagsReceivedListener(LDFlagsReceivedCallback flagsReceivedCallback) async {
+    _flagsReceivedCallbacks.remove(flagsReceivedCallback);
   }
 }

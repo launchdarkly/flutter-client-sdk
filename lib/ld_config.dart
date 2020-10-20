@@ -46,7 +46,7 @@ class LDConfig {
         allAttributesPrivate = builder._allAttributesPrivate,
         privateAttributeNames = builder._privateAttributeNames;
 
-  Map<String, dynamic> _toMap() {
+  Map<String, dynamic> _toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['mobileKey'] = mobileKey;
     result['baseUri'] = baseUri;
@@ -67,6 +67,8 @@ class LDConfig {
     result['diagnosticOptOut'] = diagnosticOptOut;
     result['allAttributesPrivate'] = allAttributesPrivate;
     result['privateAttributeNames'] = privateAttributeNames == null ? null : privateAttributeNames.toList(growable: false);
+    result['wrapperName'] = 'FlutterClientSdk';
+    result['wrapperVersion'] = wrapperVersion;
     return result;
   }
 }

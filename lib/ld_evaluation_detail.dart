@@ -21,9 +21,7 @@ class LDEvaluationReason {
   final LDErrorKind errorKind;
 
   static LDEvaluationReason _fromCodecValue(dynamic value) {
-    if (!(value is Map)) {
-      return null;
-    }
+    if (!(value is Map)) return null;
     Map<String, dynamic> map = Map.from(value as Map);
     switch (map['kind']) {
       case 'OFF': return off();

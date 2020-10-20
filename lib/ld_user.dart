@@ -31,7 +31,7 @@ class LDUser {
         custom = builder._custom.isEmpty ? null : Map.unmodifiable(builder._custom),
         privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
 
-  Map<String, dynamic> _toMap() {
+  Map<String, dynamic> _toCodecValue() {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['key'] = key;
     result['anonymous'] = anonymous;

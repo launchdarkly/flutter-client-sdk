@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:flutter/services.dart';
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
-
-// TODO add tries for platform calls
 
 void main() {
   runApp(MyApp());
@@ -20,6 +18,7 @@ class _MyAppState extends State<MyApp> {
   String userKey = '';
   String evalKey = '';
   String evalResult = '';
+  bool offline = false;
 
   @override
   void initState() {
@@ -59,6 +58,10 @@ class _MyAppState extends State<MyApp> {
         var result = await LaunchdarklyFlutterClientSdk.stringVariation(evalKey, "");
         setState(() { evalResult = result; });
         break;
+      case 'Json':
+        var result = await LaunchdarklyFlutterClientSdk.jsonVariation(evalKey, LDValue.buildObject().build());
+        setState(() { evalResult = json.encode(result.codecValue()); });
+        break;
       default:
         break;
     }
@@ -78,6 +81,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   void toggleOffline(bool offline) async {
+    setState(() { this.offline = offline; });
     await LaunchdarklyFlutterClientSdk.setOnline(!offline);
   }
 
@@ -104,7 +108,7 @@ class _MyAppState extends State<MyApp> {
                       typeDropdown = newValue;
                     });
                   },
-                  items: ['Boolean', 'Integer', 'Float', 'String', 'Array', 'Json']
+                  items: ['Boolean', 'Integer', 'Float', 'String', 'Json']
                     .map((String value) {
                       return DropdownMenuItem<String>(value: value, child: Text(value));
                   }).toList()
@@ -132,7 +136,7 @@ class _MyAppState extends State<MyApp> {
                 RaisedButton(child: Text('Flush'), onPressed: flush),
                 Spacer(),
                 Text('Offline'),
-                Switch(value: false, onChanged: toggleOffline)
+                Switch(value: offline, onChanged: toggleOffline)
               ])
               ])
           ),
