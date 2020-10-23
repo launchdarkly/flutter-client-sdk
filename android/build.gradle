@@ -40,5 +40,6 @@ android {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'com.launchdarkly:launchdarkly-android-client-sdk:2.11.0'
+    implementation 'com.launchdarkly:launchdarkly-android-client-sdk:2.13.0'
+    implementation 'com.google.code.gson:gson:2.8.2'
 }

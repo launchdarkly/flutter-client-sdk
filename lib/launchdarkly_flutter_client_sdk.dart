@@ -1,41 +1,112 @@
 library launchdarkly_flutter_client_sdk;
 
 import 'dart:async';
-
 import 'package:flutter/services.dart';
+import 'package:quiver/collection.dart';
+import 'ld_value.dart';
+
+export 'ld_value.dart';
 
 part 'ld_config.dart';
 part 'ld_user.dart';
+part 'ld_evaluation_detail.dart';
+part 'ld_connection_information.dart';
+
+typedef void LDFlagsReceivedCallback(List<String> changedFlagKeys);
+typedef void LDFlagUpdatedCallback(String flagKey);
 
 class LaunchdarklyFlutterClientSdk {
+  static const String _sdkVersion = "0.0.1";
   static const MethodChannel _channel = const MethodChannel('launchdarkly_flutter_client_sdk');
 
+  static List<LDFlagsReceivedCallback> _flagsReceivedCallbacks = [];
+  static SetMultimap<String, LDFlagUpdatedCallback> _flagUpdateCallbacks = SetMultimap();
+
+  static Future<void> handleCallbacks(MethodCall call) async {
+    switch (call.method) {
+      case 'handleFlagsReceived':
+        var changedFlags = List.castFrom<dynamic, String>(call.arguments ?? []);
+        _flagsReceivedCallbacks.forEach((callback) {
+          callback(changedFlags);
+        });
+        break;
+      case 'handleFlagUpdate':
+        if (call.arguments is! String) return;
+        var flagKey = call.arguments as String;
+        _flagUpdateCallbacks[flagKey].forEach((callback) {
+          callback(flagKey);
+        });
+        break;
+    }
+  }
+
   static Future<void> start(LDConfig config, LDUser user) async {
-    return _channel.invokeMethod('start', {'config': config._toMap(), 'user': user._toMap()});
+    _channel.setMethodCallHandler(handleCallbacks);
+    return _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'user': user._toCodecValue()});
   }
 
   static Future<void> identify(LDUser user) async {
-    return _channel.invokeMethod('identify', {'user': user._toMap()});
+    return _channel.invokeMethod('identify', {'user': user._toCodecValue()});
   }
 
-  static Future<void> track(String eventName) async {
-    return _channel.invokeMethod('track', {'eventName': eventName });
+  static Future<void> track(String eventName, {LDValue data, num metricValue}) async {
+    var args = {'eventName': eventName, 'data': LDValue.normalize(data).codecValue(), 'metricValue': metricValue?.toDouble()};
+    return _channel.invokeMethod('track', args);
   }
 
-  static Future<bool> boolVariation(String flagKey, bool fallback) async {
-    return _channel.invokeMethod('boolVariation', {'flagKey': flagKey, 'fallback': fallback });
+  static Future<bool> boolVariation(String flagKey, bool defaultValue) async {
+    return _channel.invokeMethod('boolVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
   }
 
-  static Future<int> intVariation(String flagKey, int fallback) async {
-    return _channel.invokeMethod('intVariation', {'flagKey': flagKey, 'fallback': fallback });
+  static Future<LDEvaluationDetail<bool>> boolVariationDetail(String flagKey, bool defaultValue) async {
+    Map<String, dynamic> result = await _channel.invokeMapMethod('boolVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
+    return LDEvaluationDetail(result['value'], result['variationIndex'], LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
-  static Future<double> doubleVariation(String flagKey, double fallback) async {
-    return _channel.invokeMethod('doubleVariation', {'flagKey': flagKey, 'fallback': fallback });
+  static Future<int> intVariation(String flagKey, int defaultValue) async {
+    return _channel.invokeMethod('intVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
   }
 
-  static Future<String> stringVariation(String flagKey, String fallback) async {
-    return _channel.invokeMethod('stringVariation', {'flagKey': flagKey, 'fallback': fallback });
+  static Future<LDEvaluationDetail<int>> intVariationDetail(String flagKey, int defaultValue) async {
+    Map<String, dynamic> result = await _channel.invokeMapMethod('intVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
+    return LDEvaluationDetail(result['value'], result['variationIndex'], LDEvaluationReason._fromCodecValue(result['reason']));
+  }
+
+  static Future<double> doubleVariation(String flagKey, double defaultValue) async {
+    return _channel.invokeMethod('doubleVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
+  }
+
+  static Future<LDEvaluationDetail<double>> doubleVariationDetail(String flagKey, double defaultValue) async {
+    Map<String, dynamic> result = await _channel.invokeMapMethod('doubleVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
+    return LDEvaluationDetail(result['value'], result['variationIndex'], LDEvaluationReason._fromCodecValue(result['reason']));
+  }
+
+  static Future<String> stringVariation(String flagKey, String defaultValue) async {
+    return _channel.invokeMethod('stringVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
+  }
+
+  static Future<LDEvaluationDetail<String>> stringVariationDetail(String flagKey, String defaultValue) async {
+    Map<String, dynamic> result = await _channel.invokeMapMethod('stringVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
+    return LDEvaluationDetail(result['value'], result['variationIndex'], LDEvaluationReason._fromCodecValue(result['reason']));
+  }
+
+  static Future<LDValue> jsonVariation(String flagKey, LDValue defaultValue) async {
+    dynamic result = await _channel.invokeMethod('jsonVariation', {'flagKey': flagKey, 'defaultValue': defaultValue.codecValue()});
+    return LDValue.fromCodecValue(result);
+  }
+
+  static Future<LDEvaluationDetail<LDValue>> jsonVariationDetail(String flagKey, LDValue defaultValue) async {
+    Map<String, dynamic> result = await _channel.invokeMapMethod('jsonVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue.codecValue()});
+    return LDEvaluationDetail(LDValue.fromCodecValue(result['value']), result['variationIndex'], LDEvaluationReason._fromCodecValue(result['reason']));
+  }
+
+  static Future<Map<String, LDValue>> allFlags() async {
+    Map<String, dynamic> allFlagsDyn = await _channel.invokeMapMethod('allFlags');
+    Map<String, LDValue> allFlagsRes = Map();
+    allFlagsDyn.forEach((key, value) {
+        allFlagsRes[key] = LDValue.fromCodecValue(value);
+    });
+    return allFlagsRes;
   }
 
   static Future<void> flush() async {
@@ -44,5 +115,41 @@ class LaunchdarklyFlutterClientSdk {
 
   static Future<void> setOnline(bool online) async {
     return _channel.invokeMethod('setOnline', {'online': online });
+  }
+
+  static Future<bool> isOnline() async {
+    return _channel.invokeMethod('isOnline');
+  }
+
+  static Future<LDConnectionInformation> getConnectionInformation() async {
+    Map<String, dynamic> result = await _channel.invokeMapMethod('getConnectionInformation');
+    return LDConnectionInformation._fromCodecValue(result);
+  }
+
+  static Future<void> close() async {
+    return _channel.invokeMethod('close');
+  }
+
+  static Future<void> registerFeatureFlagListener(String flagKey, LDFlagUpdatedCallback flagUpdateCallback) async {
+    var isOnlyListenerForFlag = _flagUpdateCallbacks[flagKey].isEmpty;
+    _flagUpdateCallbacks.add(flagKey, flagUpdateCallback);
+    if (isOnlyListenerForFlag) {
+      await _channel.invokeMethod('startFlagListening', flagKey);
+    }
+  }
+
+  static Future<void> unregisterFeatureFlagListener(String flagKey, LDFlagUpdatedCallback flagUpdateCallback) async {
+    _flagUpdateCallbacks.remove(flagKey, flagUpdateCallback);
+    if (_flagUpdateCallbacks[flagKey].isEmpty) {
+      await _channel.invokeMethod('stopFlagListening', flagKey);
+    }
+  }
+
+  static Future<void> registerFlagsReceivedListener(LDFlagsReceivedCallback flagsReceivedCallback) async {
+    _flagsReceivedCallbacks.add(flagsReceivedCallback);
+  }
+
+  static Future<void> unregisterFlagsReceivedListener(LDFlagsReceivedCallback flagsReceivedCallback) async {
+    _flagsReceivedCallbacks.remove(flagsReceivedCallback);
   }
 }

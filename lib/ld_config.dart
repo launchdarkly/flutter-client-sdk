@@ -46,7 +46,7 @@ class LDConfig {
         allAttributesPrivate = builder._allAttributesPrivate,
         privateAttributeNames = builder._privateAttributeNames;
 
-  Map<String, dynamic> _toMap() {
+  Map<String, dynamic> _toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['mobileKey'] = mobileKey;
     result['baseUri'] = baseUri;
@@ -67,6 +67,8 @@ class LDConfig {
     result['diagnosticOptOut'] = diagnosticOptOut;
     result['allAttributesPrivate'] = allAttributesPrivate;
     result['privateAttributeNames'] = privateAttributeNames == null ? null : privateAttributeNames.toList(growable: false);
+    result['wrapperName'] = 'FlutterClientSdk';
+    result['wrapperVersion'] = wrapperVersion;
     return result;
   }
 }
@@ -112,6 +114,81 @@ class LDConfigBuilder {
 
   LDConfigBuilder setStreamUri(String streamUri) {
     this._streamUri = streamUri;
+    return this;
+  }
+
+  LDConfigBuilder setEventsCapacity(int eventsCapacity) {
+    this._eventsCapacity = eventsCapacity;
+    return this;
+  }
+
+  LDConfigBuilder setEventsFlushIntervalMillis(int eventsFlushIntervalMillis) {
+    this._eventsFlushIntervalMillis = eventsFlushIntervalMillis;
+    return this;
+  }
+
+  LDConfigBuilder setConnectionTimeoutMillis(int connectionTimeoutMillis) {
+    this._connectionTimeoutMillis = connectionTimeoutMillis;
+    return this;
+  }
+
+  LDConfigBuilder setPollingIntervalMillis(int pollingIntervalMillis) {
+    this._pollingIntervalMillis = pollingIntervalMillis;
+    return this;
+  }
+
+  LDConfigBuilder setBackgroundPollingIntervalMillis(int backgroundPollingIntervalMillis) {
+    this._backgroundPollingIntervalMillis = backgroundPollingIntervalMillis;
+    return this;
+  }
+
+  LDConfigBuilder setDiagnosticRecordingIntervalMillis(int diagnosticRecordingIntervalMillis) {
+    this._diagnosticRecordingIntervalMillis = diagnosticRecordingIntervalMillis;
+    return this;
+  }
+
+  LDConfigBuilder setStream(bool stream) {
+    this._stream = stream;
+    return this;
+  }
+
+  LDConfigBuilder setOffline(bool offline) {
+    this._offline = offline;
+    return this;
+  }
+
+  LDConfigBuilder setDisableBackgroundUpdating(bool disableBackgroundUpdating) {
+    this._disableBackgroundUpdating = disableBackgroundUpdating;
+    return this;
+  }
+
+  LDConfigBuilder setUseReport(bool useReport) {
+    this._useReport = useReport;
+    return this;
+  }
+
+  LDConfigBuilder setInlineUsersInEvents(bool inlineUsersInEvents) {
+    this._inlineUsersInEvents = inlineUsersInEvents;
+    return this;
+  }
+
+  LDConfigBuilder setEvaluationReasons(bool evaluationReasons) {
+    this._evaluationReasons = evaluationReasons;
+    return this;
+  }
+
+  LDConfigBuilder setDiagnosticOptOut(bool diagnosticOptOut) {
+    this._diagnosticOptOut = diagnosticOptOut;
+    return this;
+  }
+
+  LDConfigBuilder setAllAttributesPrivate(bool allAttributesPrivate) {
+    this._allAttributesPrivate = allAttributesPrivate;
+    return this;
+  }
+
+  LDConfigBuilder setPrivateAttributeNames(Set<String> privateAttributeNames) {
+    this._privateAttributeNames = privateAttributeNames;
     return this;
   }
 
