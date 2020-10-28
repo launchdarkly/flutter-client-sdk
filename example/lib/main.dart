@@ -32,7 +32,7 @@ class _MyAppState extends State<MyApp> {
         .build();
     final LDUser ldUser = LDUserBuilder('user key').build();
 
-    await LaunchdarklyFlutterClientSdk.start(ldConfig, ldUser);
+    await LDClient.start(ldConfig, ldUser);
 
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
@@ -43,23 +43,23 @@ class _MyAppState extends State<MyApp> {
   void evaluate() async {
     switch (typeDropdown) {
       case 'Boolean':
-        var result = await LaunchdarklyFlutterClientSdk.boolVariation(evalKey, false);
+        var result = await LDClient.boolVariation(evalKey, false);
         setState(() { evalResult = result.toString(); });
         break;
       case 'Integer':
-        var result = await LaunchdarklyFlutterClientSdk.intVariation(evalKey, 0);
+        var result = await LDClient.intVariation(evalKey, 0);
         setState(() { evalResult = result.toString(); });
         break;
       case 'Float':
-        var result = await LaunchdarklyFlutterClientSdk.doubleVariation(evalKey, 0);
+        var result = await LDClient.doubleVariation(evalKey, 0);
         setState(() { evalResult = result.toString(); });
         break;
       case 'String':
-        var result = await LaunchdarklyFlutterClientSdk.stringVariation(evalKey, "");
+        var result = await LDClient.stringVariation(evalKey, "");
         setState(() { evalResult = result; });
         break;
       case 'Json':
-        var result = await LaunchdarklyFlutterClientSdk.jsonVariation(evalKey, LDValue.buildObject().build());
+        var result = await LDClient.jsonVariation(evalKey, LDValue.buildObject().build());
         setState(() { evalResult = json.encode(result.codecValue()); });
         break;
       default:
@@ -68,21 +68,21 @@ class _MyAppState extends State<MyApp> {
   }
 
   void track() async {
-    await LaunchdarklyFlutterClientSdk.track(evalKey);
+    await LDClient.track(evalKey);
   }
 
   void identify() async {
     final LDUser ldUser = LDUserBuilder(userKey).build();
-    await LaunchdarklyFlutterClientSdk.identify(ldUser);
+    await LDClient.identify(ldUser);
   }
 
   void flush() async {
-    await LaunchdarklyFlutterClientSdk.flush();
+    await LDClient.flush();
   }
 
   void toggleOffline(bool offline) async {
     setState(() { this.offline = offline; });
-    await LaunchdarklyFlutterClientSdk.setOnline(!offline);
+    await LDClient.setOnline(!offline);
   }
 
   @override

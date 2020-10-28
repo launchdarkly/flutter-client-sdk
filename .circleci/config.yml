@@ -1,0 +1,61 @@
+version: 2.1
+
+jobs:
+  build:
+    macos:
+      xcode: "12.0.1"
+    shell: /bin/bash --login -eo pipefail
+    environment:
+      TERM: dumb
+      QEMU_AUDIO_DRV: none
+      JAVA_HOME: "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+      _JAVA_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Xms2048m -Xmx4096m"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+      JVM_OPTS: -Xmx3200m
+      ANDROID_HOME: "/usr/local/share/android-sdk"
+      ANDROID_SDK_HOME: "/usr/local/share/android-sdk"
+      ANDROID_SDK_ROOT: "/usr/local/share/android-sdk"
+
+    steps:
+      - checkout
+
+      - run:
+          name: Setup env
+          command: |
+            echo 'export PATH="$PATH:/usr/local/share/android-sdk/tools/bin"' >> $BASH_ENV
+            echo 'export PATH="$PATH:/usr/local/share/android-sdk/platform-tools"' >> $BASH_ENV
+            echo 'export PATH="$PATH:/usr/local/Caskroom/flutter/1.20.4/flutter/.pub-cache/bin"' >> $BASH_ENV
+
+      - run:
+          name: Install Android SDK, Flutter and dartdoc
+          command: |
+            HOMEBREW_NO_AUTO_UPDATE=1 brew cask install homebrew/cask-versions/adoptopenjdk8
+            HOMEBREW_NO_AUTO_UPDATE=1 brew tap homebrew/cask
+            HOMEBREW_NO_AUTO_UPDATE=1 brew cask install android-sdk
+            yes | sdkmanager "platform-tools" | grep -v = || true
+            HOMEBREW_NO_AUTO_UPDATE=1 brew cask install flutter
+            flutter pub global activate dartdoc
+
+      - run:
+          name: Acknowledge Android licenses
+          command: sudo mkdir -p /usr/local/android-sdk-linux/licenses
+
+      - run:
+          name: Run pure Dart tests
+          command: flutter test
+
+      - run:
+          name: Build Android application APK
+          command: cd example && flutter build apk --debug
+
+      - run:
+          name: Build iOS application
+          command: cd example && flutter build ios --simulator
+
+      - run:
+          name: Build documentation
+          command: dartdoc
+          when: always
+
+      - store_artifacts:
+          path: doc
