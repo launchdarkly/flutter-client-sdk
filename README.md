@@ -1,4 +1,4 @@
-LaunchDarkly Client SDK for Flutter
+LaunchDarkly Client-side SDK for Flutter
 ===========================
 
 [![Circle CI](https://circleci.com/gh/launchdarkly/flutter-client-sdk.svg?style=shield)](https://circleci.com/gh/launchdarkly/flutter-client-sdk)
@@ -54,4 +54,4 @@ About LaunchDarkly
     * [docs.launchdarkly.com](https://docs.launchdarkly.com/  "LaunchDarkly Documentation") for our documentation and SDK reference guides
     * [apidocs.launchdarkly.com](https://apidocs.launchdarkly.com/  "LaunchDarkly API Documentation") for our API documentation
     * [blog.launchdarkly.com](https://blog.launchdarkly.com/  "LaunchDarkly Blog Documentation") for the latest product updates
-    * [Feature Flagging Guide](https://github.com/launchdarkly/featureflags/  "Feature Flagging Guide") for best practices and strategies# launchdarkly_flutter_client_sdk_example
+    * [Feature Flagging Guide](https://github.com/launchdarkly/featureflags/  "Feature Flagging Guide") for best practices and strategies
