@@ -1,0 +1,35 @@
+PODS:
+  - Flutter (1.0.0)
+  - LaunchDarkly (5.2.0):
+    - LaunchDarkly/Core (= 5.2.0)
+  - LaunchDarkly/Core (5.2.0):
+    - LDSwiftEventSource (= 1.1.0)
+  - launchdarkly_flutter_client_sdk (0.0.1):
+    - Flutter
+    - LaunchDarkly (= 5.2.0)
+  - LDSwiftEventSource (1.1.0)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - launchdarkly_flutter_client_sdk (from `.symlinks/plugins/launchdarkly_flutter_client_sdk/ios`)
+
+SPEC REPOS:
+  trunk:
+    - LaunchDarkly
+    - LDSwiftEventSource
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  launchdarkly_flutter_client_sdk:
+    :path: ".symlinks/plugins/launchdarkly_flutter_client_sdk/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
+  LaunchDarkly: ce76a9ef8ed18c87261be70b1d5e72ac4e1f19dc
+  launchdarkly_flutter_client_sdk: 6cb25fdaf0b52c21c793473d9a96b0ac0d2bc4e8
+  LDSwiftEventSource: 4fb01c0da355fcef1fca271da102555d4c5ecf93
+
+PODFILE CHECKSUM: 54c92ae724292d2039df4b5b1bbeb7d8176aec1d
+
+COCOAPODS: 1.9.3

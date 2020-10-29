@@ -5,3 +5,6 @@
 .pub/
 
 build/
+.gradle
+
+.idea/workspace.xml

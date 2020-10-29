@@ -1,4 +1,4 @@
-group 'com.example.launchdarkly_flutter_client_sdk'
+group 'com.launchdarkly.launchdarkly_flutter_client_sdk'
 version '1.0-SNAPSHOT'
 
 buildscript {
@@ -40,4 +40,6 @@ android {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.launchdarkly:launchdarkly-android-client-sdk:2.13.0'
+    implementation 'com.google.code.gson:gson:2.8.2'
 }
