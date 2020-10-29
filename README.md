@@ -1,4 +1,4 @@
-LaunchDarkly Client SDK for Flutter
+LaunchDarkly client-side SDK for Flutter
 ===========================
 
 [![Circle CI](https://circleci.com/gh/launchdarkly/flutter-client-sdk.svg?style=shield)](https://circleci.com/gh/launchdarkly/flutter-client-sdk)
