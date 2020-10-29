@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="generator" content="made with love by dartdoc 0.36.1">
+  <meta name="description" content="launchdarkly_flutter_client_sdk API docs, for the Dart programming language.">
+  <title>launchdarkly_flutter_client_sdk - Dart API docs</title>
+
+  
+  <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500,400i,400,300|Source+Sans+Pro:400,300,700" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="static-assets/github.css">
+  <link rel="stylesheet" href="static-assets/styles.css">
+  <link rel="icon" href="static-assets/favicon.png">
+
+</head>
+
+<body data-base-href=""
+      data-using-base-href="false">
+
+<div id="overlay-under-drawer"></div>
+
+<header id="title">
+  <button id="sidenav-left-toggle" type="button">&nbsp;</button>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="https://github.com/launchdarkly/flutter-client-sdk">launchdarkly_flutter_client_sdk package</a></li>
+  </ol>
+  <div class="self-name">launchdarkly_flutter_client_sdk</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+
+<main>
+
+  <div id="dartdoc-sidebar-left" class="col-xs-6 col-sm-3 col-md-2 sidebar sidebar-offcanvas-left">
+    <header id="header-search-sidebar" class="hidden-l">
+      <form class="search-sidebar" role="search">
+        <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+      </form>
+    </header>
+    
+    <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+      <li><a href="https://github.com/launchdarkly/flutter-client-sdk">launchdarkly_flutter_client_sdk package</a></li>
+    </ol>
+    
+    <h5 class="hidden-xs"><span class="package-name">launchdarkly_flutter_client_sdk</span> <span class="package-kind">package</span></h5>
+    <ol>
+          <li class="section-title">Libraries</li>
+          <li><a href="launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
+    </ol>
+  </div>
+
+  <div id="dartdoc-main-content" class="col-xs-12 col-sm-9 col-md-8 main-content">
+      <section class="desc markdown">
+        <h1 id="launchdarkly-client-side-sdk-for-flutter">LaunchDarkly Client-side SDK for Flutter</h1>
+<p><a href="https://circleci.com/gh/launchdarkly/flutter-client-sdk"><img src="https://circleci.com/gh/launchdarkly/flutter-client-sdk.svg?style=shield" alt="Circle CI"></a></p>
+<p><em>This version of the SDK is a <strong>beta</strong> version and should not be considered ready for production use while this message is visible.</em></p>
+<h2 id="launchdarkly-overview">LaunchDarkly overview</h2>
+<p><a href="https://www.launchdarkly.com">LaunchDarkly</a> is a feature management platform that serves over 100 billion feature flags daily to help teams build better software, faster. <a href="https://docs.launchdarkly.com/docs/getting-started">Get started</a> using LaunchDarkly today!</p>
+<p><a href="https://twitter.com/intent/follow?screen_name=launchdarkly"><img src="https://img.shields.io/twitter/follow/launchdarkly.svg?style=social&amp;label=Follow&amp;maxAge=2592000" alt="Twitter Follow"></a></p>
+<h2 id="supported-platform-versions">Supported Platform versions</h2>
+<p>See the <a href="pubspec.yaml">pubspec.yaml</a> file for Flutter version requirements.</p>
+<p>On the Android platform, the SDK requires a minimum SDK version of 16.</p>
+<p>On the iOS platform, the SDK requires a minimum version of 10.0.</p>
+<h2 id="getting-started">Getting started</h2>
+<p>Refer to the <a href="https://docs.launchdarkly.com/sdk/client-side/flutter#getting-started">SDK documentation</a> for instructions on getting started with using the SDK.</p>
+<h2 id="learn-more">Learn more</h2>
+<p>Check out our <a href="https://docs.launchdarkly.com">documentation</a> for in-depth instructions on configuring and using LaunchDarkly. You can also head straight to the <a href="https://docs.launchdarkly.com/sdk/client-side/flutter">complete reference guide for this SDK</a> or our <a href="https://launchdarkly.github.io/flutter-client-sdk/">code-generated API documentation</a>.</p>
+<h2 id="testing">Testing</h2>
+<p>We run integration tests for all our SDKs using a centralized test harness. This approach gives us the ability to test for consistency across SDKs, as well as test networking behavior in a long-running application. These tests cover each method in the SDK, and verify that event sending, flag evaluation, stream reconnection, and other aspects of the SDK all behave correctly.</p>
+<h2 id="contributing">Contributing</h2>
+<p>We encourage pull requests and other contributions from the community. Check out our <a href="CONTRIBUTING.md">contributing guidelines</a> for instructions on how to contribute to this SDK.</p>
+<h2 id="about-launchdarkly">About LaunchDarkly</h2>
+<ul>
+<li>LaunchDarkly is a continuous delivery platform that provides feature flags as a service and allows developers to iterate quickly and safely. We allow you to easily flag your features and manage them from the LaunchDarkly dashboard.  With LaunchDarkly, you can:
+<ul>
+<li>Roll out a new feature to a subset of your users (like a group of users who opt-in to a beta tester group), gathering feedback and bug reports from real-world use cases.</li>
+<li>Gradually roll out a feature to an increasing percentage of users, and track the effect that the feature has on key metrics (for instance, how likely is a user to complete a purchase if they have feature A versus feature B?).</li>
+<li>Turn off a feature that you realize is causing performance problems in production, without needing to re-deploy, or even restart the application with a changed configuration file.</li>
+<li>Grant access to certain features based on user attributes, like payment plan (eg: users on the ‘gold’ plan get access to more features than users in the ‘silver’ plan). Disable parts of your application to facilitate maintenance, without taking everything offline.</li>
+</ul>
+</li>
+<li>LaunchDarkly provides feature flag SDKs for a wide variety of languages and technologies. Check out <a href="https://docs.launchdarkly.com/docs">our documentation</a> for a complete list.</li>
+<li>Explore LaunchDarkly
+<ul>
+<li><a href="https://www.launchdarkly.com/" title="LaunchDarkly Main Website">launchdarkly.com</a> for more information</li>
+<li><a href="https://docs.launchdarkly.com/" title="LaunchDarkly Documentation">docs.launchdarkly.com</a> for our documentation and SDK reference guides</li>
+<li><a href="https://apidocs.launchdarkly.com/" title="LaunchDarkly API Documentation">apidocs.launchdarkly.com</a> for our API documentation</li>
+<li><a href="https://blog.launchdarkly.com/" title="LaunchDarkly Blog Documentation">blog.launchdarkly.com</a> for the latest product updates</li>
+<li><a href="https://github.com/launchdarkly/featureflags/" title="Feature Flagging Guide">Feature Flagging Guide</a> for best practices and strategies</li>
+</ul>
+</li>
+</ul>
+      </section>
+      
+      <section class="summary">
+          <h2>Libraries</h2>
+        <dl>
+          <dt id="launchdarkly_flutter_client_sdk">
+            <span class="name"><a href="launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></span>           
+          </dt>
+          <dd>
+            <a href="launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a> provides a Flutter wrapper around the LaunchDarkly mobile SDKs for
+<a href="https://github.com/launchdarkly/android-client-sdk">Android</a> and <a href="https://github.com/launchdarkly/ios-client-sdk">iOS</a>. <a href="launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">[...]</a>
+          </dd>
+        </dl>
+      </section>
+
+  </div> <!-- /.main-content -->
+
+  <div id="dartdoc-sidebar-right" class="col-xs-6 col-sm-6 col-md-2 sidebar sidebar-offcanvas-right">
+  </div>
+
+</main>
+
+<footer>
+  <span class="no-break">
+    launchdarkly_flutter_client_sdk
+      0.1.0
+  </span>
+
+</footer>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="static-assets/typeahead.bundle.min.js"></script>
+<script src="static-assets/highlight.pack.js"></script>
+<script src="static-assets/URI.js"></script>
+<script src="static-assets/script.js"></script>
+
+
+</body>
+
+</html>
