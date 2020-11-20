@@ -62,8 +62,8 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       if (map["mobileKey"] is String) {
         configBuilder.setMobileKey(map["mobileKey"] as String)
       }
-      if (map["baseUri"] is String) {
-        configBuilder.setBaseUri(Uri.parse(map["baseUri"] as String))
+      if (map["pollUri"] is String) {
+        configBuilder.setBaseUri(Uri.parse(map["pollUri"] as String))
       }
       if (map["eventsUri"] is String) {
         configBuilder.setEventsUri(Uri.parse((map["eventsUri"] as String) + "/mobile"))

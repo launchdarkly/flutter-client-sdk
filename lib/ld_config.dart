@@ -7,7 +7,7 @@ class LDConfig {
   final String mobileKey;
 
   /// The configured URI for polling requests.
-  final String baseUri;
+  final String pollUri;
   /// The configured URI for eventing requests.
   final String eventsUri;
   /// The configured URI for stream requests.
@@ -48,7 +48,7 @@ class LDConfig {
 
   LDConfig._builder(LDConfigBuilder builder) :
         mobileKey = builder._mobileKey,
-        baseUri = builder._baseUri,
+        pollUri = builder._pollUri,
         eventsUri = builder._eventsUri,
         streamUri = builder._streamUri,
         eventsCapacity = builder._eventsCapacity,
@@ -70,7 +70,7 @@ class LDConfig {
   Map<String, dynamic> _toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['mobileKey'] = mobileKey;
-    result['baseUri'] = baseUri;
+    result['pollUri'] = pollUri;
     result['eventsUri'] = eventsUri;
     result['streamUri'] = streamUri;
     result['eventsCapacity'] = eventsCapacity;
@@ -98,9 +98,9 @@ class LDConfig {
 class LDConfigBuilder {
   String _mobileKey;
 
-  String _baseUri;
-  String _eventsUri;
-  String _streamUri;
+  String _pollUri = "https://clientsdk.launchdarkly.com";
+  String _eventsUri = "https://events.launchdarkly.com";
+  String _streamUri = "https://clientstream.launchdarkly.com";
 
   int _eventsCapacity;
   int _eventsFlushIntervalMillis;
@@ -126,8 +126,8 @@ class LDConfigBuilder {
   }
 
   /// Sets the URI for polling requests.
-  LDConfigBuilder setBaseUri(String baseUri) {
-    this._baseUri = baseUri;
+  LDConfigBuilder setPollUri(String pollUri) {
+    this._pollUri = pollUri;
     return this;
   }
 

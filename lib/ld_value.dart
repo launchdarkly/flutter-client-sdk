@@ -9,6 +9,7 @@
 library ld_value;
 
 import 'dart:collection';
+import 'package:quiver/core.dart';
 
 /// Describes the type of an [LDValue]. These correspond to the standard types in JSON.
 enum LDValueType {
@@ -189,6 +190,24 @@ abstract class LDValue {
       }
     }
     return false;
+  }
+
+  @override
+  int get hashCode {
+    switch (getType()) {
+      case LDValueType.BOOLEAN:
+        return booleanValue() ? 1 : 0;
+      case LDValueType.NUMBER:
+        return intValue();
+      case LDValueType.STRING:
+        return stringValue().hashCode;
+      case LDValueType.ARRAY:
+        return hashObjects(values());
+      case LDValueType.OBJECT:
+        return hash2(hashObjects(keys()), hashObjects(values()));
+      default:
+        return 0;
+    }
   }
 }
 

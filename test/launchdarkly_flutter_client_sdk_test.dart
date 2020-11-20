@@ -452,11 +452,14 @@ void testLDEvaluationDetail() {
 
 Map<String, dynamic> emptyConfig() {
   final Map<String, dynamic> result = <String, dynamic>{};
-  ['mobileKey', 'baseUri', 'eventsUri', 'streamUri', 'eventsCapacity', 'eventsFlushIntervalMillis'
-    , 'connectionTimeoutMillis', 'pollingIntervalMillis', 'backgroundPollingIntervalMillis'
-    , 'diagnosticRecordingIntervalMillis', 'allAttributesPrivate', 'privateAttributeNames'].forEach((configName) {
+  ['mobileKey', 'eventsCapacity', 'eventsFlushIntervalMillis', 'connectionTimeoutMillis', 'pollingIntervalMillis'
+    , 'backgroundPollingIntervalMillis', 'diagnosticRecordingIntervalMillis', 'allAttributesPrivate'
+    , 'privateAttributeNames'].forEach((configName) {
     result[configName] = null;
   });
+  result['pollUri'] = "https://clientsdk.launchdarkly.com";
+  result['streamUri'] = "https://clientstream.launchdarkly.com";
+  result['eventsUri'] = "https://events.launchdarkly.com";
   result['stream'] = true;
   result['offline'] = false;
   result['disableBackgroundUpdating'] = true;
@@ -488,7 +491,7 @@ List<LDValue> ldValueTestValues =
   , LDValue.fromCodecValue({'a': {}, 'b': [false, null], 'c': {'k': 'abc'}})];
 
 List<MethodCall> callQueue = [];
-dynamic callReturn = null;
+dynamic callReturn;
 MethodCall get takeCall => callQueue.removeAt(0);
 
 void expectCall(String name, dynamic arguments) => expect(takeCall, isMethodCall(name, arguments: arguments));

@@ -23,7 +23,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
 
   func configFrom(dict: Dictionary<String, Any?>) -> LDConfig {
     var config = LDConfig(mobileKey: dict["mobileKey"] as! String)
-    if let baseUrl = dict["baseUri"] as? String {
+    if let baseUrl = dict["pollUri"] as? String {
         config.baseUrl = URL(string: baseUrl)!
     }
     if let eventsUrl = dict["eventsUri"] as? String {

@@ -1,6 +1,6 @@
 # Change log
 
-All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
+All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
 ## [0.1.0] - 2020-10-29
 This is the first public release of the LaunchDarkly Flutter client-side SDK. The SDK is considered to be an unsupported beta until release 1.0.0.
