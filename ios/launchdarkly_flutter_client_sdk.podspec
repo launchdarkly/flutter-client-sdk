@@ -17,12 +17,12 @@ Pod::Spec.new do |s|
                    * Disable parts of your application to facilitate maintenance, without taking everything offline.
                        DESC
   s.homepage         = 'https://github.com/launchdarkly/flutter-client-sdk'
-  s.license          = { :file => '../LICENSE.txt' }
+  s.license          = { :file => '../LICENSE' }
   s.author           = { 'LaunchDarkly' => 'sdks@launchdarkly.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'LaunchDarkly', '5.2.0'
+  s.dependency 'LaunchDarkly', '5.4.3'
   s.platform = :ios, '10.0'
 
   # Flutter.framework does not contain a i386 slice. Only x86_64 simulators are supported.

@@ -1,4 +1,4 @@
-// @dart=2.7
+// @dart=2.12
 part of launchdarkly_flutter_client_sdk;
 
 /// A configuration object used when initializing the [LDClient].
@@ -40,11 +40,13 @@ class LDConfig {
   final bool evaluationReasons;
   /// Whether the SDK is configured to not send diagnostic data to LaunchDarkly.
   final bool diagnosticOptOut;
+  /// Whether the SDK is configured to not send automatic alias events.
+  final bool autoAliasingOptOut;
 
   /// Whether the SDK is configured to never include user attribute values in analytics requests.
   final bool allAttributesPrivate;
   /// The configured set of attributes to never include values for in analytics requests.
-  final Set<String> privateAttributeNames;
+  final List<String>? privateAttributeNames;
 
   LDConfig._builder(LDConfigBuilder builder) :
         mobileKey = builder._mobileKey,
@@ -64,8 +66,9 @@ class LDConfig {
         inlineUsersInEvents = builder._inlineUsersInEvents,
         evaluationReasons = builder._evaluationReasons,
         diagnosticOptOut = builder._diagnosticOptOut,
+        autoAliasingOptOut = builder._autoAliasingOptOut,
         allAttributesPrivate = builder._allAttributesPrivate,
-        privateAttributeNames = builder._privateAttributeNames;
+        privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
 
   Map<String, dynamic> _toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
@@ -86,8 +89,9 @@ class LDConfig {
     result['inlineUsersInEvents'] = inlineUsersInEvents;
     result['evaluationReasons'] = evaluationReasons;
     result['diagnosticOptOut'] = diagnosticOptOut;
+    result['autoAliasingOptOut'] = autoAliasingOptOut;
     result['allAttributesPrivate'] = allAttributesPrivate;
-    result['privateAttributeNames'] = privateAttributeNames == null ? null : privateAttributeNames.toList(growable: false);
+    result['privateAttributeNames'] = privateAttributeNames;
     result['wrapperName'] = 'FlutterClientSdk';
     result['wrapperVersion'] = wrapperVersion;
     return result;
@@ -102,12 +106,12 @@ class LDConfigBuilder {
   String _eventsUri = "https://events.launchdarkly.com";
   String _streamUri = "https://clientstream.launchdarkly.com";
 
-  int _eventsCapacity;
-  int _eventsFlushIntervalMillis;
-  int _connectionTimeoutMillis;
-  int _pollingIntervalMillis;
-  int _backgroundPollingIntervalMillis;
-  int _diagnosticRecordingIntervalMillis;
+  int _eventsCapacity = 100;
+  int _eventsFlushIntervalMillis = 30 * 1000;
+  int _connectionTimeoutMillis = 10 * 1000;
+  int _pollingIntervalMillis = 5 * 60 * 1000;
+  int _backgroundPollingIntervalMillis = 60 * 60 * 1000;
+  int _diagnosticRecordingIntervalMillis = 15 * 60 * 1000;
 
   bool _stream = true;
   bool _offline = false;
@@ -116,14 +120,13 @@ class LDConfigBuilder {
   bool _inlineUsersInEvents = false;
   bool _evaluationReasons = false;
   bool _diagnosticOptOut = false;
+  bool _autoAliasingOptOut = false;
 
-  bool _allAttributesPrivate;
-  Set<String> _privateAttributeNames;
+  bool _allAttributesPrivate = false;
+  Set<String> _privateAttributeNames = new Set();
 
   /// Create a new `LDConfigBuilder` for the given mobile key.
-  LDConfigBuilder(String mobileKey) {
-    this._mobileKey = mobileKey;
-  }
+  LDConfigBuilder(this._mobileKey);
 
   /// Sets the URI for polling requests.
   LDConfigBuilder setPollUri(String pollUri) {
@@ -259,6 +262,15 @@ class LDConfigBuilder {
   /// See [LDConfigBuilder.setDiagnosticRecordingIntervalMillis] for configuration of periodic payload frequency.
   LDConfigBuilder setDiagnosticOptOut(bool diagnosticOptOut) {
     this._diagnosticOptOut = diagnosticOptOut;
+    return this;
+  }
+
+  /// Set to true to opt out of sending automatic alias events.
+  ///
+  /// Unless [LDConfig.autoAliasingOptOut] is `true`, the client will send an automatic `alias` event when
+  /// [LDClient.identify] is called with a non-anonymous user when the current user is anonymous.
+  LDConfigBuilder setAutoAliasingOptOut(bool autoAliasingOptOut) {
+    this._autoAliasingOptOut = autoAliasingOptOut;
     return this;
   }
 

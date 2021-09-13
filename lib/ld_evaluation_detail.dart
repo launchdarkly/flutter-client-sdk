@@ -1,4 +1,4 @@
-// @dart=2.7
+// @dart=2.12
 part of launchdarkly_flutter_client_sdk;
 
 /// Enumerated type defining the possible reasons for a flag evaluation result, used in [LDEvaluationReason].
@@ -54,7 +54,8 @@ class LDEvaluationReason {
       , 'WRONG_TYPE': LDErrorKind.WRONG_TYPE, 'EXCEPTION': LDErrorKind.EXCEPTION, 'UNKNOWN': LDErrorKind.UNKNOWN};
 
   static const _OFF_INSTANCE = LDEvaluationReason._(LDKind.OFF);
-  static const _FALLTHROUGH_INSTANCE = LDEvaluationReason._(LDKind.FALLTHROUGH);
+  static const _FALLTHROUGH_INSTANCE = LDEvaluationReason._(LDKind.FALLTHROUGH, inExperiment: false);
+  static const _FALLTHROUGH_EXPERIMENT_INSTANCE = LDEvaluationReason._(LDKind.FALLTHROUGH, inExperiment: true);
   static const _TARGET_MATCH_INSTANCE = LDEvaluationReason._(LDKind.TARGET_MATCH);
   static const _UNKNOWN_INSTANCE = LDEvaluationReason._(LDKind.UNKNOWN);
 
@@ -65,52 +66,66 @@ class LDEvaluationReason {
   /// The index of the rule that match the user when [kind] is [LDKind.RULE_MATCH].
   ///
   /// For all other kinds, this field is undefined.
-  final int ruleIndex;
+  final int? ruleIndex;
   /// The id of the rule that match the user when [kind] is [LDKind.RULE_MATCH].
   ///
   /// For all other kinds, this field is undefined.
-  final String ruleId;
+  final String? ruleId;
+  /// Whether the rule or fallthrough is part of an experiment when [kind] is [LDKind.RULE_MATCH] or [LDKind.FALLTHROUGH].
+  ///
+  /// For all other kinds, this field is undefined.
+  final bool? inExperiment;
   /// The key of the first prerequisite that failed when [kind] is [LDKind.PREREQUISITE_FAILED].
   ///
   /// For all other kinds, this field is undefined.
-  final String prerequisiteKey;
+  final String? prerequisiteKey;
   /// The type of the error responsible when the [kind] is [LDKind.ERROR].
   ///
   /// For all other kinds, this field is undefined.
-  final LDErrorKind errorKind;
+  final LDErrorKind? errorKind;
 
   static LDEvaluationReason _fromCodecValue(dynamic value) {
-    if (!(value is Map)) return null;
+    if (!(value is Map)) return unknown();
     Map<String, dynamic> map = Map.from(value as Map);
     switch (map['kind']) {
       case 'OFF': return off();
-      case 'FALLTHROUGH': return fallthrough();
+      case 'FALLTHROUGH': return fallthrough(inExperiment: map['inExperiment']);
       case 'TARGET_MATCH': return targetMatch();
-      case 'RULE_MATCH': return ruleMatch(ruleIndex: map['ruleIndex'], ruleId: map['ruleId']);
-      case 'PREREQUISITE_FAILED': return prerequisiteFailed(prerequisiteKey: map['prerequisiteKey']);
+      case 'RULE_MATCH': return ruleMatch(ruleIndex: map['ruleIndex'], ruleId: map['ruleId'], inExperiment: map['inExperiment'] ?? false);
+      case 'PREREQUISITE_FAILED':
+        String? prereqKey = map['prerequisiteKey'];
+        if (prereqKey == null) {
+          return unknown();
+        }
+        return prerequisiteFailed(prerequisiteKey: prereqKey);
       case 'ERROR': return error(errorKind: _errorKindNames[map['errorKind']] ?? LDErrorKind.UNKNOWN);
       default: return unknown();
     }
   }
 
-  const LDEvaluationReason._(this.kind, {this.ruleIndex, this.ruleId, this.prerequisiteKey, this.errorKind});
+  const LDEvaluationReason._(this.kind, {this.ruleIndex, this.ruleId, this.prerequisiteKey, this.errorKind, this.inExperiment});
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.OFF].
   static LDEvaluationReason off() => _OFF_INSTANCE;
   /// Returns an [LDEvaluationReason] with the kind [LDKind.FALLTHROUGH].
-  static LDEvaluationReason fallthrough() => _FALLTHROUGH_INSTANCE;
+  static LDEvaluationReason fallthrough({bool? inExperiment}) {
+    if (inExperiment == true) {
+      return _FALLTHROUGH_EXPERIMENT_INSTANCE;
+    }
+    return _FALLTHROUGH_INSTANCE;
+  }
   /// Returns an [LDEvaluationReason] with the kind [LDKind.TARGET_MATCH].
   static LDEvaluationReason targetMatch() => _TARGET_MATCH_INSTANCE;
   /// Returns an [LDEvaluationReason] with the kind [LDKind.RULE_MATCH] and the given [ruleIndex] and [ruleId].
-  static LDEvaluationReason ruleMatch({int ruleIndex, String ruleId}) {
-    return LDEvaluationReason._(LDKind.RULE_MATCH, ruleIndex: ruleIndex, ruleId: ruleId);
+  static LDEvaluationReason ruleMatch({required int ruleIndex, required String ruleId, bool? inExperiment}) {
+    return LDEvaluationReason._(LDKind.RULE_MATCH, ruleIndex: ruleIndex, ruleId: ruleId, inExperiment: inExperiment ?? false);
   }
   /// Returns an [LDEvaluationReason] with the kind [LDKind.PREREQUISITE_FAILED] and the given [prerequisiteKey].
-  static LDEvaluationReason prerequisiteFailed({String prerequisiteKey}) {
+  static LDEvaluationReason prerequisiteFailed({required String prerequisiteKey}) {
     return LDEvaluationReason._(LDKind.PREREQUISITE_FAILED, prerequisiteKey: prerequisiteKey);
   }
   /// Returns an [LDEvaluationReason] with the kind [LDKind.ERROR] and the given [errorKind].
-  static LDEvaluationReason error({LDErrorKind errorKind}) {
+  static LDEvaluationReason error({LDErrorKind errorKind = LDErrorKind.UNKNOWN}) {
     return LDEvaluationReason._(LDKind.ERROR, errorKind: errorKind);
   }
   /// Returns an [LDEvaluationReason] with the kind [LDKind.UNKNOWN].

@@ -1,4 +1,4 @@
-// @dart=2.7
+// @dart=2.12
 part of launchdarkly_flutter_client_sdk;
 
 /// An [LDUser] contains the attributes of a user context.
@@ -20,32 +20,32 @@ class LDUser {
   final bool anonymous;
 
   /// The user's secondary attribute.
-  final String secondary;
+  final String? secondary;
   /// The user's ip attribute.
-  final String ip;
+  final String? ip;
   /// The user's email attribute.
-  final String email;
+  final String? email;
   /// The user's name attribute.
-  final String name;
+  final String? name;
   /// The user's firstName attribute.
-  final String firstName;
+  final String? firstName;
   /// The user's lastName attribute.
-  final String lastName;
+  final String? lastName;
   /// The user's avatar attribute.
-  final String avatar;
+  final String? avatar;
   /// The user's country attribute.
-  final String country;
+  final String? country;
 
   /// The user's custom attributes.
   ///
   /// Note this Map is unmodifiable. Instead construct a new [LDUser] instance with [LDUserBuilder].
-  final Map<String, LDValue> custom;
+  final Map<String, LDValue>? custom;
 
   /// Which of the user's attributes are specified to be private.
   ///
   /// The values of private attributes are not included in events to prevent them being recorded by the service. Note
   /// that this List is unmodifiable. Instead construct a new [LDUser] instance with [LDUserBuilder].
-  final List<String> privateAttributeNames;
+  final List<String>? privateAttributeNames;
 
   LDUser._builder(LDUserBuilder builder) :
         key = builder._key,
@@ -91,25 +91,23 @@ class LDUserBuilder {
   static const String _COUNTRY = "country";
 
   String _key;
-  bool _anonymous;
+  bool _anonymous = false;
 
-  String _secondary;
-  String _ip;
-  String _email;
-  String _name;
-  String _firstName;
-  String _lastName;
-  String _avatar;
-  String _country;
+  String? _secondary;
+  String? _ip;
+  String? _email;
+  String? _name;
+  String? _firstName;
+  String? _lastName;
+  String? _avatar;
+  String? _country;
 
   Map<String, LDValue> _custom = new Map();
 
   Set<String> _privateAttributeNames = new Set();
 
   /// Creates a new builder with the specified user key.
-  LDUserBuilder(String key) {
-    this._key = key;
-  }
+  LDUserBuilder(this._key);
 
   /// Sets whether the user is anonymous.
   LDUserBuilder anonymous(bool anonymous) {

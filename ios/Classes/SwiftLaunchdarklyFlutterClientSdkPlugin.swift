@@ -71,6 +71,9 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     if let diagnosticOptOut = dict["diagnosticOptOut"] as? Bool {
         config.diagnosticOptOut = diagnosticOptOut
     }
+    if let autoAliasingOptOut = dict["autoAliasingOptOut"] as? Bool {
+        config.autoAliasingOptOut = autoAliasingOptOut
+    }
     if let allAttributesPrivate = dict["allAttributesPrivate"] as? Bool {
         config.allUserAttributesPrivate = allAttributesPrivate
     }
@@ -145,6 +148,10 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       LDClient.get()!.identify(user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
         result(nil)
       }
+    case "alias":
+      LDClient.get()!.alias(context: userFrom(dict: args?["user"] as! Dictionary<String, Any>),
+                            previousContext: userFrom(dict: args?["previousUser"] as! Dictionary<String, Any>))
+      result(nil)
     case "track":
       try? LDClient.get()!.track(key: args?["eventName"] as! String, data: args?["data"], metricValue: args?["metricValue"] as? Double)
       result(nil)

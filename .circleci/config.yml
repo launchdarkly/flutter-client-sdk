@@ -24,17 +24,18 @@ jobs:
           command: |
             echo 'export PATH="$PATH:/usr/local/share/android-sdk/tools/bin"' >> $BASH_ENV
             echo 'export PATH="$PATH:/usr/local/share/android-sdk/platform-tools"' >> $BASH_ENV
-            echo 'export PATH="$PATH:/usr/local/Caskroom/flutter/1.20.4/flutter/.pub-cache/bin"' >> $BASH_ENV
+            echo 'export PATH="$PATH:$HOME/.pub-cache/bin"' >> $BASH_ENV
 
       - run:
           name: Install Android SDK, Flutter and dartdoc
           command: |
-            HOMEBREW_NO_AUTO_UPDATE=1 brew cask install homebrew/cask-versions/adoptopenjdk8
             HOMEBREW_NO_AUTO_UPDATE=1 brew tap homebrew/cask
-            HOMEBREW_NO_AUTO_UPDATE=1 brew cask install android-sdk
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask homebrew/cask-versions/adoptopenjdk8
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask android-sdk
             yes | sdkmanager "platform-tools" | grep -v = || true
-            HOMEBREW_NO_AUTO_UPDATE=1 brew cask install flutter
-            flutter pub global activate dartdoc
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask flutter
+            flutter upgrade
+            dart pub global activate dartdoc
 
       - run:
           name: Acknowledge Android licenses

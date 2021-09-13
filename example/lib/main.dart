@@ -14,7 +14,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String typeDropdown = 'Boolean';
+  String? typeDropdown = 'Boolean';
   String userKey = '';
   String evalKey = '';
   String evalResult = '';
@@ -56,7 +56,7 @@ class _MyAppState extends State<MyApp> {
         break;
       case 'String':
         var result = await LDClient.stringVariation(evalKey, "");
-        setState(() { evalResult = result; });
+        setState(() { evalResult = result ?? ""; });
         break;
       case 'Json':
         var result = await LDClient.jsonVariation(evalKey, LDValue.buildObject().build());
@@ -103,7 +103,7 @@ class _MyAppState extends State<MyApp> {
                 DropdownButton<String>(
                   value: typeDropdown,
                   isDense: true,
-                  onChanged: (String newValue) {
+                  onChanged: (String? newValue) {
                     setState(() {
                       typeDropdown = newValue;
                     });
