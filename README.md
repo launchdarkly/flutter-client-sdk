@@ -20,6 +20,8 @@ On the Android platform, the SDK requires a minimum SDK version of 21.
 
 On the iOS platform, the SDK requires a minimum version of 10.0.
 
+Other Flutter platforms are not currently supported by this SDK.
+
 Getting started
 -----------
 
