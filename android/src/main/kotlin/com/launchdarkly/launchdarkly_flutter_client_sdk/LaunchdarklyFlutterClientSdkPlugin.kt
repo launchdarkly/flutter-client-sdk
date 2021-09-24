@@ -66,7 +66,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         configBuilder.pollUri(Uri.parse(map["pollUri"] as String))
       }
       if (map["eventsUri"] is String) {
-        configBuilder.eventsUri(Uri.parse((map["eventsUri"] as String) + "/mobile"))
+        configBuilder.eventsUri(Uri.parse((map["eventsUri"] as String)))
       }
       if (map["streamUri"] is String) {
         configBuilder.streamUri(Uri.parse(map["streamUri"] as String))

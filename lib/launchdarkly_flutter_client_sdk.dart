@@ -192,7 +192,7 @@ class LDClient {
     if (result == null) {
       return LDEvaluationDetail(defaultValue, -1, LDEvaluationReason.error());
     }
-    return LDEvaluationDetail(result['value'], result['variationIndex'], LDEvaluationReason._fromCodecValue(result['reason']));
+    return LDEvaluationDetail(result['value'], result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
   /// Returns the value of flag [flagKey] for the current user as an [LDValue].
@@ -212,7 +212,7 @@ class LDClient {
     if (result == null) {
       return LDEvaluationDetail(defaultValue, -1, LDEvaluationReason.error());
     }
-    return LDEvaluationDetail(LDValue.fromCodecValue(result['value']), result['variationIndex'], LDEvaluationReason._fromCodecValue(result['reason']));
+    return LDEvaluationDetail(LDValue.fromCodecValue(result['value']), result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
   /// Returns a map of all feature flags for the current user, without sending evaluation events to LaunchDarkly.
