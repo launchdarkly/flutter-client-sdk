@@ -14,11 +14,13 @@ LaunchDarkly overview
 Supported Platform versions
 -------------------------
 
-See the [pubspec.yaml](pubspec.yaml) file for Flutter version requirements.
+See the [pubspec.yaml](https://github.com/launchdarkly/flutter-client-sdk/blob/master/pubspec.yaml) file for Flutter version requirements.
 
-On the Android platform, the SDK requires a minimum SDK version of 16.
+On the Android platform, the SDK requires a minimum SDK version of 21.
 
 On the iOS platform, the SDK requires a minimum version of 10.0.
+
+Other Flutter platforms are not currently supported by this SDK.
 
 Getting started
 -----------
@@ -38,7 +40,7 @@ We run integration tests for all our SDKs using a centralized test harness. This
 Contributing
 ------------
 
-We encourage pull requests and other contributions from the community. Check out our [contributing guidelines](CONTRIBUTING.md) for instructions on how to contribute to this SDK.
+We encourage pull requests and other contributions from the community. Check out our [contributing guidelines](https://github.com/launchdarkly/flutter-client-sdk/blob/master/CONTRIBUTING.md) for instructions on how to contribute to this SDK.
 
 About LaunchDarkly
 -----------
@@ -54,4 +56,3 @@ About LaunchDarkly
     * [docs.launchdarkly.com](https://docs.launchdarkly.com/  "LaunchDarkly Documentation") for our documentation and SDK reference guides
     * [apidocs.launchdarkly.com](https://apidocs.launchdarkly.com/  "LaunchDarkly API Documentation") for our API documentation
     * [blog.launchdarkly.com](https://blog.launchdarkly.com/  "LaunchDarkly Blog Documentation") for the latest product updates
-    * [Feature Flagging Guide](https://github.com/launchdarkly/featureflags/  "Feature Flagging Guide") for best practices and strategies

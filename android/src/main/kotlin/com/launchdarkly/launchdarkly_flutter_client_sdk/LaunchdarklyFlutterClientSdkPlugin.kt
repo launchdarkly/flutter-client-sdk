@@ -4,10 +4,10 @@ import android.app.Application
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-
 import androidx.annotation.NonNull
-import com.google.gson.*
-import com.launchdarkly.android.*
+
+import com.launchdarkly.sdk.*
+import com.launchdarkly.sdk.android.*
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -60,71 +60,76 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
     fun configFromMap(map: Map<String, Any>): LDConfig {
       val configBuilder = LDConfig.Builder()
       if (map["mobileKey"] is String) {
-        configBuilder.setMobileKey(map["mobileKey"] as String)
+        configBuilder.mobileKey(map["mobileKey"] as String)
       }
-      if (map["baseUri"] is String) {
-        configBuilder.setBaseUri(Uri.parse(map["baseUri"] as String))
+      if (map["pollUri"] is String) {
+        configBuilder.pollUri(Uri.parse(map["pollUri"] as String))
       }
       if (map["eventsUri"] is String) {
-        configBuilder.setEventsUri(Uri.parse((map["eventsUri"] as String) + "/mobile"))
+        configBuilder.eventsUri(Uri.parse((map["eventsUri"] as String)))
       }
       if (map["streamUri"] is String) {
-        configBuilder.setStreamUri(Uri.parse(map["streamUri"] as String))
+        configBuilder.streamUri(Uri.parse(map["streamUri"] as String))
       }
       if (map["eventsCapacity"] is Int) {
-        configBuilder.setEventsCapacity(map["eventsCapacity"] as Int)
+        configBuilder.eventsCapacity(map["eventsCapacity"] as Int)
       }
       if (map["eventsFlushIntervalMillis"] is Int) {
-        configBuilder.setEventsFlushIntervalMillis(map["eventsFlushIntervalMillis"] as Int)
+        configBuilder.eventsFlushIntervalMillis(map["eventsFlushIntervalMillis"] as Int)
       }
       if (map["connectionTimeoutMillis"] is Int) {
-        configBuilder.setConnectionTimeoutMillis(map["connectionTimeoutMillis"] as Int)
+        configBuilder.connectionTimeoutMillis(map["connectionTimeoutMillis"] as Int)
       }
       if (map["pollingIntervalMillis"] is Int) {
-        configBuilder.setPollingIntervalMillis(map["pollingIntervalMillis"] as Int)
+        configBuilder.pollingIntervalMillis(map["pollingIntervalMillis"] as Int)
       }
       if (map["backgroundPollingIntervalMillis"] is Int) {
-        configBuilder.setBackgroundPollingIntervalMillis(map["backgroundPollingIntervalMillis"] as Int)
+        configBuilder.backgroundPollingIntervalMillis(map["backgroundPollingIntervalMillis"] as Int)
       }
       if (map["diagnosticRecordingIntervalMillis"] is Int) {
-        configBuilder.setDiagnosticRecordingIntervalMillis(map["diagnosticRecordingIntervalMillis"] as Int)
+        configBuilder.diagnosticRecordingIntervalMillis(map["diagnosticRecordingIntervalMillis"] as Int)
       }
       if (map["stream"] is Boolean) {
-        configBuilder.setStream(map["stream"] as Boolean)
+        configBuilder.stream(map["stream"] as Boolean)
       }
       if (map["offline"] is Boolean) {
-        configBuilder.setOffline(map["offline"] as Boolean)
+        configBuilder.offline(map["offline"] as Boolean)
       }
       if (map["disableBackgroundUpdating"] is Boolean) {
-        configBuilder.setDisableBackgroundUpdating(map["disableBackgroundUpdating"] as Boolean)
+        configBuilder.disableBackgroundUpdating(map["disableBackgroundUpdating"] as Boolean)
       }
       if (map["useReport"] is Boolean) {
-        configBuilder.setUseReport(map["useReport"] as Boolean)
+        configBuilder.useReport(map["useReport"] as Boolean)
       }
       if (map["inlineUsersInEvents"] is Boolean) {
-        configBuilder.setInlineUsersInEvents(map["inlineUsersInEvents"] as Boolean)
+        configBuilder.inlineUsersInEvents(map["inlineUsersInEvents"] as Boolean)
       }
       if (map["evaluationReasons"] is Boolean) {
-        configBuilder.setEvaluationReasons(map["evaluationReasons"] as Boolean)
+        configBuilder.evaluationReasons(map["evaluationReasons"] as Boolean)
       }
       if (map["diagnosticOptOut"] is Boolean) {
-        configBuilder.setDiagnosticOptOut(map["diagnosticOptOut"] as Boolean)
+        configBuilder.diagnosticOptOut(map["diagnosticOptOut"] as Boolean)
+      }
+      if (map["autoAliasingOptOut"] is Boolean) {
+        configBuilder.autoAliasingOptOut(map["autoAliasingOptOut"] as Boolean)
       }
       if (map["allAttributesPrivate"] is Boolean && map["allAttributesPrivate"] as Boolean) {
         configBuilder.allAttributesPrivate()
       }
-      if (map["privateAttributeNames"] != null) {
-        val privateAttributeNames = mutableSetOf<String>()
+      if (map["privateAttributeNames"] is List<*>) {
+        val privateAttrs = ArrayList<UserAttribute>()
         for (name in map["privateAttributeNames"] as List<*>) {
-          privateAttributeNames.add(name as String)
+          if (name is String) {
+            privateAttrs.add(UserAttribute.forName(name))
+          }
         }
-        configBuilder.setPrivateAttributeNames(privateAttributeNames)
+        configBuilder.privateAttributes(*privateAttrs.toTypedArray())
       }
       if (map["wrapperName"] is String) {
-        configBuilder.setWrapperName(map["wrapperName"] as String)
+        configBuilder.wrapperName(map["wrapperName"] as String)
       }
       if (map["wrapperVersion"] is String) {
-        configBuilder.setWrapperVersion(map["wrapperVersion"] as String)
+        configBuilder.wrapperVersion(map["wrapperVersion"] as String)
       }
       return configBuilder.build()
     }
@@ -152,112 +157,56 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       }
       if (map["custom"] != null) {
         for (entry in (map["custom"] as Map<String, Any>)) {
-          val value = entry.value
-          if (value is Boolean) {
-            if (privateAttrs.contains(entry.key)) {
-              userBuilder.privateCustom(entry.key, value)
-            } else {
-              userBuilder.custom(entry.key, value)
-            }
-          }
-          else if (value is Number) {
-            if (privateAttrs.contains(entry.key)) {
-              userBuilder.privateCustom(entry.key, value)
-            } else {
-              userBuilder.custom(entry.key, value)
-            }
-          }
-          else if (value is String) {
-            if (privateAttrs.contains(entry.key)) {
-              userBuilder.privateCustom(entry.key, value)
-            } else {
-              userBuilder.custom(entry.key, value)
-            }
-          }
-          else if (value is List<*>) {
-            if (value.isEmpty()) {
-              if (privateAttrs.contains(entry.key)) {
-                userBuilder.privateCustomNumber(entry.key, ArrayList())
-              } else {
-                userBuilder.customNumber(entry.key, ArrayList())
-              }
-            }
-            else if (value[0] is Number) {
-              if (privateAttrs.contains(entry.key)) {
-                userBuilder.privateCustomNumber(entry.key, value as List<Number>)
-              } else {
-                userBuilder.customNumber(entry.key, value as List<Number>)
-              }
-            }
-            else if (value[0] is String) {
-              if (privateAttrs.contains(entry.key)) {
-                userBuilder.privateCustomString(entry.key, value as List<String>)
-              } else {
-                userBuilder.customString(entry.key, value as List<String>)
-              }
-            }
+          if (privateAttrs.contains(entry.key)) {
+            userBuilder.privateCustom(entry.key, valueFromBridge(entry.value))
+          } else {
+            userBuilder.custom(entry.key, valueFromBridge(entry.value))
           }
         }
       }
       return userBuilder.build()
     }
 
-    fun jsonElementFromBridge(dyn: Any?): JsonElement {
+    fun valueFromBridge(dyn: Any?): LDValue {
       when (dyn) {
-        null -> {
-          return JsonNull.INSTANCE
-        }
-        is Boolean -> {
-          return JsonPrimitive(dyn)
-        }
-        is Number -> {
-          return JsonPrimitive(dyn)
-        }
-        is String -> {
-          return JsonPrimitive(dyn)
-        }
+        null -> return LDValue.ofNull()
+        is Boolean -> return LDValue.of(dyn)
+        is Number -> return LDValue.of(dyn.toDouble())
+        is String -> return LDValue.of(dyn)
         is ArrayList<*> -> {
-          val jsonArr = JsonArray()
+          val arrBuilder = LDValue.buildArray()
           dyn.forEach {
-            jsonArr.add(jsonElementFromBridge(it))
+            arrBuilder.add(valueFromBridge(it))
           }
-          return jsonArr
+          return arrBuilder.build()
         }
         else -> {
-          val jsonObj = JsonObject()
+          val objBuilder = LDValue.buildObject()
           (dyn as HashMap<*, *>).forEach {
-            jsonObj.add(it.key as String, jsonElementFromBridge(it.value))
+            objBuilder.put(it.key as String, valueFromBridge(it.value))
           }
-          return jsonObj
+          return objBuilder.build()
         }
       }
     }
 
-    fun jsonElementToBridge(jsonElement: JsonElement?): Any? {
-      when {
-        jsonElement == null || jsonElement.isJsonNull -> {
-          return null
-        }
-        jsonElement is JsonPrimitive && jsonElement.isBoolean -> {
-          return jsonElement.asBoolean
-        }
-        jsonElement is JsonPrimitive && jsonElement.isNumber -> {
-          return jsonElement.asDouble
-        }
-        jsonElement is JsonPrimitive -> {
-          return jsonElement.asString
-        }
-        jsonElement is JsonArray -> {
+    fun valueToBridge(ldValue: LDValue): Any? {
+      when (ldValue.type) {
+        null, LDValueType.NULL -> return null
+        LDValueType.BOOLEAN -> return ldValue.booleanValue()
+        LDValueType.NUMBER -> return ldValue.doubleValue()
+        LDValueType.STRING -> return ldValue.stringValue()
+        LDValueType.ARRAY -> {
           val res = ArrayList<Any?>()
-          jsonElement.forEach {
-            res.add(jsonElementToBridge(it))
+          ldValue.values().forEach {
+            res.add(valueToBridge(it))
           }
           return res
         }
-        else -> {
+        LDValueType.OBJECT -> {
           val res = HashMap<String, Any?>()
-          jsonElement.asJsonObject.entrySet().forEach {
-            res[it.key] = jsonElementToBridge(it.value)
+          ldValue.keys().forEach {
+            res[it] = valueToBridge(ldValue.get(it))
           }
           return res
         }
@@ -270,15 +219,19 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       res["variationIndex"] = variationIndex
       val reasonRes = HashMap<String, Any?>()
       reasonRes["kind"] = reason?.kind?.name
-      when (reason) {
-        is EvaluationReason.RuleMatch -> {
+      when (reason?.kind) {
+        EvaluationReason.Kind.RULE_MATCH -> {
           reasonRes["ruleIndex"] = reason.ruleIndex
           reasonRes["ruleId"] = reason.ruleId
+          reasonRes["inExperiment"] = reason.isInExperiment
         }
-        is EvaluationReason.PrerequisiteFailed -> {
+        EvaluationReason.Kind.PREREQUISITE_FAILED -> {
           reasonRes["prerequisiteKey"] = reason.prerequisiteKey
         }
-        is EvaluationReason.Error -> {
+        EvaluationReason.Kind.FALLTHROUGH -> {
+          reasonRes["inExperiment"] = reason.isInExperiment
+        }
+        EvaluationReason.Kind.ERROR -> {
           reasonRes["errorKind"] = reason.errorKind.name
         }
       }
@@ -319,57 +272,71 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         LDClient.get().identify(ldUser).get()
         result.success(null)
       }
+      "alias" -> {
+        val user: LDUser = userFromMap(call.argument("user")!!)
+        val previousUser: LDUser = userFromMap(call.argument("previousUser")!!)
+        LDClient.get().alias(user, previousUser)
+        result.success(null)
+      }
       "track" -> {
-        val data = jsonElementFromBridge(call.argument("data"))
-        LDClient.get().track(call.argument("eventName"), data, call.argument("metricValue"))
+        val data = valueFromBridge(call.argument("data"))
+        val metric: Double? = call.argument("metricValue")
+        if (metric == null) {
+          LDClient.get().trackData(call.argument("eventName"), data)
+        } else {
+          LDClient.get().trackMetric(call.argument("eventName"), data, metric)
+        }
         result.success(null)
       }
       "boolVariation" -> {
-        val evalResult = LDClient.get().boolVariation(call.argument("flagKey"), call.argument("defaultValue"))
+        val evalResult = LDClient.get().boolVariation(call.argument("flagKey")!!, call.argument("defaultValue")!!)
         result.success(evalResult)
       }
       "boolVariationDetail" -> {
-        val evalResult = LDClient.get().boolVariationDetail(call.argument("flagKey"), call.argument("defaultValue"))
+        val evalResult = LDClient.get().boolVariationDetail(call.argument("flagKey")!!, call.argument("defaultValue")!!)
         result.success(detailToBridge(evalResult.value, evalResult.variationIndex, evalResult.reason))
       }
       "intVariation" -> {
-        val evalResult = LDClient.get().intVariation(call.argument("flagKey"), call.argument("defaultValue"))
+        val evalResult: Int = LDClient.get().intVariation(call.argument("flagKey")!!, call.argument("defaultValue")!!)
         result.success(evalResult)
       }
       "intVariationDetail" -> {
-        val evalResult = LDClient.get().intVariationDetail(call.argument("flagKey"), call.argument("defaultValue"))
+        val evalResult = LDClient.get().intVariationDetail(call.argument("flagKey")!!, call.argument("defaultValue")!!)
         result.success(detailToBridge(evalResult.value, evalResult.variationIndex, evalResult.reason))
       }
       "doubleVariation" -> {
-        val defaultValue: Double? = call.argument("defaultValue")
-        val evalResult = LDClient.get().floatVariation(call.argument("flagKey"), defaultValue?.toFloat())
+        val evalResult = LDClient.get().doubleVariation(call.argument("flagKey")!!, call.argument("defaultValue")!!)
         result.success(evalResult)
       }
       "doubleVariationDetail" -> {
-        val defaultValue: Double? = call.argument("defaultValue")
-        val evalResult = LDClient.get().floatVariationDetail(call.argument("flagKey"), defaultValue?.toFloat())
+        val evalResult = LDClient.get().doubleVariationDetail(call.argument("flagKey")!!, call.argument("defaultValue")!!)
         result.success(detailToBridge(evalResult.value, evalResult.variationIndex, evalResult.reason))
       }
       "stringVariation" -> {
-        val evalResult = LDClient.get().stringVariation(call.argument("flagKey"), call.argument("defaultValue"))
+        val evalResult = LDClient.get().stringVariation(call.argument("flagKey")!!, call.argument("defaultValue"))
         result.success(evalResult)
       }
       "stringVariationDetail" -> {
-        val evalResult = LDClient.get().stringVariationDetail(call.argument("flagKey"), call.argument("defaultValue"))
+        val evalResult = LDClient.get().stringVariationDetail(call.argument("flagKey")!!, call.argument("defaultValue"))
         result.success(detailToBridge(evalResult.value, evalResult.variationIndex, evalResult.reason))
       }
       "jsonVariation" -> {
-        val defaultValue = jsonElementFromBridge(call.argument("defaultValue"))
-        val evalResult = LDClient.get().jsonVariation(call.argument("flagKey"), defaultValue)
-        result.success(jsonElementToBridge(evalResult))
+        val defaultValue = valueFromBridge(call.argument("defaultValue"))
+        val evalResult = LDClient.get().jsonValueVariation(call.argument("flagKey")!!, defaultValue)
+        result.success(valueToBridge(evalResult))
       }
       "jsonVariationDetail" -> {
-        val defaultValue = jsonElementFromBridge(call.argument("defaultValue"))
-        val evalResult = LDClient.get().jsonVariationDetail(call.argument("flagKey"), defaultValue)
-        result.success(detailToBridge(jsonElementToBridge(evalResult.value), evalResult.variationIndex, evalResult.reason))
+        val defaultValue = valueFromBridge(call.argument("defaultValue"))
+        val evalResult = LDClient.get().jsonValueVariationDetail(call.argument("flagKey")!!, defaultValue)
+        result.success(detailToBridge(valueToBridge(evalResult.value), evalResult.variationIndex, evalResult.reason))
       }
       "allFlags" -> {
-        result.success(LDClient.get().allFlags())
+        var allFlagsBridge = HashMap<String, Any?>()
+        val allFlags = LDClient.get().allFlags()
+        allFlags.forEach {
+          allFlagsBridge[it.key] = valueToBridge(it.value);
+        }
+        result.success(allFlagsBridge);
       }
       "flush" -> {
         LDClient.get().flush()
