@@ -11,8 +11,8 @@ part of launchdarkly_flutter_client_sdk;
 /// custom attributes. See [LDUserBuilder] for how to set the attribute values.
 ///
 /// For a more complete description of user attributes and how they can be referenced in feature flag rules, see the
-/// reference guide on [setting user attributes](https://docs.launchdarkly.com/home/managing-users/user-attributes) and
-/// [targeting users](https://docs.launchdarkly.com/home/managing-flags/targeting-users).
+/// reference guide on [setting user attributes](https://docs.launchdarkly.com/home/users/attributes) and
+/// [targeting users](https://docs.launchdarkly.com/home/flags/targeting-users).
 class LDUser {
   /// The user's key.
   final String key;
