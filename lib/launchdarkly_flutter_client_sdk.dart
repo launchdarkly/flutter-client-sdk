@@ -114,7 +114,7 @@ class LDClient {
 
   /// Returns the value of flag [flagKey] for the current user as a bool, along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.setEvaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   static Future<LDEvaluationDetail<bool>> boolVariationDetail(String flagKey, bool defaultValue) async {
     Map<String, dynamic>? result = await _channel.invokeMapMethod('boolVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
@@ -138,7 +138,7 @@ class LDClient {
 
   /// Returns the value of flag [flagKey] for the current user as an int, along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.setEvaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   static Future<LDEvaluationDetail<int>> intVariationDetail(String flagKey, int defaultValue) async {
     Map<String, dynamic>? result = await _channel.invokeMapMethod('intVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
@@ -162,7 +162,7 @@ class LDClient {
 
   /// Returns the value of flag [flagKey] for the current user as a double, along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.setEvaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   static Future<LDEvaluationDetail<double>> doubleVariationDetail(String flagKey, double defaultValue) async {
     Map<String, dynamic>? result = await _channel.invokeMapMethod('doubleVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
@@ -185,7 +185,7 @@ class LDClient {
 
   /// Returns the value of flag [flagKey] for the current user as a string, along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.setEvaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   static Future<LDEvaluationDetail<String?>> stringVariationDetail(String flagKey, String? defaultValue) async {
     Map<String, dynamic>? result = await _channel.invokeMapMethod('stringVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
@@ -205,7 +205,7 @@ class LDClient {
 
   /// Returns the value of flag [flagKey] for the current user as an [LDValue], along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.setEvaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   static Future<LDEvaluationDetail<LDValue>> jsonVariationDetail(String flagKey, LDValue defaultValue) async {
     Map<String, dynamic>? result = await _channel.invokeMapMethod('jsonVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue.codecValue()});

@@ -130,25 +130,25 @@ class LDConfigBuilder {
   bool _autoAliasingOptOut = false;
 
   bool _allAttributesPrivate = false;
-  Set<String> _privateAttributeNames = new Set();
+  Set<String> _privateAttributeNames = Set();
 
   /// Create a new `LDConfigBuilder` for the given mobile key.
   LDConfigBuilder(this._mobileKey);
 
   /// Sets the URI for polling requests.
-  LDConfigBuilder setPollUri(String pollUri) {
+  LDConfigBuilder pollUri(String pollUri) {
     this._pollUri = pollUri;
     return this;
   }
 
   /// Sets the URI for eventing requests.
-  LDConfigBuilder setEventsUri(String eventsUri) {
+  LDConfigBuilder eventsUri(String eventsUri) {
     this._eventsUri = eventsUri;
     return this;
   }
 
   /// Sets the URI for stream requests.
-  LDConfigBuilder setStreamUri(String streamUri) {
+  LDConfigBuilder streamUri(String streamUri) {
     this._streamUri = streamUri;
     return this;
   }
@@ -159,36 +159,36 @@ class LDConfigBuilder {
   /// is flushed, events will be discarded. Increasing the capacity means that events are less likely to be discarded,
   /// at the cost of potentially consuming more memory.
   ///
-  /// See [LDConfigBuilder.setEventsFlushIntervalMillis] for configuring the flush interval.
-  LDConfigBuilder setEventsCapacity(int eventsCapacity) {
+  /// See [LDConfigBuilder.eventsFlushIntervalMillis] for configuring the flush interval.
+  LDConfigBuilder eventsCapacity(int eventsCapacity) {
     this._eventsCapacity = eventsCapacity;
     return this;
   }
 
   /// Sets the maximum amount of time in between sending analytics events to LaunchDarkly.
-  LDConfigBuilder setEventsFlushIntervalMillis(int eventsFlushIntervalMillis) {
+  LDConfigBuilder eventsFlushIntervalMillis(int eventsFlushIntervalMillis) {
     this._eventsFlushIntervalMillis = eventsFlushIntervalMillis;
     return this;
   }
 
   /// Sets the connection timeout for network requests.
-  LDConfigBuilder setConnectionTimeoutMillis(int connectionTimeoutMillis) {
+  LDConfigBuilder connectionTimeoutMillis(int connectionTimeoutMillis) {
     this._connectionTimeoutMillis = connectionTimeoutMillis;
     return this;
   }
 
   /// Sets the interval between foreground flag poll requests.
   ///
-  /// Foreground polling is only used when streaming has been disabled with [LDConfigBuilder.setStream].
-  LDConfigBuilder setPollingIntervalMillis(int pollingIntervalMillis) {
+  /// Foreground polling is only used when streaming has been disabled with [LDConfigBuilder.stream].
+  LDConfigBuilder pollingIntervalMillis(int pollingIntervalMillis) {
     this._pollingIntervalMillis = pollingIntervalMillis;
     return this;
   }
 
   /// Sets the interval between background flag poll requests.
   ///
-  /// See [LDConfigBuilder.setDisableBackgroundUpdating] to disable background polls entirely.
-  LDConfigBuilder setBackgroundPollingIntervalMillis(int backgroundPollingIntervalMillis) {
+  /// See [LDConfigBuilder.disableBackgroundUpdating] to disable background polls entirely.
+  LDConfigBuilder backgroundPollingIntervalMillis(int backgroundPollingIntervalMillis) {
     this._backgroundPollingIntervalMillis = backgroundPollingIntervalMillis;
     return this;
   }
@@ -196,8 +196,8 @@ class LDConfigBuilder {
   /// Set the interval at which periodic diagnostic data is sent.
   ///
   /// The default is every 15 minutes (900,000 milliseconds) and the minimum value is 300,000 (5 minutes). See
-  /// [LDConfigBuilder.setDiagnosticOptOut] for more information on the diagnostic data being sent.
-  LDConfigBuilder setDiagnosticRecordingIntervalMillis(int diagnosticRecordingIntervalMillis) {
+  /// [LDConfigBuilder.diagnosticOptOut] for more information on the diagnostic data being sent.
+  LDConfigBuilder diagnosticRecordingIntervalMillis(int diagnosticRecordingIntervalMillis) {
     this._diagnosticRecordingIntervalMillis = diagnosticRecordingIntervalMillis;
     return this;
   }
@@ -210,7 +210,7 @@ class LDConfigBuilder {
   /// The currently configured user is not considered part of this limit.
   ///
   /// The default value of this configuration option is `5`.
-  LDConfigBuilder setMaxCachedUsers(int maxCachedUsers) {
+  LDConfigBuilder maxCachedUsers(int maxCachedUsers) {
     this._maxCachedUsers = maxCachedUsers < 0 ? -1 : maxCachedUsers;
     return this;
   }
@@ -218,7 +218,7 @@ class LDConfigBuilder {
   /// Enables or disables real-time streaming flag updates.
   ///
   /// Defaults to `true` (streaming enabled), when `false` polling is used instead.
-  LDConfigBuilder setStream(bool stream) {
+  LDConfigBuilder stream(bool stream) {
     this._stream = stream;
     return this;
   }
@@ -228,16 +228,16 @@ class LDConfigBuilder {
   /// Defaults to `false` (network calls enabled), set to `true` to disable network calls.
   ///
   /// Can also be configured at runtime using [LDClient.setOnline].
-  LDConfigBuilder setOffline(bool offline) {
+  LDConfigBuilder offline(bool offline) {
     this._offline = offline;
     return this;
   }
 
   /// Disables or enables background polling requests for flag values.
   ///
-  /// See [LDConfigBuilder.setBackgroundPollingIntervalMillis] for configuring the interval between background polling
+  /// See [LDConfigBuilder.backgroundPollingIntervalMillis] for configuring the interval between background polling
   /// requests.
-  LDConfigBuilder setDisableBackgroundUpdating(bool disableBackgroundUpdating) {
+  LDConfigBuilder disableBackgroundUpdating(bool disableBackgroundUpdating) {
     this._disableBackgroundUpdating = disableBackgroundUpdating;
     return this;
   }
@@ -246,7 +246,7 @@ class LDConfigBuilder {
   ///
   /// Normally the SDK uses a `GET` request, with the user attributes encoded in the URL. This option configures the
   /// SDK to instead include the user in the HTTP `body` of a `REPORT` request.
-  LDConfigBuilder setUseReport(bool useReport) {
+  LDConfigBuilder useReport(bool useReport) {
     this._useReport = useReport;
     return this;
   }
@@ -258,7 +258,7 @@ class LDConfigBuilder {
   ///
   /// When [LDConfig.inlineUsersInEvents] is `true`, the SDK will include the full user (all non-private user
   /// attributes) in every event.
-  LDConfigBuilder setInlineUsersInEvents(bool inlineUsersInEvents) {
+  LDConfigBuilder inlineUsersInEvents(bool inlineUsersInEvents) {
     this._inlineUsersInEvents = inlineUsersInEvents;
     return this;
   }
@@ -267,7 +267,7 @@ class LDConfigBuilder {
   ///
   /// This will allow the additional information included in [LDEvaluationDetail] to be populated when using the
   /// variation detail methods such as [LDClient.boolVariationDetail].
-  LDConfigBuilder setEvaluationReasons(bool evaluationReasons) {
+  LDConfigBuilder evaluationReasons(bool evaluationReasons) {
     this._evaluationReasons = evaluationReasons;
     return this;
   }
@@ -279,8 +279,8 @@ class LDConfigBuilder {
   /// payload containing some details of the SDK in use, the SDK's configuration, and the platform the SDK is being run
   /// on; as well as payloads sent periodically with information on irregular occurrences such as dropped events.
   ///
-  /// See [LDConfigBuilder.setDiagnosticRecordingIntervalMillis] for configuration of periodic payload frequency.
-  LDConfigBuilder setDiagnosticOptOut(bool diagnosticOptOut) {
+  /// See [LDConfigBuilder.diagnosticRecordingIntervalMillis] for configuration of periodic payload frequency.
+  LDConfigBuilder diagnosticOptOut(bool diagnosticOptOut) {
     this._diagnosticOptOut = diagnosticOptOut;
     return this;
   }
@@ -289,19 +289,19 @@ class LDConfigBuilder {
   ///
   /// Unless [LDConfig.autoAliasingOptOut] is `true`, the client will send an automatic `alias` event when
   /// [LDClient.identify] is called with a non-anonymous user when the current user is anonymous.
-  LDConfigBuilder setAutoAliasingOptOut(bool autoAliasingOptOut) {
+  LDConfigBuilder autoAliasingOptOut(bool autoAliasingOptOut) {
     this._autoAliasingOptOut = autoAliasingOptOut;
     return this;
   }
 
   /// Configures the SDK to never include optional attribute values in analytics events.
-  LDConfigBuilder setAllAttributesPrivate(bool allAttributesPrivate) {
+  LDConfigBuilder allAttributesPrivate(bool allAttributesPrivate) {
     this._allAttributesPrivate = allAttributesPrivate;
     return this;
   }
 
   /// Sets a `Set` of private attributes to never include the values for in analytics events.
-  LDConfigBuilder setPrivateAttributeNames(Set<String> privateAttributeNames) {
+  LDConfigBuilder privateAttributeNames(Set<String> privateAttributeNames) {
     this._privateAttributeNames = privateAttributeNames;
     return this;
   }
