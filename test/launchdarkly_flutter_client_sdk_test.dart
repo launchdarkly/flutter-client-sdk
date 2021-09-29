@@ -170,6 +170,7 @@ Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   result['pollingIntervalMillis'] = 5 * 60 * 1000;
   result['backgroundPollingIntervalMillis'] = 60 * 60 * 1000;
   result['diagnosticRecordingIntervalMillis'] = 15 * 60 * 1000;
+  result['maxCachedUsers'] = 5;
   result['stream'] = true;
   result['offline'] = false;
   result['disableBackgroundUpdating'] = true;

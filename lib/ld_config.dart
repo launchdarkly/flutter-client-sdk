@@ -25,6 +25,10 @@ class LDConfig {
   final int backgroundPollingIntervalMillis;
   /// The configured diagnostic recording interval in milliseconds.
   final int diagnosticRecordingIntervalMillis;
+  /// The count of users to store the flag values for in on-device storage.
+  ///
+  /// A value of `-1` indicates that an unlimited number of users will be cached locally.
+  final int maxCachedUsers;
 
   /// Whether the SDK is configured to use a streaming connection when in the foreground.
   final bool stream;
@@ -59,6 +63,7 @@ class LDConfig {
         pollingIntervalMillis = builder._pollingIntervalMillis,
         backgroundPollingIntervalMillis = builder._backgroundPollingIntervalMillis,
         diagnosticRecordingIntervalMillis = builder._diagnosticRecordingIntervalMillis,
+        maxCachedUsers = builder._maxCachedUsers,
         stream = builder._stream,
         offline = builder._offline,
         disableBackgroundUpdating = builder._disableBackgroundUpdating,
@@ -82,6 +87,7 @@ class LDConfig {
     result['pollingIntervalMillis'] = pollingIntervalMillis;
     result['backgroundPollingIntervalMillis'] = backgroundPollingIntervalMillis;
     result['diagnosticRecordingIntervalMillis'] = diagnosticRecordingIntervalMillis;
+    result['maxCachedUsers'] = maxCachedUsers;
     result['stream'] = stream;
     result['offline'] = offline;
     result['disableBackgroundUpdating'] = disableBackgroundUpdating;
@@ -112,6 +118,7 @@ class LDConfigBuilder {
   int _pollingIntervalMillis = 5 * 60 * 1000;
   int _backgroundPollingIntervalMillis = 60 * 60 * 1000;
   int _diagnosticRecordingIntervalMillis = 15 * 60 * 1000;
+  int _maxCachedUsers = 5;
 
   bool _stream = true;
   bool _offline = false;
@@ -192,6 +199,19 @@ class LDConfigBuilder {
   /// [LDConfigBuilder.setDiagnosticOptOut] for more information on the diagnostic data being sent.
   LDConfigBuilder setDiagnosticRecordingIntervalMillis(int diagnosticRecordingIntervalMillis) {
     this._diagnosticRecordingIntervalMillis = diagnosticRecordingIntervalMillis;
+    return this;
+  }
+
+  /// Sets how many users to store the flag values for in on-device storage.
+  ///
+  /// A negative value indicates that the SDK should store the flags for every user it is configured for, never removing
+  /// the stored values for the least recently used users when the count exceed `maxCachedUsers`.
+  ///
+  /// The currently configured user is not considered part of this limit.
+  ///
+  /// The default value of this configuration option is `5`.
+  LDConfigBuilder setMaxCachedUsers(int maxCachedUsers) {
+    this._maxCachedUsers = maxCachedUsers < 0 ? -1 : maxCachedUsers;
     return this;
   }
 

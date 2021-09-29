@@ -89,6 +89,9 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       if (map["diagnosticRecordingIntervalMillis"] is Int) {
         configBuilder.diagnosticRecordingIntervalMillis(map["diagnosticRecordingIntervalMillis"] as Int)
       }
+      if (map["maxCachedUsers"] is Int) {
+        configBuilder.maxCachedUsers(map["maxCachedUsers"] as Int)
+      }
       if (map["stream"] is Boolean) {
         configBuilder.stream(map["stream"] as Boolean)
       }

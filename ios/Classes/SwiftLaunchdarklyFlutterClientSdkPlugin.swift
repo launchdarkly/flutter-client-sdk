@@ -50,6 +50,9 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     if let diagnosticRecordingIntervalMillis = dict["diagnosticRecordingIntervalMillis"] as? Int {
         config.diagnosticRecordingInterval = Double(diagnosticRecordingIntervalMillis) / 1000.0
     }
+    if let maxCachedUsers = dict["maxCachedUsers"] as? Int {
+        config.maxCachedUsers = maxCachedUsers
+    }
     if let stream = dict["stream"] as? Bool {
         config.streamingMode = stream ? LDStreamingMode.streaming : LDStreamingMode.polling
     }
