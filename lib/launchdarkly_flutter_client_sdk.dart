@@ -45,6 +45,7 @@ class LDClient {
   static const String _sdkVersion = "0.2.0";
   static const MethodChannel _channel = const MethodChannel('launchdarkly_flutter_client_sdk');
 
+  static Completer<void> _startCompleter = Completer();
   static List<LDFlagsReceivedCallback> _flagsReceivedCallbacks = [];
   static SetMultimap<String, LDFlagUpdatedCallback> _flagUpdateCallbacks = SetMultimap();
 
@@ -53,6 +54,10 @@ class LDClient {
 
   static Future<void> _handleCallbacks(MethodCall call) async {
     switch (call.method) {
+      case 'completeStart':
+        if (_startCompleter.isCompleted) return;
+        _startCompleter.complete();
+        break;
       case 'handleFlagsReceived':
         var changedFlags = List.castFrom<dynamic, String>(call.arguments ?? []);
         _flagsReceivedCallbacks.forEach((callback) {
@@ -66,6 +71,10 @@ class LDClient {
           callback(flagKey);
         });
         break;
+      // Hack for resetting static completion for tests
+      case '_resetStartCompletion':
+        _startCompleter = Completer();
+        break;
     }
   }
 
@@ -78,6 +87,23 @@ class LDClient {
     _channel.setMethodCallHandler(_handleCallbacks);
     await _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'user': user._toCodecValue()});
   }
+
+  /// Returns a future that completes when the SDK has completed starting.
+  ///
+  /// While it is safe to use the SDK as soon as the completion returned by the call to [LDClient.start] completes, it
+  /// does not indicate the SDK has received the most recent flag values for the configured user. The `Future` returned
+  /// by this method completes when the SDK has received flag values for the initial user, or if the SDK determines that
+  /// it cannot currently retrieve flag values at all (such as when the device is offline).
+  ///
+  /// The optional [timeLimit] parameter can be used to set a limit to the time the returned `Future` may be incomplete
+  /// regardless of whether the SDK has not yet retrieved flags for the configured user.
+  static Future<void> startFuture({Duration? timeLimit}) =>
+    (timeLimit != null) ? _startCompleter.future.timeout(timeLimit, onTimeout: () => null) : _startCompleter.future;
+
+  /// Checks whether the SDK has completed starting.
+  ///
+  /// This is equivilent to checking if the `Future` returned by [LDClient.startFuture] is already completed.
+  static bool isInitialized() => _startCompleter.isCompleted;
 
   /// Changes the active user context.
   ///

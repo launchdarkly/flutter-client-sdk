@@ -15,6 +15,8 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
+import java.util.concurrent.Future
+import kotlin.concurrent.thread
 
 public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandler {
   private lateinit var channel : MethodChannel
@@ -29,16 +31,20 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
     channel.setMethodCallHandler(this)
   }
 
-  private fun setupListeners() {
-    flagChangeListener = FeatureFlagChangeListener { channel.invokeMethod("handleFlagUpdate", it) }
-    allFlagsListener = LDAllFlagsListener { flagKeys: MutableList<String>? ->
+  private fun callFlutter(method: String, arguments: Any?) {
       // invokeMethod must be called on main thread
       if (Looper.myLooper() == Looper.getMainLooper()) {
-        channel.invokeMethod("handleFlagsReceived", flagKeys)
+        channel.invokeMethod(method, arguments)
       } else {
         // Call ourselves on the main thread
-        Handler(Looper.getMainLooper()).post { allFlagsListener.onChange(flagKeys) }
+        Handler(Looper.getMainLooper()).post { callFlutter(method, arguments) }
       }
+  }
+
+  private fun setupListeners() {
+    flagChangeListener = FeatureFlagChangeListener { channel.invokeMethod("handleFlagUpdate", it) }
+    allFlagsListener = LDAllFlagsListener {
+      callFlutter("handleFlagsReceived", it)
     }
   }
 
@@ -57,83 +63,47 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       channel.setMethodCallHandler(plugin)
     }
 
+    private inline fun <reified T> whenIs(value: Any?, call: (value: T) -> Unit) {
+      if (value is T) {
+        call(value as T)
+      }
+    }
+
     fun configFromMap(map: Map<String, Any>): LDConfig {
       val configBuilder = LDConfig.Builder()
-      if (map["mobileKey"] is String) {
-        configBuilder.mobileKey(map["mobileKey"] as String)
-      }
-      if (map["pollUri"] is String) {
-        configBuilder.pollUri(Uri.parse(map["pollUri"] as String))
-      }
-      if (map["eventsUri"] is String) {
-        configBuilder.eventsUri(Uri.parse((map["eventsUri"] as String)))
-      }
-      if (map["streamUri"] is String) {
-        configBuilder.streamUri(Uri.parse(map["streamUri"] as String))
-      }
-      if (map["eventsCapacity"] is Int) {
-        configBuilder.eventsCapacity(map["eventsCapacity"] as Int)
-      }
-      if (map["eventsFlushIntervalMillis"] is Int) {
-        configBuilder.eventsFlushIntervalMillis(map["eventsFlushIntervalMillis"] as Int)
-      }
-      if (map["connectionTimeoutMillis"] is Int) {
-        configBuilder.connectionTimeoutMillis(map["connectionTimeoutMillis"] as Int)
-      }
-      if (map["pollingIntervalMillis"] is Int) {
-        configBuilder.pollingIntervalMillis(map["pollingIntervalMillis"] as Int)
-      }
-      if (map["backgroundPollingIntervalMillis"] is Int) {
-        configBuilder.backgroundPollingIntervalMillis(map["backgroundPollingIntervalMillis"] as Int)
-      }
-      if (map["diagnosticRecordingIntervalMillis"] is Int) {
-        configBuilder.diagnosticRecordingIntervalMillis(map["diagnosticRecordingIntervalMillis"] as Int)
-      }
-      if (map["maxCachedUsers"] is Int) {
-        configBuilder.maxCachedUsers(map["maxCachedUsers"] as Int)
-      }
-      if (map["stream"] is Boolean) {
-        configBuilder.stream(map["stream"] as Boolean)
-      }
-      if (map["offline"] is Boolean) {
-        configBuilder.offline(map["offline"] as Boolean)
-      }
-      if (map["disableBackgroundUpdating"] is Boolean) {
-        configBuilder.disableBackgroundUpdating(map["disableBackgroundUpdating"] as Boolean)
-      }
-      if (map["useReport"] is Boolean) {
-        configBuilder.useReport(map["useReport"] as Boolean)
-      }
-      if (map["inlineUsersInEvents"] is Boolean) {
-        configBuilder.inlineUsersInEvents(map["inlineUsersInEvents"] as Boolean)
-      }
-      if (map["evaluationReasons"] is Boolean) {
-        configBuilder.evaluationReasons(map["evaluationReasons"] as Boolean)
-      }
-      if (map["diagnosticOptOut"] is Boolean) {
-        configBuilder.diagnosticOptOut(map["diagnosticOptOut"] as Boolean)
-      }
-      if (map["autoAliasingOptOut"] is Boolean) {
-        configBuilder.autoAliasingOptOut(map["autoAliasingOptOut"] as Boolean)
-      }
+      whenIs<String>(map["mobileKey"]) { configBuilder.mobileKey(it) }
+      whenIs<String>(map["pollUri"]) { configBuilder.pollUri(Uri.parse(it)) }
+      whenIs<String>(map["eventsUri"]) { configBuilder.eventsUri(Uri.parse(it)) }
+      whenIs<String>(map["streamUri"]) { configBuilder.streamUri(Uri.parse(it)) }
+      whenIs<Int>(map["eventsCapacity"]) { configBuilder.eventsCapacity(it) }
+      whenIs<Int>(map["eventsFlushIntervalMillis"]) { configBuilder.eventsFlushIntervalMillis(it) }
+      whenIs<Int>(map["connectionTimeoutMillis"]) { configBuilder.connectionTimeoutMillis(it) }
+      whenIs<Int>(map["pollingIntervalMillis"]) { configBuilder.pollingIntervalMillis(it) }
+      whenIs<Int>(map["backgroundPollingIntervalMillis"]) { configBuilder.backgroundPollingIntervalMillis(it) }
+      whenIs<Int>(map["diagnosticRecordingIntervalMillis"]) { configBuilder.diagnosticRecordingIntervalMillis(it) }
+      whenIs<Int>(map["maxCachedUsers"]) { configBuilder.maxCachedUsers(it) }
+      whenIs<Boolean>(map["stream"]) { configBuilder.stream(it) }
+      whenIs<Boolean>(map["offline"]) { configBuilder.offline(it) }
+      whenIs<Boolean>(map["disableBackgroundUpdating"]) { configBuilder.disableBackgroundUpdating(it) }
+      whenIs<Boolean>(map["useReport"]) { configBuilder.useReport(it) }
+      whenIs<Boolean>(map["inlineUsersInEvents"]) { configBuilder.inlineUsersInEvents(it) }
+      whenIs<Boolean>(map["evaluationReasons"]) { configBuilder.evaluationReasons(it) }
+      whenIs<Boolean>(map["diagnosticOptOut"]) { configBuilder.diagnosticOptOut(it) }
+      whenIs<Boolean>(map["autoAliasingOptOut"]) { configBuilder.autoAliasingOptOut(it) }
       if (map["allAttributesPrivate"] is Boolean && map["allAttributesPrivate"] as Boolean) {
         configBuilder.allAttributesPrivate()
       }
-      if (map["privateAttributeNames"] is List<*>) {
+      whenIs<List<*>>(map["privateAttributeNames"]) {
         val privateAttrs = ArrayList<UserAttribute>()
-        for (name in map["privateAttributeNames"] as List<*>) {
+        for (name in it) {
           if (name is String) {
             privateAttrs.add(UserAttribute.forName(name))
           }
         }
         configBuilder.privateAttributes(*privateAttrs.toTypedArray())
       }
-      if (map["wrapperName"] is String) {
-        configBuilder.wrapperName(map["wrapperName"] as String)
-      }
-      if (map["wrapperVersion"] is String) {
-        configBuilder.wrapperVersion(map["wrapperVersion"] as String)
-      }
+      whenIs<String>(map["wrapperName"]) { configBuilder.wrapperName(it) }
+      whenIs<String>(map["wrapperVersion"]) { configBuilder.wrapperVersion(it) }
       return configBuilder.build()
     }
 
@@ -266,8 +236,15 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       "start" -> {
         val ldConfig: LDConfig = configFromMap(call.argument("config")!!)
         val ldUser: LDUser = userFromMap(call.argument("user")!!)
-        val ldClient: LDClient = LDClient.init(application, ldConfig, ldUser, 5)
-        ldClient.registerAllFlagsListener(allFlagsListener)
+        val completion: Future<LDClient> = LDClient.init(application, ldConfig, ldUser)
+        LDClient.get().registerAllFlagsListener(allFlagsListener)
+        thread(start = true) {
+            try {
+              completion.get()
+            } finally {
+              callFlutter("completeStart", null)
+            }
+        }
         result.success(null)
       }
       "identify" -> {

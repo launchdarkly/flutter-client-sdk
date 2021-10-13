@@ -143,10 +143,11 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     case "start":
       LDClient.start(config: configFrom(dict: args?["config"] as! Dictionary<String, Any>),
                      user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
-        result(nil)
+        self.channel.invokeMethod("completeStart", arguments: nil)
       }
       LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
       LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+      result(nil)
     case "identify":
       LDClient.get()!.identify(user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
         result(nil)
