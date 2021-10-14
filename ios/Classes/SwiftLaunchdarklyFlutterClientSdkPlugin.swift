@@ -103,12 +103,18 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     let args = call.arguments as? Dictionary<String, Any>
     switch call.method {
     case "start":
-      LDClient.start(config: configFrom(dict: args?["config"] as! Dictionary<String, Any>),
-                     user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
-        self.channel.invokeMethod("completeStart", arguments: nil)
+      let config = configFrom(dict: args?["config"] as! Dictionary<String, Any>)
+      let user = userFrom(dict: args?["user"] as! Dictionary<String, Any>)
+      let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
+      if let client = LDClient.get() {
+        // We've already initialized the native SDK so just switch to the new user.
+        client.identify(user: user, completion: completion)
+      } else {
+        // We have not already initialized the native SDK.
+        LDClient.start(config: config, user: user, completion: completion)
+        LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+        LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
       }
-      LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-      LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
       result(nil)
     case "identify":
       LDClient.get()!.identify(user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {

@@ -236,8 +236,16 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       "start" -> {
         val ldConfig: LDConfig = configFromMap(call.argument("config")!!)
         val ldUser: LDUser = userFromMap(call.argument("user")!!)
-        val completion: Future<LDClient> = LDClient.init(application, ldConfig, ldUser)
-        LDClient.get().registerAllFlagsListener(allFlagsListener)
+        var completion: Future<*>
+        try {
+          val instance = LDClient.get()
+          // We've already initialized the native SDK so just switch to the new user.
+          completion = instance.identify(ldUser)
+        } catch (ignored: LaunchDarklyException) {
+          // We have not already initialized the native SDK.
+          completion = LDClient.init(application, ldConfig, ldUser)
+          LDClient.get().registerAllFlagsListener(allFlagsListener)
+        }
         thread(start = true) {
             try {
               completion.get()
