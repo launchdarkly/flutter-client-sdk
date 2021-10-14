@@ -338,8 +338,8 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
           LDClient.get().setOffline()
         }
       }
-      "isOnline" -> {
-        result.success(!LDClient.get().isOffline)
+      "isOffline" -> {
+        result.success(LDClient.get().isOffline)
       }
       "getConnectionInformation" -> {
         result.success(connectionInformationToBridge(LDClient.get().connectionInformation))

@@ -269,10 +269,10 @@ class LDClient {
     await _channel.invokeMethod('setOnline', {'online': online });
   }
 
-  /// Returns whether the SDK is currently configured to make network connections.
-  static Future<bool> isOnline() async {
-    bool? result = await _channel.invokeMethod('isOnline');
-    return result ?? false;
+  /// Returns whether the SDK is currently configured not to make network connections.
+  static Future<bool> isOffline() async {
+    bool? result = await _channel.invokeMethod('isOffline');
+    return result ?? true;
   }
 
   /// Returns information about the current state of the SDK's connection to the LaunchDarkly.

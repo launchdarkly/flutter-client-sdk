@@ -489,11 +489,11 @@ void testLDClient() {
     });
   });
 
-  test('isOnline', () async {
+  test('isOffline', () async {
     Future.forEach([false, true], (val) async {
       callReturn = val;
-      expect(await LDClient.isOnline(), val);
-      expectCall('isOnline', null);
+      expect(await LDClient.isOffline(), val);
+      expectCall('isOffline', null);
     });
   });
 

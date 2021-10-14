@@ -198,8 +198,8 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
         LDClient.get()!.setOnline(online)
       }
       result(nil)
-    case "isOnline":
-      result(LDClient.get()?.isOnline)
+    case "isOffline":
+      result(!LDClient.get()!.isOnline)
     case "getConnectionInformation":
       result(toBridge(connectionInformation: LDClient.get()!.getConnectionInformation()))
     case "startFlagListening":
