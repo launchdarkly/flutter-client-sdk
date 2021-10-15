@@ -306,15 +306,28 @@ and method documentation for more details.</p>
 
 </dd>
 
-        <dt id="isOnline" class="callable">
-  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/isOnline.html">isOnline</a></span><span class="signature">(<wbr>)
+        <dt id="isInitialized" class="callable">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/isInitialized.html">isInitialized</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks whether the SDK has completed starting. <a href="../launchdarkly_flutter_client_sdk/LDClient/isInitialized.html">[...]</a>
+  
+
+</dd>
+
+        <dt id="isOffline" class="callable">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/isOffline.html">isOffline</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Returns whether the SDK is currently configured to make network connections. 
+  Returns whether the SDK is currently configured not to make network connections. 
   
 
 </dd>
@@ -393,6 +406,19 @@ and method documentation for more details.</p>
 </dt>
 <dd>
   Initialize the SDK with the given <a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a> and <a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a>. <a href="../launchdarkly_flutter_client_sdk/LDClient/start.html">[...]</a>
+  
+
+</dd>
+
+        <dt id="startFuture" class="callable">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/startFuture.html">startFuture</a></span><span class="signature">(<wbr><span class="parameter" id="startFuture-param-timeLimit">{<span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a>?</span> <span class="parameter-name">timeLimit</span>}</span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns a future that completes when the SDK has completed starting. <a href="../launchdarkly_flutter_client_sdk/LDClient/startFuture.html">[...]</a>
   
 
 </dd>
@@ -551,13 +577,15 @@ and method documentation for more details.</p>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/identify.html">identify</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/intVariation.html">intVariation</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/intVariationDetail.html">intVariationDetail</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDClient/isOnline.html">isOnline</a></li>
+    <li><a href="../launchdarkly_flutter_client_sdk/LDClient/isInitialized.html">isInitialized</a></li>
+    <li><a href="../launchdarkly_flutter_client_sdk/LDClient/isOffline.html">isOffline</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/jsonVariation.html">jsonVariation</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/jsonVariationDetail.html">jsonVariationDetail</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/registerFeatureFlagListener.html">registerFeatureFlagListener</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/registerFlagsReceivedListener.html">registerFlagsReceivedListener</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/setOnline.html">setOnline</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/start.html">start</a></li>
+    <li><a href="../launchdarkly_flutter_client_sdk/LDClient/startFuture.html">startFuture</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/stringVariation.html">stringVariation</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/stringVariationDetail.html">stringVariationDetail</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/LDClient/track.html">track</a></li>
@@ -573,7 +601,7 @@ and method documentation for more details.</p>
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      0.2.0
+      0.3.0
   </span>
 
   

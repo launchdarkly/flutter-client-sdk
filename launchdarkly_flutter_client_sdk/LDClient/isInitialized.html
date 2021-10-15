@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the isOnline method from the LDClient class, for the Dart programming language.">
-  <title>isOnline method - LDClient class - launchdarkly_flutter_client_sdk library - Dart API</title>
+  <meta name="description" content="API docs for the isInitialized method from the LDClient class, for the Dart programming language.">
+  <title>isInitialized method - LDClient class - launchdarkly_flutter_client_sdk library - Dart API</title>
 
 
   
@@ -32,9 +32,9 @@
     <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient-class.html">LDClient</a></li>
-    <li class="self-crumb">isOnline method</li>
+    <li class="self-crumb">isInitialized method</li>
   </ol>
-  <div class="self-name">isOnline</div>
+  <div class="self-name">isInitialized</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -45,32 +45,30 @@
 
   <div id="dartdoc-main-content" class="main-content">
       <div>
-<h1><span class="kind-method">isOnline</span> method 
+<h1><span class="kind-method">isInitialized</span> method 
     <a href="https://dart.dev/null-safety" class="feature feature-null-safety" title="Supports the null safety language feature.">Null safety</a>
 </h1></div>
 
     <section class="multi-line-signature">
       
 
-<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
-<span class="name ">isOnline</span>(<wbr>)
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+<span class="name ">isInitialized</span>(<wbr>)
 
       
 
     </section>
     
 <section class="desc markdown">
-  <p>Returns whether the SDK is currently configured to make network connections.</p>
+  <p>Checks whether the SDK has completed starting.</p>
+<p>This is equivilent to checking if the <code>Future</code> returned by <a href="../../launchdarkly_flutter_client_sdk/LDClient/startFuture.html">LDClient.startFuture</a> is already completed.</p>
 </section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">static Future&lt;bool&gt; isOnline() async {
-  bool? result = await _channel.invokeMethod(&#39;isOnline&#39;);
-  return result ?? false;
-}</code></pre>
+  <pre class="language-dart"><code class="language-dart">static bool isInitialized() =&gt; _startCompleter.isCompleted;</code></pre>
 </section>
 
 
@@ -87,7 +85,7 @@
   <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/LDClient-class.html">LDClient</a></li>
-  <li class="self-crumb">isOnline method</li>
+  <li class="self-crumb">isInitialized method</li>
 </ol>
 
 
@@ -124,13 +122,15 @@
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/identify.html">identify</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/intVariation.html">intVariation</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/intVariationDetail.html">intVariationDetail</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/isOnline.html">isOnline</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/isInitialized.html">isInitialized</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/isOffline.html">isOffline</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/jsonVariation.html">jsonVariation</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/jsonVariationDetail.html">jsonVariationDetail</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/registerFeatureFlagListener.html">registerFeatureFlagListener</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/registerFlagsReceivedListener.html">registerFlagsReceivedListener</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/setOnline.html">setOnline</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/start.html">start</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/startFuture.html">startFuture</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/stringVariation.html">stringVariation</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/stringVariationDetail.html">stringVariationDetail</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/track.html">track</a></li>
@@ -149,7 +149,7 @@
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      0.2.0
+      0.3.0
   </span>
 
   

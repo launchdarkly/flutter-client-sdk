@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the setDisableBackgroundUpdating method from the LDConfigBuilder class, for the Dart programming language.">
-  <title>setDisableBackgroundUpdating method - LDConfigBuilder class - launchdarkly_flutter_client_sdk library - Dart API</title>
+  <meta name="description" content="API docs for the useReport method from the LDConfigBuilder class, for the Dart programming language.">
+  <title>useReport method - LDConfigBuilder class - launchdarkly_flutter_client_sdk library - Dart API</title>
 
 
   
@@ -32,9 +32,9 @@
     <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
-    <li class="self-crumb">setDisableBackgroundUpdating method</li>
+    <li class="self-crumb">useReport method</li>
   </ol>
-  <div class="self-name">setDisableBackgroundUpdating</div>
+  <div class="self-name">useReport</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -45,7 +45,7 @@
 
   <div id="dartdoc-main-content" class="main-content">
       <div>
-<h1><span class="kind-method">setDisableBackgroundUpdating</span> method 
+<h1><span class="kind-method">useReport</span> method 
     <a href="https://dart.dev/null-safety" class="feature feature-null-safety" title="Supports the null safety language feature.">Null safety</a>
 </h1></div>
 
@@ -53,7 +53,7 @@
       
 
 <span class="returntype"><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></span>
-<span class="name ">setDisableBackgroundUpdating</span>(<wbr><ol class="parameter-list"><li><span class="parameter" id="setDisableBackgroundUpdating-param-disableBackgroundUpdating"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">disableBackgroundUpdating</span></span></li>
+<span class="name ">useReport</span>(<wbr><ol class="parameter-list"><li><span class="parameter" id="useReport-param-useReport"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">useReport</span></span></li>
 </ol>)
 
       
@@ -61,17 +61,17 @@
     </section>
     
 <section class="desc markdown">
-  <p>Disables or enables background polling requests for flag values.</p>
-<p>See <a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setBackgroundPollingIntervalMillis.html">LDConfigBuilder.setBackgroundPollingIntervalMillis</a> for configuring the interval between background polling
-requests.</p>
+  <p>Configure whether the SDK should use the HTTP <code>REPORT</code> verb for flag requests.</p>
+<p>Normally the SDK uses a <code>GET</code> request, with the user attributes encoded in the URL. This option configures the
+SDK to instead include the user in the HTTP <code>body</code> of a <code>REPORT</code> request.</p>
 </section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">LDConfigBuilder setDisableBackgroundUpdating(bool disableBackgroundUpdating) {
-  this._disableBackgroundUpdating = disableBackgroundUpdating;
+  <pre class="language-dart"><code class="language-dart">LDConfigBuilder useReport(bool useReport) {
+  this._useReport = useReport;
   return this;
 }</code></pre>
 </section>
@@ -90,7 +90,7 @@ requests.</p>
   <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
-  <li class="self-crumb">setDisableBackgroundUpdating method</li>
+  <li class="self-crumb">useReport method</li>
 </ol>
 
 
@@ -108,28 +108,29 @@ requests.</p>
     <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></li>
 
     <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html#instance-methods">Methods</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/allAttributesPrivate.html">allAttributesPrivate</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/autoAliasingOptOut.html">autoAliasingOptOut</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/backgroundPollingIntervalMillis.html">backgroundPollingIntervalMillis</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/build.html">build</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/connectionTimeoutMillis.html">connectionTimeoutMillis</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/diagnosticOptOut.html">diagnosticOptOut</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/diagnosticRecordingIntervalMillis.html">diagnosticRecordingIntervalMillis</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/disableBackgroundUpdating.html">disableBackgroundUpdating</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/evaluationReasons.html">evaluationReasons</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/eventsCapacity.html">eventsCapacity</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/eventsFlushIntervalMillis.html">eventsFlushIntervalMillis</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/eventsUri.html">eventsUri</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/inlineUsersInEvents.html">inlineUsersInEvents</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/maxCachedUsers.html">maxCachedUsers</a></li>
     <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setAllAttributesPrivate.html">setAllAttributesPrivate</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setAutoAliasingOptOut.html">setAutoAliasingOptOut</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setBackgroundPollingIntervalMillis.html">setBackgroundPollingIntervalMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setConnectionTimeoutMillis.html">setConnectionTimeoutMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setDiagnosticOptOut.html">setDiagnosticOptOut</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setDiagnosticRecordingIntervalMillis.html">setDiagnosticRecordingIntervalMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setDisableBackgroundUpdating.html">setDisableBackgroundUpdating</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setEvaluationReasons.html">setEvaluationReasons</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setEventsCapacity.html">setEventsCapacity</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setEventsFlushIntervalMillis.html">setEventsFlushIntervalMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setEventsUri.html">setEventsUri</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setInlineUsersInEvents.html">setInlineUsersInEvents</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setOffline.html">setOffline</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setPollingIntervalMillis.html">setPollingIntervalMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setPollUri.html">setPollUri</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setPrivateAttributeNames.html">setPrivateAttributeNames</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setStream.html">setStream</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setStreamUri.html">setStreamUri</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/setUseReport.html">setUseReport</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/offline.html">offline</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/pollingIntervalMillis.html">pollingIntervalMillis</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/pollUri.html">pollUri</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/privateAttributeNames.html">privateAttributeNames</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/stream.html">stream</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/streamUri.html">streamUri</a></li>
     <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/useReport.html">useReport</a></li>
 
     <li class="section-title inherited"><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html#operators">Operators</a></li>
     <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></li>
@@ -149,7 +150,7 @@ requests.</p>
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      0.2.0
+      0.3.0
   </span>
 
   
