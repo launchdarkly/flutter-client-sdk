@@ -2,6 +2,18 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.3.0] - 2021-10-15
+This is a breaking beta release. The changelog may not detail all changes between beta releases. The SDK is considered to be an unsupported beta until release 1.0.0.
+
+### Added
+- `LDClient.startFuture` which can be used to get a `Future` that completes when the SDK has received the most recent flag values for the configured user after starting.
+- `LDClient.isInitialized` which can be used to determine whether the SDK has has received the most recent flag values after starting.
+- Added the ability to configure the limit to the number of users to cache the flag values for on device. This limit can be configured with `LDConfigBuilder.maxCachedUsers`.
+
+### Changed
+- `LDConfigBuilder` setters have had the `set` prefix removed, e.g. `LDConfigBuilder.setOffline` has become `LDConfigBuilder.offline`.
+- `LDClient.isOnline` has been replaced with `LDClient.isOffline` for consistency with other LaunchDarkly SDKs.
+
 ## [0.2.0] - 2021-09-24
 This is a breaking beta release. The changelog may not detail all changes between beta releases. The SDK is considered to be an unsupported beta until release 1.0.0.
 
