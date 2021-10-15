@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 
 const MethodChannel channel = MethodChannel('launchdarkly_flutter_client_sdk');
-const String _sdkVersion = "0.2.0";
+const String _sdkVersion = "0.3.0";
 
 void main() {
   group('LDConnectionInformation', testLDConnectionInformation);
@@ -170,6 +172,7 @@ Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   result['pollingIntervalMillis'] = 5 * 60 * 1000;
   result['backgroundPollingIntervalMillis'] = 60 * 60 * 1000;
   result['diagnosticRecordingIntervalMillis'] = 15 * 60 * 1000;
+  result['maxCachedUsers'] = 5;
   result['stream'] = true;
   result['offline'] = false;
   result['disableBackgroundUpdating'] = true;
@@ -216,11 +219,35 @@ Future<dynamic> mockHandler(MethodCall methodCall) async {
   return callReturn;
 }
 
+Future<void> simulateNativeCall(String method, dynamic arguments) async {
+  MethodCall call = MethodCall(method, arguments);
+  ByteData message = StandardMethodCodec().encodeMethodCall(call);
+  BinaryMessenger messenger = ServicesBinding.instance!.defaultBinaryMessenger;
+  await messenger.handlePlatformMessage('launchdarkly_flutter_client_sdk', message, null);
+}
+
+Future<void> expectCompleted(Future<dynamic> future) async {
+  // Expected to immediately complete, so a zero duration timeout will throw a TimeoutException if not complete.
+  await LDClient.startFuture().timeout(Duration());
+}
+
+Future<void> expectNotCompleted(Future<dynamic> future) async {
+  try {
+    await future.timeout(Duration(milliseconds: 50));
+    fail("Expected future to time out");
+  } on TimeoutException catch (_) { }
+}
+
 void testLDClient() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  setUp(() async {
     channel.setMockMethodCallHandler(mockHandler);
+    // Must start SDK so it can register it's native call handler before we can mock native calling into flutter
+    await LDClient.start(LDConfigBuilder('mobile key').build(), LDUserBuilder('user key').build());
+    callQueue.removeAt(0);
+    // Force reset start completion to allow testing start completion behavior
+    simulateNativeCall('_resetStartCompletion', null);
   });
 
   tearDown(() {
@@ -237,6 +264,47 @@ void testLDClient() {
     Map<String, dynamic> expectedUser = defaultUser('user key');
     await LDClient.start(config, user);
     expectCall('start', {'config': expectedConfig, 'user': expectedUser });
+  });
+
+  test('startFuture after completed', () async {
+    await simulateNativeCall('completeStart', null);
+    await expectCompleted(LDClient.startFuture());
+  });
+
+  test('startFutureTimeLimit after completed', () async {
+    await simulateNativeCall('completeStart', null);
+    await expectCompleted(LDClient.startFuture(timeLimit: Duration()));
+  });
+
+  test('startFuture before completed', () async {
+    var startFuture = LDClient.startFuture();
+    await expectNotCompleted(startFuture);
+    await simulateNativeCall('completeStart', null);
+    await expectCompleted(startFuture);
+  });
+
+  test('startFutureTimeLimit before completed', () async {
+    var startFuture = LDClient.startFuture(timeLimit: Duration(milliseconds: 250));
+    await expectNotCompleted(startFuture);
+    await simulateNativeCall('completeStart', null);
+    await expectCompleted(startFuture);
+  });
+
+  test('startFutureTimeLimit timeout', () async {
+    var startFuture = LDClient.startFuture(timeLimit: Duration(milliseconds: 150));
+    // Does not immediately complete
+    await expectNotCompleted(startFuture);
+    // but the startFuture timeLimit should complete before timeout
+    expect(await startFuture.timeout(Duration(milliseconds: 150)).then((_) => true), equals(true));
+    await simulateNativeCall('completeStart', null);
+    // Calling again will give a new future with it's own timeout
+    await expectCompleted(LDClient.startFuture(timeLimit: Duration(milliseconds: 150)));
+  });
+
+  test('isInitialized', () async {
+    expect(LDClient.isInitialized(), equals(false));
+    await simulateNativeCall('completeStart', null);
+    expect(LDClient.isInitialized(), equals(true));
   });
 
   test('identify', () async {
@@ -421,11 +489,11 @@ void testLDClient() {
     });
   });
 
-  test('isOnline', () async {
+  test('isOffline', () async {
     Future.forEach([false, true], (val) async {
       callReturn = val;
-      expect(await LDClient.isOnline(), val);
-      expectCall('isOnline', null);
+      expect(await LDClient.isOffline(), val);
+      expectCall('isOffline', null);
     });
   });
 
@@ -449,10 +517,6 @@ void testLDClient() {
   });
 
   test('featureFlagListener', () async {
-    // Must start SDK before listeners can become active
-    await LDClient.start(LDConfigBuilder('mobile key').build(), LDUserBuilder('user key').build());
-    callQueue.removeAt(0);
-
     LDFlagUpdatedCallback callback = (flagKey) {
       expect(flagKey, equals('new_ui'));
     };
@@ -461,20 +525,13 @@ void testLDClient() {
     await LDClient.registerFeatureFlagListener('new_ui', wrappedCallback);
     expectCall('startFlagListening', 'new_ui');
 
-    MethodCall call = MethodCall('handleFlagUpdate', 'new_ui');
-    ByteData message = StandardMethodCodec().encodeMethodCall(call);
-    BinaryMessenger messenger = ServicesBinding.instance!.defaultBinaryMessenger;
-    messenger.handlePlatformMessage('launchdarkly_flutter_client_sdk', message, null);
+    await simulateNativeCall('handleFlagUpdate', 'new_ui');
 
     await LDClient.unregisterFeatureFlagListener('new_ui', wrappedCallback);
     expectCall('stopFlagListening', 'new_ui');
   });
 
   test('flagsReceivedListener', () async {
-    // Must start SDK before listeners can become active
-    await LDClient.start(LDConfigBuilder('mobile key').build(), LDUserBuilder('user key').build());
-    callQueue.removeAt(0);
-
     LDFlagsReceivedCallback callback = (flagKeys) {
       expect(flagKeys.length, equals(2));
       expect(flagKeys, containsAllInOrder(['abc', 'def']));
@@ -484,10 +541,7 @@ void testLDClient() {
     await LDClient.registerFlagsReceivedListener(wrappedCallback);
     expect(callQueue.isEmpty, isTrue);
 
-    MethodCall call = MethodCall('handleFlagsReceived', ['abc', 'def']);
-    ByteData message = StandardMethodCodec().encodeMethodCall(call);
-    BinaryMessenger messenger = ServicesBinding.instance!.defaultBinaryMessenger;
-    messenger.handlePlatformMessage('launchdarkly_flutter_client_sdk', message, null);
+    await simulateNativeCall('handleFlagsReceived', ['abc', 'def']);
 
     await LDClient.unregisterFlagsReceivedListener(wrappedCallback);
     expect(callQueue.isEmpty, isTrue);

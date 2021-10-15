@@ -21,71 +21,36 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
+  private func whenIs<T>(_: T.Type, _ value: Any??, _ call: (T) -> ()) {
+    if let value = value as? T {
+      call(value)
+    }
+  }
+
   func configFrom(dict: Dictionary<String, Any?>) -> LDConfig {
     var config = LDConfig(mobileKey: dict["mobileKey"] as! String)
-    if let baseUrl = dict["pollUri"] as? String {
-        config.baseUrl = URL(string: baseUrl)!
-    }
-    if let eventsUrl = dict["eventsUri"] as? String {
-        config.eventsUrl = URL(string: eventsUrl)!
-    }
-    if let streamUrl = dict["streamUri"] as? String {
-        config.streamUrl = URL(string: streamUrl)!
-    }
-    if let eventsCapacity = dict["eventsCapacity"] as? Int {
-        config.eventCapacity = eventsCapacity
-    }
-    if let eventsFlushIntervalMillis = dict["eventsFlushIntervalMillis"] as? Int {
-        config.eventFlushInterval = Double(eventsFlushIntervalMillis) / 1000.0
-    }
-    if let connectionTimeoutMillis = dict["connectionTimeoutMillis"] as? Int {
-        config.connectionTimeout = Double(connectionTimeoutMillis) / 1000.0
-    }
-    if let pollingIntervalMillis = dict["pollingIntervalMillis"] as? Int {
-        config.flagPollingInterval = Double(pollingIntervalMillis) / 1000.0
-    }
-    if let backgroundPollingIntervalMillis = dict["backgroundPollingIntervalMillis"] as? Int {
-        config.backgroundFlagPollingInterval = Double(backgroundPollingIntervalMillis) / 1000.0
-    }
-    if let diagnosticRecordingIntervalMillis = dict["diagnosticRecordingIntervalMillis"] as? Int {
-        config.diagnosticRecordingInterval = Double(diagnosticRecordingIntervalMillis) / 1000.0
-    }
-    if let stream = dict["stream"] as? Bool {
-        config.streamingMode = stream ? LDStreamingMode.streaming : LDStreamingMode.polling
-    }
-    if let offline = dict["offline"] as? Bool {
-        config.startOnline = !offline
-    }
-    if let disableBackgroundUpdating = dict["disableBackgroundUpdating"] as? Bool {
-        config.enableBackgroundUpdates = !disableBackgroundUpdating
-    }
-    if let useReport = dict["useReport"] as? Bool {
-        config.useReport = useReport
-    }
-    if let inlineUsersInEvents = dict["inlineUsersInEvents"] as? Bool {
-        config.inlineUserInEvents = inlineUsersInEvents
-    }
-    if let evaluationReasons = dict["evaluationReasons"] as? Bool {
-        config.evaluationReasons = evaluationReasons
-    }
-    if let diagnosticOptOut = dict["diagnosticOptOut"] as? Bool {
-        config.diagnosticOptOut = diagnosticOptOut
-    }
-    if let autoAliasingOptOut = dict["autoAliasingOptOut"] as? Bool {
-        config.autoAliasingOptOut = autoAliasingOptOut
-    }
-    if let allAttributesPrivate = dict["allAttributesPrivate"] as? Bool {
-        config.allUserAttributesPrivate = allAttributesPrivate
-    }
-    if let privateAttributeNames = dict["privateAttributeNames"] as? [Any] {
-        config.privateUserAttributes = privateAttributeNames.compactMap { $0 as? String }
-    }
-    if let wrapperName = dict["wrapperName"] as? String {
-        config.wrapperName = wrapperName
-    }
-    if let wrapperVersion = dict["wrapperVersion"] as? String {
-        config.wrapperVersion = wrapperVersion
-    }
+    whenIs(String.self, dict["pollUri"]) { config.baseUrl = URL(string: $0)! }
+    whenIs(String.self, dict["eventsUri"]) { config.eventsUrl = URL(string: $0)! }
+    whenIs(String.self, dict["streamUri"]) { config.streamUrl = URL(string: $0)! }
+    whenIs(Int.self, dict["eventsCapacity"]) { config.eventCapacity = $0 }
+    whenIs(Int.self, dict["eventsFlushIntervalMillis"]) { config.eventFlushInterval = Double($0) / 1000.0 }
+    whenIs(Int.self, dict["connectionTimeoutMillis"]) { config.connectionTimeout = Double($0) / 1000.0 }
+    whenIs(Int.self, dict["pollingIntervalMillis"]) { config.flagPollingInterval = Double($0) / 1000.0 }
+    whenIs(Int.self, dict["backgroundPollingIntervalMillis"]) { config.backgroundFlagPollingInterval = Double($0) / 1000.0 }
+    whenIs(Int.self, dict["diagnosticRecordingIntervalMillis"]) { config.diagnosticRecordingInterval = Double($0) / 1000.0 }
+    whenIs(Int.self, dict["maxCachedUsers"]) { config.maxCachedUsers = $0 }
+    whenIs(Bool.self, dict["stream"]) { config.streamingMode = $0 ? LDStreamingMode.streaming : LDStreamingMode.polling }
+    whenIs(Bool.self, dict["offline"]) { config.startOnline = !$0 }
+    whenIs(Bool.self, dict["disableBackgroundUpdating"]) { config.enableBackgroundUpdates = !$0 }
+    whenIs(Bool.self, dict["useReport"]) { config.useReport = $0 }
+    whenIs(Bool.self, dict["inlineUsersInEvents"]) { config.inlineUserInEvents = $0 }
+    whenIs(Bool.self, dict["evaluationReasons"]) { config.evaluationReasons = $0 }
+    whenIs(Bool.self, dict["diagnosticOptOut"]) { config.diagnosticOptOut = $0 }
+    whenIs(Bool.self, dict["autoAliasingOptOut"]) { config.autoAliasingOptOut = $0 }
+    whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allUserAttributesPrivate = $0 }
+    whenIs([Any].self, dict["privateAttributeNames"]) { config.privateUserAttributes = $0.compactMap { $0 as? String } }
+    whenIs(String.self, dict["wrapperName"]) { config.wrapperName = $0 }
+    whenIs(String.self, dict["wrapperVersion"]) { config.wrapperVersion = $0 }
     return config
   }
 
@@ -138,12 +103,19 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     let args = call.arguments as? Dictionary<String, Any>
     switch call.method {
     case "start":
-      LDClient.start(config: configFrom(dict: args?["config"] as! Dictionary<String, Any>),
-                     user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
-        result(nil)
+      let config = configFrom(dict: args?["config"] as! Dictionary<String, Any>)
+      let user = userFrom(dict: args?["user"] as! Dictionary<String, Any>)
+      let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
+      if let client = LDClient.get() {
+        // We've already initialized the native SDK so just switch to the new user.
+        client.identify(user: user, completion: completion)
+      } else {
+        // We have not already initialized the native SDK.
+        LDClient.start(config: config, user: user, completion: completion)
+        LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+        LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
       }
-      LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-      LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+      result(nil)
     case "identify":
       LDClient.get()!.identify(user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
         result(nil)
@@ -226,8 +198,8 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
         LDClient.get()!.setOnline(online)
       }
       result(nil)
-    case "isOnline":
-      result(LDClient.get()?.isOnline)
+    case "isOffline":
+      result(!LDClient.get()!.isOnline)
     case "getConnectionInformation":
       result(toBridge(connectionInformation: LDClient.get()!.getConnectionInformation()))
     case "startFlagListening":
