@@ -14,7 +14,7 @@ enum LDConnectionState {
   /// Indicates that the SDK has detected that network connectivity is unavailable, and will not make network requests
   /// until the network is available again.
   OFFLINE,
-  /// Indicates that the SDK has been set offline by [LDConfigBuilder.setOffline] or [LDClient.setOnline].
+  /// Indicates that the SDK has been set offline by [LDConfigBuilder.offline] or [LDClient.setOnline].
   SET_OFFLINE,
   /// Indicates that the SDK has been explicitly shut down by calling [LDClient.close].
   SHUTDOWN
