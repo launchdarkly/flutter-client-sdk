@@ -1,0 +1,27 @@
+version: 2
+
+repo:
+  public: flutter-client-sdk
+  private: flutter-client-sdk-private
+
+publications:
+  - url: https://pub.dev/packages/launchdarkly_flutter_client_sdk
+    description: pub
+
+jobs:
+  - circleCI:
+      context: org-global
+      mac:
+        xcode: "12.0.1"
+    env:
+      JAVA_HOME: "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+      ANDROID_HOME: "/usr/local/share/android-sdk"
+      ANDROID_SDK_HOME: "/usr/local/share/android-sdk"
+      ANDROID_SDK_ROOT: "/usr/local/share/android-sdk"
+
+documentation:
+  gitHubPages: true
+
+sdk:
+  displayName: "Flutter (client-side)"

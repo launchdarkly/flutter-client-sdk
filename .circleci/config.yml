@@ -7,7 +7,6 @@ jobs:
     shell: /bin/bash --login -eo pipefail
     environment:
       TERM: dumb
-      QEMU_AUDIO_DRV: none
       JAVA_HOME: "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
       _JAVA_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Xms2048m -Xmx4096m"
       GRADLE_OPTS: "-Dorg.gradle.daemon=false"
@@ -20,26 +19,8 @@ jobs:
       - checkout
 
       - run:
-          name: Setup env
-          command: |
-            echo 'export PATH="$PATH:/usr/local/share/android-sdk/tools/bin"' >> $BASH_ENV
-            echo 'export PATH="$PATH:/usr/local/share/android-sdk/platform-tools"' >> $BASH_ENV
-            echo 'export PATH="$PATH:$HOME/.pub-cache/bin"' >> $BASH_ENV
-
-      - run:
-          name: Install Android SDK, Flutter and dartdoc
-          command: |
-            HOMEBREW_NO_AUTO_UPDATE=1 brew tap homebrew/cask
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask homebrew/cask-versions/adoptopenjdk8
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask android-sdk
-            yes | sdkmanager "platform-tools" | grep -v = || true
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask flutter
-            flutter upgrade
-            dart pub global activate dartdoc
-
-      - run:
-          name: Acknowledge Android licenses
-          command: sudo mkdir -p /usr/local/android-sdk-linux/licenses
+          name: Prepare build
+          command: ./.ldrelease/prepare.sh
 
       - run:
           name: Run pure Dart tests
