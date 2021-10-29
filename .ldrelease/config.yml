@@ -24,4 +24,4 @@ documentation:
   gitHubPages: true
 
 sdk:
-  - displayName: "Flutter (client-side)"
+  displayName: "Flutter (client-side)"
