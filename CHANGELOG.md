@@ -2,6 +2,12 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.0.0] - 2021-10-29
+First supported release of LaunchDarkly's Flutter SDK. This release contains no SDK code changes from the prior beta release.
+
+### Added:
+- Support for LaunchDarkly's internal release tool.
+
 ## [0.3.0] - 2021-10-15
 This is a breaking beta release. The changelog may not detail all changes between beta releases. The SDK is considered to be an unsupported beta until release 1.0.0.
 
