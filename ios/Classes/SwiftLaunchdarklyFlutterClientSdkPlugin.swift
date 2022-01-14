@@ -117,111 +117,180 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       }
       result(nil)
     case "identify":
-      LDClient.get()!.identify(user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+        
+      client.identify(user: userFrom(dict: args?["user"] as! Dictionary<String, Any>)) {
         result(nil)
       }
     case "alias":
-      LDClient.get()!.alias(context: userFrom(dict: args?["user"] as! Dictionary<String, Any>),
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      client.alias(context: userFrom(dict: args?["user"] as! Dictionary<String, Any>),
                             previousContext: userFrom(dict: args?["previousUser"] as! Dictionary<String, Any>))
       result(nil)
     case "track":
-      try? LDClient.get()!.track(key: args?["eventName"] as! String, data: args?["data"], metricValue: args?["metricValue"] as? Double)
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      try? client.track(key: args?["eventName"] as! String, data: args?["data"], metricValue: args?["metricValue"] as? Double)
       result(nil)
     case "boolVariation":
-      result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool))
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      result(client.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool))
     case "boolVariationDetail":
-      let detail = LDClient.get()!.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool)
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      let detail = client.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool)
       result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
     case "intVariation":
-      result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Int))
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      result(client.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Int))
     case "intVariationDetail":
-      let detail = LDClient.get()!.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Int)
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      let detail = client.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Int)
       result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
     case "doubleVariation":
-      result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Double))
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      result(client.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Double))
     case "doubleVariationDetail":
-      let detail = LDClient.get()!.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Double)
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      let detail = client.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Double)
       result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
     case "stringVariation":
-      result(LDClient.get()!.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String))
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      result(client.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String))
     case "stringVariationDetail":
-      let detail = LDClient.get()!.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String)
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      let detail = client.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String)
       result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
     case "jsonVariation":
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
       let flagKey = args?["flagKey"] as! String
       if let defaultValue = args?["defaultValue"] as? Bool {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as Bool)
+        result(client.variation(forKey: flagKey, defaultValue: defaultValue) as Bool)
       } else if let defaultValue = args?["defaultValue"] as? Int {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as Int)
+        result(client.variation(forKey: flagKey, defaultValue: defaultValue) as Int)
       } else if let defaultValue = args?["defaultValue"] as? Double {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as Double)
+        result(client.variation(forKey: flagKey, defaultValue: defaultValue) as Double)
       } else if let defaultValue = args?["defaultValue"] as? String {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as String)
+        result(client.variation(forKey: flagKey, defaultValue: defaultValue) as String)
       } else if let defaultValue = args?["defaultValue"] as? [Any] {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as [Any])
+        result(client.variation(forKey: flagKey, defaultValue: defaultValue) as [Any])
       } else if let defaultValue = args?["defaultValue"] as? [String: Any] {
-        result(LDClient.get()!.variation(forKey: flagKey, defaultValue: defaultValue) as [String: Any])
+        result(client.variation(forKey: flagKey, defaultValue: defaultValue) as [String: Any])
       } else {
         result(nil)
       }
     case "jsonVariationDetail":
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+        
       let flagKey = args?["flagKey"] as! String
       if let defaultValue = args?["defaultValue"] as? Bool {
-        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
         result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
       } else if let defaultValue = args?["defaultValue"] as? Int {
-        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
         result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
       } else if let defaultValue = args?["defaultValue"] as? Double {
-        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
         result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
       } else if let defaultValue = args?["defaultValue"] as? String {
-        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
         result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
       } else if let defaultValue = args?["defaultValue"] as? [Any] {
-        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
         result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
       } else if let defaultValue = args?["defaultValue"] as? [String: Any] {
-        let detail = LDClient.get()!.variationDetail(forKey: flagKey, defaultValue: defaultValue)
+        let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
         result(["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?])
       } else {
         result(nil)
       }
     case "allFlags":
-        result(LDClient.get()!.allFlags)
+        guard let client = LDClient.get() else {
+          return throwNoClientError(result: result)
+        }
+        result(client.allFlags)
     case "flush":
-      LDClient.get()!.flush()
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      client.flush()
       result(nil)
     case "setOnline":
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
       let online: Bool? = args?["online"] as? Bool
       if let online = online {
-        LDClient.get()!.setOnline(online)
+        client.setOnline(online)
       }
       result(nil)
     case "isOffline":
-      result(!LDClient.get()!.isOnline)
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      result(!client.isOnline)
     case "getConnectionInformation":
-      result(toBridge(connectionInformation: LDClient.get()!.getConnectionInformation()))
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+      result(toBridge(connectionInformation: client.getConnectionInformation()))
     case "startFlagListening":
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
+        
       let flagKey = call.arguments as! String
       let observerOwner = Owner();
       owners[flagKey] = observerOwner;
-      LDClient.get()!.observe(key: flagKey, owner: observerOwner, handler: flagChangeListener)
+      client.observe(key: flagKey, owner: observerOwner, handler: flagChangeListener)
       result(nil)
     case "stopFlagListening":
+      guard let client = LDClient.get() else {
+        return throwNoClientError(result: result)
+      }
       let flagKey = call.arguments as! String
       if let owner = owners[flagKey] {
-        LDClient.get()!.stopObserving(owner: owner)
+        client.stopObserving(owner: owner)
         owners[flagKey] = nil
       }
       result(nil)
     case "close":
-      LDClient.get()!.close()
+      LDClient.get()?.close()
       result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }
   }
+    
+  private func throwNoClientError(result: FlutterResult) {
+    result(FlutterError(code: "NO_CLIENT",
+                        message: "Client hasn't been initialized. Call start method before any other calls",
+                        details: nil))
+    }
 }
 
 private class Owner { }
