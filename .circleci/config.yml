@@ -3,12 +3,13 @@ version: 2.1
 jobs:
   build:
     macos:
-      xcode: "12.0.1"
+      xcode: "12.5.1"
+    resource_class: macos.x86.medium.gen2
     shell: /bin/bash --login -eo pipefail
     environment:
       TERM: dumb
-      JAVA_HOME: "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-      _JAVA_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Xms2048m -Xmx4096m"
+      JAVA_HOME: "/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home"
+      _JAVA_OPTIONS: "-Xms2048m -Xmx4096m"
       GRADLE_OPTS: "-Dorg.gradle.daemon=false"
       JVM_OPTS: -Xmx3200m
       ANDROID_HOME: "/usr/local/share/android-sdk"
