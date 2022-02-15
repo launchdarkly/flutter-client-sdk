@@ -41,8 +41,6 @@ typedef void LDFlagUpdatedCallback(String flagKey);
 /// After initialization, the SDK can evaluate feature flags from the LaunchDarkly dashboard against the current user,
 /// record custom events, and provides various status configuration and monitoring utilities. See the individual class
 /// and method documentation for more details.
-///
-/// It's important to make [LDClient] a singleton. Applications should configure the client at startup time, and reuse the same instance. Do not instantiate a new client with every request.
 class LDClient {
   static const String _sdkVersion = "1.0.0";
   static const MethodChannel _channel = const MethodChannel('launchdarkly_flutter_client_sdk');
