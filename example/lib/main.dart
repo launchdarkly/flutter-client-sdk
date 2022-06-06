@@ -56,7 +56,7 @@ class _MyAppState extends State<MyApp> {
         break;
       case 'String':
         var result = await LDClient.stringVariation(evalKey, "");
-        setState(() { evalResult = result ?? ""; });
+        setState(() { evalResult = result; });
         break;
       case 'Json':
         var result = await LDClient.jsonVariation(evalKey, LDValue.buildObject().build());

@@ -48,7 +48,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     whenIs(Bool.self, dict["diagnosticOptOut"]) { config.diagnosticOptOut = $0 }
     whenIs(Bool.self, dict["autoAliasingOptOut"]) { config.autoAliasingOptOut = $0 }
     whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allUserAttributesPrivate = $0 }
-    whenIs([Any].self, dict["privateAttributeNames"]) { config.privateUserAttributes = $0.compactMap { $0 as? String } }
+    whenIs([String].self, dict["privateAttributeNames"]) { config.privateUserAttributes = $0.map { UserAttribute.forName($0) } }
     whenIs(String.self, dict["wrapperName"]) { config.wrapperName = $0 }
     whenIs(String.self, dict["wrapperVersion"]) { config.wrapperVersion = $0 }
     return config
@@ -65,8 +65,8 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     user.lastName = dict["lastName"] as? String
     user.avatar = dict["avatar"] as? String
     user.country = dict["country"] as? String
-    user.privateAttributes = dict["privateAttributeNames"] as? [String]
-    user.custom = dict["custom"] as? [String: Any]
+    user.privateAttributes = (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) }
+    user.custom = (dict["custom"] as? [String: Any] ?? [:]).mapValues { LDValue.fromBridge($0) }
     return user
   }
 
@@ -99,8 +99,11 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     return res
   }
 
-  func bridgeEvalDetail<T>(_ detail: LDEvaluationDetail<T>) -> [String: Any?] {
-    ["value": detail.value, "variationIndex": detail.variationIndex, "reason": detail.reason] as [String: Any?]
+  func bridgeEvalDetail<T>(_ detail: LDEvaluationDetail<T>, _ bridge: ((T) -> Any?) = { $0 as Any }) -> [String: Any?] {
+      [ "value": bridge(detail.value)
+      , "variationIndex": detail.variationIndex
+      , "reason": detail.reason?.mapValues { $0.toBridge() }
+      ] as [String: Any?]
   }
 
   func withLDClient(_ result: @escaping FlutterResult, _ closure: ((LDClient) -> ())) {
@@ -141,93 +144,60 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       }
     case "track":
       withLDClient(result) { client in
-        try? client.track(key: args?["eventName"] as! String,
-                          data: args?["data"],
-                          metricValue: args?["metricValue"] as? Double)
+        client.track(key: args?["eventName"] as! String,
+                     data: LDValue.fromBridge(args?["data"]),
+                     metricValue: args?["metricValue"] as? Double)
         result(nil)
       }
     case "boolVariation":
       withLDClient(result) { client in
-        result(client.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool))
+        result(client.boolVariation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as! Bool))
       }
     case "boolVariationDetail":
       withLDClient(result) { client in
-        let detail = client.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Bool)
+        let detail = client.boolVariationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as! Bool)
         result(bridgeEvalDetail(detail))
       }
     case "intVariation":
       withLDClient(result) { client in
-        result(client.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Int))
+        result(client.intVariation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as! Int))
       }
     case "intVariationDetail":
       withLDClient(result) { client in
-        let detail = client.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Int)
+        let detail = client.intVariationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as! Int)
         result(bridgeEvalDetail(detail))
       }
     case "doubleVariation":
       withLDClient(result) { client in
-        result(client.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Double))
+        result(client.doubleVariation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as! Double))
       }
     case "doubleVariationDetail":
       withLDClient(result) { client in
-        let detail = client.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? Double)
+        let detail = client.doubleVariationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as! Double)
         result(bridgeEvalDetail(detail))
       }
     case "stringVariation":
       withLDClient(result) { client in
-        result(client.variation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String))
+        result(client.stringVariation(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as! String))
       }
     case "stringVariationDetail":
       withLDClient(result) { client in
-        let detail = client.variationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as? String)
+        let detail = client.stringVariationDetail(forKey: args?["flagKey"] as! String, defaultValue: args?["defaultValue"] as! String)
         result(bridgeEvalDetail(detail))
       }
     case "jsonVariation":
       let flagKey = args?["flagKey"] as! String
       withLDClient(result) { client in
-        if let defaultValue = args?["defaultValue"] as? Bool {
-          result(client.variation(forKey: flagKey, defaultValue: defaultValue) as Bool)
-        } else if let defaultValue = args?["defaultValue"] as? Int {
-          result(client.variation(forKey: flagKey, defaultValue: defaultValue) as Int)
-        } else if let defaultValue = args?["defaultValue"] as? Double {
-          result(client.variation(forKey: flagKey, defaultValue: defaultValue) as Double)
-        } else if let defaultValue = args?["defaultValue"] as? String {
-          result(client.variation(forKey: flagKey, defaultValue: defaultValue) as String)
-        } else if let defaultValue = args?["defaultValue"] as? [Any] {
-          result(client.variation(forKey: flagKey, defaultValue: defaultValue) as [Any])
-        } else if let defaultValue = args?["defaultValue"] as? [String: Any] {
-          result(client.variation(forKey: flagKey, defaultValue: defaultValue) as [String: Any])
-        } else {
-          result(nil)
-        }
+        result(client.jsonVariation(forKey: flagKey, defaultValue: LDValue.fromBridge(args?["defaultValue"])).toBridge())
       }
     case "jsonVariationDetail":
       let flagKey = args?["flagKey"] as! String
       withLDClient(result) { client in
-        if let defaultValue = args?["defaultValue"] as? Bool {
-          let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
-          result(bridgeEvalDetail(detail))
-        } else if let defaultValue = args?["defaultValue"] as? Int {
-          let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
-          result(bridgeEvalDetail(detail))
-        } else if let defaultValue = args?["defaultValue"] as? Double {
-          let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
-          result(bridgeEvalDetail(detail))
-        } else if let defaultValue = args?["defaultValue"] as? String {
-          let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
-          result(bridgeEvalDetail(detail))
-        } else if let defaultValue = args?["defaultValue"] as? [Any] {
-          let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
-          result(bridgeEvalDetail(detail))
-        } else if let defaultValue = args?["defaultValue"] as? [String: Any] {
-          let detail = client.variationDetail(forKey: flagKey, defaultValue: defaultValue)
-          result(bridgeEvalDetail(detail))
-        } else {
-          result(nil)
-        }
+        let detail = client.jsonVariationDetail(forKey: flagKey, defaultValue: LDValue.fromBridge(args?["defaultValue"]))
+        result(bridgeEvalDetail(detail, { (value: LDValue) in value.toBridge() }))
       }
     case "allFlags":
-      withLDClient(result) { result($0.allFlags) }
+      withLDClient(result) { result($0.allFlags?.mapValues { $0.toBridge() }) }
     case "flush":
       LDClient.get()?.flush()
       result(nil)
@@ -267,3 +237,37 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
 }
 
 private class Owner { }
+
+extension LDValue {
+    static func fromBridge(_ value: Any?) -> LDValue {
+        guard let value = value, !(value is NSNull)
+        else { return .null }
+        if let nsNumValue = value as? NSNumber {
+            // Flutter bridges both numbers and booleans as `NSNumber`, see
+            // https://docs.flutter.dev/development/platform-integration/platform-channels?tab=type-mappings-swift-tab
+            // We need to know whether the `NSNumber` was created from a `Bool` value.
+            // Adapted from https://stackoverflow.com/a/30223989
+            let boolTypeId = CFBooleanGetTypeID()
+            if CFGetTypeID(nsNumValue) == boolTypeId {
+                return .bool(nsNumValue.boolValue)
+            } else {
+                return .number(Double(truncating: nsNumValue))
+            }
+        }
+        if let stringValue = value as? String { return .string(stringValue) }
+        if let arrayValue = value as? [Any] { return .array(arrayValue.map { fromBridge($0) }) }
+        if let dictValue = value as? [String: Any] { return .object(dictValue.mapValues { fromBridge($0) }) }
+        return .null
+    }
+
+    func toBridge() -> Any? {
+        switch self {
+        case .null: return nil
+        case .bool(let boolValue): return boolValue
+        case .number(let numValue): return numValue
+        case .string(let stringValue): return stringValue
+        case .array(let arrayValue): return arrayValue.map { $0.toBridge() }
+        case .object(let objectValue): return objectValue.mapValues { $0.toBridge() }
+        }
+    }
+}
