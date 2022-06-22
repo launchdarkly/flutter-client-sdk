@@ -15,6 +15,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
+import kotlinx.coroutines.*
 import java.util.concurrent.Future
 import kotlin.concurrent.thread
 
@@ -23,6 +24,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
   private lateinit var application: Application
   private lateinit var flagChangeListener: FeatureFlagChangeListener
   private lateinit var allFlagsListener: LDAllFlagsListener
+  private val mainScope = CoroutineScope(Dispatchers.Main)
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     application = flutterPluginBinding.applicationContext as Application
@@ -257,8 +259,17 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       }
       "identify" -> {
         val ldUser: LDUser = userFromMap(call.argument("user")!!)
-        LDClient.get().identify(ldUser).get()
-        result.success(null)
+        mainScope.launch {
+          withContext(Dispatchers.IO) {
+            //TODO: Change to completable future once it is available.
+            var future = LDClient.get().identify(ldUser)
+            while(!future.isDone) {
+              delay(1);
+            }
+          }
+
+          result.success(null)
+        }
       }
       "alias" -> {
         val user: LDUser = userFromMap(call.argument("user")!!)
