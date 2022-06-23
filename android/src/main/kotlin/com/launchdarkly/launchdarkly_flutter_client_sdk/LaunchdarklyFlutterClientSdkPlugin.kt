@@ -209,6 +209,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         EvaluationReason.Kind.ERROR -> {
           reasonRes["errorKind"] = reason.errorKind.name
         }
+        else -> {}
       }
       res["reason"] = reasonRes
       return res
