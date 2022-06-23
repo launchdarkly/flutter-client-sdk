@@ -205,20 +205,25 @@ class LDClient {
   /// Returns the value of flag [flagKey] for the current user as a string.
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a string, or if some error occurs.
-  static Future<String?> stringVariation(String flagKey, String? defaultValue) async {
-    return _channel.invokeMethod('stringVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
+  static Future<String> stringVariation(String flagKey, String defaultValue) async {
+    String? result = await _channel.invokeMethod('stringVariation', {'flagKey': flagKey, 'defaultValue': defaultValue });
+    return result ?? defaultValue;
   }
 
   /// Returns the value of flag [flagKey] for the current user as a string, along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  static Future<LDEvaluationDetail<String?>> stringVariationDetail(String flagKey, String? defaultValue) async {
+  static Future<LDEvaluationDetail<String>> stringVariationDetail(String flagKey, String defaultValue) async {
     Map<String, dynamic>? result = await _channel.invokeMapMethod('stringVariationDetail', {'flagKey': flagKey, 'defaultValue': defaultValue });
     if (result == null) {
       return LDEvaluationDetail(defaultValue, -1, LDEvaluationReason.error());
     }
-    return LDEvaluationDetail(result['value'], result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
+    String? resultValue = result['value'];
+    if (resultValue == null) {
+      return LDEvaluationDetail(defaultValue, -1, LDEvaluationReason.error());
+    }
+    return LDEvaluationDetail(resultValue, result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
   /// Returns the value of flag [flagKey] for the current user as an [LDValue].

@@ -30,3 +30,6 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# We don't want to have to keep this up to date for a testing app
+Podfile.lock

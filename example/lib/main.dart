@@ -56,7 +56,7 @@ class _MyAppState extends State<MyApp> {
         break;
       case 'String':
         var result = await LDClient.stringVariation(evalKey, "");
-        setState(() { evalResult = result ?? ""; });
+        setState(() { evalResult = result; });
         break;
       case 'Json':
         var result = await LDClient.jsonVariation(evalKey, LDValue.buildObject().build());
@@ -116,9 +116,9 @@ class _MyAppState extends State<MyApp> {
               ]),
               Padding(padding: EdgeInsets.symmetric(vertical: 4.0)),
               Row(children: [
-                Expanded(child: RaisedButton(child: Text('Evaluate'), onPressed: evaluate)),
+                Expanded(child: ElevatedButton(child: Text('Evaluate'), onPressed: evaluate)),
                 Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
-                Expanded(child: RaisedButton(child: Text('Track'), onPressed: track))
+                Expanded(child: ElevatedButton(child: Text('Track'), onPressed: track))
               ]),
               Divider(),
               Row(children: [Text("$evalResult", textAlign: TextAlign.start)]),
@@ -128,10 +128,10 @@ class _MyAppState extends State<MyApp> {
                 Expanded(child: TextField(onChanged: (text) { setState(() { userKey = text; }); },
                     decoration: InputDecoration.collapsed(hintText: 'User Key', border: UnderlineInputBorder()))),
                 Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
-                RaisedButton(child: Text('Identify'), onPressed: identify)
+                ElevatedButton(child: Text('Identify'), onPressed: identify)
               ]),
               Row(children: [
-                RaisedButton(child: Text('Flush'), onPressed: flush),
+                ElevatedButton(child: Text('Flush'), onPressed: flush),
                 Spacer(),
                 Text('Offline'),
                 Switch(value: offline, onChanged: toggleOffline)
