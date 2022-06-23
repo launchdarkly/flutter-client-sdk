@@ -2,7 +2,7 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
-## [1.1.1] - 2022-06-23
+## [1.1.2] - 2022-06-23
 ### Changed:
 - Update the example project to a new version of flutter embedding and removed usage of deprecated flutter components.
 - Update to use ios-client-sdk V6.
