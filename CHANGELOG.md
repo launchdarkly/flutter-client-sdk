@@ -2,6 +2,16 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.1.1] - 2022-06-23
+### Changed:
+- Update the example project to a new version of flutter embedding and removed usage of deprecated flutter components.
+- Update to use ios-client-sdk V6.
+- Updated to work with kotlin 1.7.0.
+- String variation return types were optional when they did not need to be. They are now not optional. This could produce warnings where string variations were used previously. Those null checks can now be removed.
+
+### Fixed:
+- `identify` calls were blocking and could trigger ANRs. They maintain the same interface, and can be awaited, but now they no longer block the calling thread.
+
 ## [1.0.0] - 2021-10-29
 First supported release of LaunchDarkly's Flutter SDK. This release contains no SDK code changes from the prior beta release.
 
