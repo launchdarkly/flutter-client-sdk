@@ -55,18 +55,21 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
   }
 
   func userFrom(dict: [String: Any?]) -> LDUser {
-    var user = LDUser(key: dict["key"] as? String)
-    if let anonymous = dict["anonymous"] as? Bool { user.isAnonymous = anonymous }
-    user.secondary = dict["secondary"] as? String
-    user.ipAddress = dict["ip"] as? String
-    user.email = dict["email"] as? String
-    user.name = dict["name"] as? String
-    user.firstName = dict["firstName"] as? String
-    user.lastName = dict["lastName"] as? String
-    user.avatar = dict["avatar"] as? String
-    user.country = dict["country"] as? String
-    user.privateAttributes = (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) }
-    user.custom = (dict["custom"] as? [String: Any] ?? [:]).mapValues { LDValue.fromBridge($0) }
+    let user = LDUser(
+      key: dict["key"] as? String,
+      name: dict["name"] as? String,
+      firstName: dict["firstName"] as? String,
+      lastName: dict["firstName"] as? String,
+      country: dict["country"] as? String,
+      ipAddress: dict["ip"] as? String,
+      email: dict["email"] as? String,
+      avatar: dict["avatar"] as? String,
+      custom: (dict["custom"] as? [String: Any] ?? [:]).mapValues { LDValue.fromBridge($0) },
+      isAnonymous: dict["anonymous"] as? Bool,
+      privateAttributes: (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) },
+      secondary: dict["secondary"] as? String
+    )
+
     return user
   }
 
