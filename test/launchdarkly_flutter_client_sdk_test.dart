@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 
 const MethodChannel channel = MethodChannel('launchdarkly_flutter_client_sdk');
-const String _sdkVersion = "1.0.0";
+const String _sdkVersion = "1.1.3";
 
 void main() {
   group('LDConnectionInformation', testLDConnectionInformation);

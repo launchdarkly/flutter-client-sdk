@@ -2,6 +2,10 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.1.3] - 2022-07-26
+### Fixed:
+- When using the flutter SDK on iOS the `device` and `os` custom attributes would not be populated in the user object. These will now be populated correctly.
+
 ## [1.1.2] - 2022-06-23
 ### Changed:
 - Update the example project to a new version of flutter embedding and removed usage of deprecated flutter components.
