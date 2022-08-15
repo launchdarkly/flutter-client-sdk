@@ -2,6 +2,10 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.1.4] - 2022-08-15
+### Changed:
+- Update to use android-client-sdk 3.1.6. This release contains fixes related to android ANRs.
+
 ## [1.1.3] - 2022-07-26
 ### Fixed:
 - When using the flutter SDK on iOS the `device` and `os` custom attributes would not be populated in the user object. These will now be populated correctly.
