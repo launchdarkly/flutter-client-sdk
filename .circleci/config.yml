@@ -3,18 +3,17 @@ version: 2.1
 jobs:
   build:
     macos:
-      xcode: "12.5.1"
+      xcode: "13.4.1"
     resource_class: macos.x86.medium.gen2
     shell: /bin/bash --login -eo pipefail
     environment:
       TERM: dumb
-      JAVA_HOME: "/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home"
       _JAVA_OPTIONS: "-Xms2048m -Xmx4096m"
       GRADLE_OPTS: "-Dorg.gradle.daemon=false"
       JVM_OPTS: -Xmx3200m
-      ANDROID_HOME: "/usr/local/share/android-sdk"
-      ANDROID_SDK_HOME: "/usr/local/share/android-sdk"
-      ANDROID_SDK_ROOT: "/usr/local/share/android-sdk"
+      ANDROID_HOME: "/tmp/Android"
+      ANDROID_SDK_HOME: "/tmp/Android"
+      ANDROID_SDK_ROOT: "/tmp/Android"
 
     steps:
       - checkout

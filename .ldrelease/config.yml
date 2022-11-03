@@ -13,13 +13,12 @@ jobs:
       context: org-global
       timeoutMinutes: 20
       mac:
-        xcode: "12.5.1"
+        xcode: "13.4.1"
     env:
-      JAVA_HOME: "/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home"
       GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-      ANDROID_HOME: "/usr/local/share/android-sdk"
-      ANDROID_SDK_HOME: "/usr/local/share/android-sdk"
-      ANDROID_SDK_ROOT: "/usr/local/share/android-sdk"
+      ANDROID_HOME: "/tmp/Android"
+      ANDROID_SDK_HOME: "/tmp/Android"
+      ANDROID_SDK_ROOT: "/tmp/Android"
 
 documentation:
   gitHubPages: true
