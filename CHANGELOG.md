@@ -2,6 +2,12 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.2.0] - 2022-11-07
+### Changed:
+- Updated Android SDK version.
+- Updated Kotlin plugin version to allow working with new default versions in android studio.
+- Raised minimum iOS version to 11, and updated to build with XCode 13.
+
 ## [1.1.4] - 2022-08-15
 ### Changed:
 - Update to use android-client-sdk 3.1.6. This release contains fixes related to android ANRs.
