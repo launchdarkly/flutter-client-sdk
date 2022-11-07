@@ -2,18 +2,18 @@
 
 set -e
 
-FLUTTER_RELEASE="https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_2.8.1-stable.zip"
+# Download link from: https://docs.flutter.dev/get-started/install/macos
+FLUTTER_RELEASE="https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.3.7-stable.zip"
 
-# Setup Android PATHs
-echo 'export PATH="$PATH:/usr/local/share/android-sdk/tools/bin"' >> $BASH_ENV
-echo 'export PATH="$PATH:/usr/local/share/android-sdk/platform-tools"' >> $BASH_ENV
+# Download Android command line tools
+mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
 
-# Install Java and Android SDK
-brew install --cask temurin8 android-sdk
-yes | sdkmanager "platform-tools" | grep -v = || true
-
-# Acknowledge Android licenses
-sudo mkdir -p /usr/local/android-sdk-linux/licenses
+# Download link from: https://developer.android.com/studio
+# There should be a "Command line tools only" section on the page.
+curl https://dl.google.com/android/repository/commandlinetools-mac-8512546_latest.zip -o cmdline-tools.zip
+unzip cmdline-tools.zip
+mv cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
+yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
 
 # Install Flutter and dartdoc
 cd $HOME

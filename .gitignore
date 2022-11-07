@@ -32,3 +32,5 @@ build/
 **/android/gradlew.bat
 
 doc/
+
+cmdline-tools.zip
