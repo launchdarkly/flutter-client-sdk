@@ -29,9 +29,16 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
 
   func configFrom(dict: [String: Any?]) -> LDConfig {
     var config = LDConfig(mobileKey: dict["mobileKey"] as! String)
+
+    var applicationInfo = ApplicationInfo()
+    whenIs(String.self, dict["applicationId"]) { applicationInfo.applicationIdentifier($0) }
+    whenIs(String.self, dict["applicationVersion"]) { applicationInfo.applicationVersion($0) }
+    config.applicationInfo = applicationInfo
+
     whenIs(String.self, dict["pollUri"]) { config.baseUrl = URL(string: $0)! }
     whenIs(String.self, dict["eventsUri"]) { config.eventsUrl = URL(string: $0)! }
     whenIs(String.self, dict["streamUri"]) { config.streamUrl = URL(string: $0)! }
+
     whenIs(Int.self, dict["eventsCapacity"]) { config.eventCapacity = $0 }
     whenIs(Int.self, dict["eventsFlushIntervalMillis"]) { config.eventFlushInterval = Double($0) / 1000.0 }
     whenIs(Int.self, dict["connectionTimeoutMillis"]) { config.connectionTimeout = Double($0) / 1000.0 }
