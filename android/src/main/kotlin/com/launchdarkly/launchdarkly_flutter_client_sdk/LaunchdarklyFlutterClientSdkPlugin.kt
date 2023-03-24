@@ -71,8 +71,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       }
     }
 
-    fun configFromMap(map: Map<String, Any>): LDConfig {
-      val configBuilder = LDConfig.Builder()
+    fun configFromMap(map: Map<String, Any>, configBuilder: LDConfig.Builder): LDConfig {
       whenIs<String>(map["mobileKey"]) { configBuilder.mobileKey(it) }
 
       val infoBuilder = Components.applicationInfo()
@@ -244,7 +243,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "start" -> {
-        val ldConfig: LDConfig = configFromMap(call.argument("config")!!)
+        val ldConfig: LDConfig = configFromMap(call.argument("config")!!, LDConfig.Builder())
         val ldUser: LDUser = userFromMap(call.argument("user")!!)
         var completion: Future<*>
         try {
