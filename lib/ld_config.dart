@@ -116,7 +116,7 @@ class LDConfigBuilder {
   String _mobileKey;
 
   String _applicationId = "";
-  String _applicationVersion= "";
+  String _applicationVersion = "";
 
   String _pollUri = "https://clientsdk.launchdarkly.com";
   String _eventsUri = "https://events.launchdarkly.com";
@@ -145,11 +145,13 @@ class LDConfigBuilder {
   /// Create a new `LDConfigBuilder` for the given mobile key.
   LDConfigBuilder(this._mobileKey);
 
+  /// Sets the application ID (used for analytics tracking)
   LDConfigBuilder applicationId(String applicationId) {
     this._applicationId = applicationId;
     return this;
   }
 
+  /// Sets the application version (used for analytics tracking)
   LDConfigBuilder applicationVersion(String applicationVersion) {
     this._applicationVersion = applicationVersion;
     return this;
