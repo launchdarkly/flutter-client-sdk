@@ -21,17 +21,24 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
-  private func whenIs<T>(_: T.Type, _ value: Any??, _ call: (T) -> ()) {
+  private static func whenIs<T>(_: T.Type, _ value: Any??, _ call: (T) -> ()) {
     if let value = value as? T {
       call(value)
     }
   }
 
-  func configFrom(dict: [String: Any?]) -> LDConfig {
+  public static func configFrom(dict: [String: Any?]) -> LDConfig {
     var config = LDConfig(mobileKey: dict["mobileKey"] as! String)
+
+    var applicationInfo = ApplicationInfo()
+    whenIs(String.self, dict["applicationId"]) { applicationInfo.applicationIdentifier($0) }
+    whenIs(String.self, dict["applicationVersion"]) { applicationInfo.applicationVersion($0) }
+    config.applicationInfo = applicationInfo
+
     whenIs(String.self, dict["pollUri"]) { config.baseUrl = URL(string: $0)! }
     whenIs(String.self, dict["eventsUri"]) { config.eventsUrl = URL(string: $0)! }
     whenIs(String.self, dict["streamUri"]) { config.streamUrl = URL(string: $0)! }
+
     whenIs(Int.self, dict["eventsCapacity"]) { config.eventCapacity = $0 }
     whenIs(Int.self, dict["eventsFlushIntervalMillis"]) { config.eventFlushInterval = Double($0) / 1000.0 }
     whenIs(Int.self, dict["connectionTimeoutMillis"]) { config.connectionTimeout = Double($0) / 1000.0 }
@@ -124,7 +131,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     let args = call.arguments as? [String: Any]
     switch call.method {
     case "start":
-      let config = configFrom(dict: args?["config"] as! [String: Any])
+      let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: args?["config"] as! [String: Any])
       let user = userFrom(dict: args?["user"] as! [String: Any])
       let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
       if let client = LDClient.get() {
