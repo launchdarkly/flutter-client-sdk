@@ -27,6 +27,10 @@ jobs:
           command: flutter test
 
       - run:
+          name: Run Android plugin native tests
+          command: cd example/android && ./gradlew testDebugUnitTest
+
+      - run:
           name: Build Android application APK
           command: cd example && flutter build apk --debug
 
