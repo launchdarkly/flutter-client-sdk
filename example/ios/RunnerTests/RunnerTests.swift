@@ -1,39 +1,90 @@
 import XCTest
 import launchdarkly_flutter_client_sdk
+import LaunchDarkly
 
 final class RunnerTests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
-
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        measure {
-            // Put the code you want to measure the time of here.
-        }
+    
+    func testGeneralConfigCoverage() {
+        let input: [String: Any?] = [
+            "mobileKey" : "mobileKey",
+            "pollUri" : "pollUri",
+            "eventsUri" : "eventsUri",
+            "streamUri" : "streamUri",
+            "eventsCapacity" : 1,
+            "eventsFlushIntervalMillis" : 2,
+            "connectionTimeoutMillis" : 3,
+            "pollingIntervalMillis" : 4,
+            "backgroundPollingIntervalMillis" : 5,
+            "diagnosticRecordingIntervalMillis" : 6,
+            "maxCachedUsers" : 7,
+            "stream" : true,
+            "offline" : false,
+            "disableBackgroundUpdating" : true,
+            "useReport" : false,
+            "inlineUsersInEvents" : true,
+            "evaluationReasons" : false,
+            "diagnosticOptOut" : true,
+            "autoAliasingOptOut" : false,
+            "allAttributesPrivate" : true,
+            "privateAttributeNames" : ["name", "avatar"]
+        ]
+        
+        let output = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: input)
+        
+        var expected = LDConfig(mobileKey: "mobileKey")
+        expected.applicationInfo = ApplicationInfo()
+        expected.baseUrl = URL(string: "pollUri")!
+        expected.eventsUrl = URL(string: "eventsUri")!
+        expected.streamUrl = URL(string: "streamUri")!
+        expected.eventCapacity = 1
+        expected.eventFlushInterval = 0.002
+        expected.connectionTimeout = 0.003
+        expected.flagPollingInterval = 0.004
+        expected.backgroundFlagPollingInterval = 0.005
+        expected.diagnosticRecordingInterval = 6
+        expected.maxCachedUsers = 7
+        expected.streamingMode = LDStreamingMode.streaming
+        expected.startOnline = true
+        expected.enableBackgroundUpdates = false
+        expected.useReport = false
+        expected.inlineUserInEvents = true
+        expected.evaluationReasons = false
+        expected.diagnosticOptOut = true
+        expected.autoAliasingOptOut = false
+        expected.allUserAttributesPrivate = true
+        expected.privateUserAttributes = [UserAttribute.forName("name"), UserAttribute.forName("avatar")]
+        
+        XCTAssertEqual(expected, output)
     }
     
-    func testHello() {
+    func testApplicationInfoConfiguredCorrectly() {
         XCTAssertEqual(true, true)
         let input = [
-            "mobileKey": "aMobileKey",
-            "applicationId": "myApplicationId"
+            "mobileKey" : "aMobileKey",
+            "applicationId": "myApplicationId",
+            "applicationVersion": "myApplicationVersion"
         ]
-        let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: input)
-//        XCTAssertTrue(config.applicationInfo.buildTag().contains("myApplicationId"))
+        let output = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: input)
+        
+        var expected = LDConfig(mobileKey: "aMobileKey")
+        expected.applicationInfo = ApplicationInfo()
+        expected.applicationInfo?.applicationIdentifier("myApplicationId")
+        expected.applicationInfo?.applicationVersion("myApplicationVersion")
+        
+        XCTAssertEqual(expected, output)
     }
-
+    
+    func testApplicationInfoMissingIsHandled() {
+        XCTAssertEqual(true, true)
+        let input = [
+            "mobileKey" : "aMobileKey"
+        ]
+        let output = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: input)
+        
+        var expected = LDConfig(mobileKey: "aMobileKey")
+        expected.applicationInfo = ApplicationInfo()
+        
+        XCTAssertEqual(expected, output)
+    }
+    
 }
