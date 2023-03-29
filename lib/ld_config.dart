@@ -145,13 +145,27 @@ class LDConfigBuilder {
   /// Create a new `LDConfigBuilder` for the given mobile key.
   LDConfigBuilder(this._mobileKey);
 
-  /// Sets the application ID (used for analytics tracking)
+  /// A unique identifier representing the application where the LaunchDarkly SDK is running.
+  ///
+  /// This can be specified as any string value as long as it only uses the following characters:
+  /// ASCII letters, ASCII digits, period, hyphen, underscore. A string containing any other
+  /// characters will be ignored.
+  ///
+  /// Example: 'authentication-service'
   LDConfigBuilder applicationId(String applicationId) {
     this._applicationId = applicationId;
     return this;
   }
 
-  /// Sets the application version (used for analytics tracking)
+  /// A unique identifier representing the version of the application where the LaunchDarkly SDK is
+  /// running.
+  ///
+  /// This can be specified as any string value as long as it only uses the following characters:
+  /// ASCII letters, ASCII digits, period, hyphen, underscore. A string containing any other
+  /// characters will be ignored.
+  ///
+  /// Example: `1.0.0` (standard version string) or `abcdef` (sha prefix)
+  ///
   LDConfigBuilder applicationVersion(String applicationVersion) {
     this._applicationVersion = applicationVersion;
     return this;
