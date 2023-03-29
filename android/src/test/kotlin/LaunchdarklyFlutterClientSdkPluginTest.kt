@@ -48,7 +48,7 @@ internal class LaunchdarklyFlutterClientSdkPluginTest {
         assertEquals("pollUri", output.getPollUri().toString())
         assertEquals("eventsUri", output.getEventsUri().toString())
         assertEquals("streamUri", output.getStreamUri().toString())
-        verify { spyBuilder.eventsCapacity(1)}
+        verify { spyBuilder.eventsCapacity(0)}
         verify { spyBuilder.eventsFlushIntervalMillis(2)}
         verify { spyBuilder.connectionTimeoutMillis(3)}
         verify { spyBuilder.pollingIntervalMillis(4)}
