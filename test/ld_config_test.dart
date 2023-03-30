@@ -52,6 +52,18 @@ void main() {
     expect(builder.build().mobileKey, equals("test-key"));
   });
 
+  test('applicationId', () {
+    var propTester = tester.prop<String>((c) => c.applicationId, (b, v) => b.applicationId(v));
+    propTester.expectDefault("");
+    propTester.expectCanSet("myId");
+  });
+
+  test('applicationVersion', () {
+    var propTester = tester.prop<String>((c) => c.applicationVersion, (b, v) => b.applicationVersion(v));
+    propTester.expectDefault("");
+    propTester.expectCanSet("myVersion");
+  });
+
   test('pollUri', () {
     var propTester = tester.prop<String>((c) => c.pollUri, (b, v) => b.pollUri(v));
     propTester.expectDefault("https://clientsdk.launchdarkly.com");

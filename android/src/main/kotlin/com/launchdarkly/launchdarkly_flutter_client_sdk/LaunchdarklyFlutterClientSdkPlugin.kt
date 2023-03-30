@@ -71,12 +71,18 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       }
     }
 
-    fun configFromMap(map: Map<String, Any>): LDConfig {
-      val configBuilder = LDConfig.Builder()
+    fun configFromMap(map: Map<String, Any>, configBuilder: LDConfig.Builder): LDConfig {
       whenIs<String>(map["mobileKey"]) { configBuilder.mobileKey(it) }
+
+      val infoBuilder = Components.applicationInfo()
+      whenIs<String>(map["applicationId"]) { infoBuilder.applicationId(it) }
+      whenIs<String>(map["applicationVersion"]) { infoBuilder.applicationVersion(it) }
+      configBuilder.applicationInfo(infoBuilder)
+
       whenIs<String>(map["pollUri"]) { configBuilder.pollUri(Uri.parse(it)) }
       whenIs<String>(map["eventsUri"]) { configBuilder.eventsUri(Uri.parse(it)) }
       whenIs<String>(map["streamUri"]) { configBuilder.streamUri(Uri.parse(it)) }
+      
       whenIs<Int>(map["eventsCapacity"]) { configBuilder.eventsCapacity(it) }
       whenIs<Int>(map["eventsFlushIntervalMillis"]) { configBuilder.eventsFlushIntervalMillis(it) }
       whenIs<Int>(map["connectionTimeoutMillis"]) { configBuilder.connectionTimeoutMillis(it) }
@@ -237,7 +243,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "start" -> {
-        val ldConfig: LDConfig = configFromMap(call.argument("config")!!)
+        val ldConfig: LDConfig = configFromMap(call.argument("config")!!, LDConfig.Builder())
         val ldUser: LDUser = userFromMap(call.argument("user")!!)
         var completion: Future<*>
         try {
