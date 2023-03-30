@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build:
     macos:
-      xcode: "13.4.1"
+      xcode: "14.0.1"
     resource_class: macos.x86.medium.gen2
     shell: /bin/bash --login -eo pipefail
     environment:
@@ -27,16 +27,20 @@ jobs:
           command: flutter test
 
       - run:
+          name: Build iOS application
+          command: cd example && flutter build ios --simulator
+
+      - run:
+          name: Run iOS plugin native tests
+          command: cd example/ios && xcodebuild test -workspace Runner.xcworkspace -scheme Runner -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 13,OS=15.5'
+
+      - run:
           name: Build Android application APK
           command: cd example && flutter build apk --debug
 
       - run:
           name: Run Android plugin native tests
           command: cd example/android && ./gradlew testDebugUnitTest
-
-      - run:
-          name: Build iOS application
-          command: cd example && flutter build ios --simulator
 
       - run:
           name: Build documentation
