@@ -26,11 +26,7 @@
 .pub/
 build/
 
-**/android/**/gradle-wrapper.jar
 **/android/.gradle
-**/android/gradlew
-**/android/gradlew.bat
-
 doc/
 
 cmdline-tools.zip

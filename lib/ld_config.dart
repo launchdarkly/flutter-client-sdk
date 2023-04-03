@@ -6,6 +6,9 @@ class LDConfig {
   /// The configured mobile SDK key.
   final String mobileKey;
 
+  final String applicationId;
+  final String applicationVersion;
+
   /// The configured URI for polling requests.
   final String pollUri;
   /// The configured URI for eventing requests.
@@ -54,6 +57,8 @@ class LDConfig {
 
   LDConfig._builder(LDConfigBuilder builder) :
         mobileKey = builder._mobileKey,
+        applicationId = builder._applicationId,
+        applicationVersion = builder._applicationVersion,
         pollUri = builder._pollUri,
         eventsUri = builder._eventsUri,
         streamUri = builder._streamUri,
@@ -78,6 +83,8 @@ class LDConfig {
   Map<String, dynamic> _toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['mobileKey'] = mobileKey;
+    result['applicationId'] = applicationId;
+    result['applicationVersion'] = applicationVersion;
     result['pollUri'] = pollUri;
     result['eventsUri'] = eventsUri;
     result['streamUri'] = streamUri;
@@ -108,6 +115,9 @@ class LDConfig {
 class LDConfigBuilder {
   String _mobileKey;
 
+  String _applicationId = "";
+  String _applicationVersion = "";
+
   String _pollUri = "https://clientsdk.launchdarkly.com";
   String _eventsUri = "https://events.launchdarkly.com";
   String _streamUri = "https://clientstream.launchdarkly.com";
@@ -134,6 +144,32 @@ class LDConfigBuilder {
 
   /// Create a new `LDConfigBuilder` for the given mobile key.
   LDConfigBuilder(this._mobileKey);
+
+  /// A unique identifier representing the application where the LaunchDarkly SDK is running.
+  ///
+  /// This can be specified as any string value as long as it only uses the following characters:
+  /// ASCII letters, ASCII digits, period, hyphen, underscore. A string containing any other
+  /// characters will be ignored.
+  ///
+  /// Example: 'authentication-service'
+  LDConfigBuilder applicationId(String applicationId) {
+    this._applicationId = applicationId;
+    return this;
+  }
+
+  /// A unique identifier representing the version of the application where the LaunchDarkly SDK is
+  /// running.
+  ///
+  /// This can be specified as any string value as long as it only uses the following characters:
+  /// ASCII letters, ASCII digits, period, hyphen, underscore. A string containing any other
+  /// characters will be ignored.
+  ///
+  /// Example: `1.0.0` (standard version string) or `abcdef` (sha prefix)
+  ///
+  LDConfigBuilder applicationVersion(String applicationVersion) {
+    this._applicationVersion = applicationVersion;
+    return this;
+  }
 
   /// Sets the URI for polling requests.
   LDConfigBuilder pollUri(String pollUri) {

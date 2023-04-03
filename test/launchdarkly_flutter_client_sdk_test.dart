@@ -163,6 +163,8 @@ void testLDEvaluationDetail() {
 Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   final Map<String, dynamic> result = <String, dynamic>{};
   result['mobileKey'] = mobileKey;
+  result['applicationId'] = "";
+  result['applicationVersion'] = "";
   result['pollUri'] = "https://clientsdk.launchdarkly.com";
   result['streamUri'] = "https://clientstream.launchdarkly.com";
   result['eventsUri'] = "https://events.launchdarkly.com";
@@ -264,6 +266,17 @@ void testLDClient() {
     Map<String, dynamic> expectedUser = defaultUser('user key');
     await LDClient.start(config, user);
     expectCall('start', {'config': expectedConfig, 'user': expectedUser });
+  });
+
+  test('start with application info', () async {
+    LDConfig config = LDConfigBuilder('mobile key').applicationId("myId").applicationVersion("myVersion").build();
+    LDUser user = LDUserBuilder('user key').build();
+    Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
+    Map<String, dynamic> expectedUser = defaultUser('user key');
+    await LDClient.start(config, user);
+    var arguments = takeCall.arguments['config'];
+    expect(arguments['applicationId'], equals("myId"));
+    expect(arguments['applicationVersion'], equals("myVersion"));
   });
 
   test('startFuture after completed', () async {
