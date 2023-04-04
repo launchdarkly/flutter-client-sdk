@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the streamUri property from the LDConfig class, for the Dart programming language.">
-  <title>streamUri property - LDConfig class - launchdarkly_flutter_client_sdk library - Dart API</title>
+  <meta name="description" content="API docs for the streamUri method from the LDConfigBuilder class, for the Dart programming language.">
+  <title>streamUri method - LDConfigBuilder class - launchdarkly_flutter_client_sdk library - Dart API</title>
 
 
   
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0" rel="stylesheet">
   
   <link rel="stylesheet" href="../../static-assets/github.css?v1">
   <link rel="stylesheet" href="../../static-assets/styles.css?v1">
@@ -21,51 +21,62 @@
 </head>
 
 
-<body data-base-href="../../"
-      data-using-base-href="false">
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
 
 <div id="overlay-under-drawer"></div>
 
 <header id="title">
-  <button id="sidenav-left-toggle" type="button">&nbsp;</button>
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></li>
-    <li class="self-crumb">streamUri property</li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
+    <li class="self-crumb">streamUri method</li>
   </ol>
   <div class="self-name">streamUri</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
+  <div class="toggle" id="theme-button">
+    <label for="theme">
+      <input type="checkbox" id="theme" value="light-theme">
+      <span class="material-symbols-outlined">
+        brightness_4
+      </span>
+    </label>
+  </div>
 </header>
-
 <main>
-
 
   <div id="dartdoc-main-content" class="main-content">
       <div>
-<h1><span class="kind-property">streamUri</span> property 
+<h1><span class="kind-method">streamUri</span> method 
     <a href="https://dart.dev/null-safety" class="feature feature-null-safety" title="Supports the null safety language feature.">Null safety</a>
 </h1></div>
 
-        <section class="multi-line-signature">
-          <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>
-          <span class="name ">streamUri</span>
-          <div class="features">final</div>
+    <section class="multi-line-signature">
+      
 
-        </section>
-        
+<span class="returntype"><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></span>
+<span class="name ">streamUri</span>(<wbr><ol class="parameter-list"><li><span class="parameter" id="streamUri-param-streamUri"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">streamUri</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
 <section class="desc markdown">
-  <p>The configured URI for stream requests.</p>
+  <p>Sets the URI for stream requests.</p>
 </section>
 
-        
+
+    
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">final String streamUri;
-
-</code></pre>
+  <pre class="language-dart"><code class="language-dart">LDConfigBuilder streamUri(String streamUri) {
+  this._streamUri = streamUri;
+  return this;
+}</code></pre>
 </section>
 
 
@@ -81,49 +92,53 @@
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
   <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
-  <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></li>
-  <li class="self-crumb">streamUri property</li>
+  <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
+  <li class="self-crumb">streamUri method</li>
 </ol>
 
 
-    <h5>LDConfig class</h5>
+    <h5>LDConfigBuilder class</h5>
     <ol>
 
+        <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html#constructors">Constructors</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/LDConfigBuilder.html">LDConfigBuilder</a></li>
 
 
-    <li class="section-title">
-      <a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html#instance-properties">Properties</a>
-    </li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/allAttributesPrivate.html">allAttributesPrivate</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/autoAliasingOptOut.html">autoAliasingOptOut</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/backgroundPollingIntervalMillis.html">backgroundPollingIntervalMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/connectionTimeoutMillis.html">connectionTimeoutMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/diagnosticOptOut.html">diagnosticOptOut</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/diagnosticRecordingIntervalMillis.html">diagnosticRecordingIntervalMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/disableBackgroundUpdating.html">disableBackgroundUpdating</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/evaluationReasons.html">evaluationReasons</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/eventsCapacity.html">eventsCapacity</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/eventsFlushIntervalMillis.html">eventsFlushIntervalMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/eventsUri.html">eventsUri</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/inlineUsersInEvents.html">inlineUsersInEvents</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/maxCachedUsers.html">maxCachedUsers</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/mobileKey.html">mobileKey</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/offline.html">offline</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/pollingIntervalMillis.html">pollingIntervalMillis</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/pollUri.html">pollUri</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/privateAttributeNames.html">privateAttributeNames</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/stream.html">stream</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/streamUri.html">streamUri</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/useReport.html">useReport</a></li>
+        <li class="section-title inherited">
+          <a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html#instance-properties">Properties</a>
+        </li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></li>
 
-    <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html#instance-methods">Methods</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></li>
+        <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html#instance-methods">Methods</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/allAttributesPrivate.html">allAttributesPrivate</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationId.html">applicationId</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationVersion.html">applicationVersion</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/autoAliasingOptOut.html">autoAliasingOptOut</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/backgroundPollingIntervalMillis.html">backgroundPollingIntervalMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/build.html">build</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/connectionTimeoutMillis.html">connectionTimeoutMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/diagnosticOptOut.html">diagnosticOptOut</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/diagnosticRecordingIntervalMillis.html">diagnosticRecordingIntervalMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/disableBackgroundUpdating.html">disableBackgroundUpdating</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/evaluationReasons.html">evaluationReasons</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/eventsCapacity.html">eventsCapacity</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/eventsFlushIntervalMillis.html">eventsFlushIntervalMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/eventsUri.html">eventsUri</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/inlineUsersInEvents.html">inlineUsersInEvents</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/maxCachedUsers.html">maxCachedUsers</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/offline.html">offline</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/pollingIntervalMillis.html">pollingIntervalMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/pollUri.html">pollUri</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/privateAttributeNames.html">privateAttributeNames</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/stream.html">stream</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/streamUri.html">streamUri</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/useReport.html">useReport</a></li>
 
-    <li class="section-title inherited"><a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html#operators">Operators</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></li>
+        <li class="section-title inherited"><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html#operators">Operators</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></li>
 
 
 
@@ -140,7 +155,7 @@
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      1.0.0
+      1.3.0
   </span>
 
   
@@ -149,7 +164,7 @@
 
 
 <script src="../../static-assets/highlight.pack.js?v1"></script>
-<script src="../../static-assets/script.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
 
 
 

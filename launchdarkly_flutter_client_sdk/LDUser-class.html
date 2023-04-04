@@ -11,7 +11,7 @@
   
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0" rel="stylesheet">
   
   <link rel="stylesheet" href="../static-assets/github.css?v1">
   <link rel="stylesheet" href="../static-assets/styles.css?v1">
@@ -21,13 +21,12 @@
 </head>
 
 
-<body data-base-href="../"
-      data-using-base-href="false">
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
 
 <div id="overlay-under-drawer"></div>
 
 <header id="title">
-  <button id="sidenav-left-toggle" type="button">&nbsp;</button>
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../index.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
@@ -37,10 +36,16 @@
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
+  <div class="toggle" id="theme-button">
+    <label for="theme">
+      <input type="checkbox" id="theme" value="light-theme">
+      <span class="material-symbols-outlined">
+        brightness_4
+      </span>
+    </label>
+  </div>
 </header>
-
 <main>
-
 
   <div id="dartdoc-main-content" class="main-content">
       <div>
@@ -64,6 +69,7 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 
 
+    
 
     <section class="summary offset-anchor" id="instance-properties">
       <h2>Properties</h2>
@@ -75,8 +81,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  Whether this user is anonymous. 
-  <div class="features">final</div>
+  Whether this user is anonymous.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -86,8 +92,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's avatar attribute. 
-  <div class="features">final</div>
+  The user's avatar attribute.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -97,8 +103,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's country attribute. 
-  <div class="features">final</div>
+  The user's country attribute.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -108,8 +114,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's custom attributes. <a href="../launchdarkly_flutter_client_sdk/LDUser/custom.html">[...]</a>
-  <div class="features">final</div>
+  The user's custom attributes.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -119,8 +125,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's email attribute. 
-  <div class="features">final</div>
+  The user's email attribute.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -130,8 +136,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's firstName attribute. 
-  <div class="features">final</div>
+  The user's firstName attribute.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -141,8 +147,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd class="inherited">
-  The hash code for this object. <a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">[...]</a>
-  <div class="features">read-only, inherited</div>
+  The hash code for this object.
+  <div class="features"><span class="feature">read-only</span><span class="feature">inherited</span></div>
 
 </dd>
 
@@ -152,8 +158,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's ip attribute. 
-  <div class="features">final</div>
+  The user's ip attribute.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -163,8 +169,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's key. 
-  <div class="features">final</div>
+  The user's key.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -174,8 +180,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's lastName attribute. 
-  <div class="features">final</div>
+  The user's lastName attribute.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -185,8 +191,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's name attribute. 
-  <div class="features">final</div>
+  The user's name attribute.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -196,8 +202,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  Which of the user's attributes are specified to be private. <a href="../launchdarkly_flutter_client_sdk/LDUser/privateAttributeNames.html">[...]</a>
-  <div class="features">final</div>
+  Which of the user's attributes are specified to be private.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
@@ -207,8 +213,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd class="inherited">
-  A representation of the runtime type of the object. 
-  <div class="features">read-only, inherited</div>
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">read-only</span><span class="feature">inherited</span></div>
 
 </dd>
 
@@ -218,17 +224,20 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd>
-  The user's secondary attribute. 
-  <div class="features">final</div>
+  The user's secondary attribute.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
       </dl>
     </section>
 
-    <section class="summary offset-anchor" id="instance-methods">
-      <h2>Methods</h2>
-      <dl class="callables">
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
         <dt id="noSuchMethod" class="callable inherited">
   <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
     <span class="returntype parameter">&#8594; dynamic</span>
@@ -237,8 +246,8 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd class="inherited">
-  Invoked when a non-existent method or property is accessed. <a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">[...]</a>
-  <div class="features">inherited</div>
+  Invoked when a non-existent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
 
 </dd>
 
@@ -250,17 +259,19 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd class="inherited">
-  A string representation of this object. <a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">[...]</a>
-  <div class="features">inherited</div>
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
 
 </dd>
 
-      </dl>
-    </section>
-
-    <section class="summary offset-anchor inherited" id="operators">
-      <h2>Operators</h2>
-      <dl class="callables">
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
         <dt id="operator ==" class="callable inherited">
   <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
@@ -269,15 +280,16 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 </dt>
 <dd class="inherited">
-  The equality operator. <a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">[...]</a>
-  <div class="features">inherited</div>
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
 
 </dd>
 
-      </dl>
-    </section>
-
-
+    </dl>
+  </section>
+    
+    
+    
 
 
   </div> <!-- /.main-content -->
@@ -298,35 +310,35 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
     <h5>launchdarkly_flutter_client_sdk library</h5>
     <ol>
-  <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#classes">Classes</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDClient-class.html">LDClient</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionInformation-class.html">LDConnectionInformation</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationDetail-class.html">LDEvaluationDetail</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationReason-class.html">LDEvaluationReason</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDFailure-class.html">LDFailure</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDValueArrayBuilder-class.html">LDValueArrayBuilder</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDValueObjectBuilder-class.html">LDValueObjectBuilder</a></li>
+      <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#classes">Classes</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDClient-class.html">LDClient</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionInformation-class.html">LDConnectionInformation</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationDetail-class.html">LDEvaluationDetail</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationReason-class.html">LDEvaluationReason</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDFailure-class.html">LDFailure</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDValueArrayBuilder-class.html">LDValueArrayBuilder</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDValueObjectBuilder-class.html">LDValueObjectBuilder</a></li>
 
 
 
 
 
 
-  <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#enums">Enums</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionState.html">LDConnectionState</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDErrorKind.html">LDErrorKind</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDFailureType.html">LDFailureType</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDKind.html">LDKind</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDValueType.html">LDValueType</a></li>
+      <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#enums">Enums</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionState.html">LDConnectionState</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDErrorKind.html">LDErrorKind</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDFailureType.html">LDFailureType</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDKind.html">LDKind</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDValueType.html">LDValueType</a></li>
 
-  <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#typedefs">Typedefs</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDFlagsReceivedCallback.html">LDFlagsReceivedCallback</a></li>
-  <li><a href="../launchdarkly_flutter_client_sdk/LDFlagUpdatedCallback.html">LDFlagUpdatedCallback</a></li>
+      <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#typedefs">Typedefs</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDFlagsReceivedCallback.html">LDFlagsReceivedCallback</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDFlagUpdatedCallback.html">LDFlagUpdatedCallback</a></li>
 
 </ol>
 
@@ -337,30 +349,30 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 
 
-    <li class="section-title">
-      <a href="../launchdarkly_flutter_client_sdk/LDUser-class.html#instance-properties">Properties</a>
-    </li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/anonymous.html">anonymous</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/avatar.html">avatar</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/country.html">country</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/custom.html">custom</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/email.html">email</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/firstName.html">firstName</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/ip.html">ip</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/key.html">key</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/lastName.html">lastName</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/name.html">name</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/privateAttributeNames.html">privateAttributeNames</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></li>
-    <li><a href="../launchdarkly_flutter_client_sdk/LDUser/secondary.html">secondary</a></li>
+        <li class="section-title">
+          <a href="../launchdarkly_flutter_client_sdk/LDUser-class.html#instance-properties">Properties</a>
+        </li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/anonymous.html">anonymous</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/avatar.html">avatar</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/country.html">country</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/custom.html">custom</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/email.html">email</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/firstName.html">firstName</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/ip.html">ip</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/key.html">key</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/lastName.html">lastName</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/name.html">name</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/privateAttributeNames.html">privateAttributeNames</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDUser/secondary.html">secondary</a></li>
 
-    <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html#instance-methods">Methods</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></li>
+        <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html#instance-methods">Methods</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></li>
 
-    <li class="section-title inherited"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html#operators">Operators</a></li>
-    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></li>
+        <li class="section-title inherited"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html#operators">Operators</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></li>
 
 
 
@@ -374,7 +386,7 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      1.0.0
+      1.3.0
   </span>
 
   
@@ -383,7 +395,7 @@ reference guide on <a href="https://docs.launchdarkly.com/home/users/attributes"
 
 
 <script src="../static-assets/highlight.pack.js?v1"></script>
-<script src="../static-assets/script.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
 
 
 
