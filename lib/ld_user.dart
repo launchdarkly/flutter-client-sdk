@@ -19,8 +19,6 @@ class LDUser {
   /// Whether this user is anonymous.
   final bool anonymous;
 
-  /// The user's secondary attribute.
-  final String? secondary;
   /// The user's ip attribute.
   final String? ip;
   /// The user's email attribute.
@@ -50,7 +48,6 @@ class LDUser {
   LDUser._builder(LDUserBuilder builder) :
         key = builder._key,
         anonymous = builder._anonymous,
-        secondary = builder._secondary,
         ip = builder._ip,
         email = builder._email,
         name = builder._name,
@@ -65,7 +62,6 @@ class LDUser {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['key'] = key;
     result['anonymous'] = anonymous;
-    result['secondary'] = secondary;
     result['ip'] = ip;
     result['email'] = email;
     result['name'] = name;
@@ -81,7 +77,6 @@ class LDUser {
 
 /// A builder for constructing [LDUser] objects.
 class LDUserBuilder {
-  static const String _SECONDARY = "secondary";
   static const String _IP = "ip";
   static const String _EMAIL = "email";
   static const String _NAME = "name";
@@ -93,7 +88,6 @@ class LDUserBuilder {
   String _key;
   bool _anonymous = false;
 
-  String? _secondary;
   String? _ip;
   String? _email;
   String? _name;
@@ -113,18 +107,6 @@ class LDUserBuilder {
   LDUserBuilder anonymous(bool anonymous) {
     this._anonymous = anonymous;
     return this;
-  }
-
-  /// Sets the user's secondary attribute.
-  LDUserBuilder secondary(String secondary) {
-    this._secondary = secondary;
-    return this;
-  }
-
-  /// Sets the user's secondary attribute, marking it as private.
-  LDUserBuilder privateSecondary(String secondary) {
-    _privateAttributeNames.add(_SECONDARY);
-    return this.secondary(secondary);
   }
 
   /// Sets the user's ip attribute.

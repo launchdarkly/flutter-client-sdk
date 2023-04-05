@@ -150,12 +150,6 @@ void main() {
     propTester.expectCanSet(true);
   });
 
-  test('inlineUsersInEvents', () {
-    var propTester = tester.prop<bool>((c) => c.inlineUsersInEvents, (b, v) => b.inlineUsersInEvents(v));
-    propTester.expectDefault(false);
-    propTester.expectCanSet(true);
-  });
-
   test('evaluationReasons', () {
     var propTester = tester.prop<bool>((c) => c.evaluationReasons, (b, v) => b.evaluationReasons(v));
     propTester.expectDefault(false);
@@ -164,12 +158,6 @@ void main() {
 
   test('diagnosticOptOut', () {
     var propTester = tester.prop<bool>((c) => c.diagnosticOptOut, (b, v) => b.diagnosticOptOut(v));
-    propTester.expectDefault(false);
-    propTester.expectCanSet(true);
-  });
-
-  test('autoAliasingOptOut', () {
-    var propTester = tester.prop<bool>((c) => c.autoAliasingOptOut, (b, v) => b.autoAliasingOptOut(v));
     propTester.expectDefault(false);
     propTester.expectCanSet(true);
   });

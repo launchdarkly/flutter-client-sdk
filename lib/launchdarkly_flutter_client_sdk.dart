@@ -114,13 +114,6 @@ class LDClient {
     await _channel.invokeMethod('identify', {'user': user._toCodecValue()});
   }
 
-  /// Alias associates two users for analytics purposes.
-  ///
-  /// This can be helpful in the situation where a person is represented by multiple LaunchDarkly users.
-  static Future<void> alias(LDUser user, LDUser previousUser) async {
-    await _channel.invokeMethod('alias', {'user': user._toCodecValue(), 'previousUser': previousUser._toCodecValue()});
-  }
-
   /// Track custom events associated with the current user for data export or experimentation.
   ///
   /// The [eventName] is the key associated with the event or experiment. [data] is an optional parameter for additional

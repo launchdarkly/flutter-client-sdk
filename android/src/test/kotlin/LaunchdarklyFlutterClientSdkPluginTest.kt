@@ -33,10 +33,8 @@ internal class LaunchdarklyFlutterClientSdkPluginTest {
             "offline" to false,
             "disableBackgroundUpdating" to true,
             "useReport" to false,
-            "inlineUsersInEvents" to true,
             "evaluationReasons" to false,
             "diagnosticOptOut" to true,
-            "autoAliasingOptOut" to false,
             "allAttributesPrivate" to true,
             "privateAttributeNames" to listOf("name", "avatar")
         )
@@ -58,10 +56,8 @@ internal class LaunchdarklyFlutterClientSdkPluginTest {
         verify { spyBuilder.offline(false)}
         verify { spyBuilder.disableBackgroundUpdating(true)}
         verify { spyBuilder.useReport(false)}
-        verify { spyBuilder.inlineUsersInEvents(true)}
         verify { spyBuilder.evaluationReasons(false)}
         verify { spyBuilder.diagnosticOptOut(true)}
-        verify { spyBuilder.autoAliasingOptOut(false)}
         verify { spyBuilder.allAttributesPrivate()}
 
         var argValues = mutableListOf<UserAttribute?>()

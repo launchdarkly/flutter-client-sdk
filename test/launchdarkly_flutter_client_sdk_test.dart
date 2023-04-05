@@ -179,10 +179,8 @@ Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   result['offline'] = false;
   result['disableBackgroundUpdating'] = true;
   result['useReport'] = false;
-  result['inlineUsersInEvents'] = false;
   result['evaluationReasons'] = false;
   result['diagnosticOptOut'] = false;
-  result['autoAliasingOptOut'] = false;
   result['allAttributesPrivate'] = false;
   result['privateAttributeNames'] = null;
   result['wrapperName'] = 'FlutterClientSdk';
@@ -194,7 +192,7 @@ Map<String, dynamic> defaultUser(String userKey) {
   final Map<String, dynamic> result = <String, dynamic>{};
   result['key'] = userKey;
   result['anonymous'] = false;
-  ['secondary', 'ip', 'email', 'name', 'firstName', 'lastName', 'avatar', 'country', 'custom'
+  ['ip', 'email', 'name', 'firstName', 'lastName', 'avatar', 'country', 'custom'
     , 'privateAttributeNames'].forEach((attrName) {
     result[attrName] = null;
   });
@@ -333,15 +331,6 @@ void testLDClient() {
     expectedUser['privateAttributeNames'] = ['ip'];
     await LDClient.identify(user);
     expectCall('identify', {'user': expectedUser });
-  });
-
-  test('alias', () async {
-      LDUser previousUser = LDUserBuilder('previous user key').build();
-      LDUser user = LDUserBuilder('user key').build();
-      Map<String, dynamic> expectedPreviousUser = defaultUser('previous user key');
-      Map<String, dynamic> expectedUser = defaultUser('user key');
-      await LDClient.alias(user, previousUser);
-      expectCall('alias', {'user': expectedUser, 'previousUser': expectedPreviousUser});
   });
 
   test('track', () async {
