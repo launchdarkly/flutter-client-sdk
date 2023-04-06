@@ -94,10 +94,8 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       whenIs<Boolean>(map["offline"]) { configBuilder.offline(it) }
       whenIs<Boolean>(map["disableBackgroundUpdating"]) { configBuilder.disableBackgroundUpdating(it) }
       whenIs<Boolean>(map["useReport"]) { configBuilder.useReport(it) }
-      whenIs<Boolean>(map["inlineUsersInEvents"]) { configBuilder.inlineUsersInEvents(it) }
       whenIs<Boolean>(map["evaluationReasons"]) { configBuilder.evaluationReasons(it) }
       whenIs<Boolean>(map["diagnosticOptOut"]) { configBuilder.diagnosticOptOut(it) }
-      whenIs<Boolean>(map["autoAliasingOptOut"]) { configBuilder.autoAliasingOptOut(it) }
       if (map["allAttributesPrivate"] is Boolean && map["allAttributesPrivate"] as Boolean) {
         configBuilder.allAttributesPrivate()
       }
@@ -116,7 +114,6 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
     }
 
     private val optionalFields: Map<String, Pair<(LDUser.Builder, String) -> Unit, (LDUser.Builder, String) -> Unit>> = mapOf(
-            "secondary" to Pair({u, s -> u.secondary(s)}, {u, s -> u.privateSecondary(s)}),
             "ip" to Pair({u, s -> u.ip(s)}, {u, s -> u.privateIp(s)}),
             "email" to Pair({u, s -> u.email(s)}, {u ,s -> u.privateEmail(s)}),
             "name" to Pair({u, s -> u.name(s)}, {u, s -> u.privateName(s)}),
@@ -277,12 +274,6 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
 
           result.success(null)
         }
-      }
-      "alias" -> {
-        val user: LDUser = userFromMap(call.argument("user")!!)
-        val previousUser: LDUser = userFromMap(call.argument("previousUser")!!)
-        LDClient.get().alias(user, previousUser)
-        result.success(null)
       }
       "track" -> {
         val data = valueFromBridge(call.argument("data"))

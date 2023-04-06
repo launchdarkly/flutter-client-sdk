@@ -41,14 +41,10 @@ class LDConfig {
   final bool disableBackgroundUpdating;
   /// Whether the SDK is configured to use the HTTP `REPORT` verb for flag requests.
   final bool useReport;
-  /// Whether the SDK is configured to send the entire [LDUser] object to the service in every event.
-  final bool inlineUsersInEvents;
   /// Whether the SDK is configured to request evaluation reasons to be included in flag data from the service.
   final bool evaluationReasons;
   /// Whether the SDK is configured to not send diagnostic data to LaunchDarkly.
   final bool diagnosticOptOut;
-  /// Whether the SDK is configured to not send automatic alias events.
-  final bool autoAliasingOptOut;
 
   /// Whether the SDK is configured to never include user attribute values in analytics requests.
   final bool allAttributesPrivate;
@@ -73,10 +69,8 @@ class LDConfig {
         offline = builder._offline,
         disableBackgroundUpdating = builder._disableBackgroundUpdating,
         useReport = builder._useReport,
-        inlineUsersInEvents = builder._inlineUsersInEvents,
         evaluationReasons = builder._evaluationReasons,
         diagnosticOptOut = builder._diagnosticOptOut,
-        autoAliasingOptOut = builder._autoAliasingOptOut,
         allAttributesPrivate = builder._allAttributesPrivate,
         privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
 
@@ -99,10 +93,8 @@ class LDConfig {
     result['offline'] = offline;
     result['disableBackgroundUpdating'] = disableBackgroundUpdating;
     result['useReport'] = useReport;
-    result['inlineUsersInEvents'] = inlineUsersInEvents;
     result['evaluationReasons'] = evaluationReasons;
     result['diagnosticOptOut'] = diagnosticOptOut;
-    result['autoAliasingOptOut'] = autoAliasingOptOut;
     result['allAttributesPrivate'] = allAttributesPrivate;
     result['privateAttributeNames'] = privateAttributeNames;
     result['wrapperName'] = 'FlutterClientSdk';
@@ -134,10 +126,8 @@ class LDConfigBuilder {
   bool _offline = false;
   bool _disableBackgroundUpdating = true;
   bool _useReport = false;
-  bool _inlineUsersInEvents = false;
   bool _evaluationReasons = false;
   bool _diagnosticOptOut = false;
-  bool _autoAliasingOptOut = false;
 
   bool _allAttributesPrivate = false;
   Set<String> _privateAttributeNames = Set();
@@ -287,18 +277,6 @@ class LDConfigBuilder {
     return this;
   }
 
-  /// Sets whether the SDK will send the entire [LDUser] object to the service in every event.
-  ///
-  /// By default the SDK will only send an event when updating the user context which associates the key with the
-  /// non-private user attributes. Later events will only include the key of the user.
-  ///
-  /// When [LDConfig.inlineUsersInEvents] is `true`, the SDK will include the full user (all non-private user
-  /// attributes) in every event.
-  LDConfigBuilder inlineUsersInEvents(bool inlineUsersInEvents) {
-    this._inlineUsersInEvents = inlineUsersInEvents;
-    return this;
-  }
-
   /// Configure whether the SDK will request evaluation reasons to be included in flag data from the service.
   ///
   /// This will allow the additional information included in [LDEvaluationDetail] to be populated when using the
@@ -318,15 +296,6 @@ class LDConfigBuilder {
   /// See [LDConfigBuilder.diagnosticRecordingIntervalMillis] for configuration of periodic payload frequency.
   LDConfigBuilder diagnosticOptOut(bool diagnosticOptOut) {
     this._diagnosticOptOut = diagnosticOptOut;
-    return this;
-  }
-
-  /// Set to true to opt out of sending automatic alias events.
-  ///
-  /// Unless [LDConfig.autoAliasingOptOut] is `true`, the client will send an automatic `alias` event when
-  /// [LDClient.identify] is called with a non-anonymous user when the current user is anonymous.
-  LDConfigBuilder autoAliasingOptOut(bool autoAliasingOptOut) {
-    this._autoAliasingOptOut = autoAliasingOptOut;
     return this;
   }
 

@@ -42,7 +42,7 @@ typedef void LDFlagUpdatedCallback(String flagKey);
 /// record custom events, and provides various status configuration and monitoring utilities. See the individual class
 /// and method documentation for more details.
 class LDClient {
-  static const String _sdkVersion = "1.2.0";
+  static const String _sdkVersion = "1.3.0";
   static const MethodChannel _channel = const MethodChannel('launchdarkly_flutter_client_sdk');
 
   static Completer<void> _startCompleter = Completer();
@@ -112,13 +112,6 @@ class LDClient {
   /// containing the public [LDUser] fields for indexing on the dashboard.
   static Future<void> identify(LDUser user) async {
     await _channel.invokeMethod('identify', {'user': user._toCodecValue()});
-  }
-
-  /// Alias associates two users for analytics purposes.
-  ///
-  /// This can be helpful in the situation where a person is represented by multiple LaunchDarkly users.
-  static Future<void> alias(LDUser user, LDUser previousUser) async {
-    await _channel.invokeMethod('alias', {'user': user._toCodecValue(), 'previousUser': previousUser._toCodecValue()});
   }
 
   /// Track custom events associated with the current user for data export or experimentation.

@@ -21,10 +21,8 @@ final class RunnerTests: XCTestCase {
             "offline" : false,
             "disableBackgroundUpdating" : true,
             "useReport" : false,
-            "inlineUsersInEvents" : true,
             "evaluationReasons" : false,
             "diagnosticOptOut" : true,
-            "autoAliasingOptOut" : false,
             "allAttributesPrivate" : true,
             "privateAttributeNames" : ["name", "avatar"]
         ]
@@ -47,10 +45,8 @@ final class RunnerTests: XCTestCase {
         expected.startOnline = true
         expected.enableBackgroundUpdates = false
         expected.useReport = false
-        expected.inlineUserInEvents = true
         expected.evaluationReasons = false
         expected.diagnosticOptOut = true
-        expected.autoAliasingOptOut = false
         expected.allUserAttributesPrivate = true
         expected.privateUserAttributes = [UserAttribute.forName("name"), UserAttribute.forName("avatar")]
         

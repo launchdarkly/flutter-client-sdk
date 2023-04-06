@@ -50,10 +50,8 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     whenIs(Bool.self, dict["offline"]) { config.startOnline = !$0 }
     whenIs(Bool.self, dict["disableBackgroundUpdating"]) { config.enableBackgroundUpdates = !$0 }
     whenIs(Bool.self, dict["useReport"]) { config.useReport = $0 }
-    whenIs(Bool.self, dict["inlineUsersInEvents"]) { config.inlineUserInEvents = $0 }
     whenIs(Bool.self, dict["evaluationReasons"]) { config.evaluationReasons = $0 }
     whenIs(Bool.self, dict["diagnosticOptOut"]) { config.diagnosticOptOut = $0 }
-    whenIs(Bool.self, dict["autoAliasingOptOut"]) { config.autoAliasingOptOut = $0 }
     whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allUserAttributesPrivate = $0 }
     whenIs([String].self, dict["privateAttributeNames"]) { config.privateUserAttributes = $0.map { UserAttribute.forName($0) } }
     whenIs(String.self, dict["wrapperName"]) { config.wrapperName = $0 }
@@ -73,8 +71,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       avatar: dict["avatar"] as? String,
       custom: (dict["custom"] as? [String: Any] ?? [:]).mapValues { LDValue.fromBridge($0) },
       isAnonymous: dict["anonymous"] as? Bool,
-      privateAttributes: (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) },
-      secondary: dict["secondary"] as? String
+      privateAttributes: (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) }
     )
 
     return user
@@ -146,12 +143,6 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       result(nil)
     case "identify":
       withLDClient(result) { $0.identify(user: userFrom(dict: args?["user"] as! [String: Any])) { result(nil) } }
-    case "alias":
-      withLDClient(result) { client in
-        client.alias(context: userFrom(dict: args?["user"] as! [String: Any]),
-                     previousContext: userFrom(dict: args?["previousUser"] as! [String: Any]))
-        result(nil)
-      }
     case "track":
       withLDClient(result) { client in
         client.track(key: args?["eventName"] as! String,
