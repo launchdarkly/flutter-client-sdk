@@ -15,8 +15,11 @@ export 'ld_value.dart';
 
 part 'ld_config.dart';
 part 'ld_user.dart';
+part 'ld_context.dart';
+part 'ld_context_attributes.dart';
 part 'ld_evaluation_detail.dart';
 part 'ld_connection_information.dart';
+part 'ld_codec.dart';
 
 /// Type of function callback used by `LDClient.registerFlagsReceivedListener`.
 ///
@@ -83,9 +86,17 @@ class LDClient {
   /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
   /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
   /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
+  // TODO: Verify this deprecation is happening
+  @Deprecated("In favor of start taking LDContext")
   static Future<void> start(LDConfig config, LDUser user) async {
     _channel.setMethodCallHandler(_handleCallbacks);
-    await _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'user': user._toCodecValue()});
+    await _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'user': user.toCodecValue()});
+  }
+
+  // TODO: figure out overloading solution (via optional named parameters perhaps)
+  static Future<void> startWithContext(LDConfig config, LDContext context) async {
+    _channel.setMethodCallHandler(_handleCallbacks);
+    await _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'context': context.toCodecValue()});
   }
 
   /// Returns a future that completes when the SDK has completed starting.
@@ -111,7 +122,7 @@ class LDClient {
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDUser] fields for indexing on the dashboard.
   static Future<void> identify(LDUser user) async {
-    await _channel.invokeMethod('identify', {'user': user._toCodecValue()});
+    await _channel.invokeMethod('identify', {'user': user.toCodecValue()});
   }
 
   /// Track custom events associated with the current user for data export or experimentation.

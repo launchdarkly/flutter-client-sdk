@@ -1,14 +1,23 @@
 package com.launchdarkly.launchdarkly_flutter_client_sdk
 
 import android.app.Application
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.NonNull
-
-import com.launchdarkly.sdk.*
-import com.launchdarkly.sdk.android.*
-
+import com.launchdarkly.sdk.EvaluationReason
+import com.launchdarkly.sdk.LDContext
+import com.launchdarkly.sdk.LDUser
+import com.launchdarkly.sdk.LDValue
+import com.launchdarkly.sdk.LDValueType
+import com.launchdarkly.sdk.android.Components
+import com.launchdarkly.sdk.android.ConnectionInformation
+import com.launchdarkly.sdk.android.FeatureFlagChangeListener
+import com.launchdarkly.sdk.android.LDAllFlagsListener
+import com.launchdarkly.sdk.android.LDAndroidLogging
+import com.launchdarkly.sdk.android.LDClient
+import com.launchdarkly.sdk.android.LDConfig
+import com.launchdarkly.sdk.android.LDFailure
+import com.launchdarkly.sdk.android.LaunchDarklyException
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -73,46 +82,77 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
 
     fun configFromMap(map: Map<String, Any>, configBuilder: LDConfig.Builder): LDConfig {
       whenIs<String>(map["mobileKey"]) { configBuilder.mobileKey(it) }
-
-      val infoBuilder = Components.applicationInfo()
-      whenIs<String>(map["applicationId"]) { infoBuilder.applicationId(it) }
-      whenIs<String>(map["applicationVersion"]) { infoBuilder.applicationVersion(it) }
-      configBuilder.applicationInfo(infoBuilder)
-
-      whenIs<String>(map["pollUri"]) { configBuilder.pollUri(Uri.parse(it)) }
-      whenIs<String>(map["eventsUri"]) { configBuilder.eventsUri(Uri.parse(it)) }
-      whenIs<String>(map["streamUri"]) { configBuilder.streamUri(Uri.parse(it)) }
-      
-      whenIs<Int>(map["eventsCapacity"]) { configBuilder.eventsCapacity(it) }
-      whenIs<Int>(map["eventsFlushIntervalMillis"]) { configBuilder.eventsFlushIntervalMillis(it) }
-      whenIs<Int>(map["connectionTimeoutMillis"]) { configBuilder.connectionTimeoutMillis(it) }
-      whenIs<Int>(map["pollingIntervalMillis"]) { configBuilder.pollingIntervalMillis(it) }
-      whenIs<Int>(map["backgroundPollingIntervalMillis"]) { configBuilder.backgroundPollingIntervalMillis(it) }
-      whenIs<Int>(map["diagnosticRecordingIntervalMillis"]) { configBuilder.diagnosticRecordingIntervalMillis(it) }
-      whenIs<Int>(map["maxCachedUsers"]) { configBuilder.maxCachedUsers(it) }
-      whenIs<Boolean>(map["stream"]) { configBuilder.stream(it) }
+      whenIs<Int>(map["maxCachedContexts"]) { configBuilder.maxCachedContexts(it) }
       whenIs<Boolean>(map["offline"]) { configBuilder.offline(it) }
       whenIs<Boolean>(map["disableBackgroundUpdating"]) { configBuilder.disableBackgroundUpdating(it) }
-      whenIs<Boolean>(map["useReport"]) { configBuilder.useReport(it) }
       whenIs<Boolean>(map["evaluationReasons"]) { configBuilder.evaluationReasons(it) }
       whenIs<Boolean>(map["diagnosticOptOut"]) { configBuilder.diagnosticOptOut(it) }
-      if (map["allAttributesPrivate"] is Boolean && map["allAttributesPrivate"] as Boolean) {
-        configBuilder.allAttributesPrivate()
-      }
-      whenIs<List<*>>(map["privateAttributeNames"]) {
-        val privateAttrs = ArrayList<UserAttribute>()
-        for (name in it) {
-          if (name is String) {
-            privateAttrs.add(UserAttribute.forName(name))
-          }
-        }
-        configBuilder.privateAttributes(*privateAttrs.toTypedArray())
-      }
-      whenIs<String>(map["wrapperName"]) { configBuilder.wrapperName(it) }
-      whenIs<String>(map["wrapperVersion"]) { configBuilder.wrapperVersion(it) }
+
+      configBuilder.applicationInfo(
+              Components.applicationInfo().apply {
+                whenIs<String>(map["applicationId"]) { this.applicationId(it) }
+                whenIs<String>(map["applicationVersion"]) { this.applicationVersion(it) }
+              }
+      )
+
+      configBuilder.serviceEndpoints(
+              Components.serviceEndpoints().apply {
+                whenIs<String>(map["pollUri"]) { this.polling(it) }
+                whenIs<String>(map["eventsUri"]) { this.events(it) }
+                whenIs<String>(map["streamUri"]) { this.streaming(it) }
+              }
+      )
+
+      configBuilder.dataSource(
+              if (map["stream"] is Boolean && map["stream"] as Boolean) {
+                // use streaming data source
+                Components.streamingDataSource().apply {
+                  whenIs<Int>(map["backgroundPollingIntervalMillis"]) { this.backgroundPollIntervalMillis(it) }
+                }
+              } else {
+                // use polling data source
+                Components.pollingDataSource().apply {
+                  whenIs<Int>(map["pollingIntervalMillis"]) { this.pollIntervalMillis(it) }
+                  whenIs<Int>(map["backgroundPollingIntervalMillis"]) { this.backgroundPollIntervalMillis(it) }
+                }
+              }
+      )
+
+      configBuilder.events(
+              Components.sendEvents().apply {
+                whenIs<Int>(map["eventsCapacity"]) { this.capacity(it) }
+                whenIs<Int>(map["eventsFlushIntervalMillis"]) { this.flushIntervalMillis(it) }
+                whenIs<Int>(map["diagnosticRecordingIntervalMillis"]) { this.diagnosticRecordingIntervalMillis(it) }
+
+                if (map["allAttributesPrivate"] is Boolean) {
+                  this.allAttributesPrivate(map["allAttributesPrivate"] as Boolean)
+                }
+
+                whenIs<List<*>>(map["privateAttributeNames"]) {
+                  // TODO sc-195759: Support private attributes
+                }
+              }
+      )
+
+      // TODO: confirm timeout should be on http configuration builder
+      configBuilder.http(
+              Components.httpConfiguration().apply {
+                whenIs<Int>(map["connectionTimeoutMillis"]) { this.connectTimeoutMillis(it) }
+                whenIs<Boolean>(map["useReport"]) { this.useReport(it) }
+                if (map["wrapperName"] is String && map["wrapperName"] is String) {
+                  this.wrapper(map["wrapperName"] as String, map["wrapperName"] as String)
+                }
+              }
+      )
+
+      configBuilder.logAdapter(LDAndroidLogging.adapter())
+
       return configBuilder.build()
     }
 
+    // TODO: discuss if this should even be kept.  Alternative is to transform User to Context
+    // in flutter layer, but this feels weird considering there is already conversion logic
+    // in the native code
     private val optionalFields: Map<String, Pair<(LDUser.Builder, String) -> Unit, (LDUser.Builder, String) -> Unit>> = mapOf(
             "ip" to Pair({u, s -> u.ip(s)}, {u, s -> u.privateIp(s)}),
             "email" to Pair({u, s -> u.email(s)}, {u ,s -> u.privateEmail(s)}),
@@ -143,6 +183,28 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         }
       }
       return userBuilder.build()
+    }
+
+    fun contextFromList(list: List<Map<String, Any>>): LDContext {
+
+      val multiBuilder = LDContext.multiBuilder()
+      list.forEach {
+        val contextBuilder = LDContext.builder(it["key"] as String)
+        // TODO: look into generate anonymous keys support
+        val anonymous = it["anonymous"] as? Boolean
+        if (anonymous is Boolean) contextBuilder.anonymous(anonymous)
+
+        // TODO: determine if custom is even required anymore.
+        if (it["custom"] != null) {
+          for (entry in (it["custom"] as Map<String, Any>)) {
+            // TODO sc-195759: Support private attributes
+            contextBuilder.set(entry.key, valueFromBridge(entry.value))
+          }
+        }
+        multiBuilder.add(contextBuilder.build());
+      }
+
+      return multiBuilder.build();
     }
 
     fun valueFromBridge(dyn: Any?): LDValue {
@@ -241,17 +303,37 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
     when (call.method) {
       "start" -> {
         val ldConfig: LDConfig = configFromMap(call.argument("config")!!, LDConfig.Builder())
-        val ldUser: LDUser = userFromMap(call.argument("user")!!)
+
+        // TODO: perhaps create LDContext from user and then run ident and init code.  That could
+        // linearize this code and eliminate lambdas
+
+        // Set up lambdas for each possible type of context.  This is simpler than adding an
+        // abstraction layer.
+        var initClient: () -> Future<*>;
+        var identClient: (c: LDClient) -> Future<*>;
+        if (call.hasArgument("user")) {
+          // try user first
+          val ldUser: LDUser = userFromMap(call.argument("user")!!)
+          initClient = { LDClient.init(application, ldConfig, ldUser)}
+          identClient = { c : LDClient -> c.identify(ldUser)}
+        } else {
+          // fallback is context since that is the more general case
+          val ldContext: LDContext = contextFromList(call.argument("context")!!)
+          initClient = { LDClient.init(application, ldConfig, ldContext)}
+          identClient = { c : LDClient -> c.identify(ldContext)}
+        }
+
         var completion: Future<*>
         try {
           val instance = LDClient.get()
           // We've already initialized the native SDK so just switch to the new user.
-          completion = instance.identify(ldUser)
+          completion = identClient(instance)
         } catch (ignored: LaunchDarklyException) {
           // We have not already initialized the native SDK.
-          completion = LDClient.init(application, ldConfig, ldUser)
+          completion = initClient()
           LDClient.get().registerAllFlagsListener(allFlagsListener)
         }
+
         thread(start = true) {
             try {
               completion.get()
@@ -268,7 +350,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
             //TODO: Change to completable future once it is available.
             var future = LDClient.get().identify(ldUser)
             while(!future.isDone) {
-              delay(1);
+              delay(1)
             }
           }
 
@@ -331,9 +413,9 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         var allFlagsBridge = HashMap<String, Any?>()
         val allFlags = LDClient.get().allFlags()
         allFlags.forEach {
-          allFlagsBridge[it.key] = valueToBridge(it.value);
+          allFlagsBridge[it.key] = valueToBridge(it.value)
         }
-        result.success(allFlagsBridge);
+        result.success(allFlagsBridge)
       }
       "flush" -> {
         LDClient.get().flush()

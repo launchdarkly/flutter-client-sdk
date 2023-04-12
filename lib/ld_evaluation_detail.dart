@@ -84,6 +84,7 @@ class LDEvaluationReason {
   /// For all other kinds, this field is undefined.
   final LDErrorKind? errorKind;
 
+  // TODO: move to codec file
   static LDEvaluationReason _fromCodecValue(dynamic value) {
     if (!(value is Map)) return unknown();
     Map<String, dynamic> map = Map.from(value as Map);

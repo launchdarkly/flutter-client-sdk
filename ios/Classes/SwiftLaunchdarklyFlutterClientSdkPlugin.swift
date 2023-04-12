@@ -45,7 +45,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     whenIs(Int.self, dict["pollingIntervalMillis"]) { config.flagPollingInterval = Double($0) / 1000.0 }
     whenIs(Int.self, dict["backgroundPollingIntervalMillis"]) { config.backgroundFlagPollingInterval = Double($0) / 1000.0 }
     whenIs(Int.self, dict["diagnosticRecordingIntervalMillis"]) { config.diagnosticRecordingInterval = Double($0) / 1000.0 }
-    whenIs(Int.self, dict["maxCachedUsers"]) { config.maxCachedUsers = $0 }
+    whenIs(Int.self, dict["maxCachedUsers"]) { config.maxCachedContexts_remember_to_update_field_name = $0 }
     whenIs(Bool.self, dict["stream"]) { config.streamingMode = $0 ? LDStreamingMode.streaming : LDStreamingMode.polling }
     whenIs(Bool.self, dict["offline"]) { config.startOnline = !$0 }
     whenIs(Bool.self, dict["disableBackgroundUpdating"]) { config.enableBackgroundUpdates = !$0 }

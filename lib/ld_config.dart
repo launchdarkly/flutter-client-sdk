@@ -28,10 +28,10 @@ class LDConfig {
   final int backgroundPollingIntervalMillis;
   /// The configured diagnostic recording interval in milliseconds.
   final int diagnosticRecordingIntervalMillis;
-  /// The count of users to store the flag values for in on-device storage.
+  /// The count of contexts to store the flag values for in on-device storage.
   ///
-  /// A value of `-1` indicates that an unlimited number of users will be cached locally.
-  final int maxCachedUsers;
+  /// A value of `-1` indicates that an unlimited number of contexts will be cached locally.
+  final int maxCachedContexts;
 
   /// Whether the SDK is configured to use a streaming connection when in the foreground.
   final bool stream;
@@ -64,7 +64,7 @@ class LDConfig {
         pollingIntervalMillis = builder._pollingIntervalMillis,
         backgroundPollingIntervalMillis = builder._backgroundPollingIntervalMillis,
         diagnosticRecordingIntervalMillis = builder._diagnosticRecordingIntervalMillis,
-        maxCachedUsers = builder._maxCachedUsers,
+        maxCachedContexts = builder._maxCachedContexts,
         stream = builder._stream,
         offline = builder._offline,
         disableBackgroundUpdating = builder._disableBackgroundUpdating,
@@ -88,7 +88,7 @@ class LDConfig {
     result['pollingIntervalMillis'] = pollingIntervalMillis;
     result['backgroundPollingIntervalMillis'] = backgroundPollingIntervalMillis;
     result['diagnosticRecordingIntervalMillis'] = diagnosticRecordingIntervalMillis;
-    result['maxCachedUsers'] = maxCachedUsers;
+    result['maxCachedContexts'] = maxCachedContexts;
     result['stream'] = stream;
     result['offline'] = offline;
     result['disableBackgroundUpdating'] = disableBackgroundUpdating;
@@ -120,7 +120,7 @@ class LDConfigBuilder {
   int _pollingIntervalMillis = 5 * 60 * 1000;
   int _backgroundPollingIntervalMillis = 60 * 60 * 1000;
   int _diagnosticRecordingIntervalMillis = 15 * 60 * 1000;
-  int _maxCachedUsers = 5;
+  int _maxCachedContexts = 5;
 
   bool _stream = true;
   bool _offline = false;
@@ -237,7 +237,14 @@ class LDConfigBuilder {
   ///
   /// The default value of this configuration option is `5`.
   LDConfigBuilder maxCachedUsers(int maxCachedUsers) {
-    this._maxCachedUsers = maxCachedUsers < 0 ? -1 : maxCachedUsers;
+    // users are a special type of context, this is for backwards compatibility
+    this._maxCachedContexts = maxCachedUsers < 0 ? -1 : maxCachedUsers;
+    return this;
+  }
+
+  // TODO: comment
+  LDConfigBuilder maxCachedContexts(int maxCachedContexts) {
+    this._maxCachedContexts = maxCachedContexts < 0 ? -1 : maxCachedContexts;
     return this;
   }
 

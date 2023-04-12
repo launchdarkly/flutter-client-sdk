@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 
 const MethodChannel channel = MethodChannel('launchdarkly_flutter_client_sdk');
-const String _sdkVersion = "1.3.0";
+const String _sdkVersion = '1.3.0';
 
 void main() {
   group('LDConnectionInformation', testLDConnectionInformation);
@@ -163,18 +163,18 @@ void testLDEvaluationDetail() {
 Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   final Map<String, dynamic> result = <String, dynamic>{};
   result['mobileKey'] = mobileKey;
-  result['applicationId'] = "";
-  result['applicationVersion'] = "";
-  result['pollUri'] = "https://clientsdk.launchdarkly.com";
-  result['streamUri'] = "https://clientstream.launchdarkly.com";
-  result['eventsUri'] = "https://events.launchdarkly.com";
+  result['applicationId'] = '';
+  result['applicationVersion'] = '';
+  result['pollUri'] = 'https://clientsdk.launchdarkly.com';
+  result['streamUri'] = 'https://clientstream.launchdarkly.com';
+  result['eventsUri'] = 'https://events.launchdarkly.com';
   result['eventsCapacity'] = 100;
   result['eventsFlushIntervalMillis'] = 30 * 1000;
   result['connectionTimeoutMillis'] = 10 * 1000;
   result['pollingIntervalMillis'] = 5 * 60 * 1000;
   result['backgroundPollingIntervalMillis'] = 60 * 60 * 1000;
   result['diagnosticRecordingIntervalMillis'] = 15 * 60 * 1000;
-  result['maxCachedUsers'] = 5;
+  result['maxCachedContexts'] = 5;
   result['stream'] = true;
   result['offline'] = false;
   result['disableBackgroundUpdating'] = true;
@@ -234,7 +234,7 @@ Future<void> expectCompleted(Future<dynamic> future) async {
 Future<void> expectNotCompleted(Future<dynamic> future) async {
   try {
     await future.timeout(Duration(milliseconds: 50));
-    fail("Expected future to time out");
+    fail('Expected future to time out');
   } on TimeoutException catch (_) { }
 }
 
@@ -266,15 +266,26 @@ void testLDClient() {
     expectCall('start', {'config': expectedConfig, 'user': expectedUser });
   });
 
+  test('startWithContext', () async {
+    LDConfig config = LDConfigBuilder('mobile key').build();
+    LDContextBuilder builder = LDContextBuilder();
+    builder.kind("kindA", "keyA").name("nameA");
+    LDContext context = builder.build();
+    Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
+    Map<String, dynamic> expectedContext = {'kind':null,'key':'context key'};
+    await LDClient.startWithContext(config, context);
+    expectCall('start', {'config': expectedConfig, 'context': expectedContext });
+  });
+
   test('start with application info', () async {
-    LDConfig config = LDConfigBuilder('mobile key').applicationId("myId").applicationVersion("myVersion").build();
+    LDConfig config = LDConfigBuilder('mobile key').applicationId('myId').applicationVersion('myVersion').build();
     LDUser user = LDUserBuilder('user key').build();
     Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
     Map<String, dynamic> expectedUser = defaultUser('user key');
     await LDClient.start(config, user);
     var arguments = takeCall.arguments['config'];
-    expect(arguments['applicationId'], equals("myId"));
-    expect(arguments['applicationVersion'], equals("myVersion"));
+    expect(arguments['applicationId'], equals('myId'));
+    expect(arguments['applicationVersion'], equals('myVersion'));
   });
 
   test('startFuture after completed', () async {
