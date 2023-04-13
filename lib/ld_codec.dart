@@ -25,7 +25,7 @@ extension ContextAttributesCodec on LDContextAttributes {
 
     // TODO: determine if custom is even necessary anymore, isn't everything
     // else custom and at the same level?
-    result['custom'] = custom.map((key, value) => MapEntry(key, value.codecValue()));
+    result['custom'] = attributes.map((key, value) => MapEntry(key, value.codecValue()));
     result['privateAttributeNames'] = privateAttributeNames;
     return result;
   }

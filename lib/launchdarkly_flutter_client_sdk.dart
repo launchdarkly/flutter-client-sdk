@@ -86,7 +86,7 @@ class LDClient {
   /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
   /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
   /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
-  // TODO: Verify this deprecation is happening
+  // TODO: Verify this deprecation is happening, mark anything related to User
   @Deprecated("In favor of start taking LDContext")
   static Future<void> start(LDConfig config, LDUser user) async {
     _channel.setMethodCallHandler(_handleCallbacks);

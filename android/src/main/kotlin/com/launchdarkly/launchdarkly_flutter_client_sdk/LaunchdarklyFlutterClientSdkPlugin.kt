@@ -134,7 +134,6 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
               }
       )
 
-      // TODO: confirm timeout should be on http configuration builder
       configBuilder.http(
               Components.httpConfiguration().apply {
                 whenIs<Int>(map["connectionTimeoutMillis"]) { this.connectTimeoutMillis(it) }
@@ -150,9 +149,6 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       return configBuilder.build()
     }
 
-    // TODO: discuss if this should even be kept.  Alternative is to transform User to Context
-    // in flutter layer, but this feels weird considering there is already conversion logic
-    // in the native code
     private val optionalFields: Map<String, Pair<(LDUser.Builder, String) -> Unit, (LDUser.Builder, String) -> Unit>> = mapOf(
             "ip" to Pair({u, s -> u.ip(s)}, {u, s -> u.privateIp(s)}),
             "email" to Pair({u, s -> u.email(s)}, {u ,s -> u.privateEmail(s)}),
@@ -190,11 +186,16 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       val multiBuilder = LDContext.multiBuilder()
       list.forEach {
         val contextBuilder = LDContext.builder(it["key"] as String)
-        // TODO: look into generate anonymous keys support
+
+        contextBuilder.kind(it["kind"] as? String)
+        contextBuilder.name(it["name"] as? String)
         val anonymous = it["anonymous"] as? Boolean
         if (anonymous is Boolean) contextBuilder.anonymous(anonymous)
 
-        // TODO: determine if custom is even required anymore.
+        // TODO: Determine if custom is even required anymore.  Custom attributes need to be set on
+        // builder prior to any other attributes, including key.  This gets tricky and will need to
+        // be documented well.  Alternative is to not treat custom attributes as special and instead
+        // prohibit end user from setting built in attributes.
         if (it["custom"] != null) {
           for (entry in (it["custom"] as Map<String, Any>)) {
             // TODO sc-195759: Support private attributes

@@ -17,7 +17,7 @@ class LDContextBuilder {
   final Map<String, _ContextAttributesBuilder> _buildersByKind = Map();
 
   // TODO: come back and see if you can get builder.kind().name().kind().name() to work with some clever templating or interfacing in Dart
-  // TODO: verify key is non-nullable
+  // TODO: verify key is non-nullable.  Matthew: Provide a mechanism for customers to have key generated.
   _ContextAttributesBuilder kind(String kind, String key) {
     return _buildersByKind.putIfAbsent(kind, () => _ContextAttributesBuilder._internal(kind, key));
   }

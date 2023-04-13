@@ -62,7 +62,7 @@ void main() {
 
   test('context builder with custom type', () {
     LDContextBuilder builder = LDContextBuilder();
-    builder.kind('user', 'uuid').name('Todd').custom('level1', LDValue.buildObject().addValue('level2', LDValue.buildObject().addNum('aNumber', 7).build()).build());
+    builder.kind('user', 'uuid').name('Todd').set('level1', LDValue.buildObject().addValue('level2', LDValue.buildObject().addNum('aNumber', 7).build()).build());
     builder.kind('company', 'key').name('LaunchDarkly');
     LDContext context = builder.build();
     List<dynamic> output = context.toCodecValue();

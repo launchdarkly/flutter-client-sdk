@@ -45,15 +45,18 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     whenIs(Int.self, dict["pollingIntervalMillis"]) { config.flagPollingInterval = Double($0) / 1000.0 }
     whenIs(Int.self, dict["backgroundPollingIntervalMillis"]) { config.backgroundFlagPollingInterval = Double($0) / 1000.0 }
     whenIs(Int.self, dict["diagnosticRecordingIntervalMillis"]) { config.diagnosticRecordingInterval = Double($0) / 1000.0 }
-    whenIs(Int.self, dict["maxCachedUsers"]) { config.maxCachedContexts_remember_to_update_field_name = $0 }
+    whenIs(Int.self, dict["maxCachedContexts"]) { config.maxCachedContexts = $0 }
     whenIs(Bool.self, dict["stream"]) { config.streamingMode = $0 ? LDStreamingMode.streaming : LDStreamingMode.polling }
     whenIs(Bool.self, dict["offline"]) { config.startOnline = !$0 }
     whenIs(Bool.self, dict["disableBackgroundUpdating"]) { config.enableBackgroundUpdates = !$0 }
     whenIs(Bool.self, dict["useReport"]) { config.useReport = $0 }
     whenIs(Bool.self, dict["evaluationReasons"]) { config.evaluationReasons = $0 }
     whenIs(Bool.self, dict["diagnosticOptOut"]) { config.diagnosticOptOut = $0 }
-    whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allUserAttributesPrivate = $0 }
-    whenIs([String].self, dict["privateAttributeNames"]) { config.privateUserAttributes = $0.map { UserAttribute.forName($0) } }
+    
+    // TODO: sc-195759 Support private and redacted attributes.
+    // whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allContextAttributesPrivate = $0 }
+    // whenIs([String].self, dict["privateAttributeNames"]) { config.privateUserAttributes = $0.map { UserAttribute.forName($0) } }
+    
     whenIs(String.self, dict["wrapperName"]) { config.wrapperName = $0 }
     whenIs(String.self, dict["wrapperVersion"]) { config.wrapperVersion = $0 }
     return config
@@ -69,12 +72,60 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       ipAddress: dict["ip"] as? String,
       email: dict["email"] as? String,
       avatar: dict["avatar"] as? String,
+      
+      // TODO: is it even necessary to call mapValues here?  Won't fromBridge be ready to handle recursion on dict, which $0 is?
       custom: (dict["custom"] as? [String: Any] ?? [:]).mapValues { LDValue.fromBridge($0) },
       isAnonymous: dict["anonymous"] as? Bool,
       privateAttributes: (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) }
     )
 
     return user
+  }
+  
+  /// Creates a context from a list of provided dictionaries of serialized contexts.
+  ///
+  /// - Parameters:
+  ///     - list: The list of dictionaries of serialized contexts.  Note that the format of this dict is
+  ///     unique to the Flutter MethodChannel because it has kind and key as neighbors at the
+  ///     same level in the dict.
+  ///
+  /// - Returns: A context
+  /// - Throws: Error if an issue is encountered converting the `list` to contexts.
+  private static func contextFrom(list: [[String: Any?]]) -> Result<LDContext, ContextBuilderError> {
+    
+    var multiBuilder = LDMultiContextBuilder()
+    for c in list {
+      // TODO: Key can be omitted, review this line
+      var builder = LDContextBuilder(key: c["key"] as! String)
+      
+      whenIs(String.self, c["kind"]) { builder.kind($0) }
+      whenIs(Bool.self, c["anonymous"]) { builder.anonymous($0) }
+      whenIs(String.self, c["name"]) { builder.name($0) }
+      
+      whenIs([String: Any].self, c["custom"]) { customDict in
+        customDict.forEach { entry in
+          builder.trySetValue(entry.key, LDValue.fromBridge(entry.value))
+        }
+      }
+      
+      // TODO: sc-195759 Support private and redacted attributes.
+      
+      // TODO: is there no nicer looking way to handle a mid loop error result?  See https://nshipster.com/optional-throws-result-async-await/
+      switch builder.build() {
+      case .success(let context):
+        multiBuilder.addContext(context)
+      case .failure(let error):
+        return Result.failure(error)
+      }
+    }
+    
+    // TODO: is there no nicer looking way to handle error result?  See https://nshipster.com/optional-throws-result-async-await/
+    switch multiBuilder.build() {
+    case .success(let context):
+      return Result.success(context)
+    case .failure(let error):
+      return Result.failure(error)
+    }
   }
 
   func toBridge(failureReason: ConnectionInformation.LastConnectionFailureReason?) -> [String: Any?]? {
@@ -128,19 +179,43 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     let args = call.arguments as? [String: Any]
     switch call.method {
     case "start":
-      let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: args?["config"] as! [String: Any])
-      let user = userFrom(dict: args?["user"] as! [String: Any])
+      
+      // TODO: factor to convert user to context and then use that
+      
       let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
-      if let client = LDClient.get() {
-        // We've already initialized the native SDK so just switch to the new user.
-        client.identify(user: user, completion: completion)
+      let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: args?["config"] as! [String: Any])
+      if let userArg = args?["user"] {
+        let user = userFrom(dict: userArg as! [String: Any])
+        if let client = LDClient.get() {
+          // We've already initialized the native SDK so just switch to the new user.
+          client.identify(user: user, completion: completion)
+        } else {
+          // We have not already initialized the native SDK.
+          LDClient.start(config: config, user: user, completion: completion)
+          LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+          LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+        }
+        result(nil)
       } else {
-        // We have not already initialized the native SDK.
-        LDClient.start(config: config, user: user, completion: completion)
-        LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-        LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+        let contextArg = args!["context"]
+        
+        // TODO: revisit static nature of this function call
+        switch SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextArg as! [[String: Any]]) {
+        case .success(let context):
+          if let client = LDClient.get() {
+            // We've already initialized the native SDK so just switch to the new user.
+            client.identify(context: context, completion: completion)
+          } else {
+            // We have not already initialized the native SDK.
+            LDClient.start(config: config, context: context, completion: completion)
+            LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+            LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+          }
+          result(nil)
+        case .failure(let error):
+          result(FlutterError(code: "womp", message: error.localizedDescription, details: false))
+        }
       }
-      result(nil)
     case "identify":
       withLDClient(result) { $0.identify(user: userFrom(dict: args?["user"] as! [String: Any])) { result(nil) } }
     case "track":

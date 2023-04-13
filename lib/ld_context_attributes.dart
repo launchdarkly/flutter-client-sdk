@@ -6,11 +6,11 @@ class LDContextAttributes {
   final String? key;
   final String? name;
   final bool anonymous;
-  final Map<String, LDValue> custom;
+  final Map<String, LDValue> attributes;
   final List<String> privateAttributeNames;
 
   LDContextAttributes._internal(this.kind, this.key, this.name, this.anonymous,
-      this.custom, this.privateAttributeNames);
+      this.attributes, this.privateAttributeNames);
 }
 
 /// A builder for constructing [LDUser] objects.
@@ -29,7 +29,7 @@ class _ContextAttributesBuilder {
 
   // TODO: investigate if it is more efficient to start with static empty
   // representation then change to non-empty.
-  Map<String, LDValue> _custom = new Map();
+  Map<String, LDValue> _attributes = new Map();
   // TODO: investigate if it is more efficient to start with static empty
   // representation then change to non-empty.
   Set<String> _privateAttributeNames = new Set();
@@ -48,23 +48,26 @@ class _ContextAttributesBuilder {
     return this;
   }
 
+  // TODO sc-195759: Support private and redacted attributes.  Rewrite private functions
   _ContextAttributesBuilder privateName(String name) {
     _privateAttributeNames.add(_NAME);
     _name = name;
     return this;
   }
 
-  _ContextAttributesBuilder custom(String name, LDValue value) {
-    _custom[name] = value;
+  // TODO: To eliminate the need to send reserved attributes in custom and eliminate them on the plugin side,
+  // consider having code here that prohibits the use of "name", "key", "kind", "anonymous"...etc
+  _ContextAttributesBuilder set(String name, LDValue value) {
+    _attributes[name] = value;
     return this;
   }
 
-  // TODO sc-195759: Support private and redacted attributes.  Rewrite custom
+  // TODO sc-195759: Support private and redacted attributes.  Rewrite private functions
   // and private APIs to match other contemporary SDK versions
   /// Adds a new custom attribute to the user, marking it as private.
-  _ContextAttributesBuilder privateCustom(String name, LDValue value) {
+  _ContextAttributesBuilder privateSet(String name, LDValue value) {
     _privateAttributeNames.add(name);
-    _custom[name] = value;
+    _attributes[name] = value;
     return this;
   }
 
@@ -77,7 +80,7 @@ class _ContextAttributesBuilder {
         _key,
         _name,
         _anonymous,
-        Map.unmodifiable(_custom),
+        Map.unmodifiable(_attributes),
         List.unmodifiable(_privateAttributeNames),
     );
   }
