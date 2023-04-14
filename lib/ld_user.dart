@@ -37,9 +37,6 @@ class LDUser {
   /// The user's custom attributes.
   ///
   /// Note this Map is unmodifiable. Instead construct a new [LDUser] instance with [LDUserBuilder].
-  ///
-  // TODO: Come back and try to refactor this nullable type out.  This could just be a static
-  // empty map that is probably natively supported in the language
   final Map<String, LDValue>? custom;
 
   /// Which of the user's attributes are specified to be private.
@@ -58,8 +55,9 @@ class LDUser {
         lastName = builder._lastName,
         avatar = builder._avatar,
         country = builder._country,
-        custom = Map.unmodifiable(builder._custom),
-        privateAttributeNames = List.unmodifiable(builder._privateAttributeNames);
+        custom = builder._custom.isEmpty ? null : Map.unmodifiable(builder._custom),
+        privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
+
 }
 
 /// A builder for constructing [LDUser] objects.

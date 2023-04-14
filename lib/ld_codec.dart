@@ -1,38 +1,40 @@
 // @dart=2.12
 part of launchdarkly_flutter_client_sdk;
 
-// TODO: review making these package private, but still being able to test them
+/// Extension functionality for converting [LDContext] to value that can
+/// be ingested as method channel arguments
 extension ContextCodec on LDContext {
 
-    // TODO: review this method being public, try to make package private.  Same for other toCodecValue methods in codebase
-    List<dynamic> toCodecValue() {
-      final List<dynamic> result = <dynamic>[];
-      contextsByKind.forEach((_, value) {
-        result.add(value.toCodecValue());
-      });
-      return result;
-    }
+  @visibleForTesting
+  List<dynamic> toCodecValue() {
+    final List<dynamic> result = <dynamic>[];
+    attributesByKind.forEach((_, value) {
+      result.add(value.toCodecValue());
+    });
+    return result;
+  }
 }
-
+/// Extension functionality for converting [LDContextAttributes] to value that can
+/// be ingested as method channel arguments
 extension ContextAttributesCodec on LDContextAttributes {
 
+  @visibleForTesting
   Map<String, dynamic> toCodecValue() {
     final Map<String, dynamic> result = <String, dynamic>{};
-    result['kind'] = kind;
-    result['key'] = key;
-    result['anonymous'] = anonymous;
-    result['name'] = name;
+    attributes.forEach((key, value) {
+      result[key] = value.codecValue();
+    });
 
-    // TODO: determine if custom is even necessary anymore, isn't everything
-    // else custom and at the same level?
-    result['custom'] = attributes.map((key, value) => MapEntry(key, value.codecValue()));
-    result['privateAttributeNames'] = privateAttributeNames;
+    // TODO sc-195759: Support private attributes
     return result;
   }
 }
 
+/// Extension functionality for converting [toCodecValue] to value that can
+/// be ingested as method channel arguments
 extension UserCodec on LDUser {
 
+  @visibleForTesting
   Map<String, dynamic> toCodecValue() {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['key'] = key;

@@ -272,9 +272,9 @@ void testLDClient() {
     builder.kind("kindA", "keyA").name("nameA");
     LDContext context = builder.build();
     Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
-    Map<String, dynamic> expectedContext = {'kind':null,'key':'context key'};
+    Map<String, dynamic> expectedContext = {'kind':'kindA','key':'keyA', 'name':'nameA'};
     await LDClient.startWithContext(config, context);
-    expectCall('start', {'config': expectedConfig, 'context': expectedContext });
+    expectCall('start', {'config': expectedConfig, 'context': [expectedContext] });
   });
 
   test('start with application info', () async {

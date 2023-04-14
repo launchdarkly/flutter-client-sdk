@@ -13,7 +13,6 @@ import com.launchdarkly.sdk.android.Components
 import com.launchdarkly.sdk.android.ConnectionInformation
 import com.launchdarkly.sdk.android.FeatureFlagChangeListener
 import com.launchdarkly.sdk.android.LDAllFlagsListener
-import com.launchdarkly.sdk.android.LDAndroidLogging
 import com.launchdarkly.sdk.android.LDClient
 import com.launchdarkly.sdk.android.LDConfig
 import com.launchdarkly.sdk.android.LDFailure
@@ -104,15 +103,15 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       )
 
       configBuilder.dataSource(
-              if (map["stream"] is Boolean && map["stream"] as Boolean) {
-                // use streaming data source
-                Components.streamingDataSource().apply {
+              if (map["stream"] is Boolean && !(map["stream"] as Boolean)) {
+                // use polling data source if stream is false
+                Components.pollingDataSource().apply {
+                  whenIs<Int>(map["pollingIntervalMillis"]) { this.pollIntervalMillis(it) }
                   whenIs<Int>(map["backgroundPollingIntervalMillis"]) { this.backgroundPollIntervalMillis(it) }
                 }
               } else {
-                // use polling data source
-                Components.pollingDataSource().apply {
-                  whenIs<Int>(map["pollingIntervalMillis"]) { this.pollIntervalMillis(it) }
+                // use streaming data source by default (including if stream is absent)
+                Components.streamingDataSource().apply {
                   whenIs<Int>(map["backgroundPollingIntervalMillis"]) { this.backgroundPollIntervalMillis(it) }
                 }
               }
@@ -124,13 +123,13 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
                 whenIs<Int>(map["eventsFlushIntervalMillis"]) { this.flushIntervalMillis(it) }
                 whenIs<Int>(map["diagnosticRecordingIntervalMillis"]) { this.diagnosticRecordingIntervalMillis(it) }
 
-                if (map["allAttributesPrivate"] is Boolean) {
-                  this.allAttributesPrivate(map["allAttributesPrivate"] as Boolean)
-                }
-
-                whenIs<List<*>>(map["privateAttributeNames"]) {
-                  // TODO sc-195759: Support private attributes
-                }
+//                TODO sc-195759: Support private attributes, investigate all attributes private functionality
+//                if (map["allAttributesPrivate"] is Boolean) {
+//                  this.allAttributesPrivate(map["allAttributesPrivate"] as Boolean)
+//                }
+//                whenIs<List<*>>(map["privateAttributeNames"]) {
+//
+//                }
               }
       )
 
@@ -143,8 +142,6 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
                 }
               }
       )
-
-      configBuilder.logAdapter(LDAndroidLogging.adapter())
 
       return configBuilder.build()
     }
@@ -159,7 +156,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
             "country" to Pair({u, s -> u.country(s)}, {u, s -> u.privateCountry(s)}))
 
     @Suppress("UNCHECKED_CAST")
-    fun userFromMap(map: Map<String, Any>): LDUser {
+    fun userFrom(map: Map<String, Any>): LDUser {
       val userBuilder = LDUser.Builder(map["key"] as String)
       val anonymous = map["anonymous"] as? Boolean
       if (anonymous is Boolean) userBuilder.anonymous(anonymous)
@@ -181,27 +178,23 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       return userBuilder.build()
     }
 
-    fun contextFromList(list: List<Map<String, Any>>): LDContext {
+    /**
+     * Creates a [LDContext] from the provided list of contexts provided, each in map form.
+     *
+     * @param list - the list of dictionaries of serialized contexts.  Note that the format
+     * of this dict is unique to the Flutter MethodChannel because it has kind and key as neighbors
+     * at the same level in the dict.
+     */
+    fun contextFrom(list: List<Map<String, Any>>): LDContext {
 
       val multiBuilder = LDContext.multiBuilder()
       list.forEach {
-        val contextBuilder = LDContext.builder(it["key"] as String)
-
-        contextBuilder.kind(it["kind"] as? String)
-        contextBuilder.name(it["name"] as? String)
-        val anonymous = it["anonymous"] as? Boolean
-        if (anonymous is Boolean) contextBuilder.anonymous(anonymous)
-
-        // TODO: Determine if custom is even required anymore.  Custom attributes need to be set on
-        // builder prior to any other attributes, including key.  This gets tricky and will need to
-        // be documented well.  Alternative is to not treat custom attributes as special and instead
-        // prohibit end user from setting built in attributes.
-        if (it["custom"] != null) {
-          for (entry in (it["custom"] as Map<String, Any>)) {
-            // TODO sc-195759: Support private attributes
-            contextBuilder.set(entry.key, valueFromBridge(entry.value))
-          }
+        val contextBuilder = LDContext.builder(it["key"] as? String);
+        for (entry in it) {
+          contextBuilder.set(entry.key, valueFromBridge(entry.value))
         }
+
+        // TODO: sc-195759 Support private and redacted attributes.  Add logic to handle _meta
         multiBuilder.add(contextBuilder.build());
       }
 
@@ -305,47 +298,37 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       "start" -> {
         val ldConfig: LDConfig = configFromMap(call.argument("config")!!, LDConfig.Builder())
 
-        // TODO: perhaps create LDContext from user and then run ident and init code.  That could
-        // linearize this code and eliminate lambdas
-
-        // Set up lambdas for each possible type of context.  This is simpler than adding an
-        // abstraction layer.
-        var initClient: () -> Future<*>;
-        var identClient: (c: LDClient) -> Future<*>;
-        if (call.hasArgument("user")) {
-          // try user first
-          val ldUser: LDUser = userFromMap(call.argument("user")!!)
-          initClient = { LDClient.init(application, ldConfig, ldUser)}
-          identClient = { c : LDClient -> c.identify(ldUser)}
-        } else {
-          // fallback is context since that is the more general case
-          val ldContext: LDContext = contextFromList(call.argument("context")!!)
-          initClient = { LDClient.init(application, ldConfig, ldContext)}
-          identClient = { c : LDClient -> c.identify(ldContext)}
-        }
+        var ldContext: LDContext =
+                if (call.hasArgument("user")) {
+                  // convert user to context
+                  val ldUser: LDUser = userFrom(call.argument("user")!!)
+                  LDContext.fromUser(ldUser)
+                } else {
+                  // default is context since that is the more general case
+                  contextFrom(call.argument("context")!!)
+                }
 
         var completion: Future<*>
         try {
           val instance = LDClient.get()
           // We've already initialized the native SDK so just switch to the new user.
-          completion = identClient(instance)
+          completion = instance.identify(ldContext)
         } catch (ignored: LaunchDarklyException) {
           // We have not already initialized the native SDK.
-          completion = initClient()
+          completion = LDClient.init(application, ldConfig, ldContext)
           LDClient.get().registerAllFlagsListener(allFlagsListener)
         }
-
         thread(start = true) {
-            try {
-              completion.get()
-            } finally {
-              callFlutter("completeStart", null)
-            }
+          try {
+            completion.get()
+          } finally {
+            callFlutter("completeStart", null)
+          }
         }
         result.success(null)
       }
       "identify" -> {
-        val ldUser: LDUser = userFromMap(call.argument("user")!!)
+        val ldUser: LDUser = userFrom(call.argument("user")!!)
         mainScope.launch {
           withContext(Dispatchers.IO) {
             //TODO: Change to completable future once it is available.

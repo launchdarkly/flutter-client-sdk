@@ -7,6 +7,7 @@
 library launchdarkly_flutter_client_sdk;
 
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:quiver/collection.dart';
 import 'ld_value.dart';
@@ -86,14 +87,17 @@ class LDClient {
   /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
   /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
   /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
-  // TODO: Verify this deprecation is happening, mark anything related to User
-  @Deprecated("In favor of start taking LDContext")
+  @Deprecated("In favor of startWithContext taking in LDContext")
   static Future<void> start(LDConfig config, LDUser user) async {
     _channel.setMethodCallHandler(_handleCallbacks);
     await _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'user': user.toCodecValue()});
   }
 
-  // TODO: figure out overloading solution (via optional named parameters perhaps)
+  /// Initialize the SDK with the given [LDConfig] and [LDContext].
+  ///
+  /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
+  /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
+  /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
   static Future<void> startWithContext(LDConfig config, LDContext context) async {
     _channel.setMethodCallHandler(_handleCallbacks);
     await _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'context': context.toCodecValue()});

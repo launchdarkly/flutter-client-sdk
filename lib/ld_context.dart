@@ -1,34 +1,56 @@
 // @dart=2.12
 part of launchdarkly_flutter_client_sdk;
 
+/// A collection of attributes that can be referenced in flag evaluations and analytics events.  A
+/// [LDContext] may contain information about a single context or multiple contexts differentiated by
+/// the "kind" attribute.
+///
+/// Besides the kind and key (required), [LDContext] supports built in attributes (optional to use)
+/// and also custom attributes.
+///
+/// [LDContext] is the newer replacement for the previous, less flexible [LDUser] type.
+///
+/// For a more complete description of context attributes and how they can be referenced in feature flag rules, see the
+/// reference guide on [setting user attributes](https://docs.launchdarkly.com/home/contexts/attributes) and
+/// [targeting users](https://docs.launchdarkly.com/home/flags/targeting).
 class LDContext {
 
-  // TODO: add comment.
-  // kind to context attributes
-  final Map<String, LDContextAttributes> contextsByKind;
+  final Map<String, LDContextAttributes> attributesByKind;
 
-  // TODO: verify unnamed private constructor is appropriate way to prevent instantiation by outside packages.  Some examples use _internal
-  LDContext._internal(this.contextsByKind);
-
+  LDContext._internal(this.attributesByKind);
 }
 
+/// A builder to facilitate the creation of [LDContext]s.  Note that the return
+/// type of [kind] is a [LDAttributesBuilder] that is used to define attributes for
+/// the specific kind of context you are creating.
+///
+/// ```dart
+/// LDContextBuilder builder = LDContextBuilder();
+/// builder.kind('user', 'user-key-123abc').name('Sandy Smith').set('employeeID', LDValue.ofString('ID-1234'));
+/// builder.kind('company', 'company-key-123abc').name('Microsoft');
+/// LDContext context = builder.build();
+/// ```
 class LDContextBuilder {
 
-  final Map<String, _ContextAttributesBuilder> _buildersByKind = Map();
+  final Map<String, LDAttributesBuilder> _buildersByKind = Map();
 
-  // TODO: come back and see if you can get builder.kind().name().kind().name() to work with some clever templating or interfacing in Dart
-  // TODO: verify key is non-nullable.  Matthew: Provide a mechanism for customers to have key generated.
-  _ContextAttributesBuilder kind(String kind, String key) {
-    return _buildersByKind.putIfAbsent(kind, () => _ContextAttributesBuilder._internal(kind, key));
+  /// Adds another kind to the context.  Both [kind] and [key] must be
+  /// non-empty.  Calling this method again with the same kind returns
+  /// the same [LDAttributesBuilder] as before.
+  LDAttributesBuilder kind(String kind, String key) {
+    LDAttributesBuilder attrBuilder =
+        LDAttributesBuilder._internal(kind, key);
+    return _buildersByKind.putIfAbsent(kind, () => attrBuilder);
   }
 
+  /// Builds the context.  At the moment this Flutter SDK and therefore
+  /// this [build] method does not perform attribute validation until the [LDContext]
+  /// is used.  This may be subject to change in the future.
   LDContext build() {
-
     Map<String, LDContextAttributes> contextsByKind = Map();
     _buildersByKind.forEach((kind, b) {
       contextsByKind[kind] = b._build();
     });
-
     return LDContext._internal(Map.unmodifiable(contextsByKind));
   }
 }

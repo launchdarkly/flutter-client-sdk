@@ -51,7 +51,6 @@ class LDFailure {
       , "UNEXPECTED_STREAM_ELEMENT_TYPE": LDFailureType.UNEXPECTED_STREAM_ELEMENT_TYPE
       , "UNEXPECTED_RESPONSE_CODE": LDFailureType.UNEXPECTED_RESPONSE_CODE, "UNKNOWN_ERROR": LDFailureType.UNKNOWN_ERROR };
 
-  // TODO: move to codec file
   static LDFailure? _fromCodecValue(dynamic value) {
     if (!(value is Map)) return null;
     Map<String, dynamic> map = Map.from(value as Map);

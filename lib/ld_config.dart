@@ -236,13 +236,21 @@ class LDConfigBuilder {
   /// The currently configured user is not considered part of this limit.
   ///
   /// The default value of this configuration option is `5`.
+  @Deprecated("In favor of maxCachedContexts")
   LDConfigBuilder maxCachedUsers(int maxCachedUsers) {
     // users are a special type of context, this is for backwards compatibility
     this._maxCachedContexts = maxCachedUsers < 0 ? -1 : maxCachedUsers;
     return this;
   }
 
-  // TODO: comment
+  /// Sets how many contexts to store the flag values for in on-device storage.
+  ///
+  /// A negative value indicates that the SDK should store the flags for every context it is configured for, never removing
+  /// the stored values for the least recently used context
+  ///
+  /// The currently configured context is not considered part of this limit.
+  ///
+  /// The default value of this configuration option is `5`.
   LDConfigBuilder maxCachedContexts(int maxCachedContexts) {
     this._maxCachedContexts = maxCachedContexts < 0 ? -1 : maxCachedContexts;
     return this;

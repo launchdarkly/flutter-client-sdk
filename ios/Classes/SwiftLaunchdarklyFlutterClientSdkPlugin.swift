@@ -94,23 +94,20 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
   private static func contextFrom(list: [[String: Any?]]) -> Result<LDContext, ContextBuilderError> {
     
     var multiBuilder = LDMultiContextBuilder()
-    for c in list {
-      // TODO: Key can be omitted, review this line
-      var builder = LDContextBuilder(key: c["key"] as! String)
-      
-      whenIs(String.self, c["kind"]) { builder.kind($0) }
-      whenIs(Bool.self, c["anonymous"]) { builder.anonymous($0) }
-      whenIs(String.self, c["name"]) { builder.name($0) }
-      
-      whenIs([String: Any].self, c["custom"]) { customDict in
-        customDict.forEach { entry in
+    for contextDict in list {
+      var builder = LDContextBuilder(key: contextDict["key"] as! String)
+      contextDict.forEach { entry in
+        
+        // There is a bug in the iOS builder where trySetValue can't be used for kind
+        if (entry.key == "kind") {
+          builder.kind(entry.value as! String)
+        } else {
           builder.trySetValue(entry.key, LDValue.fromBridge(entry.value))
         }
       }
       
-      // TODO: sc-195759 Support private and redacted attributes.
+      // TODO: sc-195759 Support private and redacted attributes.  Add logic to handle _meta
       
-      // TODO: is there no nicer looking way to handle a mid loop error result?  See https://nshipster.com/optional-throws-result-async-await/
       switch builder.build() {
       case .success(let context):
         multiBuilder.addContext(context)
@@ -119,7 +116,6 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       }
     }
     
-    // TODO: is there no nicer looking way to handle error result?  See https://nshipster.com/optional-throws-result-async-await/
     switch multiBuilder.build() {
     case .success(let context):
       return Result.success(context)
@@ -179,42 +175,36 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     let args = call.arguments as? [String: Any]
     switch call.method {
     case "start":
-      
-      // TODO: factor to convert user to context and then use that
-      
       let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
       let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: args?["config"] as! [String: Any])
-      if let userArg = args?["user"] {
-        let user = userFrom(dict: userArg as! [String: Any])
+      
+      let contextResult: Result<LDContext, ContextBuilderError> = {
+//        if let userArg = args?["user"] {
+//          // this conversion cannot fail
+//          // TODO: discuss this being internal
+//          Result.success(userFrom(dict: userArg as! [String: Any]).toContext())
+//        } else {
+            let contextArg = args!["context"]
+            // this conversion can fail
+            return SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextArg as! [[String: Any]])
+//        }
+      }()
+      
+      // TODO: see if a midline error return looks better here
+      switch contextResult{
+      case .success(let context):
         if let client = LDClient.get() {
           // We've already initialized the native SDK so just switch to the new user.
-          client.identify(user: user, completion: completion)
+          client.identify(context: context, completion: completion)
         } else {
           // We have not already initialized the native SDK.
-          LDClient.start(config: config, user: user, completion: completion)
+          LDClient.start(config: config, context: context, completion: completion)
           LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
           LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
         }
         result(nil)
-      } else {
-        let contextArg = args!["context"]
-        
-        // TODO: revisit static nature of this function call
-        switch SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextArg as! [[String: Any]]) {
-        case .success(let context):
-          if let client = LDClient.get() {
-            // We've already initialized the native SDK so just switch to the new user.
-            client.identify(context: context, completion: completion)
-          } else {
-            // We have not already initialized the native SDK.
-            LDClient.start(config: config, context: context, completion: completion)
-            LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-            LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
-          }
-          result(nil)
-        case .failure(let error):
-          result(FlutterError(code: "womp", message: error.localizedDescription, details: false))
-        }
+      case .failure(let error):
+        result(FlutterError(code: "womp", message: error.localizedDescription, details: false))
       }
     case "identify":
       withLDClient(result) { $0.identify(user: userFrom(dict: args?["user"] as! [String: Any])) { result(nil) } }
