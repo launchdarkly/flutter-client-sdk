@@ -86,4 +86,75 @@ void main() {
 
     expect(output, equals(expectedOutput));
   });
+
+  test('setting reserved _meta is ignored', () {
+    LDContextBuilder builder = LDContextBuilder();
+    builder
+        .kind('user', 'uuid')
+        .name('Todd')
+        .set('_meta', LDValue.ofBool(false));
+
+    LDContext context = builder.build();
+    List<dynamic> output = context.toCodecValue();
+
+    List<dynamic> expectedOutput = [
+      {
+        'kind': 'user',
+        'key': 'uuid',
+        'name': 'Todd',
+      },
+    ];
+
+    expect(output, equals(expectedOutput));
+  });
+
+  test('dropping invalid not required attributes', () {
+    LDContextBuilder builder = LDContextBuilder();
+    builder
+        .kind('user', 'uuid')
+        .set('keepMe', LDValue.ofNum(0))
+        .set('name', LDValue.ofNum(0)) // should be dropped
+        .set('anonymous', LDValue.ofNum(0)) // should be dropped
+        .set('', LDValue.ofNum(0)) // should be dropped
+        .set('_meta', LDValue.ofNum(0)); // should be dropped
+
+    LDContext context = builder.build();
+    List<dynamic> output = context.toCodecValue();
+
+    List<dynamic> expectedOutput = [
+      {
+        'kind': 'user',
+        'key': 'uuid',
+        'keepMe': 0,
+      },
+    ];
+
+    expect(output, equals(expectedOutput));
+  });
+
+  test('dropping contexts that have no valid required attributes', () {
+    LDContextBuilder builder = LDContextBuilder();
+    builder.kind('user', 'uuid').name('Todd'); // should be kept
+    builder.kind('company', 'key').name('LaunchDarkly'); // should be kept
+    builder.kind('', 'key'); // should be dropped
+    builder.kind('kindA', 'key').set('key', LDValue.ofString('')); // should be dropped
+    builder.kind('kindB', 'key').set('kind', LDValue.ofString('')); // should be dropped
+    LDContext context = builder.build();
+    List<dynamic> output = context.toCodecValue();
+
+    List<dynamic> expectedOutput = [
+      {
+        'kind': 'user',
+        'key': 'uuid',
+        'name': 'Todd',
+      },
+      {
+        'kind': 'company',
+        'key': 'key',
+        'name': 'LaunchDarkly',
+      }
+    ];
+
+    expect(output, equals(expectedOutput));
+  });
 }

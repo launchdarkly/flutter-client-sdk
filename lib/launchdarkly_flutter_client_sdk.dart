@@ -7,6 +7,7 @@
 library launchdarkly_flutter_client_sdk;
 
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:quiver/collection.dart';
@@ -90,7 +91,7 @@ class LDClient {
   @Deprecated("In favor of startWithContext taking in LDContext")
   static Future<void> start(LDConfig config, LDUser user) async {
     _channel.setMethodCallHandler(_handleCallbacks);
-    await _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'user': user.toCodecValue()});
+    await _channel.invokeMethod('start', {'config': config.toCodecValue(_sdkVersion), 'user': user.toCodecValue()});
   }
 
   /// Initialize the SDK with the given [LDConfig] and [LDContext].
@@ -100,7 +101,7 @@ class LDClient {
   /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
   static Future<void> startWithContext(LDConfig config, LDContext context) async {
     _channel.setMethodCallHandler(_handleCallbacks);
-    await _channel.invokeMethod('start', {'config': config._toCodecValue(_sdkVersion), 'context': context.toCodecValue()});
+    await _channel.invokeMethod('start', {'config': config.toCodecValue(_sdkVersion), 'context': context.toCodecValue()});
   }
 
   /// Returns a future that completes when the SDK has completed starting.

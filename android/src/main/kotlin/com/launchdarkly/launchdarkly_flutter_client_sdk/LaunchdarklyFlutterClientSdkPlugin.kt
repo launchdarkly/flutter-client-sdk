@@ -186,14 +186,12 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
      * at the same level in the dict.
      */
     fun contextFrom(list: List<Map<String, Any>>): LDContext {
-
       val multiBuilder = LDContext.multiBuilder()
       list.forEach {
         val contextBuilder = LDContext.builder(it["key"] as? String);
         for (entry in it) {
           contextBuilder.set(entry.key, valueFromBridge(entry.value))
         }
-
         // TODO: sc-195759 Support private and redacted attributes.  Add logic to handle _meta
         multiBuilder.add(contextBuilder.build());
       }
@@ -298,24 +296,29 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       "start" -> {
         val ldConfig: LDConfig = configFromMap(call.argument("config")!!, LDConfig.Builder())
 
-        var ldContext: LDContext =
-                if (call.hasArgument("user")) {
-                  // convert user to context
-                  val ldUser: LDUser = userFrom(call.argument("user")!!)
-                  LDContext.fromUser(ldUser)
-                } else {
-                  // default is context since that is the more general case
-                  contextFrom(call.argument("context")!!)
-                }
+        // Set up initialization lambdas for each type of context.
+        var initClient: () -> Future<*>;
+        var identClient: (c: LDClient) -> Future<*>;
+        if (call.hasArgument("user")) {
+          // try user first
+          val ldUser: LDUser = userFrom(call.argument("user")!!)
+          initClient = { LDClient.init(application, ldConfig, ldUser)}
+          identClient = { c : LDClient -> c.identify(ldUser)}
+        } else {
+          // fallback is context since that is the more general case
+          val ldContext: LDContext = contextFrom(call.argument("context")!!)
+          initClient = { LDClient.init(application, ldConfig, ldContext)}
+          identClient = { c : LDClient -> c.identify(ldContext)}
+        }
 
         var completion: Future<*>
         try {
           val instance = LDClient.get()
           // We've already initialized the native SDK so just switch to the new user.
-          completion = instance.identify(ldContext)
+          completion = identClient(instance)
         } catch (ignored: LaunchDarklyException) {
           // We have not already initialized the native SDK.
-          completion = LDClient.init(application, ldConfig, ldContext)
+          completion = initClient()
           LDClient.get().registerAllFlagsListener(allFlagsListener)
         }
         thread(start = true) {

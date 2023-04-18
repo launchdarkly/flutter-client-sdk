@@ -14,7 +14,6 @@ part of launchdarkly_flutter_client_sdk;
 /// reference guide on [setting user attributes](https://docs.launchdarkly.com/home/contexts/attributes) and
 /// [targeting users](https://docs.launchdarkly.com/home/flags/targeting).
 class LDContext {
-
   final Map<String, LDContextAttributes> attributesByKind;
 
   LDContext._internal(this.attributesByKind);
@@ -31,25 +30,29 @@ class LDContext {
 /// LDContext context = builder.build();
 /// ```
 class LDContextBuilder {
-
   final Map<String, LDAttributesBuilder> _buildersByKind = Map();
 
   /// Adds another kind to the context.  Both [kind] and [key] must be
   /// non-empty.  Calling this method again with the same kind returns
   /// the same [LDAttributesBuilder] as before.
   LDAttributesBuilder kind(String kind, String key) {
-    LDAttributesBuilder attrBuilder =
-        LDAttributesBuilder._internal(kind, key);
+    LDAttributesBuilder attrBuilder = LDAttributesBuilder._internal(kind, key);
     return _buildersByKind.putIfAbsent(kind, () => attrBuilder);
   }
 
-  /// Builds the context.  At the moment this Flutter SDK and therefore
-  /// this [build] method does not perform attribute validation until the [LDContext]
-  /// is used.  This may be subject to change in the future.
+  /// Builds the context.  Invalid contexts will be dropped.
   LDContext build() {
     Map<String, LDContextAttributes> contextsByKind = Map();
     _buildersByKind.forEach((kind, b) {
-      contextsByKind[kind] = b._build();
+      // attempt to build
+      LDContextAttributes? attributes = b._build();
+
+      // if build fails, ignore
+      if (attributes != null) {
+        contextsByKind[kind] = attributes;
+      } else {
+        log("Ignoring context of kind $kind");
+      }
     });
     return LDContext._internal(Map.unmodifiable(contextsByKind));
   }

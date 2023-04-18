@@ -91,7 +91,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
   ///
   /// - Returns: A context
   /// - Throws: Error if an issue is encountered converting the `list` to contexts.
-  private static func contextFrom(list: [[String: Any?]]) -> Result<LDContext, ContextBuilderError> {
+  public static func contextFrom(list: [[String: Any?]]) -> Result<LDContext, ContextBuilderError> {
     
     var multiBuilder = LDMultiContextBuilder()
     for contextDict in list {
@@ -170,41 +170,53 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     }
     closure(client)
   }
+  
+  func startWithUser(configDict: [String: Any], userDict: [String: Any], result: @escaping FlutterResult) {
+    let user = userFrom(dict: userDict)
+    let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
+    let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: configDict)
+    if let client = LDClient.get() {
+      // We've already initialized the native SDK so just switch to the new user.
+      client.identify(user: user, completion: completion)
+    } else {
+      // We have not already initialized the native SDK.
+      LDClient.start(config: config, user: user, completion: completion)
+      LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+      LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+    }
+    result(nil)
+  }
+  
+  func startWithContext(configDict: [String: Any], contextList: [[String: Any]], result: @escaping FlutterResult) {
+    let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
+    let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: configDict)
+    switch SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextList) {
+    case .success(let context):
+      if let client = LDClient.get() {
+        // We've already initialized the native SDK so just switch to the new user.
+        client.identify(context: context, completion: completion)
+      } else {
+        // We have not already initialized the native SDK.
+        LDClient.start(config: config, context: context, completion: completion)
+        LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+        LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+      }
+      result(nil)
+    case .failure(let error):
+      result(FlutterError(code: "womp", message: error.localizedDescription, details: false))
+    }
+  }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any]
     switch call.method {
     case "start":
-      let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
-      let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: args?["config"] as! [String: Any])
-      
-      let contextResult: Result<LDContext, ContextBuilderError> = {
-//        if let userArg = args?["user"] {
-//          // this conversion cannot fail
-//          // TODO: discuss this being internal
-//          Result.success(userFrom(dict: userArg as! [String: Any]).toContext())
-//        } else {
-            let contextArg = args!["context"]
-            // this conversion can fail
-            return SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextArg as! [[String: Any]])
-//        }
-      }()
-      
-      // TODO: see if a midline error return looks better here
-      switch contextResult{
-      case .success(let context):
-        if let client = LDClient.get() {
-          // We've already initialized the native SDK so just switch to the new user.
-          client.identify(context: context, completion: completion)
-        } else {
-          // We have not already initialized the native SDK.
-          LDClient.start(config: config, context: context, completion: completion)
-          LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-          LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
-        }
-        result(nil)
-      case .failure(let error):
-        result(FlutterError(code: "womp", message: error.localizedDescription, details: false))
+      let configArg = args?["config"] as! [String: Any]
+      if let userArg = (args?["user"] as? [String: Any]) {
+        startWithUser(configDict: configArg, userDict: userArg, result: result)
+      } else {
+        let contextArg = args!["context"] as! [[String: Any]]
+        startWithContext(configDict: configArg, contextList: contextArg, result: result)
       }
     case "identify":
       withLDClient(result) { $0.identify(user: userFrom(dict: args?["user"] as! [String: Any])) { result(nil) } }

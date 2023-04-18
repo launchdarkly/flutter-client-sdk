@@ -74,7 +74,7 @@ class LDConfig {
         allAttributesPrivate = builder._allAttributesPrivate,
         privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
 
-  Map<String, dynamic> _toCodecValue(String wrapperVersion) {
+  Map<String, dynamic> toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['mobileKey'] = mobileKey;
     result['applicationId'] = applicationId;
