@@ -123,8 +123,8 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
                 whenIs<Int>(map["eventsFlushIntervalMillis"]) { this.flushIntervalMillis(it) }
                 whenIs<Int>(map["diagnosticRecordingIntervalMillis"]) { this.diagnosticRecordingIntervalMillis(it) }
 
-                if (map["allAttributesPrivate"] is Boolean && map["allAttributesPrivate"] as Boolean) {
-                  this.allAttributesPrivate()
+                if (map["allAttributesPrivate"] is Boolean) {
+                  this.allAttributesPrivate(map["allAttributesPrivate"] as Boolean)
                 }
                 whenIs<List<*>>(map["privateAttributeNames"]) {
                   val privateAttrs = ArrayList<String>()
