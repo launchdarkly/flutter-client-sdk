@@ -14,11 +14,13 @@ void main() {
         'kind': 'user',
         'key': 'uuid',
         'name': 'Todd',
+        '_meta': {}
       },
       {
         'kind': 'company',
         'key': 'key',
         'name': 'LaunchDarkly',
+        '_meta': {}
       }
     ];
 
@@ -37,12 +39,14 @@ void main() {
         'kind': 'user',
         'key': 'uuid',
         'name': 'Todd',
+        '_meta': {}
       },
       {
         'kind': 'company',
         'key': 'key',
         'anonymous': true,
         'name': 'LaunchDarkly',
+        '_meta': {}
       }
     ];
 
@@ -75,12 +79,14 @@ void main() {
             'aNumber': 7,
           }
         },
-        'customType': 'customValue'
+        'customType': 'customValue',
+        '_meta': {}
       },
       {
         'kind': 'company',
         'key': 'key',
         'name': 'LaunchDarkly',
+        '_meta': {}
       }
     ];
 
@@ -102,6 +108,7 @@ void main() {
         'kind': 'user',
         'key': 'uuid',
         'name': 'Todd',
+        '_meta': {}
       },
     ];
 
@@ -126,7 +133,41 @@ void main() {
         'kind': 'user',
         'key': 'uuid',
         'keepMe': 0,
+        '_meta': {}
       },
+    ];
+
+    expect(output, equals(expectedOutput));
+  });
+
+  test('private attributes basic case', () {
+    LDContextBuilder builder = LDContextBuilder();
+    builder
+        .kind('user', 'uuid')
+        .name('Todd')
+        .set("address", LDValue.ofString("Main Street"))
+        .privateAttributes(["name", "address"]);
+
+    builder.kind('company', 'key').name('LaunchDarkly');
+    LDContext context = builder.build();
+    List<dynamic> output = context.toCodecValue();
+
+    List<dynamic> expectedOutput = [
+      {
+        'kind': 'user',
+        'key': 'uuid',
+        'name': 'Todd',
+        'address': 'Main Street',
+        '_meta': {
+          'privateAttributes': ['name', 'address']
+        }
+      },
+      {
+        'kind': 'company',
+        'key': 'key',
+        'name': 'LaunchDarkly',
+        '_meta': {}
+      }
     ];
 
     expect(output, equals(expectedOutput));

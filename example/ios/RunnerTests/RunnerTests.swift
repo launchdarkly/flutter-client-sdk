@@ -126,4 +126,66 @@ final class RunnerTests: XCTestCase {
     XCTAssertEqual(expected, output)
   }
   
+  func testPrivateAttributesBasic() throws {
+    let input = [
+      [
+        "kind" : "myKind",
+        "key" : "myKey",
+        "name" : "myName",
+        "address" : "mainStreet",
+        "_meta" : [
+          "privateAttributes" : ["name", "address"]
+        ]
+      ]
+    ]
+    
+    let output = try SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: input).get()
+    
+    var builder1 = LDContextBuilder(key: "myKey")
+    builder1.kind("myKind")
+    builder1.addPrivateAttribute(Reference("name"))
+    builder1.addPrivateAttribute(Reference("address"))
+    var multiBuilder = LDMultiContextBuilder()
+    multiBuilder.addContext(try builder1.build().get())
+    let expected = try multiBuilder.build().get()
+
+    XCTAssertEqual(expected, output)
+  }
+//
+//  fun `private attributes null`() {
+//      val input: List<Map<String, Any>> = listOf(
+//              hashMapOf(
+//                      "kind" to "myKind",
+//                      "key" to "myKey",
+//                      "name" to "myName",
+//                      "address" to "Main Street",
+//                      "_meta" to hashMapOf(
+//                              "privateAttributes" to null
+//                      )
+//              )
+//      )
+//      val output = LaunchdarklyFlutterClientSdkPlugin.contextFrom(input)
+//      assertFalse(output.isMultiple())
+//      assertEquals(1, output.individualContextCount)
+//      assertEquals(0, output.privateAttributeCount)
+//  }
+//
+//  fun `private attributes empty`() {
+//      val input: List<Map<String, Any>> = listOf(
+//              hashMapOf(
+//                      "kind" to "myKind",
+//                      "key" to "myKey",
+//                      "name" to "myName",
+//                      "address" to "Main Street",
+//                      "_meta" to hashMapOf(
+//                              "privateAttributes" to arrayListOf<String>()
+//                      )
+//              )
+//      )
+//      val output = LaunchdarklyFlutterClientSdkPlugin.contextFrom(input)
+//      assertFalse(output.isMultiple())
+//      assertEquals(1, output.individualContextCount)
+//      assertEquals(0, output.privateAttributeCount)
+//  }
+  
 }

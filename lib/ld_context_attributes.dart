@@ -4,11 +4,9 @@ part of launchdarkly_flutter_client_sdk;
 /// Collection of attributes for a [LDContext]
 class LDContextAttributes {
   final Map<String, LDValue> attributes;
+  final Map<String, LDValue> meta;
 
-  // TODO sc-195759: Support private, redacted attributes
-  // final List<String> privateAttributeNames;
-
-  LDContextAttributes._internal(this.attributes);
+  LDContextAttributes._internal(this.attributes, this.meta);
 }
 
 /// A builder for constructing [LDContextAttributes].
@@ -18,11 +16,14 @@ class LDAttributesBuilder {
   static const String _NAME = "name";
   static const String _ANONYMOUS = "anonymous";
   static const String _META = "_meta";
+  static const String _PRIVATE_ATTRIBUTES = "privateAttributes";
 
+  // map for tracking attributes of the context
   Map<String, LDValue> _attributes = new Map();
 
-  // TODO sc-195759: Support private, redacted attributes
-  // Set<String> _metaPrivateAttributes = new Set();
+  // map for tracking meta data about the context.  privateAttributes is one
+  // such example of a possible entry in the meta data map.
+  Map<String, LDValue> _meta = new Map();
 
   /// Creates the builder with the provided kind and key which are required
   /// attributes.
@@ -90,8 +91,14 @@ class LDAttributesBuilder {
     return this;
   }
 
-  // TODO sc-195759: Support private, redacted attributes, references.  Rewrite
-  // private functions and private APIs to match other contemporary SDK versions
+  LDAttributesBuilder privateAttributes(List<String> prvAttrs) {
+    LDValueArrayBuilder builder = LDValueArrayBuilder();
+    prvAttrs.forEach((attr) {
+      builder.addString(attr);
+    });
+    _meta[_PRIVATE_ATTRIBUTES] = builder.build();
+    return this;
+  }
 
   /// Creates a [LDContextAttributes] from the current properties.  If any
   /// attributes are invalid, they are dropped.  If required attributes are
@@ -101,8 +108,10 @@ class LDAttributesBuilder {
   /// any subsequent actions on the [LDAttributesBuilder].
   LDContextAttributes? _build() {
     return LDContextAttributes._internal(
-      // create immutable shallow copy
-        Map.unmodifiable(_attributes));
+        // create immutable shallow copy
+        Map.unmodifiable(_attributes),
+        Map.unmodifiable(_meta)
+    );
   }
 
   /// Performs minimal validation to provide some guarantees in Flutter layer.

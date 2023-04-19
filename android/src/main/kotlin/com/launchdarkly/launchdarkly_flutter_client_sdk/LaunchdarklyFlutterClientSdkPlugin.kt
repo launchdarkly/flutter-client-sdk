@@ -123,13 +123,18 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
                 whenIs<Int>(map["eventsFlushIntervalMillis"]) { this.flushIntervalMillis(it) }
                 whenIs<Int>(map["diagnosticRecordingIntervalMillis"]) { this.diagnosticRecordingIntervalMillis(it) }
 
-//                TODO sc-195759: Support private attributes, investigate all attributes private functionality
-//                if (map["allAttributesPrivate"] is Boolean) {
-//                  this.allAttributesPrivate(map["allAttributesPrivate"] as Boolean)
-//                }
-//                whenIs<List<*>>(map["privateAttributeNames"]) {
-//
-//                }
+                if (map["allAttributesPrivate"] is Boolean && map["allAttributesPrivate"] as Boolean) {
+                  this.allAttributesPrivate()
+                }
+                whenIs<List<*>>(map["privateAttributeNames"]) {
+                  val privateAttrs = ArrayList<String>()
+                  for (name in it) {
+                    if (name is String) {
+                      privateAttrs.add(name)
+                    }
+                  }
+                  this.privateAttributes(*privateAttrs.toTypedArray())
+                }
               }
       )
 
@@ -185,14 +190,25 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
      * of this dict is unique to the Flutter MethodChannel because it has kind and key as neighbors
      * at the same level in the dict.
      */
+    @Suppress("UNCHECKED_CAST")
     fun contextFrom(list: List<Map<String, Any>>): LDContext {
       val multiBuilder = LDContext.multiBuilder()
       list.forEach {
         val contextBuilder = LDContext.builder(it["key"] as? String);
         for (entry in it) {
+          // ignore _meta
+          if (entry.key == "_meta") {
+            continue
+          }
+
           contextBuilder.set(entry.key, valueFromBridge(entry.value))
         }
-        // TODO: sc-195759 Support private and redacted attributes.  Add logic to handle _meta
+
+        // grab private attributes out of _meta field if they are there
+        val metaMap = (it["_meta"] as? Map<String, Any>) ?: emptyMap()
+        val privateAttrs = (metaMap["privateAttributes"] as? ArrayList<String>) ?: ArrayList()
+        contextBuilder.privateAttributes(*privateAttrs.toTypedArray()) // * is spread operator
+
         multiBuilder.add(contextBuilder.build());
       }
 

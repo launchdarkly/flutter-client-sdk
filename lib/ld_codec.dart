@@ -25,7 +25,11 @@ extension ContextAttributesCodec on LDContextAttributes {
       result[key] = value.codecValue();
     });
 
-    // TODO sc-195759: Support private attributes
+    Map<String, dynamic> metaMap = Map();
+    meta.forEach((key, value) {
+      metaMap[key] = value.codecValue();
+    });
+    result[LDAttributesBuilder._META] = metaMap;
     return result;
   }
 }
