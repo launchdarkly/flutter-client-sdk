@@ -131,30 +131,4 @@ void main() {
 
     expect(output, equals(expectedOutput));
   });
-
-  test('dropping contexts that have no valid required attributes', () {
-    LDContextBuilder builder = LDContextBuilder();
-    builder.kind('user', 'uuid').name('Todd'); // should be kept
-    builder.kind('company', 'key').name('LaunchDarkly'); // should be kept
-    builder.kind('', 'key'); // should be dropped
-    builder.kind('kindA', 'key').set('key', LDValue.ofString('')); // should be dropped
-    builder.kind('kindB', 'key').set('kind', LDValue.ofString('')); // should be dropped
-    LDContext context = builder.build();
-    List<dynamic> output = context.toCodecValue();
-
-    List<dynamic> expectedOutput = [
-      {
-        'kind': 'user',
-        'key': 'uuid',
-        'name': 'Todd',
-      },
-      {
-        'kind': 'company',
-        'key': 'key',
-        'name': 'LaunchDarkly',
-      }
-    ];
-
-    expect(output, equals(expectedOutput));
-  });
 }

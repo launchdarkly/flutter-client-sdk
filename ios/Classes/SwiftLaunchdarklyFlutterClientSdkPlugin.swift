@@ -116,12 +116,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       }
     }
     
-    switch multiBuilder.build() {
-    case .success(let context):
-      return Result.success(context)
-    case .failure(let error):
-      return Result.failure(error)
-    }
+    return multiBuilder.build();
   }
 
   func toBridge(failureReason: ConnectionInformation.LastConnectionFailureReason?) -> [String: Any?]? {
@@ -181,8 +176,8 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     } else {
       // We have not already initialized the native SDK.
       LDClient.start(config: config, user: user, completion: completion)
-      LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-      LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+      LDClient.get()?.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+      LDClient.get()?.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
     }
     result(nil)
   }
@@ -198,12 +193,12 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       } else {
         // We have not already initialized the native SDK.
         LDClient.start(config: config, context: context, completion: completion)
-        LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-        LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+        LDClient.get()?.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+        LDClient.get()?.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
       }
       result(nil)
     case .failure(let error):
-      result(FlutterError(code: "womp", message: error.localizedDescription, details: false))
+      result(FlutterError(code: "INVALID_CONTEXT", message: error.localizedDescription, details: nil))
     }
   }
 

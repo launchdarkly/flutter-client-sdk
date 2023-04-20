@@ -68,7 +68,7 @@ class LDAttributesBuilder {
   /// the attribute unchanged):
   ///
   /// - "kind", "key": Required and must be a non-empty string.
-  /// - "name": Must be a non-empty string or null.
+  /// - "name": Must be a non-empty string.
   /// - "anonymous": Must be a boolean.
   /// - "_meta": Is reserved for internal use.
   ///
@@ -81,7 +81,12 @@ class LDAttributesBuilder {
   /// an attribute with a null value will behave as if the attribute did not
   /// exist.
   LDAttributesBuilder set(String name, LDValue value) {
-    _attributes[name] = value;
+
+    // validates attribute, will log info if invalid
+    if (_validateAttribute(name, value)) {
+      _attributes[name] = value;
+    }
+
     return this;
   }
 
@@ -95,16 +100,6 @@ class LDAttributesBuilder {
   /// The [LDContextAttributes] is immutable and will not be affected by
   /// any subsequent actions on the [LDAttributesBuilder].
   LDContextAttributes? _build() {
-
-    // remove invalid attributes
-    _attributes.removeWhere((key, value) => !(_isAttributeValid(key, value)));
-
-    // kind and key are required to build a proper context.  it is important
-    // this line is after the removal of invalid attributes
-    if (!_attributes.containsKey(_KIND) || !_attributes.containsKey(_KEY)) {
-      return null;
-    }
-
     return LDContextAttributes._internal(
       // create immutable shallow copy
         Map.unmodifiable(_attributes));
@@ -114,7 +109,7 @@ class LDAttributesBuilder {
   /// Additional validation is performed by the native SDK and we don't want
   /// to duplicate more complex validation (ex: valid characters) in this layer.
   /// Returns true if valid, false if invalid
-  static bool _isAttributeValid(String name, LDValue value) {
+  static bool _validateAttribute(String name, LDValue value) {
     if (name.isEmpty) {
       log("Ignoring attribute.  Name was empty.  Value was ${value.toString()}");
       return false;
