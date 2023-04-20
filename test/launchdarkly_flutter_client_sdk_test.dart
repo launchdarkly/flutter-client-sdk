@@ -344,6 +344,15 @@ void testLDClient() {
     expectCall('identify', {'user': expectedUser });
   });
 
+  test('identifyWithContext', () async {
+    LDContextBuilder builder = LDContextBuilder();
+    builder.kind("kindA", "keyA").name("nameA");
+    LDContext context = builder.build();
+    Map<String, dynamic> expectedContext = {'kind':'kindA','key':'keyA', 'name':'nameA', '_meta':{}};
+    await LDClient.identifyWithContext(context);
+    expectCall('identify', {'context': [expectedContext] });
+  });
+
   test('track', () async {
     await LDClient.track('testEvent');
     await LDClient.track('testEvent', data: LDValue.buildArray().addNum(1).addNum(2).build());

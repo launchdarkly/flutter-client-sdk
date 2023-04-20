@@ -206,6 +206,19 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       result(FlutterError(code: "INVALID_CONTEXT", message: error.localizedDescription, details: nil))
     }
   }
+  
+  func identifyWithUser(userDict: [String: Any], result: @escaping FlutterResult) {
+    withLDClient(result) { $0.identify(user: userFrom(dict: userDict)) { result(nil) } }
+  }
+  
+  func identifyWithContext(contextList: [[String: Any]], result: @escaping FlutterResult) {
+    switch SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextList) {
+    case .success(let context):
+      withLDClient(result) { $0.identify(context: context) { result(nil) } }
+    case .failure(let error):
+      result(FlutterError(code: "INVALID_CONTEXT", message: error.localizedDescription, details: nil))
+    }
+  }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any]
@@ -219,7 +232,12 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
         startWithContext(configDict: configArg, contextList: contextArg, result: result)
       }
     case "identify":
-      withLDClient(result) { $0.identify(user: userFrom(dict: args?["user"] as! [String: Any])) { result(nil) } }
+      if let userArg = (args?["user"] as? [String: Any]) {
+        identifyWithUser(userDict: userArg, result: result)
+      } else {
+        let contextArg = args!["context"] as! [[String: Any]]
+        identifyWithContext(contextList: contextArg, result: result)
+      }
     case "track":
       withLDClient(result) { client in
         client.track(key: args?["eventName"] as! String,
