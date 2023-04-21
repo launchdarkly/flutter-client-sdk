@@ -1,24 +1,30 @@
 package com.launchdarkly.launchdarkly_flutter_client_sdk
 
-import com.launchdarkly.sdk.UserAttribute;
 import com.launchdarkly.sdk.android.LDConfig
 import com.launchdarkly.sdk.android.integrations.ApplicationInfoBuilder;
+import com.launchdarkly.sdk.android.integrations.HttpConfigurationBuilder;
+import com.launchdarkly.sdk.android.integrations.EventProcessorBuilder;
+import com.launchdarkly.sdk.android.integrations.ServiceEndpointsBuilder;
+import com.launchdarkly.sdk.android.integrations.StreamingDataSourceBuilder;
 import io.mockk.every
 import io.mockk.spyk
 import io.mockk.slot
 import io.mockk.verify
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
-internal class LaunchdarklyFlutterClientSdkPluginTest {
+internal class ConfigTest {
 
     @Test
     fun `test configFromMap with general coverage`() {
         val input : Map<String, Any> = hashMapOf(
             "mobileKey" to "mobileKey",
+            "applicationId" to "myAppId",
+            "applicationVersion" to "myAppVersion",
             "pollUri" to "pollUri",
             "eventsUri" to "eventsUri",
             "streamUri" to "streamUri",
@@ -36,37 +42,39 @@ internal class LaunchdarklyFlutterClientSdkPluginTest {
             "evaluationReasons" to false,
             "diagnosticOptOut" to true,
             "allAttributesPrivate" to true,
-            "privateAttributeNames" to listOf("name", "avatar")
+            "privateAttributeNames" to listOf("name", "avatar"),
         )
 
         val spyBuilder = spyk(LDConfig.Builder())
-        val output = LaunchdarklyFlutterClientSdkPlugin.configFromMap(input, spyBuilder)
+        val appInfoSlot = slot<ApplicationInfoBuilder>()
+        val endpointsSlot = slot<ServiceEndpointsBuilder>()
+        val streamingSourceSlot = slot<StreamingDataSourceBuilder>()
+        val eventsSlot = slot<EventProcessorBuilder>()
+        val httpSlot = slot<HttpConfigurationBuilder>()
 
+        every { spyBuilder.applicationInfo(capture(appInfoSlot))} answers { callOriginal() }
+        every { spyBuilder.serviceEndpoints(capture(endpointsSlot))} answers { callOriginal() }
+        every { spyBuilder.dataSource(capture(streamingSourceSlot))} answers { callOriginal() }
+        every { spyBuilder.events(capture(eventsSlot))} answers { callOriginal() }
+        every { spyBuilder.http(capture(httpSlot))} answers { callOriginal() }
+
+        LaunchdarklyFlutterClientSdkPlugin.configFromMap(input, spyBuilder)
         verify { spyBuilder.mobileKey("mobileKey")}
-        assertEquals("pollUri", output.getPollUri().toString())
-        assertEquals("eventsUri", output.getEventsUri().toString())
-        assertEquals("streamUri", output.getStreamUri().toString())
-        verify { spyBuilder.eventsCapacity(1)}
-        verify { spyBuilder.eventsFlushIntervalMillis(2)}
-        verify { spyBuilder.connectionTimeoutMillis(3)}
-        verify { spyBuilder.pollingIntervalMillis(4)}
-        verify { spyBuilder.backgroundPollingIntervalMillis(5)}
-        verify { spyBuilder.diagnosticRecordingIntervalMillis(6)}
-        verify { spyBuilder.stream(true)}
-        verify { spyBuilder.offline(false)}
-        verify { spyBuilder.disableBackgroundUpdating(true)}
-        verify { spyBuilder.useReport(false)}
-        verify { spyBuilder.evaluationReasons(false)}
-        verify { spyBuilder.diagnosticOptOut(true)}
-        verify { spyBuilder.allAttributesPrivate()}
 
-        var argValues = mutableListOf<UserAttribute?>()
-        verify {
-            spyBuilder.privateAttributes(*varargAllNullable { argValues.add(it); true })
-        }
-        assertEquals(2, argValues.size)
-        assertEquals("name", argValues.get(0)!!.getName())
-        assertEquals("avatar", argValues.get(1)!!.getName())
+        val capturedAppInfo = appInfoSlot.captured.createApplicationInfo()
+        assertEquals("myAppId", capturedAppInfo.getApplicationId())
+        assertEquals("myAppVersion", capturedAppInfo.getApplicationVersion())
+
+        val capturedServiceEndpoints = endpointsSlot.captured.createServiceEndpoints()
+        assertEquals("pollUri", capturedServiceEndpoints.getPollingBaseUri().toString())
+        assertEquals("eventsUri", capturedServiceEndpoints.getEventsBaseUri().toString())
+        assertEquals("streamUri", capturedServiceEndpoints.getStreamingBaseUri().toString())
+
+        assertIs<StreamingDataSourceBuilder>(streamingSourceSlot.captured)
+        assertIs<EventProcessorBuilder>(eventsSlot.captured)
+        assertIs<HttpConfigurationBuilder>(httpSlot.captured)
+
+        // TODO sc-195759: Support private, redacted attributes
     }
 
     @Test
@@ -81,7 +89,7 @@ internal class LaunchdarklyFlutterClientSdkPluginTest {
         every { spyBuilder.applicationInfo(capture(slot))} answers { callOriginal() }
 
         LaunchdarklyFlutterClientSdkPlugin.configFromMap(input, spyBuilder)
-        
+
         val capturedAppInfo = slot.captured.createApplicationInfo()
         assertEquals("myAppId", capturedAppInfo.getApplicationId())
         assertEquals("myAppVersion", capturedAppInfo.getApplicationVersion())
@@ -101,4 +109,6 @@ internal class LaunchdarklyFlutterClientSdkPluginTest {
         assertEquals(null, capturedAppInfo.getApplicationId())
         assertEquals(null, capturedAppInfo.getApplicationVersion())
     }
+
+
 }

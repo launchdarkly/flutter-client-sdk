@@ -58,21 +58,6 @@ class LDUser {
         custom = builder._custom.isEmpty ? null : Map.unmodifiable(builder._custom),
         privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
 
-  Map<String, dynamic> _toCodecValue() {
-    final Map<String, dynamic> result = <String, dynamic>{};
-    result['key'] = key;
-    result['anonymous'] = anonymous;
-    result['ip'] = ip;
-    result['email'] = email;
-    result['name'] = name;
-    result['firstName'] = firstName;
-    result['lastName'] = lastName;
-    result['avatar'] = avatar;
-    result['country'] = country;
-    result['custom'] = custom?.map((key, value) => MapEntry(key, value.codecValue()));
-    result['privateAttributeNames'] = privateAttributeNames;
-    return result;
-  }
 }
 
 /// A builder for constructing [LDUser] objects.
@@ -105,13 +90,13 @@ class LDUserBuilder {
 
   /// Sets whether the user is anonymous.
   LDUserBuilder anonymous(bool anonymous) {
-    this._anonymous = anonymous;
+    _anonymous = anonymous;
     return this;
   }
 
   /// Sets the user's ip attribute.
   LDUserBuilder ip(String ip) {
-    this._ip = ip;
+    _ip = ip;
     return this;
   }
 
@@ -123,7 +108,7 @@ class LDUserBuilder {
 
   /// Sets the user's email attribute.
   LDUserBuilder email(String email) {
-    this._email = email;
+    _email = email;
     return this;
   }
 
@@ -135,7 +120,7 @@ class LDUserBuilder {
 
   /// Sets the user's name attribute.
   LDUserBuilder name(String name) {
-    this._name = name;
+    _name = name;
     return this;
   }
 
@@ -147,7 +132,7 @@ class LDUserBuilder {
 
   /// Sets the user's first name attribute.
   LDUserBuilder firstName(String firstName) {
-    this._firstName = firstName;
+    _firstName = firstName;
     return this;
   }
 
@@ -159,7 +144,7 @@ class LDUserBuilder {
 
   /// Sets the user's last name attribute.
   LDUserBuilder lastName(String lastName) {
-    this._lastName = lastName;
+    _lastName = lastName;
     return this;
   }
 
@@ -171,7 +156,7 @@ class LDUserBuilder {
 
   /// Sets the user's avatar attribute.
   LDUserBuilder avatar(String avatar) {
-    this._avatar = avatar;
+    _avatar = avatar;
     return this;
   }
 
@@ -183,7 +168,7 @@ class LDUserBuilder {
 
   /// Sets the user's country.
   LDUserBuilder country(String country) {
-    this._country = country;
+    _country = country;
     return this;
   }
 
@@ -203,7 +188,7 @@ class LDUserBuilder {
   ///   .build();
   /// ```
   LDUserBuilder custom(String name, LDValue value) {
-    this._custom[name] = value;
+    _custom[name] = value;
     return this;
   }
 
