@@ -32,7 +32,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
   private lateinit var application: Application
   private lateinit var flagChangeListener: FeatureFlagChangeListener
   private lateinit var allFlagsListener: LDAllFlagsListener
-  private val mainScope = CoroutineScope(Dispatchers.Main)
+  private val defaultScope = CoroutineScope(Dispatchers.Default)
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     application = flutterPluginBinding.applicationContext as Application
@@ -310,54 +310,63 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "start" -> {
-        val ldConfig: LDConfig = configFromMap(call.argument("config")!!, LDConfig.Builder())
+        defaultScope.launch {
+          withContext(Dispatchers.IO) {
+            val ldConfig: LDConfig = configFromMap(call.argument("config")!!, LDConfig.Builder())
 
-        // Set up initialization lambdas for each type of context.
-        var initClient: () -> Future<*>;
-        var identClient: (c: LDClient) -> Future<*>;
-        if (call.hasArgument("user")) {
-          // try user first
-          val ldUser: LDUser = userFrom(call.argument("user")!!)
-          initClient = { LDClient.init(application, ldConfig, ldUser)}
-          identClient = { c : LDClient -> c.identify(ldUser)}
-        } else {
-          // fallback is context since that is the more general case
-          val ldContext: LDContext = contextFrom(call.argument("context")!!)
-          initClient = { LDClient.init(application, ldConfig, ldContext)}
-          identClient = { c : LDClient -> c.identify(ldContext)}
-        }
+            // Set up initialization lambdas for each type of context.  This is just easier to read
+            // down below when we go to make the actual calls.
+            var initClient: () -> Future<*>;
+            var identClient: (c: LDClient) -> Future<*>;
+            if (call.hasArgument("user")) {
+              // try user first
+              val ldUser: LDUser = userFrom(call.argument("user")!!)
+              initClient = { LDClient.init(application, ldConfig, ldUser)}
+              identClient = { c : LDClient -> c.identify(ldUser)}
+            } else {
+              // fallback is context since that is the more general case
+              val ldContext: LDContext = contextFrom(call.argument("context")!!)
+              initClient = { LDClient.init(application, ldConfig, ldContext)}
+              identClient = { c : LDClient -> c.identify(ldContext)}
+            }
 
-        var completion: Future<*>
-        try {
-          val instance = LDClient.get()
-          // We've already initialized the native SDK so just switch to the new user.
-          completion = identClient(instance)
-        } catch (ignored: LaunchDarklyException) {
-          // We have not already initialized the native SDK.
-          completion = initClient()
-          LDClient.get().registerAllFlagsListener(allFlagsListener)
-        }
-        thread(start = true) {
-          try {
-            completion.get()
-          } finally {
-            callFlutter("completeStart", null)
+            var completion: Future<*>
+            try {
+              val instance = LDClient.get()
+              // We've already initialized the native SDK so just switch to the new user.
+              completion = identClient(instance)
+            } catch (ignored: LaunchDarklyException) {
+              // We have not already initialized the native SDK.
+              completion = initClient()
+              LDClient.get().registerAllFlagsListener(allFlagsListener)
+            }
+            try {
+              completion.get()
+            } finally {
+              callFlutter("completeStart", null)
+            }
           }
         }
+
         result.success(null)
       }
       "identify" -> {
-        val ldUser: LDUser = userFrom(call.argument("user")!!)
-        mainScope.launch {
+        defaultScope.launch {
           withContext(Dispatchers.IO) {
-            //TODO: Change to completable future once it is available.
-            var future = LDClient.get().identify(ldUser)
-            while(!future.isDone) {
-              delay(1)
+            var completion: Future<*>
+            completion = if (call.hasArgument("user")) {
+              val ldUser: LDUser = userFrom(call.argument("user")!!)
+              LDClient.get().identify(ldUser)
+            } else {
+              val ldContext: LDContext = contextFrom(call.argument("context")!!)
+              LDClient.get().identify(ldContext)
+            }
+            try {
+              completion.get()
+            } finally {
+              result.success(null)
             }
           }
-
-          result.success(null)
         }
       }
       "track" -> {

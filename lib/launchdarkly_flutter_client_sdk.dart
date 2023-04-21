@@ -133,6 +133,15 @@ class LDClient {
     await _channel.invokeMethod('identify', {'user': user.toCodecValue()});
   }
 
+  /// Changes the active context.
+  ///
+  /// When the context is changed, the SDK will load flag values for the context from a local cache if available, while
+  /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
+  /// containing the public [LDContext] fields for indexing on the dashboard.
+  static Future<void> identifyWithContext(LDContext context) async {
+    await _channel.invokeMethod('identify', {'context': context.toCodecValue()});
+  }
+
   /// Track custom events associated with the current context for data export or experimentation.
   ///
   /// The [eventName] is the key associated with the event or experiment. [data] is an optional parameter for additional
