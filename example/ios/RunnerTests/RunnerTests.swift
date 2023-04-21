@@ -47,10 +47,8 @@ final class RunnerTests: XCTestCase {
     expected.useReport = false
     expected.evaluationReasons = false
     expected.diagnosticOptOut = true
-    
-    //        TODO: sc-195759 Support private and redacted attributes.
-    //        expected.allContextAttributesPrivate = true
-    //        expected.privateContextAttributes = [UserAttribute.forName("name"), UserAttribute.forName("avatar")]
+    expected.allContextAttributesPrivate = true
+    expected.privateContextAttributes = [Reference("name"), Reference("avatar")]
     
     XCTAssertEqual(expected, output)
   }
@@ -126,4 +124,83 @@ final class RunnerTests: XCTestCase {
     XCTAssertEqual(expected, output)
   }
   
+  func testPrivateAttributesBasic() throws {
+    let input = [
+      [
+        "kind" : "myKind",
+        "key" : "myKey",
+        "name" : "myName",
+        "address" : "mainStreet",
+        "_meta" : [
+          "privateAttributes" : ["name", "address"]
+        ]
+      ]
+    ]
+
+    let output = try SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: input).get()
+
+    var builder1 = LDContextBuilder(key: "myKey")
+    builder1.kind("myKind")
+    builder1.name("myName")
+    builder1.trySetValue("address", LDValue.string("mainStreet"))
+    builder1.addPrivateAttribute(Reference("name"))
+    builder1.addPrivateAttribute(Reference("address"))
+    var multiBuilder = LDMultiContextBuilder()
+    multiBuilder.addContext(try builder1.build().get())
+    let expected = try multiBuilder.build().get()
+
+    XCTAssertEqual(expected, output)
+  }
+
+  func testPrivateAttributesNull() throws {
+    let input = [
+      [
+        "kind" : "myKind",
+        "key" : "myKey",
+        "name" : "myName",
+        "address" : "mainStreet",
+        "_meta" : [
+          "privateAttributes" : nil
+        ]
+      ]
+    ]
+
+    let output = try SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: input).get()
+
+    var builder1 = LDContextBuilder(key: "myKey")
+    builder1.kind("myKind")
+    builder1.name("myName")
+    builder1.trySetValue("address", LDValue.string("mainStreet"))
+    var multiBuilder = LDMultiContextBuilder()
+    multiBuilder.addContext(try builder1.build().get())
+    let expected = try multiBuilder.build().get()
+
+    XCTAssertEqual(expected, output)
+  }
+  
+  func testPrivateAttributesEmptyList() throws {
+    let input = [
+      [
+        "kind" : "myKind",
+        "key" : "myKey",
+        "name" : "myName",
+        "address" : "mainStreet",
+        "_meta" : [
+          "privateAttributes" : []
+        ]
+      ]
+    ]
+
+    let output = try SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: input).get()
+
+    var builder1 = LDContextBuilder(key: "myKey")
+    builder1.kind("myKind")
+    builder1.name("myName")
+    builder1.trySetValue("address", LDValue.string("mainStreet"))
+    var multiBuilder = LDMultiContextBuilder()
+    multiBuilder.addContext(try builder1.build().get())
+    let expected = try multiBuilder.build().get()
+
+    XCTAssertEqual(expected, output)
+  }
 }

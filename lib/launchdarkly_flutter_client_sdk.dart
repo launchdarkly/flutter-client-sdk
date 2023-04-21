@@ -35,15 +35,17 @@ typedef void LDFlagUpdatedCallback(String flagKey);
 
 /// The main interface for the LaunchDarkly Flutter SDK.
 ///
-/// To setup the SDK before use, build an [LDConfig] with [LDConfigBuilder] and an initial [LDUser] with [LDUserBuilder].
-/// These should be passed to [LDClient.start] to initialize the SDK instance. A basic example:
+/// To setup the SDK before use, build an [LDConfig] with [LDConfigBuilder] and an initial [LDContext] with [LDContextBuilder].
+/// These should be passed to [LDClient.startWithContext] to initialize the SDK instance. A basic example:
 /// ```
-/// LDConfig config = LDConfigBuilder('<YOUR_MOBILE_KEY>').build();
-/// LDUser user = LDUserBuilder('<USER_KEY>').build();
-/// await LDClient.start(config, user);
+/// builder = LDContextBuilder();
+/// builder.kind("user", <USER_KEY>);
+/// builder.kind("company", <COMP_KEY>);
+/// context = builder.build();
+/// LDClient.startWithContext(config, context)
 /// ```
 ///
-/// After initialization, the SDK can evaluate feature flags from the LaunchDarkly dashboard against the current user,
+/// After initialization, the SDK can evaluate feature flags from the LaunchDarkly dashboard against the current context,
 /// record custom events, and provides various status configuration and monitoring utilities. See the individual class
 /// and method documentation for more details.
 class LDClient {
@@ -106,13 +108,13 @@ class LDClient {
 
   /// Returns a future that completes when the SDK has completed starting.
   ///
-  /// While it is safe to use the SDK as soon as the completion returned by the call to [LDClient.start] completes, it
-  /// does not indicate the SDK has received the most recent flag values for the configured user. The `Future` returned
-  /// by this method completes when the SDK has received flag values for the initial user, or if the SDK determines that
+  /// While it is safe to use the SDK as soon as the completion returned by the call to [LDClient.startWithContext completes, it
+  /// does not indicate the SDK has received the most recent flag values for the configured context. The `Future` returned
+  /// by this method completes when the SDK has received flag values for the initial context, or if the SDK determines that
   /// it cannot currently retrieve flag values at all (such as when the device is offline).
   ///
   /// The optional [timeLimit] parameter can be used to set a limit to the time the returned `Future` may be incomplete
-  /// regardless of whether the SDK has not yet retrieved flags for the configured user.
+  /// regardless of whether the SDK has not yet retrieved flags for the configured context.
   static Future<void> startFuture({Duration? timeLimit}) =>
     (timeLimit != null) ? _startCompleter.future.timeout(timeLimit, onTimeout: () => null) : _startCompleter.future;
 
@@ -126,11 +128,12 @@ class LDClient {
   /// When the user context is changed, the SDK will load flag values for the user from a local cache if available, while
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDUser] fields for indexing on the dashboard.
+  @Deprecated("In favor of identifyWithContext taking in LDContext")
   static Future<void> identify(LDUser user) async {
     await _channel.invokeMethod('identify', {'user': user.toCodecValue()});
   }
 
-  /// Track custom events associated with the current user for data export or experimentation.
+  /// Track custom events associated with the current context for data export or experimentation.
   ///
   /// The [eventName] is the key associated with the event or experiment. [data] is an optional parameter for additional
   /// data to include in the event for data export. [metricValue] can be used to record numeric metric for experimentation.
@@ -139,7 +142,7 @@ class LDClient {
     await _channel.invokeMethod('track', args);
   }
 
-  /// Returns the value of flag [flagKey] for the current user as a bool.
+  /// Returns the value of flag [flagKey] for the current context as a bool.
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
   static Future<bool> boolVariation(String flagKey, bool defaultValue) async {
@@ -147,7 +150,7 @@ class LDClient {
     return result ?? defaultValue;
   }
 
-  /// Returns the value of flag [flagKey] for the current user as a bool, along with information about the resultant value.
+  /// Returns the value of flag [flagKey] for the current context as a bool, along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
@@ -163,7 +166,7 @@ class LDClient {
     return LDEvaluationDetail(resultValue, result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
-  /// Returns the value of flag [flagKey] for the current user as an int.
+  /// Returns the value of flag [flagKey] for the current context as an int.
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   static Future<int> intVariation(String flagKey, int defaultValue) async {
@@ -171,7 +174,7 @@ class LDClient {
     return result ?? defaultValue;
   }
 
-  /// Returns the value of flag [flagKey] for the current user as an int, along with information about the resultant value.
+  /// Returns the value of flag [flagKey] for the current context as an int, along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
@@ -187,7 +190,7 @@ class LDClient {
     return LDEvaluationDetail(resultValue, result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
-  /// Returns the value of flag [flagKey] for the current user as a double.
+  /// Returns the value of flag [flagKey] for the current context as a double.
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   static Future<double> doubleVariation(String flagKey, double defaultValue) async {
@@ -195,7 +198,7 @@ class LDClient {
     return result ?? defaultValue;
   }
 
-  /// Returns the value of flag [flagKey] for the current user as a double, along with information about the resultant value.
+  /// Returns the value of flag [flagKey] for the current context as a double, along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
@@ -211,7 +214,7 @@ class LDClient {
     return LDEvaluationDetail(resultValue, result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
-  /// Returns the value of flag [flagKey] for the current user as a string.
+  /// Returns the value of flag [flagKey] for the current context as a string.
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a string, or if some error occurs.
   static Future<String> stringVariation(String flagKey, String defaultValue) async {
@@ -219,7 +222,7 @@ class LDClient {
     return result ?? defaultValue;
   }
 
-  /// Returns the value of flag [flagKey] for the current user as a string, along with information about the resultant value.
+  /// Returns the value of flag [flagKey] for the current context as a string, along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
@@ -235,7 +238,7 @@ class LDClient {
     return LDEvaluationDetail(resultValue, result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
-  /// Returns the value of flag [flagKey] for the current user as an [LDValue].
+  /// Returns the value of flag [flagKey] for the current context as an [LDValue].
   ///
   /// Will return the provided [defaultValue] if the flag is missing, or if some error occurs.
   static Future<LDValue> jsonVariation(String flagKey, LDValue defaultValue) async {
@@ -243,7 +246,7 @@ class LDClient {
     return LDValue.fromCodecValue(result);
   }
 
-  /// Returns the value of flag [flagKey] for the current user as an [LDValue], along with information about the resultant value.
+  /// Returns the value of flag [flagKey] for the current context as an [LDValue], along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
@@ -255,7 +258,7 @@ class LDClient {
     return LDEvaluationDetail(LDValue.fromCodecValue(result['value']), result['variationIndex'] ?? -1, LDEvaluationReason._fromCodecValue(result['reason']));
   }
 
-  /// Returns a map of all feature flags for the current user, without sending evaluation events to LaunchDarkly.
+  /// Returns a map of all feature flags for the current context, without sending evaluation events to LaunchDarkly.
   ///
   /// The resultant map contains an entry for each known flag, the key being the flag's key and the value being its
   /// value as an [LDValue].

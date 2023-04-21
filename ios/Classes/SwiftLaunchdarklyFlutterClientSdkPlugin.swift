@@ -52,11 +52,8 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     whenIs(Bool.self, dict["useReport"]) { config.useReport = $0 }
     whenIs(Bool.self, dict["evaluationReasons"]) { config.evaluationReasons = $0 }
     whenIs(Bool.self, dict["diagnosticOptOut"]) { config.diagnosticOptOut = $0 }
-    
-    // TODO: sc-195759 Support private and redacted attributes.
-    // whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allContextAttributesPrivate = $0 }
-    // whenIs([String].self, dict["privateAttributeNames"]) { config.privateUserAttributes = $0.map { UserAttribute.forName($0) } }
-    
+    whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allContextAttributesPrivate = $0 }
+    whenIs([String].self, dict["privateAttributeNames"]) { config.privateContextAttributes = $0.map { Reference($0) } }
     whenIs(String.self, dict["wrapperName"]) { config.wrapperName = $0 }
     whenIs(String.self, dict["wrapperVersion"]) { config.wrapperVersion = $0 }
     return config
@@ -73,7 +70,6 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       email: dict["email"] as? String,
       avatar: dict["avatar"] as? String,
       
-      // TODO: is it even necessary to call mapValues here?  Won't fromBridge be ready to handle recursion on dict, which $0 is?
       custom: (dict["custom"] as? [String: Any] ?? [:]).mapValues { LDValue.fromBridge($0) },
       isAnonymous: dict["anonymous"] as? Bool,
       privateAttributes: (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) }
@@ -96,17 +92,26 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     var multiBuilder = LDMultiContextBuilder()
     for contextDict in list {
       var builder = LDContextBuilder(key: contextDict["key"] as! String)
-      contextDict.forEach { entry in
+      for (attr, value) in contextDict {
+        // ignore _meta
+        if (attr == "_meta") {
+          continue
+        }
         
         // There is a bug in the iOS builder where trySetValue can't be used for kind
-        if (entry.key == "kind") {
-          builder.kind(entry.value as! String)
+        if (attr == "kind") {
+          builder.kind(value as! String)
         } else {
-          builder.trySetValue(entry.key, LDValue.fromBridge(entry.value))
+          builder.trySetValue(attr, LDValue.fromBridge(value))
         }
       }
       
-      // TODO: sc-195759 Support private and redacted attributes.  Add logic to handle _meta
+      // grab private attributes out of _meta field if they are there
+      let metaDict = contextDict["_meta"] as? [String: Any] ?? [:]
+      let privateAttrs = metaDict["privateAttributes"] as? [String] ?? []
+      privateAttrs.forEach{attr in
+        builder.addPrivateAttribute(Reference(attr))
+      }
       
       switch builder.build() {
       case .success(let context):

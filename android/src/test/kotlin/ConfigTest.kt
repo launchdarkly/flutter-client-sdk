@@ -21,28 +21,28 @@ internal class ConfigTest {
 
     @Test
     fun `test configFromMap with general coverage`() {
-        val input : Map<String, Any> = hashMapOf(
-            "mobileKey" to "mobileKey",
-            "applicationId" to "myAppId",
-            "applicationVersion" to "myAppVersion",
-            "pollUri" to "pollUri",
-            "eventsUri" to "eventsUri",
-            "streamUri" to "streamUri",
-            "eventsCapacity" to 1,
-            "eventsFlushIntervalMillis" to 2,
-            "connectionTimeoutMillis" to 3,
-            "pollingIntervalMillis" to 4,
-            "backgroundPollingIntervalMillis" to 5,
-            "diagnosticRecordingIntervalMillis" to 6,
-            "maxCachedUsers" to 7,
-            "stream" to true,
-            "offline" to false,
-            "disableBackgroundUpdating" to true,
-            "useReport" to false,
-            "evaluationReasons" to false,
-            "diagnosticOptOut" to true,
-            "allAttributesPrivate" to true,
-            "privateAttributeNames" to listOf("name", "avatar"),
+        val input: Map<String, Any> = hashMapOf(
+                "mobileKey" to "mobileKey",
+                "applicationId" to "myAppId",
+                "applicationVersion" to "myAppVersion",
+                "pollUri" to "pollUri",
+                "eventsUri" to "eventsUri",
+                "streamUri" to "streamUri",
+                "eventsCapacity" to 1,
+                "eventsFlushIntervalMillis" to 2,
+                "connectionTimeoutMillis" to 3,
+                "pollingIntervalMillis" to 4,
+                "backgroundPollingIntervalMillis" to 5,
+                "diagnosticRecordingIntervalMillis" to 6,
+                "maxCachedUsers" to 7,
+                "stream" to true,
+                "offline" to false,
+                "disableBackgroundUpdating" to true,
+                "useReport" to false,
+                "evaluationReasons" to false,
+                "diagnosticOptOut" to true,
+                "allAttributesPrivate" to true,
+                "privateAttributeNames" to listOf("name", "avatar"),
         )
 
         val spyBuilder = spyk(LDConfig.Builder())
@@ -52,14 +52,14 @@ internal class ConfigTest {
         val eventsSlot = slot<EventProcessorBuilder>()
         val httpSlot = slot<HttpConfigurationBuilder>()
 
-        every { spyBuilder.applicationInfo(capture(appInfoSlot))} answers { callOriginal() }
-        every { spyBuilder.serviceEndpoints(capture(endpointsSlot))} answers { callOriginal() }
-        every { spyBuilder.dataSource(capture(streamingSourceSlot))} answers { callOriginal() }
-        every { spyBuilder.events(capture(eventsSlot))} answers { callOriginal() }
-        every { spyBuilder.http(capture(httpSlot))} answers { callOriginal() }
+        every { spyBuilder.applicationInfo(capture(appInfoSlot)) } answers { callOriginal() }
+        every { spyBuilder.serviceEndpoints(capture(endpointsSlot)) } answers { callOriginal() }
+        every { spyBuilder.dataSource(capture(streamingSourceSlot)) } answers { callOriginal() }
+        every { spyBuilder.events(capture(eventsSlot)) } answers { callOriginal() }
+        every { spyBuilder.http(capture(httpSlot)) } answers { callOriginal() }
 
         LaunchdarklyFlutterClientSdkPlugin.configFromMap(input, spyBuilder)
-        verify { spyBuilder.mobileKey("mobileKey")}
+        verify { spyBuilder.mobileKey("mobileKey") }
 
         val capturedAppInfo = appInfoSlot.captured.createApplicationInfo()
         assertEquals("myAppId", capturedAppInfo.getApplicationId())
@@ -73,20 +73,18 @@ internal class ConfigTest {
         assertIs<StreamingDataSourceBuilder>(streamingSourceSlot.captured)
         assertIs<EventProcessorBuilder>(eventsSlot.captured)
         assertIs<HttpConfigurationBuilder>(httpSlot.captured)
-
-        // TODO sc-195759: Support private, redacted attributes
     }
 
     @Test
     fun `test configFromMap builds application data correctly`() {
-        val input : Map<String, Any> = hashMapOf(
-            "applicationId" to "myAppId",
-            "applicationVersion" to "myAppVersion",
+        val input: Map<String, Any> = hashMapOf(
+                "applicationId" to "myAppId",
+                "applicationVersion" to "myAppVersion",
         )
 
         val spyBuilder = spyk(LDConfig.Builder())
         val slot = slot<ApplicationInfoBuilder>()
-        every { spyBuilder.applicationInfo(capture(slot))} answers { callOriginal() }
+        every { spyBuilder.applicationInfo(capture(slot)) } answers { callOriginal() }
 
         LaunchdarklyFlutterClientSdkPlugin.configFromMap(input, spyBuilder)
 
@@ -97,18 +95,31 @@ internal class ConfigTest {
 
     @Test
     fun `test configFromMap handles missing application info as expected`() {
-        val input : Map<String, Any> = emptyMap()
+        val input: Map<String, Any> = emptyMap()
 
         val spyBuilder = spyk(LDConfig.Builder())
         val slot = slot<ApplicationInfoBuilder>()
-        every { spyBuilder.applicationInfo(capture(slot))} answers { callOriginal() }
+        every { spyBuilder.applicationInfo(capture(slot)) } answers { callOriginal() }
 
         LaunchdarklyFlutterClientSdkPlugin.configFromMap(input, spyBuilder)
-        
+
         val capturedAppInfo = slot.captured.createApplicationInfo()
         assertEquals(null, capturedAppInfo.getApplicationId())
         assertEquals(null, capturedAppInfo.getApplicationVersion())
     }
 
+    @Test
+    fun `test configFromMap private attributes`() {
+        val input: Map<String, Any> = hashMapOf(
+                "mobileKey" to "mobileKey",
+                "allAttributesPrivate" to true,
+                "privateAttributeNames" to listOf("name", "avatar"),
+        )
 
+        val spyBuilder = spyk(LDConfig.Builder())
+        val eventsSlot = slot<EventProcessorBuilder>()
+        every { spyBuilder.events(capture(eventsSlot)) } answers { callOriginal() }
+        LaunchdarklyFlutterClientSdkPlugin.configFromMap(input, spyBuilder)
+        assertIs<EventProcessorBuilder>(eventsSlot.captured)
+    }
 }

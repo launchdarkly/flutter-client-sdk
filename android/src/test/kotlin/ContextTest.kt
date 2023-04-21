@@ -47,5 +47,59 @@ internal class ContextTest {
         assertNotNull(output.getIndividualContext("anotherKind"))
     }
 
-    // TODO sc-195759: Support private, redacted attributes
+    @Test
+    fun `private attributes basic`() {
+        val input: List<Map<String, Any>> = listOf(
+                hashMapOf(
+                        "kind" to "myKind",
+                        "key" to "myKey",
+                        "name" to "myName",
+                        "address" to "Main Street",
+                        "_meta" to hashMapOf(
+                                "privateAttributes" to arrayListOf("name", "address")
+                        )
+                )
+        )
+        val output = LaunchdarklyFlutterClientSdkPlugin.contextFrom(input)
+        assertFalse(output.isMultiple())
+        assertEquals(1, output.individualContextCount)
+        assertEquals(2, output.privateAttributeCount)
+    }
+
+    fun `private attributes null`() {
+        val input: List<Map<String, Any>> = listOf(
+                hashMapOf(
+                        "kind" to "myKind",
+                        "key" to "myKey",
+                        "name" to "myName",
+                        "address" to "Main Street",
+                        "_meta" to hashMapOf(
+                                "privateAttributes" to null
+                        )
+                )
+        )
+        val output = LaunchdarklyFlutterClientSdkPlugin.contextFrom(input)
+        assertFalse(output.isMultiple())
+        assertEquals(1, output.individualContextCount)
+        assertEquals(0, output.privateAttributeCount)
+    }
+
+    fun `private attributes empty`() {
+        val input: List<Map<String, Any>> = listOf(
+                hashMapOf(
+                        "kind" to "myKind",
+                        "key" to "myKey",
+                        "name" to "myName",
+                        "address" to "Main Street",
+                        "_meta" to hashMapOf(
+                                "privateAttributes" to arrayListOf<String>()
+                        )
+                )
+        )
+        val output = LaunchdarklyFlutterClientSdkPlugin.contextFrom(input)
+        assertFalse(output.isMultiple())
+        assertEquals(1, output.individualContextCount)
+        assertEquals(0, output.privateAttributeCount)
+    }
+
 }
