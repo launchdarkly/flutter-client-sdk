@@ -25,22 +25,16 @@ class LDAttributesBuilder {
   // such example of a possible entry in the meta data map.
   Map<String, LDValue> _meta = new Map();
 
-  /// Creates the builder with the provided kind which is a required
-  /// attribute.
+  /// Creates the builder with the provided kind (required) and key (optional).
   ///
-  /// By default, this builder will create a context with a generated key.
-  /// This key will be cached locally and reused for the same context kind
-  /// unless manually set via [LDAttributesBuilder.key]
-  LDAttributesBuilder._internal(String kind) {
+  /// If key is omitted, this will create an anonymous context with a generated key.
+  /// The generated key will be persisted and reused for future application runs.
+  LDAttributesBuilder._internal(String kind, [String? key]) {
     _attributes[_KIND] = LDValue.ofString(kind);
-  }
 
-  /// Sets the context's key attribute.  Must be non-empty.  The key is used
-  /// for uniquely identifying the context (necessary for features such as
-  /// rollouts, targeting by key, target lists, and segments).
-  LDAttributesBuilder key(String key) {
-    _attributes[_KEY] = LDValue.ofString(key);
-    return this;
+    if (key != null) {
+      _attributes[_KEY] = LDValue.ofString(key);
+    }
   }
 
   /// Sets the context's name attribute.  This attribute is optional.

@@ -4,8 +4,8 @@ import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.
 void main() {
   test('context builder simple case', () {
     LDContextBuilder builder = LDContextBuilder();
-    builder.kind('user').key('uuid').name('Todd');
-    builder.kind('company').key('key').name('LaunchDarkly');
+    builder.kind('user', 'uuid').name('Todd');
+    builder.kind('company', 'key').name('LaunchDarkly');
     LDContext context = builder.build();
     List<dynamic> output = context.toCodecValue();
 
@@ -29,8 +29,8 @@ void main() {
 
   test('context builder anonymous', () {
     LDContextBuilder builder = LDContextBuilder();
-    builder.kind('user').key('uuid').name('Todd');
-    builder.kind('company').key('key').name('LaunchDarkly').anonymous(true);
+    builder.kind('user', 'uuid').name('Todd');
+    builder.kind('company', 'key').name('LaunchDarkly').anonymous(true);
     LDContext context = builder.build();
     List<dynamic> output = context.toCodecValue();
 
@@ -56,8 +56,7 @@ void main() {
   test('context builder with custom type', () {
     LDContextBuilder builder = LDContextBuilder();
     builder
-        .kind('user')
-        .key('uuid')
+        .kind('user', 'uuid')
         .name('Todd')
         .set(
             'level1',
@@ -66,7 +65,7 @@ void main() {
                     LDValue.buildObject().addNum('aNumber', 7).build())
                 .build())
         .set('customType', LDValue.ofString('customValue'));
-    builder.kind('company').key('key').name('LaunchDarkly');
+    builder.kind('company', 'key').name('LaunchDarkly');
     LDContext context = builder.build();
     List<dynamic> output = context.toCodecValue();
 
@@ -142,8 +141,7 @@ void main() {
   test('private attributes basic case', () {
     LDContextBuilder builder = LDContextBuilder();
     builder
-        .kind('user')
-        .key('uuid')
+        .kind('user', 'uuid')
         .name('Todd')
         .set("address", LDValue.ofString("Main Street"))
         .privateAttributes(["name", "address"]);

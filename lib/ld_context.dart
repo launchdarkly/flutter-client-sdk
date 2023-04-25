@@ -25,22 +25,21 @@ class LDContext {
 ///
 /// ```dart
 /// LDContextBuilder builder = LDContextBuilder();
-/// builder.kind('user').key('user-key-123abc').name('Sandy Smith').set('employeeID', LDValue.ofString('ID-1234'));
-/// builder.kind('company').key('company-key-123abc').name('Microsoft');
+/// builder.kind('user', 'user-key-123abc').name('Sandy Smith').set('employeeID', LDValue.ofString('ID-1234'));
+/// builder.kind('company', 'company-key-123abc').name('Microsoft');
 /// LDContext context = builder.build();
 /// ```
 class LDContextBuilder {
   final Map<String, LDAttributesBuilder> _buildersByKind = Map();
 
-  /// Adds another kind to the context.  [kind] must be non-empty.
-  /// Calling this method again with the same kind returns the same
+  /// Adds another kind to the context.  [kind] and optional [key] must be
+  /// non-empty.  Calling this method again with the same kind returns the same
   /// [LDAttributesBuilder] as before.
   ///
-  /// By default, this will create an anonymous context with a generated key.
-  /// This key will be cached locally and reused for the same context kind
-  /// unless manually set via [LDAttributesBuilder.key]
-  LDAttributesBuilder kind(String kind) {
-    LDAttributesBuilder attrBuilder = LDAttributesBuilder._internal(kind);
+  /// If key is omitted, this will create an anonymous context with a generated key.
+  /// The generated key will be persisted and reused for future application runs.
+  LDAttributesBuilder kind(String kind, [String? key]) {
+    LDAttributesBuilder attrBuilder = LDAttributesBuilder._internal(kind, key);
     return _buildersByKind.putIfAbsent(kind, () => attrBuilder);
   }
 
