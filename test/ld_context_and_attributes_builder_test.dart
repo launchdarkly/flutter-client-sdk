@@ -4,8 +4,8 @@ import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.
 void main() {
   test('context builder simple case', () {
     LDContextBuilder builder = LDContextBuilder();
-    builder.kind('user', 'uuid').name('Todd');
-    builder.kind('company', 'key').name('LaunchDarkly');
+    builder.kind('user').key('uuid').name('Todd');
+    builder.kind('company').key('key').name('LaunchDarkly');
     LDContext context = builder.build();
     List<dynamic> output = context.toCodecValue();
 
@@ -29,8 +29,8 @@ void main() {
 
   test('context builder anonymous', () {
     LDContextBuilder builder = LDContextBuilder();
-    builder.kind('user', 'uuid').name('Todd');
-    builder.kind('company', 'key').name('LaunchDarkly').anonymous(true);
+    builder.kind('user').key('uuid').name('Todd');
+    builder.kind('company').key('key').name('LaunchDarkly').anonymous(true);
     LDContext context = builder.build();
     List<dynamic> output = context.toCodecValue();
 
@@ -56,7 +56,8 @@ void main() {
   test('context builder with custom type', () {
     LDContextBuilder builder = LDContextBuilder();
     builder
-        .kind('user', 'uuid')
+        .kind('user')
+        .key('uuid')
         .name('Todd')
         .set(
             'level1',
@@ -65,7 +66,7 @@ void main() {
                     LDValue.buildObject().addNum('aNumber', 7).build())
                 .build())
         .set('customType', LDValue.ofString('customValue'));
-    builder.kind('company', 'key').name('LaunchDarkly');
+    builder.kind('company').key('key').name('LaunchDarkly');
     LDContext context = builder.build();
     List<dynamic> output = context.toCodecValue();
 
@@ -96,7 +97,7 @@ void main() {
   test('setting reserved _meta is ignored', () {
     LDContextBuilder builder = LDContextBuilder();
     builder
-        .kind('user', 'uuid')
+        .kind('user')
         .name('Todd')
         .set('_meta', LDValue.ofBool(false));
 
@@ -106,7 +107,6 @@ void main() {
     List<dynamic> expectedOutput = [
       {
         'kind': 'user',
-        'key': 'uuid',
         'name': 'Todd',
         '_meta': {}
       },
@@ -118,7 +118,7 @@ void main() {
   test('dropping invalid not required attributes', () {
     LDContextBuilder builder = LDContextBuilder();
     builder
-        .kind('user', 'uuid')
+        .kind('user')
         .set('keepMe', LDValue.ofNum(0))
         .set('name', LDValue.ofNum(0)) // should be dropped
         .set('anonymous', LDValue.ofNum(0)) // should be dropped
@@ -131,7 +131,6 @@ void main() {
     List<dynamic> expectedOutput = [
       {
         'kind': 'user',
-        'key': 'uuid',
         'keepMe': 0,
         '_meta': {}
       },
@@ -143,12 +142,13 @@ void main() {
   test('private attributes basic case', () {
     LDContextBuilder builder = LDContextBuilder();
     builder
-        .kind('user', 'uuid')
+        .kind('user')
+        .key('uuid')
         .name('Todd')
         .set("address", LDValue.ofString("Main Street"))
         .privateAttributes(["name", "address"]);
 
-    builder.kind('company', 'key').name('LaunchDarkly');
+    builder.kind('company').name('LaunchDarkly');
     LDContext context = builder.build();
     List<dynamic> output = context.toCodecValue();
 
@@ -164,7 +164,6 @@ void main() {
       },
       {
         'kind': 'company',
-        'key': 'key',
         'name': 'LaunchDarkly',
         '_meta': {}
       }

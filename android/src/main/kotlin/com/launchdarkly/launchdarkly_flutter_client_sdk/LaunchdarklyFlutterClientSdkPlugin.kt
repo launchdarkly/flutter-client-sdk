@@ -194,8 +194,22 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
     fun contextFrom(list: List<Map<String, Any>>): LDContext {
       val multiBuilder = LDContext.multiBuilder()
       list.forEach {
-        val contextBuilder = LDContext.builder(it["key"] as? String);
-        for (entry in it) {
+
+        // create a copy since we'll be making some changes on the fly
+        val context = it.toMutableMap()
+
+        // If key is omitted we need to insert a placeholder and mark the context as anonymous.
+        // This is because the Android SDK requires a key.  iOS doesn't have to do this because
+        // it handles omitted keys more elegantly.
+        //
+        // Some extra info:  Other code in this plugin turns on the Android SDKs generateAnonymousKeys functionality.
+        if (context["key"] == null) {
+          context["key"] = "__LD_PLACEHOLDER_KEY__"
+          context["anonymous"] = true
+        }
+
+        val contextBuilder = LDContext.builder(context["key"] as? String);
+        for (entry in context) {
           // ignore _meta
           if (entry.key == "_meta") {
             continue
@@ -205,7 +219,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
         }
 
         // grab private attributes out of _meta field if they are there
-        val metaMap = (it["_meta"] as? Map<String, Any>) ?: emptyMap()
+        val metaMap = (context["_meta"] as? Map<String, Any>) ?: emptyMap()
         val privateAttrs = (metaMap["privateAttributes"] as? ArrayList<String>) ?: ArrayList()
         contextBuilder.privateAttributes(*privateAttrs.toTypedArray()) // * is spread operator
 
@@ -312,7 +326,12 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       "start" -> {
         defaultScope.launch {
           withContext(Dispatchers.IO) {
-            val ldConfig: LDConfig = configFromMap(call.argument("config")!!, LDConfig.Builder())
+
+            // We want this Flutter plugin to support omitting keys from anonymous contexts.  The Android
+            // SDK requires us turn this on for it to operate.  iOS handles it automatically, which
+            // is why this is only appearing here in the Android plugin code.
+            val configBuilder = LDConfig.Builder().generateAnonymousKeys(true)
+            val ldConfig: LDConfig = configFromMap(call.argument("config")!!, configBuilder)
 
             // Set up initialization lambdas for each type of context.  This is just easier to read
             // down below when we go to make the actual calls.

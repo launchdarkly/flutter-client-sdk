@@ -269,7 +269,7 @@ void testLDClient() {
   test('startWithContext', () async {
     LDConfig config = LDConfigBuilder('mobile key').build();
     LDContextBuilder builder = LDContextBuilder();
-    builder.kind("kindA", "keyA").name("nameA");
+    builder.kind("kindA").key("keyA").name("nameA");
     LDContext context = builder.build();
     Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
     Map<String, dynamic> expectedContext = {'kind':'kindA','key':'keyA', 'name':'nameA', '_meta':{}};
@@ -346,7 +346,7 @@ void testLDClient() {
 
   test('identifyWithContext', () async {
     LDContextBuilder builder = LDContextBuilder();
-    builder.kind("kindA", "keyA").name("nameA");
+    builder.kind("kindA").key("keyA").name("nameA");
     LDContext context = builder.build();
     Map<String, dynamic> expectedContext = {'kind':'kindA','key':'keyA', 'name':'nameA', '_meta':{}};
     await LDClient.identifyWithContext(context);
