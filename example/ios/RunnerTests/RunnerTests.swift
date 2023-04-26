@@ -24,7 +24,7 @@ final class RunnerTests: XCTestCase {
       "evaluationReasons" : false,
       "diagnosticOptOut" : true,
       "allAttributesPrivate" : true,
-      "privateAttributeNames" : ["name", "avatar"]
+      "privateAttributes" : ["name", "avatar"]
     ]
     
     let output = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: input)
