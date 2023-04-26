@@ -45,17 +45,15 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     whenIs(Int.self, dict["pollingIntervalMillis"]) { config.flagPollingInterval = Double($0) / 1000.0 }
     whenIs(Int.self, dict["backgroundPollingIntervalMillis"]) { config.backgroundFlagPollingInterval = Double($0) / 1000.0 }
     whenIs(Int.self, dict["diagnosticRecordingIntervalMillis"]) { config.diagnosticRecordingInterval = Double($0) / 1000.0 }
-    whenIs(Int.self, dict["maxCachedUsers"]) { config.maxCachedUsers = $0 }
+    whenIs(Int.self, dict["maxCachedContexts"]) { config.maxCachedContexts = $0 }
     whenIs(Bool.self, dict["stream"]) { config.streamingMode = $0 ? LDStreamingMode.streaming : LDStreamingMode.polling }
     whenIs(Bool.self, dict["offline"]) { config.startOnline = !$0 }
     whenIs(Bool.self, dict["disableBackgroundUpdating"]) { config.enableBackgroundUpdates = !$0 }
     whenIs(Bool.self, dict["useReport"]) { config.useReport = $0 }
-    whenIs(Bool.self, dict["inlineUsersInEvents"]) { config.inlineUserInEvents = $0 }
     whenIs(Bool.self, dict["evaluationReasons"]) { config.evaluationReasons = $0 }
     whenIs(Bool.self, dict["diagnosticOptOut"]) { config.diagnosticOptOut = $0 }
-    whenIs(Bool.self, dict["autoAliasingOptOut"]) { config.autoAliasingOptOut = $0 }
-    whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allUserAttributesPrivate = $0 }
-    whenIs([String].self, dict["privateAttributeNames"]) { config.privateUserAttributes = $0.map { UserAttribute.forName($0) } }
+    whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allContextAttributesPrivate = $0 }
+    whenIs([String].self, dict["privateAttributes"]) { config.privateContextAttributes = $0.map { Reference($0) } }
     whenIs(String.self, dict["wrapperName"]) { config.wrapperName = $0 }
     whenIs(String.self, dict["wrapperVersion"]) { config.wrapperVersion = $0 }
     return config
@@ -71,13 +69,60 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
       ipAddress: dict["ip"] as? String,
       email: dict["email"] as? String,
       avatar: dict["avatar"] as? String,
+      
       custom: (dict["custom"] as? [String: Any] ?? [:]).mapValues { LDValue.fromBridge($0) },
       isAnonymous: dict["anonymous"] as? Bool,
-      privateAttributes: (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) },
-      secondary: dict["secondary"] as? String
+      privateAttributes: (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) }
     )
 
     return user
+  }
+  
+  /// Creates a context from a list of provided dictionaries of serialized contexts.
+  ///
+  /// - Parameters:
+  ///     - list: The list of dictionaries of serialized contexts.  Note that the format of this dict is
+  ///     unique to the Flutter MethodChannel because it has kind and key as neighbors at the
+  ///     same level in the dict.
+  ///
+  /// - Returns: A context
+  /// - Throws: Error if an issue is encountered converting the `list` to contexts.
+  public static func contextFrom(list: [[String: Any?]]) -> Result<LDContext, ContextBuilderError> {
+    
+    var multiBuilder = LDMultiContextBuilder()
+    for contextDict in list {
+      
+      var builder = LDContextBuilder()
+      for (attr, value) in contextDict {
+        // ignore _meta
+        if (attr == "_meta") {
+          continue
+        }
+        
+        // There is a bug in the iOS builder where trySetValue can't be used for kind
+        if (attr == "kind") {
+          builder.kind(value as! String)
+        } else {
+          builder.trySetValue(attr, LDValue.fromBridge(value))
+        }
+      }
+      
+      // grab private attributes out of _meta field if they are there
+      let metaDict = contextDict["_meta"] as? [String: Any] ?? [:]
+      let privateAttrs = metaDict["privateAttributes"] as? [String] ?? []
+      privateAttrs.forEach{attr in
+        builder.addPrivateAttribute(Reference(attr))
+      }
+      
+      switch builder.build() {
+      case .success(let context):
+        multiBuilder.addContext(context)
+      case .failure(let error):
+        return Result.failure(error)
+      }
+    }
+    
+    return multiBuilder.build();
   }
 
   func toBridge(failureReason: ConnectionInformation.LastConnectionFailureReason?) -> [String: Any?]? {
@@ -126,31 +171,73 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     }
     closure(client)
   }
+  
+  func startWithUser(configDict: [String: Any], userDict: [String: Any], result: @escaping FlutterResult) {
+    let user = userFrom(dict: userDict)
+    let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
+    let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: configDict)
+    if let client = LDClient.get() {
+      // We've already initialized the native SDK so just switch to the new user.
+      client.identify(user: user, completion: completion)
+    } else {
+      // We have not already initialized the native SDK.
+      LDClient.start(config: config, user: user, completion: completion)
+      LDClient.get()?.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+      LDClient.get()?.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+    }
+    result(nil)
+  }
+  
+  func startWithContext(configDict: [String: Any], contextList: [[String: Any]], result: @escaping FlutterResult) {
+    let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
+    let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: configDict)
+    switch SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextList) {
+    case .success(let context):
+      if let client = LDClient.get() {
+        // We've already initialized the native SDK so just switch to the new user.
+        client.identify(context: context, completion: completion)
+      } else {
+        // We have not already initialized the native SDK.
+        LDClient.start(config: config, context: context, completion: completion)
+        LDClient.get()?.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
+        LDClient.get()?.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+      }
+      result(nil)
+    case .failure(let error):
+      result(FlutterError(code: "INVALID_CONTEXT", message: error.localizedDescription, details: nil))
+    }
+  }
+  
+  func identifyWithUser(userDict: [String: Any], result: @escaping FlutterResult) {
+    withLDClient(result) { $0.identify(user: userFrom(dict: userDict)) { result(nil) } }
+  }
+  
+  func identifyWithContext(contextList: [[String: Any]], result: @escaping FlutterResult) {
+    switch SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextList) {
+    case .success(let context):
+      withLDClient(result) { $0.identify(context: context) { result(nil) } }
+    case .failure(let error):
+      result(FlutterError(code: "INVALID_CONTEXT", message: error.localizedDescription, details: nil))
+    }
+  }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any]
     switch call.method {
     case "start":
-      let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: args?["config"] as! [String: Any])
-      let user = userFrom(dict: args?["user"] as! [String: Any])
-      let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
-      if let client = LDClient.get() {
-        // We've already initialized the native SDK so just switch to the new user.
-        client.identify(user: user, completion: completion)
+      let configArg = args?["config"] as! [String: Any]
+      if let userArg = (args?["user"] as? [String: Any]) {
+        startWithUser(configDict: configArg, userDict: userArg, result: result)
       } else {
-        // We have not already initialized the native SDK.
-        LDClient.start(config: config, user: user, completion: completion)
-        LDClient.get()!.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-        LDClient.get()!.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
+        let contextArg = args!["context"] as! [[String: Any]]
+        startWithContext(configDict: configArg, contextList: contextArg, result: result)
       }
-      result(nil)
     case "identify":
-      withLDClient(result) { $0.identify(user: userFrom(dict: args?["user"] as! [String: Any])) { result(nil) } }
-    case "alias":
-      withLDClient(result) { client in
-        client.alias(context: userFrom(dict: args?["user"] as! [String: Any]),
-                     previousContext: userFrom(dict: args?["previousUser"] as! [String: Any]))
-        result(nil)
+      if let userArg = (args?["user"] as? [String: Any]) {
+        identifyWithUser(userDict: userArg, result: result)
+      } else {
+        let contextArg = args!["context"] as! [[String: Any]]
+        identifyWithContext(contextList: contextArg, result: result)
       }
     case "track":
       withLDClient(result) { client in
