@@ -26,4 +26,4 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Publish
-        run: flutter pub publish
+        run: flutter pub publish --force
