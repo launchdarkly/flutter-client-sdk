@@ -39,8 +39,15 @@ class LDContextBuilder {
   /// If key is omitted, this will create an anonymous context with a generated key.
   /// The generated key will be persisted and reused for future application runs.
   LDAttributesBuilder kind(String kind, [String? key]) {
-    LDAttributesBuilder attrBuilder = LDAttributesBuilder._internal(kind, key);
-    return _buildersByKind.putIfAbsent(kind, () => attrBuilder);
+    LDAttributesBuilder builder = _buildersByKind.putIfAbsent(
+        kind, () => LDAttributesBuilder._internal(kind));
+
+    if (key != null) {
+      // key may be different on this subsequent call, so need to update it.
+      builder._key(key);
+    }
+
+    return builder;
   }
 
   /// Builds the context.
