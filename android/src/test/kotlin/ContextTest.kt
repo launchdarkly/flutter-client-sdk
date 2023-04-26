@@ -66,6 +66,7 @@ internal class ContextTest {
         assertEquals(2, output.privateAttributeCount)
     }
 
+    @Test
     fun `private attributes null`() {
         val input: List<Map<String, Any>> = listOf(
                 hashMapOf(
@@ -84,6 +85,7 @@ internal class ContextTest {
         assertEquals(0, output.privateAttributeCount)
     }
 
+    @Test
     fun `private attributes empty`() {
         val input: List<Map<String, Any>> = listOf(
                 hashMapOf(
@@ -100,6 +102,23 @@ internal class ContextTest {
         assertFalse(output.isMultiple())
         assertEquals(1, output.individualContextCount)
         assertEquals(0, output.privateAttributeCount)
+    }
+
+    @Test
+    fun `placeholder key is set when key is missing`() {
+        val input: List<Map<String, Any>> = listOf(
+                hashMapOf(
+                        "kind" to "myKind",
+                        "name" to "myName",
+                )
+        )
+        val output = LaunchdarklyFlutterClientSdkPlugin.contextFrom(input)
+        assertFalse(output.isMultiple())
+        assertEquals(1, output.individualContextCount)
+        assertEquals(ContextKind.of("myKind"), output.kind)
+        assertEquals("__LD_PLACEHOLDER_KEY__", output.key)
+        assertEquals("myName", output.name)
+        assertTrue(output.isAnonymous)
     }
 
 }

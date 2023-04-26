@@ -32,15 +32,25 @@ class LDContext {
 class LDContextBuilder {
   final Map<String, LDAttributesBuilder> _buildersByKind = Map();
 
-  /// Adds another kind to the context.  Both [kind] and [key] must be
-  /// non-empty.  Calling this method again with the same kind returns
-  /// the same [LDAttributesBuilder] as before.
-  LDAttributesBuilder kind(String kind, String key) {
-    LDAttributesBuilder attrBuilder = LDAttributesBuilder._internal(kind, key);
-    return _buildersByKind.putIfAbsent(kind, () => attrBuilder);
+  /// Adds another kind to the context.  [kind] and optional [key] must be
+  /// non-empty.  Calling this method again with the same kind returns the same
+  /// [LDAttributesBuilder] as before.
+  ///
+  /// If key is omitted, this will create an anonymous context with a generated key.
+  /// The generated key will be persisted and reused for future application runs.
+  LDAttributesBuilder kind(String kind, [String? key]) {
+    LDAttributesBuilder builder = _buildersByKind.putIfAbsent(
+        kind, () => LDAttributesBuilder._internal(kind));
+
+    if (key != null) {
+      // key may be different on this subsequent call, so need to update it.
+      builder._key(key);
+    }
+
+    return builder;
   }
 
-  /// Builds the context.  Invalid contexts will be dropped.
+  /// Builds the context.
   LDContext build() {
     Map<String, LDContextAttributes> contextsByKind = Map();
     _buildersByKind.forEach((kind, b) {

@@ -91,7 +91,8 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     
     var multiBuilder = LDMultiContextBuilder()
     for contextDict in list {
-      var builder = LDContextBuilder(key: contextDict["key"] as! String)
+      
+      var builder = LDContextBuilder()
       for (attr, value) in contextDict {
         // ignore _meta
         if (attr == "_meta") {
