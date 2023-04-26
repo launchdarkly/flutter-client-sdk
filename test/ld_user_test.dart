@@ -4,8 +4,7 @@ import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.
 
 class LDUserAttr {
   static List<LDUserAttr> builtInAttrs =
-    [ LDUserAttr('secondary', (b, v) { b.secondary(v); }, (b, v) { b.privateSecondary(v); }, (u) { return u.secondary; })
-    , LDUserAttr('ip', (b, v) { b.ip(v); }, (b, v) { b.privateIp(v); }, (u) { return u.ip; })
+    [ LDUserAttr('ip', (b, v) { b.ip(v); }, (b, v) { b.privateIp(v); }, (u) { return u.ip; })
     , LDUserAttr('email', (b, v) { b.email(v); }, (b, v) { b.privateEmail(v); }, (u) { return u.email; })
     , LDUserAttr('name', (b, v) { b.name(v); }, (b, v) { b.privateName(v); }, (u) { return u.name; })
     , LDUserAttr('firstName', (b, v) { b.firstName(v); }, (b, v) { b.privateFirstName(v); }, (u) { return u.firstName; })
@@ -25,7 +24,6 @@ void main() {
   test('builder built-in attributes public', () {
     LDUser user = LDUserBuilder('user key')
         .anonymous(false)
-        .secondary('abc')
         .ip('192.0.2.5')
         .email('test@example.com')
         .name('a b')
@@ -36,7 +34,6 @@ void main() {
         .build();
     expect(user.key, equals('user key'));
     expect(user.anonymous, isFalse);
-    expect(user.secondary, equals('abc'));
     expect(user.ip, equals('192.0.2.5'));
     expect(user.email, equals('test@example.com'));
     expect(user.name, equals('a b'));

@@ -8,8 +8,8 @@ class BuildTester<TBuilder, TBuilt> {
   BuildTester(this.constructor, this.buildMethod);
 
   BuildPropertyTester<TBuilder, TBuilt, TValue> prop<TValue>(
-    TValue Function(TBuilt) getter,
-    void Function(TBuilder, TValue) setter) {
+      TValue Function(TBuilt) getter,
+      void Function(TBuilder, TValue) setter) {
     return BuildPropertyTester(this, getter, setter);
   }
 }
@@ -44,42 +44,42 @@ class BuildPropertyTester<TBuilder, TBuilt, TValue> {
 
 void main() {
   var tester = BuildTester<LDConfigBuilder, LDConfig>(
-    () { return LDConfigBuilder("test-key"); },
+    () { return LDConfigBuilder('test-key'); },
     (builder) { return builder.build(); });
 
   test('mobileKey', () {
-    var builder = LDConfigBuilder("test-key");
-    expect(builder.build().mobileKey, equals("test-key"));
+    var builder = LDConfigBuilder('test-key');
+    expect(builder.build().mobileKey, equals('test-key'));
   });
 
   test('applicationId', () {
     var propTester = tester.prop<String>((c) => c.applicationId, (b, v) => b.applicationId(v));
-    propTester.expectDefault("");
-    propTester.expectCanSet("myId");
+    propTester.expectDefault('');
+    propTester.expectCanSet('myId');
   });
 
   test('applicationVersion', () {
     var propTester = tester.prop<String>((c) => c.applicationVersion, (b, v) => b.applicationVersion(v));
-    propTester.expectDefault("");
-    propTester.expectCanSet("myVersion");
+    propTester.expectDefault('');
+    propTester.expectCanSet('myVersion');
   });
 
   test('pollUri', () {
     var propTester = tester.prop<String>((c) => c.pollUri, (b, v) => b.pollUri(v));
-    propTester.expectDefault("https://clientsdk.launchdarkly.com");
-    propTester.expectCanSet("https://127.0.0.1");
+    propTester.expectDefault('https://clientsdk.launchdarkly.com');
+    propTester.expectCanSet('https://127.0.0.1');
   });
 
   test('eventsUri', () {
     var propTester = tester.prop<String>((c) => c.eventsUri, (b, v) => b.eventsUri(v));
-    propTester.expectDefault("https://events.launchdarkly.com");
-    propTester.expectCanSet("https://127.0.0.1");
+    propTester.expectDefault('https://events.launchdarkly.com');
+    propTester.expectCanSet('https://127.0.0.1');
   });
 
   test('streamUri', () {
     var propTester = tester.prop<String>((c) => c.streamUri, (b, v) => b.streamUri(v));
-    propTester.expectDefault("https://clientstream.launchdarkly.com");
-    propTester.expectCanSet("https://127.0.0.1");
+    propTester.expectDefault('https://clientstream.launchdarkly.com');
+    propTester.expectCanSet('https://127.0.0.1');
   });
 
   test('eventsCapacity', () {
@@ -119,7 +119,16 @@ void main() {
   });
 
   test('maxCachedUsers', () {
-    var propTester = tester.prop<int>((c) => c.maxCachedUsers, (b, v) => b.maxCachedUsers(v));
+    // test that calling maxCachedUsers updated maxCachedContexts
+    var propTester = tester.prop<int>((c) => c.maxCachedContexts, (b, v) => b.maxCachedUsers(v));
+    propTester.expectDefault(5);
+    propTester.expectCanSet(10);
+    propTester.expectCanSet(-1);
+    propTester.expectSetIsChangedTo(-2, -1);
+  });
+
+  test('maxCachedContexts', () {
+    var propTester = tester.prop<int>((c) => c.maxCachedContexts, (b, v) => b.maxCachedContexts(v));
     propTester.expectDefault(5);
     propTester.expectCanSet(10);
     propTester.expectCanSet(-1);
@@ -150,12 +159,6 @@ void main() {
     propTester.expectCanSet(true);
   });
 
-  test('inlineUsersInEvents', () {
-    var propTester = tester.prop<bool>((c) => c.inlineUsersInEvents, (b, v) => b.inlineUsersInEvents(v));
-    propTester.expectDefault(false);
-    propTester.expectCanSet(true);
-  });
-
   test('evaluationReasons', () {
     var propTester = tester.prop<bool>((c) => c.evaluationReasons, (b, v) => b.evaluationReasons(v));
     propTester.expectDefault(false);
@@ -168,22 +171,68 @@ void main() {
     propTester.expectCanSet(true);
   });
 
-  test('autoAliasingOptOut', () {
-    var propTester = tester.prop<bool>((c) => c.autoAliasingOptOut, (b, v) => b.autoAliasingOptOut(v));
-    propTester.expectDefault(false);
-    propTester.expectCanSet(true);
-  });
-
   test('allAttributesPrivate', () {
     var propTester = tester.prop<bool>((c) => c.allAttributesPrivate, (b, v) => b.allAttributesPrivate(v));
     propTester.expectDefault(false);
     propTester.expectCanSet(true);
   });
 
-  test('privateAttributeNames', () {
-    var propTester = tester.prop<dynamic>((c) => c.privateAttributeNames, (b, v) => b.privateAttributeNames(Set.castFrom(v)));
+  test('privateAttributes', () {
+    var propTester = tester.prop<dynamic>((c) => c.privateAttributes, (b,
+        v) => b.privateAttributes(Set.castFrom(v)));
     propTester.expectDefault(null);
     propTester.expectSetIsChangedTo(Set(), null);
-    propTester.expectSetIsChangedTo(Set.of(["phone"]), ["phone"]);
+    propTester.expectSetIsChangedTo(Set.of(['phone']), ['phone']);
+  });
+
+  test('config encoding', () {
+    var output = LDConfigBuilder('test-key')
+        .applicationId('anID')
+        .applicationVersion('aVersion')
+        .pollUri('pollingUrl')
+        .eventsUri('eventsUrl')
+        .streamUri('streamUri')
+        .eventsCapacity(1)
+        .eventsFlushIntervalMillis(2)
+        .connectionTimeoutMillis(3)
+        .pollingIntervalMillis(4)
+        .backgroundPollingIntervalMillis(5)
+        .diagnosticRecordingIntervalMillis(6)
+        .maxCachedContexts(7)
+        .stream(true)
+        .offline(false)
+        .disableBackgroundUpdating(true)
+        .useReport(false)
+        .evaluationReasons(true)
+        .diagnosticOptOut(false)
+        .build().toCodecValue('aVersion');
+
+    Map<String, dynamic> expectedOutput = {
+      'mobileKey': 'test-key',
+      'applicationId': 'anID',
+      'applicationVersion': 'aVersion',
+      'pollUri': 'pollingUrl',
+      'eventsUri': 'eventsUrl',
+      'streamUri': 'streamUri',
+      'eventsCapacity': 1,
+      'eventsFlushIntervalMillis': 2,
+      'connectionTimeoutMillis': 3,
+      'pollingIntervalMillis': 4,
+      'backgroundPollingIntervalMillis': 5,
+      'diagnosticRecordingIntervalMillis': 6,
+      'maxCachedContexts': 7,
+      'stream': true,
+      'offline': false,
+      'disableBackgroundUpdating': true,
+      'useReport': false,
+      'evaluationReasons': true,
+      'diagnosticOptOut': false,
+      'allAttributesPrivate': false,
+      'privateAttributes': null,
+      'wrapperName': 'FlutterClientSdk',
+      'wrapperVersion': 'aVersion'
+    };
+
+    expect(output, equals(expectedOutput));
   });
 }

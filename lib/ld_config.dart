@@ -28,10 +28,10 @@ class LDConfig {
   final int backgroundPollingIntervalMillis;
   /// The configured diagnostic recording interval in milliseconds.
   final int diagnosticRecordingIntervalMillis;
-  /// The count of users to store the flag values for in on-device storage.
+  /// The count of contexts to store the flag values for in on-device storage.
   ///
-  /// A value of `-1` indicates that an unlimited number of users will be cached locally.
-  final int maxCachedUsers;
+  /// A value of `-1` indicates that an unlimited number of contexts will be cached locally.
+  final int maxCachedContexts;
 
   /// Whether the SDK is configured to use a streaming connection when in the foreground.
   final bool stream;
@@ -41,19 +41,15 @@ class LDConfig {
   final bool disableBackgroundUpdating;
   /// Whether the SDK is configured to use the HTTP `REPORT` verb for flag requests.
   final bool useReport;
-  /// Whether the SDK is configured to send the entire [LDUser] object to the service in every event.
-  final bool inlineUsersInEvents;
   /// Whether the SDK is configured to request evaluation reasons to be included in flag data from the service.
   final bool evaluationReasons;
   /// Whether the SDK is configured to not send diagnostic data to LaunchDarkly.
   final bool diagnosticOptOut;
-  /// Whether the SDK is configured to not send automatic alias events.
-  final bool autoAliasingOptOut;
 
   /// Whether the SDK is configured to never include user attribute values in analytics requests.
   final bool allAttributesPrivate;
   /// The configured set of attributes to never include values for in analytics requests.
-  final List<String>? privateAttributeNames;
+  final List<String>? privateAttributes;
 
   LDConfig._builder(LDConfigBuilder builder) :
         mobileKey = builder._mobileKey,
@@ -68,19 +64,17 @@ class LDConfig {
         pollingIntervalMillis = builder._pollingIntervalMillis,
         backgroundPollingIntervalMillis = builder._backgroundPollingIntervalMillis,
         diagnosticRecordingIntervalMillis = builder._diagnosticRecordingIntervalMillis,
-        maxCachedUsers = builder._maxCachedUsers,
+        maxCachedContexts = builder._maxCachedContexts,
         stream = builder._stream,
         offline = builder._offline,
         disableBackgroundUpdating = builder._disableBackgroundUpdating,
         useReport = builder._useReport,
-        inlineUsersInEvents = builder._inlineUsersInEvents,
         evaluationReasons = builder._evaluationReasons,
         diagnosticOptOut = builder._diagnosticOptOut,
-        autoAliasingOptOut = builder._autoAliasingOptOut,
         allAttributesPrivate = builder._allAttributesPrivate,
-        privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
+        privateAttributes = builder._privateAttributes.isEmpty ? null : List.unmodifiable(builder._privateAttributes);
 
-  Map<String, dynamic> _toCodecValue(String wrapperVersion) {
+  Map<String, dynamic> toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['mobileKey'] = mobileKey;
     result['applicationId'] = applicationId;
@@ -94,17 +88,15 @@ class LDConfig {
     result['pollingIntervalMillis'] = pollingIntervalMillis;
     result['backgroundPollingIntervalMillis'] = backgroundPollingIntervalMillis;
     result['diagnosticRecordingIntervalMillis'] = diagnosticRecordingIntervalMillis;
-    result['maxCachedUsers'] = maxCachedUsers;
+    result['maxCachedContexts'] = maxCachedContexts;
     result['stream'] = stream;
     result['offline'] = offline;
     result['disableBackgroundUpdating'] = disableBackgroundUpdating;
     result['useReport'] = useReport;
-    result['inlineUsersInEvents'] = inlineUsersInEvents;
     result['evaluationReasons'] = evaluationReasons;
     result['diagnosticOptOut'] = diagnosticOptOut;
-    result['autoAliasingOptOut'] = autoAliasingOptOut;
     result['allAttributesPrivate'] = allAttributesPrivate;
-    result['privateAttributeNames'] = privateAttributeNames;
+    result['privateAttributes'] = privateAttributes;
     result['wrapperName'] = 'FlutterClientSdk';
     result['wrapperVersion'] = wrapperVersion;
     return result;
@@ -128,19 +120,17 @@ class LDConfigBuilder {
   int _pollingIntervalMillis = 5 * 60 * 1000;
   int _backgroundPollingIntervalMillis = 60 * 60 * 1000;
   int _diagnosticRecordingIntervalMillis = 15 * 60 * 1000;
-  int _maxCachedUsers = 5;
+  int _maxCachedContexts = 5;
 
   bool _stream = true;
   bool _offline = false;
   bool _disableBackgroundUpdating = true;
   bool _useReport = false;
-  bool _inlineUsersInEvents = false;
   bool _evaluationReasons = false;
   bool _diagnosticOptOut = false;
-  bool _autoAliasingOptOut = false;
 
   bool _allAttributesPrivate = false;
-  Set<String> _privateAttributeNames = Set();
+  Set<String> _privateAttributes = Set();
 
   /// Create a new `LDConfigBuilder` for the given mobile key.
   LDConfigBuilder(this._mobileKey);
@@ -246,8 +236,21 @@ class LDConfigBuilder {
   /// The currently configured user is not considered part of this limit.
   ///
   /// The default value of this configuration option is `5`.
+  @Deprecated("In favor of maxCachedContexts")
   LDConfigBuilder maxCachedUsers(int maxCachedUsers) {
-    this._maxCachedUsers = maxCachedUsers < 0 ? -1 : maxCachedUsers;
+    return this.maxCachedContexts(maxCachedUsers);
+  }
+
+  /// Sets how many contexts to store the flag values for in on-device storage.
+  ///
+  /// A negative value indicates that the SDK should store the flags for every context it is configured for, never removing
+  /// the stored values for the least recently used context
+  ///
+  /// The currently configured context is not considered part of this limit.
+  ///
+  /// The default value of this configuration option is `5`.
+  LDConfigBuilder maxCachedContexts(int maxCachedContexts) {
+    this._maxCachedContexts = maxCachedContexts < 0 ? -1 : maxCachedContexts;
     return this;
   }
 
@@ -287,18 +290,6 @@ class LDConfigBuilder {
     return this;
   }
 
-  /// Sets whether the SDK will send the entire [LDUser] object to the service in every event.
-  ///
-  /// By default the SDK will only send an event when updating the user context which associates the key with the
-  /// non-private user attributes. Later events will only include the key of the user.
-  ///
-  /// When [LDConfig.inlineUsersInEvents] is `true`, the SDK will include the full user (all non-private user
-  /// attributes) in every event.
-  LDConfigBuilder inlineUsersInEvents(bool inlineUsersInEvents) {
-    this._inlineUsersInEvents = inlineUsersInEvents;
-    return this;
-  }
-
   /// Configure whether the SDK will request evaluation reasons to be included in flag data from the service.
   ///
   /// This will allow the additional information included in [LDEvaluationDetail] to be populated when using the
@@ -321,15 +312,6 @@ class LDConfigBuilder {
     return this;
   }
 
-  /// Set to true to opt out of sending automatic alias events.
-  ///
-  /// Unless [LDConfig.autoAliasingOptOut] is `true`, the client will send an automatic `alias` event when
-  /// [LDClient.identify] is called with a non-anonymous user when the current user is anonymous.
-  LDConfigBuilder autoAliasingOptOut(bool autoAliasingOptOut) {
-    this._autoAliasingOptOut = autoAliasingOptOut;
-    return this;
-  }
-
   /// Configures the SDK to never include optional attribute values in analytics events.
   LDConfigBuilder allAttributesPrivate(bool allAttributesPrivate) {
     this._allAttributesPrivate = allAttributesPrivate;
@@ -337,8 +319,8 @@ class LDConfigBuilder {
   }
 
   /// Sets a `Set` of private attributes to never include the values for in analytics events.
-  LDConfigBuilder privateAttributeNames(Set<String> privateAttributeNames) {
-    this._privateAttributeNames = privateAttributeNames;
+  LDConfigBuilder privateAttributes(Set<String> privateAttributes) {
+    this._privateAttributes = privateAttributes;
     return this;
   }
 
