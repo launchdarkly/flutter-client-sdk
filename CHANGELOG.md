@@ -2,6 +2,10 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.0] - 2023-04-04
+### Added:
+- `LDConfigBuilder.applicationInfo()` and `.applicationVersion()`, for configuration of application metadata that may be used in LaunchDarkly analytics or other product features. This does not affect feature flag evaluations.
+
 ## [1.2.0] - 2022-11-07
 ### Changed:
 - Updated Android SDK version.

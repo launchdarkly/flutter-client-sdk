@@ -42,7 +42,7 @@ typedef void LDFlagUpdatedCallback(String flagKey);
 /// record custom events, and provides various status configuration and monitoring utilities. See the individual class
 /// and method documentation for more details.
 class LDClient {
-  static const String _sdkVersion = "1.2.0";
+  static const String _sdkVersion = "1.3.0";
   static const MethodChannel _channel = const MethodChannel('launchdarkly_flutter_client_sdk');
 
   static Completer<void> _startCompleter = Completer();
