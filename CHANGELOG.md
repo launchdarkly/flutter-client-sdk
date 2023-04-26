@@ -2,6 +2,27 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [2.0.0] - 2023-04-26
+The latest version of this SDK supports LaunchDarkly's new custom contexts feature. Contexts are an evolution of a previously-existing concept, "users." Contexts let you create targeting rules for feature flags based on a variety of different information, including attributes pertaining to users, organizations, devices, and more. You can even combine contexts to create "multi-contexts." 
+
+For detailed information about this version, please refer to the list below. For information on how to upgrade from the previous version, please read the [migration guide](https://docs.launchdarkly.com/sdk/client-side/flutter/migration-1-to-2).
+
+### Added:
+- The type `LDContext` and associated builders which define the new context model.
+- For SDK methods that took an `LDUser` parameter, there is now an overload (ex: `startWithContext`) that takes an `LDContext`. The SDK still supports `LDUser` for now, but `LDContext` is the preferred model and `LDUser` may be removed in a future version.
+
+### Changed:
+- The `secondary` attribute which existed in `LDUser` is no longer a supported feature. If you set an attribute with that name in `LDContext`, it will simply be a custom attribute like any other.
+- Analytics event data now uses a new JSON schema due to differences between the context model and the old user model.
+- The SDK no longer adds `device` and `os` values to the user attributes. Applications that wish to use device/OS information in feature flag rules must explicitly add such information.
+- `maxCachedUsers` is now `maxCachedContexts`
+- `LDConfig.privateAttributeNames` is now `privateAttributes`
+
+### Removed:
+- Removed the `secondary` meta-attribute in `LDUser` and `LDUser.Builder`.
+- The `alias` method no longer exists because alias events are not needed in the new context model.
+- The `inlineUsersInEvents` option no longer exists because it is not relevant in the new context model.
+
 ## [1.3.0] - 2023-04-04
 ### Added:
 - `LDConfigBuilder.applicationInfo()` and `.applicationVersion()`, for configuration of application metadata that may be used in LaunchDarkly analytics or other product features. This does not affect feature flag evaluations.
