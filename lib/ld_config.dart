@@ -49,7 +49,7 @@ class LDConfig {
   /// Whether the SDK is configured to never include user attribute values in analytics requests.
   final bool allAttributesPrivate;
   /// The configured set of attributes to never include values for in analytics requests.
-  final List<String>? privateAttributeNames;
+  final List<String>? privateAttributes;
 
   LDConfig._builder(LDConfigBuilder builder) :
         mobileKey = builder._mobileKey,
@@ -72,7 +72,7 @@ class LDConfig {
         evaluationReasons = builder._evaluationReasons,
         diagnosticOptOut = builder._diagnosticOptOut,
         allAttributesPrivate = builder._allAttributesPrivate,
-        privateAttributeNames = builder._privateAttributeNames.isEmpty ? null : List.unmodifiable(builder._privateAttributeNames);
+        privateAttributes = builder._privateAttributes.isEmpty ? null : List.unmodifiable(builder._privateAttributes);
 
   Map<String, dynamic> toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
@@ -96,7 +96,7 @@ class LDConfig {
     result['evaluationReasons'] = evaluationReasons;
     result['diagnosticOptOut'] = diagnosticOptOut;
     result['allAttributesPrivate'] = allAttributesPrivate;
-    result['privateAttributeNames'] = privateAttributeNames;
+    result['privateAttributes'] = privateAttributes;
     result['wrapperName'] = 'FlutterClientSdk';
     result['wrapperVersion'] = wrapperVersion;
     return result;
@@ -130,7 +130,7 @@ class LDConfigBuilder {
   bool _diagnosticOptOut = false;
 
   bool _allAttributesPrivate = false;
-  Set<String> _privateAttributeNames = Set();
+  Set<String> _privateAttributes = Set();
 
   /// Create a new `LDConfigBuilder` for the given mobile key.
   LDConfigBuilder(this._mobileKey);
@@ -319,8 +319,8 @@ class LDConfigBuilder {
   }
 
   /// Sets a `Set` of private attributes to never include the values for in analytics events.
-  LDConfigBuilder privateAttributeNames(Set<String> privateAttributeNames) {
-    this._privateAttributeNames = privateAttributeNames;
+  LDConfigBuilder privateAttributes(Set<String> privateAttributes) {
+    this._privateAttributes = privateAttributes;
     return this;
   }
 

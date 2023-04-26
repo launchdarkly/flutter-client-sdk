@@ -53,7 +53,7 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     whenIs(Bool.self, dict["evaluationReasons"]) { config.evaluationReasons = $0 }
     whenIs(Bool.self, dict["diagnosticOptOut"]) { config.diagnosticOptOut = $0 }
     whenIs(Bool.self, dict["allAttributesPrivate"]) { config.allContextAttributesPrivate = $0 }
-    whenIs([String].self, dict["privateAttributeNames"]) { config.privateContextAttributes = $0.map { Reference($0) } }
+    whenIs([String].self, dict["privateAttributes"]) { config.privateContextAttributes = $0.map { Reference($0) } }
     whenIs(String.self, dict["wrapperName"]) { config.wrapperName = $0 }
     whenIs(String.self, dict["wrapperVersion"]) { config.wrapperVersion = $0 }
     return config

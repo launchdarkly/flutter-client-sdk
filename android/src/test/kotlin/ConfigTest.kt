@@ -42,7 +42,7 @@ internal class ConfigTest {
                 "evaluationReasons" to false,
                 "diagnosticOptOut" to true,
                 "allAttributesPrivate" to true,
-                "privateAttributeNames" to listOf("name", "avatar"),
+                "privateAttributes" to listOf("name", "avatar"),
         )
 
         val spyBuilder = spyk(LDConfig.Builder())
@@ -113,7 +113,7 @@ internal class ConfigTest {
         val input: Map<String, Any> = hashMapOf(
                 "mobileKey" to "mobileKey",
                 "allAttributesPrivate" to true,
-                "privateAttributeNames" to listOf("name", "avatar"),
+                "privateAttributes" to listOf("name", "avatar"),
         )
 
         val spyBuilder = spyk(LDConfig.Builder())

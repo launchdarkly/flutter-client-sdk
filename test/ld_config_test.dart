@@ -177,9 +177,9 @@ void main() {
     propTester.expectCanSet(true);
   });
 
-  test('privateAttributeNames', () {
-    var propTester = tester.prop<dynamic>((c) => c.privateAttributeNames, (b,
-        v) => b.privateAttributeNames(Set.castFrom(v)));
+  test('privateAttributes', () {
+    var propTester = tester.prop<dynamic>((c) => c.privateAttributes, (b,
+        v) => b.privateAttributes(Set.castFrom(v)));
     propTester.expectDefault(null);
     propTester.expectSetIsChangedTo(Set(), null);
     propTester.expectSetIsChangedTo(Set.of(['phone']), ['phone']);
@@ -228,7 +228,7 @@ void main() {
       'evaluationReasons': true,
       'diagnosticOptOut': false,
       'allAttributesPrivate': false,
-      'privateAttributeNames': null,
+      'privateAttributes': null,
       'wrapperName': 'FlutterClientSdk',
       'wrapperVersion': 'aVersion'
     };

@@ -182,7 +182,7 @@ Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   result['evaluationReasons'] = false;
   result['diagnosticOptOut'] = false;
   result['allAttributesPrivate'] = false;
-  result['privateAttributeNames'] = null;
+  result['privateAttributes'] = null;
   result['wrapperName'] = 'FlutterClientSdk';
   result['wrapperVersion'] = _sdkVersion;
   return result;

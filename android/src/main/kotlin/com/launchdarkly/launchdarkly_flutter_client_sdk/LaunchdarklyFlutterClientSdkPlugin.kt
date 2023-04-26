@@ -126,7 +126,7 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
                 if (map["allAttributesPrivate"] is Boolean) {
                   this.allAttributesPrivate(map["allAttributesPrivate"] as Boolean)
                 }
-                whenIs<List<*>>(map["privateAttributeNames"]) {
+                whenIs<List<*>>(map["privateAttributes"]) {
                   val privateAttrs = ArrayList<String>()
                   for (name in it) {
                     if (name is String) {
