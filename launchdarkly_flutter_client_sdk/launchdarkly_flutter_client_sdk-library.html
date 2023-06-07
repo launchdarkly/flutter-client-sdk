@@ -67,6 +67,14 @@ documentation site.</p>
       <h2>Classes</h2>
 
       <dl>
+        <dt id="LDAttributesBuilder">
+  <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html">LDAttributesBuilder</a></span> 
+
+</dt>
+<dd>
+  A builder for constructing <a href="../launchdarkly_flutter_client_sdk/LDContextAttributes-class.html">LDContextAttributes</a>.
+</dd>
+
         <dt id="LDClient">
   <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDClient-class.html">LDClient</a></span> 
 
@@ -97,6 +105,34 @@ documentation site.</p>
 </dt>
 <dd>
   Describes the connectivity state of the SDK, and information on occurrence of request failures and successes.
+</dd>
+
+        <dt id="LDContext">
+  <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a></span> 
+
+</dt>
+<dd>
+  A collection of attributes that can be referenced in flag evaluations and analytics events.  A
+<a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a> may contain information about a single context or multiple contexts differentiated by
+the "kind" attribute.
+</dd>
+
+        <dt id="LDContextAttributes">
+  <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDContextAttributes-class.html">LDContextAttributes</a></span> 
+
+</dt>
+<dd>
+  Collection of attributes for a <a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a>
+</dd>
+
+        <dt id="LDContextBuilder">
+  <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDContextBuilder-class.html">LDContextBuilder</a></span> 
+
+</dt>
+<dd>
+  A builder to facilitate the creation of <a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a>s.  Note that the return
+type of <a href="../launchdarkly_flutter_client_sdk/LDContextBuilder/kind.html">kind</a> is a <a href="../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html">LDAttributesBuilder</a> that is used to define attributes for
+the specific kind of context you are creating.
 </dd>
 
         <dt id="LDEvaluationDetail">
@@ -168,6 +204,42 @@ the evaluation with an explanation of how it was calculated.
     </section>
 
 
+    <section class="summary offset-anchor" id="extensions">
+      <h2>Extensions</h2>
+
+      <dl>
+        <dt id="ContextAttributesCodec">
+    <span class="name "><a href="../launchdarkly_flutter_client_sdk/ContextAttributesCodec.html">ContextAttributesCodec</a></span> 
+
+</dt>
+<dd>
+    Extension functionality for converting <a href="../launchdarkly_flutter_client_sdk/LDContextAttributes-class.html">LDContextAttributes</a> to value that can
+be ingested as method channel arguments
+</dd>
+
+
+        <dt id="ContextCodec">
+    <span class="name "><a href="../launchdarkly_flutter_client_sdk/ContextCodec.html">ContextCodec</a></span> 
+
+</dt>
+<dd>
+    Extension functionality for converting <a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a> to value that can
+be ingested as method channel arguments
+</dd>
+
+
+        <dt id="UserCodec">
+    <span class="name "><a href="../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></span> 
+
+</dt>
+<dd>
+    Extension functionality for converting <a href="../launchdarkly_flutter_client_sdk/UserCodec/toCodecValue.html">toCodecValue</a> to value that can
+be ingested as method channel arguments
+</dd>
+
+
+      </dl>
+    </section>
 
 
 
@@ -282,10 +354,14 @@ the evaluation with an explanation of how it was calculated.
     <h5>launchdarkly_flutter_client_sdk library</h5>
     <ol>
       <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#classes">Classes</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html">LDAttributesBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDClient-class.html">LDClient</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionInformation-class.html">LDConnectionInformation</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDContextAttributes-class.html">LDContextAttributes</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDContextBuilder-class.html">LDContextBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationDetail-class.html">LDEvaluationDetail</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationReason-class.html">LDEvaluationReason</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDFailure-class.html">LDFailure</a></li>
@@ -295,6 +371,10 @@ the evaluation with an explanation of how it was calculated.
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueArrayBuilder-class.html">LDValueArrayBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueObjectBuilder-class.html">LDValueObjectBuilder</a></li>
 
+      <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#extensions">Extensions</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/ContextAttributesCodec.html">ContextAttributesCodec</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/ContextCodec.html">ContextCodec</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></li>
 
 
 
@@ -320,7 +400,7 @@ the evaluation with an explanation of how it was calculated.
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      1.3.0
+      2.0.0
   </span>
 
   

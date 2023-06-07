@@ -57,13 +57,15 @@
     
 <section class="desc markdown">
   <p>The main interface for the LaunchDarkly Flutter SDK.</p>
-<p>To setup the SDK before use, build an <a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a> with <a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a> and an initial <a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a> with <a href="../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a>.
-These should be passed to <a href="../launchdarkly_flutter_client_sdk/LDClient/start.html">LDClient.start</a> to initialize the SDK instance. A basic example:</p>
-<pre class="language-dart"><code>LDConfig config = LDConfigBuilder('&lt;YOUR_MOBILE_KEY&gt;').build();
-LDUser user = LDUserBuilder('&lt;USER_KEY&gt;').build();
-await LDClient.start(config, user);
+<p>To setup the SDK before use, build an <a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a> with <a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a> and an initial <a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a> with <a href="../launchdarkly_flutter_client_sdk/LDContextBuilder-class.html">LDContextBuilder</a>.
+These should be passed to <a href="../launchdarkly_flutter_client_sdk/LDClient/startWithContext.html">LDClient.startWithContext</a> to initialize the SDK instance. A basic example:</p>
+<pre class="language-dart"><code>builder = LDContextBuilder();
+builder.kind("user", &lt;USER_KEY&gt;);
+builder.kind("company", &lt;COMP_KEY&gt;);
+context = builder.build();
+LDClient.startWithContext(config, context)
 </code></pre>
-<p>After initialization, the SDK can evaluate feature flags from the LaunchDarkly dashboard against the current user,
+<p>After initialization, the SDK can evaluate feature flags from the LaunchDarkly dashboard against the current context,
 record custom events, and provides various status configuration and monitoring utilities. See the individual class
 and method documentation for more details.</p>
 </section>
@@ -161,19 +163,6 @@ and method documentation for more details.</p>
   <section class="summary offset-anchor" id="static-methods">
     <h2>Static Methods</h2>
     <dl class="callables">
-        <dt id="alias" class="callable">
-  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/alias.html">alias</a></span><span class="signature">(<wbr><span class="parameter" id="alias-param-user"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></span> <span class="parameter-name">user</span>, </span><span class="parameter" id="alias-param-previousUser"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></span> <span class="parameter-name">previousUser</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-  </span>
-  
-
-</dt>
-<dd>
-  Alias associates two users for analytics purposes.
-  
-
-</dd>
-
         <dt id="allFlags" class="callable">
   <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/allFlags.html">allFlags</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a></span>&gt;</span></span>&gt;</span></span>
@@ -182,7 +171,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns a map of all feature flags for the current user, without sending evaluation events to LaunchDarkly.
+  Returns a map of all feature flags for the current context, without sending evaluation events to LaunchDarkly.
   
 
 </dd>
@@ -195,7 +184,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as a bool.
+  Returns the value of flag <code>flagKey</code> for the current context as a bool.
   
 
 </dd>
@@ -208,7 +197,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as a bool, along with information about the resultant value.
+  Returns the value of flag <code>flagKey</code> for the current context as a bool, along with information about the resultant value.
   
 
 </dd>
@@ -234,7 +223,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as a double.
+  Returns the value of flag <code>flagKey</code> for the current context as a double.
   
 
 </dd>
@@ -247,7 +236,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as a double, along with information about the resultant value.
+  Returns the value of flag <code>flagKey</code> for the current context as a double, along with information about the resultant value.
   
 
 </dd>
@@ -279,7 +268,7 @@ and method documentation for more details.</p>
 </dd>
 
         <dt id="identify" class="callable">
-  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/identify.html">identify</a></span><span class="signature">(<wbr><span class="parameter" id="identify-param-user"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></span> <span class="parameter-name">user</span></span>)
+  <span class="name deprecated"><a class="deprecated" href="../launchdarkly_flutter_client_sdk/LDClient/identify.html">identify</a></span><span class="signature">(<wbr><span class="parameter" id="identify-param-user"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></span> <span class="parameter-name">user</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
   </span>
   
@@ -287,6 +276,19 @@ and method documentation for more details.</p>
 </dt>
 <dd>
   Changes the active user context.
+  
+
+</dd>
+
+        <dt id="identifyWithContext" class="callable">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/identifyWithContext.html">identifyWithContext</a></span><span class="signature">(<wbr><span class="parameter" id="identifyWithContext-param-context"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a></span> <span class="parameter-name">context</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Changes the active context.
   
 
 </dd>
@@ -299,7 +301,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as an int.
+  Returns the value of flag <code>flagKey</code> for the current context as an int.
   
 
 </dd>
@@ -312,7 +314,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as an int, along with information about the resultant value.
+  Returns the value of flag <code>flagKey</code> for the current context as an int, along with information about the resultant value.
   
 
 </dd>
@@ -351,7 +353,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as an <code>LDValue</code>.
+  Returns the value of flag <code>flagKey</code> for the current context as an <code>LDValue</code>.
   
 
 </dd>
@@ -364,7 +366,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as an <a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a>, along with information about the resultant value.
+  Returns the value of flag <code>flagKey</code> for the current context as an <a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a>, along with information about the resultant value.
   
 
 </dd>
@@ -409,7 +411,7 @@ and method documentation for more details.</p>
 </dd>
 
         <dt id="start" class="callable">
-  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/start.html">start</a></span><span class="signature">(<wbr><span class="parameter" id="start-param-config"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></span> <span class="parameter-name">config</span>, </span><span class="parameter" id="start-param-user"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></span> <span class="parameter-name">user</span></span>)
+  <span class="name deprecated"><a class="deprecated" href="../launchdarkly_flutter_client_sdk/LDClient/start.html">start</a></span><span class="signature">(<wbr><span class="parameter" id="start-param-config"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></span> <span class="parameter-name">config</span>, </span><span class="parameter" id="start-param-user"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></span> <span class="parameter-name">user</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
   </span>
   
@@ -434,6 +436,19 @@ and method documentation for more details.</p>
 
 </dd>
 
+        <dt id="startWithContext" class="callable">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/startWithContext.html">startWithContext</a></span><span class="signature">(<wbr><span class="parameter" id="startWithContext-param-config"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></span> <span class="parameter-name">config</span>, </span><span class="parameter" id="startWithContext-param-context"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a></span> <span class="parameter-name">context</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Initialize the SDK with the given <a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a> and <a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a>.
+  
+
+</dd>
+
         <dt id="stringVariation" class="callable">
   <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDClient/stringVariation.html">stringVariation</a></span><span class="signature">(<wbr><span class="parameter" id="stringVariation-param-flagKey"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">flagKey</span>, </span><span class="parameter" id="stringVariation-param-defaultValue"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">defaultValue</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>
@@ -442,7 +457,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as a string.
+  Returns the value of flag <code>flagKey</code> for the current context as a string.
   
 
 </dd>
@@ -455,7 +470,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Returns the value of flag <code>flagKey</code> for the current user as a string, along with information about the resultant value.
+  Returns the value of flag <code>flagKey</code> for the current context as a string, along with information about the resultant value.
   
 
 </dd>
@@ -468,7 +483,7 @@ and method documentation for more details.</p>
 
 </dt>
 <dd>
-  Track custom events associated with the current user for data export or experimentation.
+  Track custom events associated with the current context for data export or experimentation.
   
 
 </dd>
@@ -523,10 +538,14 @@ and method documentation for more details.</p>
     <h5>launchdarkly_flutter_client_sdk library</h5>
     <ol>
       <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#classes">Classes</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html">LDAttributesBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDClient-class.html">LDClient</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionInformation-class.html">LDConnectionInformation</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDContextAttributes-class.html">LDContextAttributes</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/LDContextBuilder-class.html">LDContextBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationDetail-class.html">LDEvaluationDetail</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationReason-class.html">LDEvaluationReason</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDFailure-class.html">LDFailure</a></li>
@@ -536,6 +555,10 @@ and method documentation for more details.</p>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueArrayBuilder-class.html">LDValueArrayBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueObjectBuilder-class.html">LDValueObjectBuilder</a></li>
 
+      <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#extensions">Extensions</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/ContextAttributesCodec.html">ContextAttributesCodec</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/ContextCodec.html">ContextCodec</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></li>
 
 
 
@@ -577,7 +600,6 @@ and method documentation for more details.</p>
 
 
         <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/LDClient-class.html#static-methods">Static methods</a></li>
-          <li><a href="../launchdarkly_flutter_client_sdk/LDClient/alias.html">alias</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/allFlags.html">allFlags</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/boolVariation.html">boolVariation</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/boolVariationDetail.html">boolVariationDetail</a></li>
@@ -586,7 +608,8 @@ and method documentation for more details.</p>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/doubleVariationDetail.html">doubleVariationDetail</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/flush.html">flush</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/getConnectionInformation.html">getConnectionInformation</a></li>
-          <li><a href="../launchdarkly_flutter_client_sdk/LDClient/identify.html">identify</a></li>
+          <li><a class="deprecated" href="../launchdarkly_flutter_client_sdk/LDClient/identify.html">identify</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDClient/identifyWithContext.html">identifyWithContext</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/intVariation.html">intVariation</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/intVariationDetail.html">intVariationDetail</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/isInitialized.html">isInitialized</a></li>
@@ -596,8 +619,9 @@ and method documentation for more details.</p>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/registerFeatureFlagListener.html">registerFeatureFlagListener</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/registerFlagsReceivedListener.html">registerFlagsReceivedListener</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/setOnline.html">setOnline</a></li>
-          <li><a href="../launchdarkly_flutter_client_sdk/LDClient/start.html">start</a></li>
+          <li><a class="deprecated" href="../launchdarkly_flutter_client_sdk/LDClient/start.html">start</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/startFuture.html">startFuture</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDClient/startWithContext.html">startWithContext</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/stringVariation.html">stringVariation</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/stringVariationDetail.html">stringVariationDetail</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDClient/track.html">track</a></li>
@@ -613,7 +637,7 @@ and method documentation for more details.</p>
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      1.3.0
+      2.0.0
   </span>
 
   

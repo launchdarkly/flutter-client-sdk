@@ -65,7 +65,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Returns a map of all feature flags for the current user, without sending evaluation events to LaunchDarkly.</p>
+  <p>Returns a map of all feature flags for the current context, without sending evaluation events to LaunchDarkly.</p>
 <p>The resultant map contains an entry for each known flag, the key being the flag's key and the value being its
 value as an <a href="../../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a>.</p>
 </section>
@@ -123,7 +123,6 @@ value as an <a href="../../launchdarkly_flutter_client_sdk/LDValue-class.html">L
 
 
         <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDClient-class.html#static-methods">Static methods</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/alias.html">alias</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/allFlags.html">allFlags</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/boolVariation.html">boolVariation</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/boolVariationDetail.html">boolVariationDetail</a></li>
@@ -132,7 +131,8 @@ value as an <a href="../../launchdarkly_flutter_client_sdk/LDValue-class.html">L
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/doubleVariationDetail.html">doubleVariationDetail</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/flush.html">flush</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/getConnectionInformation.html">getConnectionInformation</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/identify.html">identify</a></li>
+          <li><a class="deprecated" href="../../launchdarkly_flutter_client_sdk/LDClient/identify.html">identify</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/identifyWithContext.html">identifyWithContext</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/intVariation.html">intVariation</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/intVariationDetail.html">intVariationDetail</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/isInitialized.html">isInitialized</a></li>
@@ -142,8 +142,9 @@ value as an <a href="../../launchdarkly_flutter_client_sdk/LDValue-class.html">L
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/registerFeatureFlagListener.html">registerFeatureFlagListener</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/registerFlagsReceivedListener.html">registerFlagsReceivedListener</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/setOnline.html">setOnline</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/start.html">start</a></li>
+          <li><a class="deprecated" href="../../launchdarkly_flutter_client_sdk/LDClient/start.html">start</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/startFuture.html">startFuture</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/startWithContext.html">startWithContext</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/stringVariation.html">stringVariation</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/stringVariationDetail.html">stringVariationDetail</a></li>
           <li><a href="../../launchdarkly_flutter_client_sdk/LDClient/track.html">track</a></li>
@@ -162,7 +163,7 @@ value as an <a href="../../launchdarkly_flutter_client_sdk/LDValue-class.html">L
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      1.3.0
+      2.0.0
   </span>
 
   
