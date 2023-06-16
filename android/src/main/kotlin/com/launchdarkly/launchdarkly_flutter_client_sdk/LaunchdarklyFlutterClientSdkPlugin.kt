@@ -324,41 +324,41 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "start" -> {
+        // We want this Flutter plugin to support omitting keys from anonymous contexts.  The Android
+        // SDK requires us turn this on for it to operate.  iOS handles it automatically, which
+        // is why this is only appearing here in the Android plugin code.
+        val configBuilder = LDConfig.Builder().generateAnonymousKeys(true)
+        val ldConfig: LDConfig = configFromMap(call.argument("config")!!, configBuilder)
+
+        // Set up initialization lambdas for each type of context.  This is just easier to read
+        // down below when we go to make the actual calls.
+        var initClient: () -> Future<*>;
+        var identClient: (c: LDClient) -> Future<*>;
+        if (call.hasArgument("user")) {
+          // try user first
+          val ldUser: LDUser = userFrom(call.argument("user")!!)
+          initClient = { LDClient.init(application, ldConfig, ldUser)}
+          identClient = { c : LDClient -> c.identify(ldUser)}
+        } else {
+          // fallback is context since that is the more general case
+          val ldContext: LDContext = contextFrom(call.argument("context")!!)
+          initClient = { LDClient.init(application, ldConfig, ldContext)}
+          identClient = { c : LDClient -> c.identify(ldContext)}
+        }
+
+        var completion: Future<*>
+        try {
+          val instance = LDClient.get()
+          // We've already initialized the native SDK so just switch to the new user.
+          completion = identClient(instance)
+        } catch (ignored: LaunchDarklyException) {
+          // We have not already initialized the native SDK.
+          completion = initClient()
+          LDClient.get().registerAllFlagsListener(allFlagsListener)
+        }
+
         defaultScope.launch {
           withContext(Dispatchers.IO) {
-
-            // We want this Flutter plugin to support omitting keys from anonymous contexts.  The Android
-            // SDK requires us turn this on for it to operate.  iOS handles it automatically, which
-            // is why this is only appearing here in the Android plugin code.
-            val configBuilder = LDConfig.Builder().generateAnonymousKeys(true)
-            val ldConfig: LDConfig = configFromMap(call.argument("config")!!, configBuilder)
-
-            // Set up initialization lambdas for each type of context.  This is just easier to read
-            // down below when we go to make the actual calls.
-            var initClient: () -> Future<*>;
-            var identClient: (c: LDClient) -> Future<*>;
-            if (call.hasArgument("user")) {
-              // try user first
-              val ldUser: LDUser = userFrom(call.argument("user")!!)
-              initClient = { LDClient.init(application, ldConfig, ldUser)}
-              identClient = { c : LDClient -> c.identify(ldUser)}
-            } else {
-              // fallback is context since that is the more general case
-              val ldContext: LDContext = contextFrom(call.argument("context")!!)
-              initClient = { LDClient.init(application, ldConfig, ldContext)}
-              identClient = { c : LDClient -> c.identify(ldContext)}
-            }
-
-            var completion: Future<*>
-            try {
-              val instance = LDClient.get()
-              // We've already initialized the native SDK so just switch to the new user.
-              completion = identClient(instance)
-            } catch (ignored: LaunchDarklyException) {
-              // We have not already initialized the native SDK.
-              completion = initClient()
-              LDClient.get().registerAllFlagsListener(allFlagsListener)
-            }
             try {
               completion.get()
             } finally {
