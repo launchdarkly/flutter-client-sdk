@@ -2,6 +2,10 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [2.0.2] - 2023-06-16
+### Fixed:
+-Fixed: Fixes threading issue in start routine in Android native code
+
 ## [2.0.1] - 2023-06-07
 ### Fixed:
 - Flag listeners are now called correctly after identify results in flag value changes.
