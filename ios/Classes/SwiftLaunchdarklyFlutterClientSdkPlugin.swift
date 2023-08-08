@@ -155,10 +155,18 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
   }
 
   func bridgeEvalDetail<T>(_ detail: LDEvaluationDetail<T>, _ bridge: ((T) -> Any?) = { $0 as Any }) -> [String: Any?] {
-      [ "value": bridge(detail.value)
-      , "variationIndex": detail.variationIndex
-      , "reason": detail.reason?.mapValues { $0.toBridge() }
-      ] as [String: Any?]
+    var reason = detail.reason?.mapValues { $0.toBridge() }
+
+    // sc-208071 - swift sending double for index - should be int - this is a temporary fix
+    if let d = reason?["ruleIndex"] as? Double {
+        reason?["ruleIndex"] = Int(d)
+    }
+
+    return [
+      "value": bridge(detail.value),
+      "variationIndex": detail.variationIndex,
+      "reason": reason
+    ] as [String: Any?]
   }
 
   func withLDClient(_ result: @escaping FlutterResult, _ closure: ((LDClient) -> ())) {
