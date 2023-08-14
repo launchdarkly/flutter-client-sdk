@@ -33,29 +33,3 @@ extension ContextAttributesCodec on LDContextAttributes {
     return result;
   }
 }
-
-/// Extension functionality for converting [toCodecValue] to value that can
-/// be ingested as method channel arguments
-@Deprecated("LDUser is deprecated.")
-extension UserCodec on LDUser {
-
-  @visibleForTesting
-  Map<String, dynamic> toCodecValue() {
-    final Map<String, dynamic> result = <String, dynamic>{};
-    result['key'] = key;
-    result['anonymous'] = anonymous;
-    result['ip'] = ip;
-    result['email'] = email;
-    result['name'] = name;
-    result['firstName'] = firstName;
-    result['lastName'] = lastName;
-    result['avatar'] = avatar;
-    result['country'] = country;
-    result['custom'] = custom?.map((key, value) => MapEntry(key, value.codecValue()));
-    result['privateAttributeNames'] = privateAttributeNames;
-    return result;
-  }
-
-}
-
-

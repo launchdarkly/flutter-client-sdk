@@ -16,7 +16,6 @@ import 'ld_value.dart';
 export 'ld_value.dart';
 
 part 'ld_config.dart';
-part 'ld_user.dart';
 part 'ld_context.dart';
 part 'ld_context_attributes.dart';
 part 'ld_evaluation_detail.dart';
@@ -85,23 +84,12 @@ class LDClient {
     }
   }
 
-  /// Initialize the SDK with the given [LDConfig] and [LDUser].
-  ///
-  /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
-  /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
-  /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
-  @Deprecated("In favor of startWithContext taking in LDContext")
-  static Future<void> start(LDConfig config, LDUser user) async {
-    _channel.setMethodCallHandler(_handleCallbacks);
-    await _channel.invokeMethod('start', {'config': config.toCodecValue(_sdkVersion), 'user': user.toCodecValue()});
-  }
-
   /// Initialize the SDK with the given [LDConfig] and [LDContext].
   ///
   /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
   /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
   /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
-  static Future<void> startWithContext(LDConfig config, LDContext context) async {
+  static Future<void> start(LDConfig config, LDContext context) async {
     _channel.setMethodCallHandler(_handleCallbacks);
     await _channel.invokeMethod('start', {'config': config.toCodecValue(_sdkVersion), 'context': context.toCodecValue()});
   }
@@ -123,22 +111,12 @@ class LDClient {
   /// This is equivilent to checking if the `Future` returned by [LDClient.startFuture] is already completed.
   static bool isInitialized() => _startCompleter.isCompleted;
 
-  /// Changes the active user context.
-  ///
-  /// When the user context is changed, the SDK will load flag values for the user from a local cache if available, while
-  /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
-  /// containing the public [LDUser] fields for indexing on the dashboard.
-  @Deprecated("In favor of identifyWithContext taking in LDContext")
-  static Future<void> identify(LDUser user) async {
-    await _channel.invokeMethod('identify', {'user': user.toCodecValue()});
-  }
-
   /// Changes the active context.
   ///
   /// When the context is changed, the SDK will load flag values for the context from a local cache if available, while
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
-  static Future<void> identifyWithContext(LDContext context) async {
+  static Future<void> identify(LDContext context) async {
     await _channel.invokeMethod('identify', {'context': context.toCodecValue()});
   }
 
