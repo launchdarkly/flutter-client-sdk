@@ -35,13 +35,13 @@ typedef void LDFlagUpdatedCallback(String flagKey);
 /// The main interface for the LaunchDarkly Flutter SDK.
 ///
 /// To setup the SDK before use, build an [LDConfig] with [LDConfigBuilder] and an initial [LDContext] with [LDContextBuilder].
-/// These should be passed to [LDClient.startWithContext] to initialize the SDK instance. A basic example:
+/// These should be passed to [LDClient.start(config, context)] to initialize the SDK instance. A basic example:
 /// ```
 /// builder = LDContextBuilder();
 /// builder.kind("user", <USER_KEY>);
 /// builder.kind("company", <COMP_KEY>);
 /// context = builder.build();
-/// LDClient.startWithContext(config, context)
+/// LDClient.start(config, context)
 /// ```
 ///
 /// After initialization, the SDK can evaluate feature flags from the LaunchDarkly dashboard against the current context,
@@ -96,7 +96,7 @@ class LDClient {
 
   /// Returns a future that completes when the SDK has completed starting.
   ///
-  /// While it is safe to use the SDK as soon as the completion returned by the call to [LDClient.startWithContext completes, it
+  /// While it is safe to use the SDK as soon as the completion returned by the call to [LDClient.start(config, context) completes, it
   /// does not indicate the SDK has received the most recent flag values for the configured context. The `Future` returned
   /// by this method completes when the SDK has received flag values for the initial context, or if the SDK determines that
   /// it cannot currently retrieve flag values at all (such as when the device is offline).

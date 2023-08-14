@@ -46,7 +46,7 @@ class LDConfig {
   /// Whether the SDK is configured to not send diagnostic data to LaunchDarkly.
   final bool diagnosticOptOut;
 
-  /// Whether the SDK is configured to never include user attribute values in analytics requests.
+  /// Whether the SDK is configured to never include context attribute values in analytics requests.
   final bool allAttributesPrivate;
   /// The configured set of attributes to never include values for in analytics requests.
   final List<String>? privateAttributes;

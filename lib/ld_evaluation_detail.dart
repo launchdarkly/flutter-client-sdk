@@ -7,9 +7,9 @@ enum LDKind {
   OFF,
   /// Indicates that the flag was on but the user did not match any targets or rules, resulting in the fallback value.
   FALLTHROUGH,
-  /// Indicates that the user key was specifically targeted for this flag.
+  /// Indicates that the context key was specifically targeted for this flag.
   TARGET_MATCH,
-  /// Indicates that the user matched one of the flag's rules.
+  /// Indicates that the context matched one of the flag's rules.
   RULE_MATCH,
   /// Indicates that the flag was considered off because it had at least one prerequisite flag that was off or did not
   /// return the desired variation.
@@ -35,7 +35,8 @@ enum LDErrorKind {
   /// Indicates that there was an internal inconsistency in the flag data, e.g. a rule specified a non-existent
   /// variation.
   MALFORMED_FLAG,
-  /// Indicates that the caller passed `null` for the `user` parameter, or the user lacked a key.
+  /// Indicates that the caller passed `null` for the `context` parameter, or the context lacked a key.  This
+  /// enum name is an artifact of user being the predecessor to context.
   USER_NOT_SPECIFIED,
   /// Indicates that the result value was not of the requested type, e.g. you called `LDClient.boolVariationDetail` but
   /// the flag value was an `int`.
