@@ -13,6 +13,7 @@ part of launchdarkly_flutter_client_sdk;
 /// For a more complete description of user attributes and how they can be referenced in feature flag rules, see the
 /// reference guide on [setting user attributes](https://docs.launchdarkly.com/home/users/attributes) and
 /// [targeting users](https://docs.launchdarkly.com/home/flags/targeting-users).
+@Deprecated("Use LDContext instead.")
 class LDUser {
   /// The user's key.
   final String key;
@@ -61,6 +62,7 @@ class LDUser {
 }
 
 /// A builder for constructing [LDUser] objects.
+@Deprecated("Use LDContextBuilder")
 class LDUserBuilder {
   static const String _IP = "ip";
   static const String _EMAIL = "email";
