@@ -4,7 +4,7 @@ All notable changes to the LaunchDarkly Flutter client-side SDK will be document
 
 ## [2.1.0] - 2023-08-15
 ### Changed:
-- Deprecated LDUser and related functionality. Use LDContext instead. To learn more, read https://docs.launchdarkly.com/home/contexts.
+- Deprecated LDUser and related functionality. Use LDContext instead. To learn more, read about [contexts](https://docs.launchdarkly.com/home/contexts).
 
 ## [2.0.3] - 2023-08-09
 ### Fixed:
