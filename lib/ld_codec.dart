@@ -36,6 +36,7 @@ extension ContextAttributesCodec on LDContextAttributes {
 
 /// Extension functionality for converting [toCodecValue] to value that can
 /// be ingested as method channel arguments
+@Deprecated("LDUser is deprecated.")
 extension UserCodec on LDUser {
 
   @visibleForTesting

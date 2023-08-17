@@ -2,6 +2,10 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [2.1.0] - 2023-08-17
+### Changed:
+- Deprecated LDUser and related functionality. Use LDContext instead. To learn more, read about [contexts](https://docs.launchdarkly.com/home/contexts).
+
 ## [2.0.3] - 2023-08-09
 ### Fixed:
 - Fixes evaluation detail ruleIndex bug affecting iOS
