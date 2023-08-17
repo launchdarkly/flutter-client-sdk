@@ -118,15 +118,6 @@ void main() {
     propTester.expectCanSet(30 * 60 * 1000);
   });
 
-  test('maxCachedUsers', () {
-    // test that calling maxCachedUsers updated maxCachedContexts
-    var propTester = tester.prop<int>((c) => c.maxCachedContexts, (b, v) => b.maxCachedUsers(v));
-    propTester.expectDefault(5);
-    propTester.expectCanSet(10);
-    propTester.expectCanSet(-1);
-    propTester.expectSetIsChangedTo(-2, -1);
-  });
-
   test('maxCachedContexts', () {
     var propTester = tester.prop<int>((c) => c.maxCachedContexts, (b, v) => b.maxCachedContexts(v));
     propTester.expectDefault(5);

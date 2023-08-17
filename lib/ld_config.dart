@@ -46,7 +46,7 @@ class LDConfig {
   /// Whether the SDK is configured to not send diagnostic data to LaunchDarkly.
   final bool diagnosticOptOut;
 
-  /// Whether the SDK is configured to never include user attribute values in analytics requests.
+  /// Whether the SDK is configured to never include context attribute values in analytics requests.
   final bool allAttributesPrivate;
   /// The configured set of attributes to never include values for in analytics requests.
   final List<String>? privateAttributes;
@@ -226,19 +226,6 @@ class LDConfigBuilder {
   LDConfigBuilder diagnosticRecordingIntervalMillis(int diagnosticRecordingIntervalMillis) {
     this._diagnosticRecordingIntervalMillis = diagnosticRecordingIntervalMillis;
     return this;
-  }
-
-  /// Sets how many users to store the flag values for in on-device storage.
-  ///
-  /// A negative value indicates that the SDK should store the flags for every user it is configured for, never removing
-  /// the stored values for the least recently used users when the count exceed `maxCachedUsers`.
-  ///
-  /// The currently configured user is not considered part of this limit.
-  ///
-  /// The default value of this configuration option is `5`.
-  @Deprecated("In favor of maxCachedContexts")
-  LDConfigBuilder maxCachedUsers(int maxCachedUsers) {
-    return this.maxCachedContexts(maxCachedUsers);
   }
 
   /// Sets how many contexts to store the flag values for in on-device storage.

@@ -2,8 +2,8 @@
 /// [ld_value] provides the [LDValue] class that represents JSON style values.
 ///
 /// [LDValue] is used by [launchdarkly_flutter_client_sdk] (the
-/// [LaunchDarkly Flutter SDK](https://github.com/launchdarkly/flutter-client-sdk)). See [LDUserBuilder.custom] for how
-/// [LDValue] can be used to set complex data in a custom user attribute. The SDK also uses [LDValue] for representing
+/// [LaunchDarkly Flutter SDK](https://github.com/launchdarkly/flutter-client-sdk)). See [LDAttributesBuilder.set] for how
+/// [LDValue] can be used to set complex data in a custom context attribute. The SDK also uses [LDValue] for representing
 /// the value of a flag when the type is not known ahead of time, such as in [LDClient.allFlags], as well as when the
 /// flag value can be a complex value, such as in [LDClient.jsonVariation].
 library ld_value;
