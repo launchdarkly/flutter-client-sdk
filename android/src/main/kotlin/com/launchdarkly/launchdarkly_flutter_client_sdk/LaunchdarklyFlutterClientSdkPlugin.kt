@@ -6,7 +6,6 @@ import android.os.Looper
 import androidx.annotation.NonNull
 import com.launchdarkly.sdk.EvaluationReason
 import com.launchdarkly.sdk.LDContext
-import com.launchdarkly.sdk.LDUser
 import com.launchdarkly.sdk.LDValue
 import com.launchdarkly.sdk.LDValueType
 import com.launchdarkly.sdk.android.Components
@@ -15,6 +14,7 @@ import com.launchdarkly.sdk.android.FeatureFlagChangeListener
 import com.launchdarkly.sdk.android.LDAllFlagsListener
 import com.launchdarkly.sdk.android.LDClient
 import com.launchdarkly.sdk.android.LDConfig
+import com.launchdarkly.sdk.android.LDConfig.Builder.AutoEnvAttributes
 import com.launchdarkly.sdk.android.LDFailure
 import com.launchdarkly.sdk.android.LaunchDarklyException
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -25,7 +25,6 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 import kotlinx.coroutines.*
 import java.util.concurrent.Future
-import kotlin.concurrent.thread
 
 public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandler {
   private lateinit var channel : MethodChannel
@@ -79,7 +78,16 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       }
     }
 
-    fun configFromMap(map: Map<String, Any>, configBuilder: LDConfig.Builder): LDConfig {
+    fun configFromMap(map: Map<String, Any>): LDConfig {
+      val autoEnvAttributes = if (map["autoEnvAttributes"] is Boolean && map["autoEnvAttributes"] as Boolean) {
+        AutoEnvAttributes.Enabled
+      } else {
+        AutoEnvAttributes.Disabled
+      }
+      // We want this Flutter plugin to support omitting keys from anonymous contexts.  The Android
+      // SDK requires us turn this on for it to operate.  iOS handles it automatically, which
+      // is why this is only appearing here in the Android plugin code.
+      val configBuilder = LDConfig.Builder(autoEnvAttributes).generateAnonymousKeys(true)
       whenIs<String>(map["mobileKey"]) { configBuilder.mobileKey(it) }
       whenIs<Int>(map["maxCachedContexts"]) { configBuilder.maxCachedContexts(it) }
       whenIs<Boolean>(map["offline"]) { configBuilder.offline(it) }
@@ -87,12 +95,17 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       whenIs<Boolean>(map["evaluationReasons"]) { configBuilder.evaluationReasons(it) }
       whenIs<Boolean>(map["diagnosticOptOut"]) { configBuilder.diagnosticOptOut(it) }
 
-      configBuilder.applicationInfo(
-              Components.applicationInfo().apply {
-                whenIs<String>(map["applicationId"]) { this.applicationId(it) }
-                whenIs<String>(map["applicationVersion"]) { this.applicationVersion(it) }
-              }
-      )
+      // Only provide application info if at least one property is present
+      var applicationInfoIsNonEmpty = false
+      val infoBuilder = Components.applicationInfo().apply {
+        whenIs<String>(map["applicationId"]) { this.applicationId(it); applicationInfoIsNonEmpty = true}
+        whenIs<String>(map["applicationName"]) { this.applicationName(it); applicationInfoIsNonEmpty = true }
+        whenIs<String>(map["applicationVersion"]) { this.applicationVersion(it); applicationInfoIsNonEmpty = true }
+        whenIs<String>(map["applicationVersionName"]) { this.applicationVersionName(it); applicationInfoIsNonEmpty = true }
+      }
+      if (applicationInfoIsNonEmpty) {
+        configBuilder.applicationInfo(infoBuilder)
+      }
 
       configBuilder.serviceEndpoints(
               Components.serviceEndpoints().apply {
@@ -149,38 +162,6 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       )
 
       return configBuilder.build()
-    }
-
-    private val optionalFields: Map<String, Pair<(LDUser.Builder, String) -> Unit, (LDUser.Builder, String) -> Unit>> = mapOf(
-            "ip" to Pair({u, s -> u.ip(s)}, {u, s -> u.privateIp(s)}),
-            "email" to Pair({u, s -> u.email(s)}, {u ,s -> u.privateEmail(s)}),
-            "name" to Pair({u, s -> u.name(s)}, {u, s -> u.privateName(s)}),
-            "firstName" to Pair({u, s -> u.firstName(s)}, {u, s -> u.privateFirstName(s)}),
-            "lastName" to Pair({u, s -> u.lastName(s)}, {u, s -> u.privateLastName(s)}),
-            "avatar" to Pair({u, s -> u.avatar(s)}, {u, s -> u.privateAvatar(s)}),
-            "country" to Pair({u, s -> u.country(s)}, {u, s -> u.privateCountry(s)}))
-
-    @Suppress("UNCHECKED_CAST")
-    fun userFrom(map: Map<String, Any>): LDUser {
-      val userBuilder = LDUser.Builder(map["key"] as String)
-      val anonymous = map["anonymous"] as? Boolean
-      if (anonymous is Boolean) userBuilder.anonymous(anonymous)
-      val privateAttrs = (map["privateAttributeNames"] as? ArrayList<String>) ?: ArrayList()
-      for (field in optionalFields.keys) {
-        if (map[field] is String) {
-          (if (privateAttrs.contains(field)) optionalFields[field]!!.second else optionalFields[field]!!.first)(userBuilder, map[field] as String)
-        }
-      }
-      if (map["custom"] != null) {
-        for (entry in (map["custom"] as Map<String, Any>)) {
-          if (privateAttrs.contains(entry.key)) {
-            userBuilder.privateCustom(entry.key, valueFromBridge(entry.value))
-          } else {
-            userBuilder.custom(entry.key, valueFromBridge(entry.value))
-          }
-        }
-      }
-      return userBuilder.build()
     }
 
     /**
@@ -324,36 +305,17 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "start" -> {
-        // We want this Flutter plugin to support omitting keys from anonymous contexts.  The Android
-        // SDK requires us turn this on for it to operate.  iOS handles it automatically, which
-        // is why this is only appearing here in the Android plugin code.
-        val configBuilder = LDConfig.Builder().generateAnonymousKeys(true)
-        val ldConfig: LDConfig = configFromMap(call.argument("config")!!, configBuilder)
-
-        // Set up initialization lambdas for each type of context.  This is just easier to read
-        // down below when we go to make the actual calls.
-        var initClient: () -> Future<*>;
-        var identClient: (c: LDClient) -> Future<*>;
-        if (call.hasArgument("user")) {
-          // try user first
-          val ldUser: LDUser = userFrom(call.argument("user")!!)
-          initClient = { LDClient.init(application, ldConfig, ldUser)}
-          identClient = { c : LDClient -> c.identify(ldUser)}
-        } else {
-          // fallback is context since that is the more general case
-          val ldContext: LDContext = contextFrom(call.argument("context")!!)
-          initClient = { LDClient.init(application, ldConfig, ldContext)}
-          identClient = { c : LDClient -> c.identify(ldContext)}
-        }
+        val ldConfig: LDConfig = configFromMap(call.argument("config")!!)
+        val ldContext: LDContext = contextFrom(call.argument("context")!!)
 
         var completion: Future<*>
         try {
           val instance = LDClient.get()
-          // We've already initialized the native SDK so just switch to the new user.
-          completion = identClient(instance)
+          // We've already initialized the native SDK so just switch to the new context.
+          completion = instance.identify(ldContext)
         } catch (ignored: LaunchDarklyException) {
           // We have not already initialized the native SDK.
-          completion = initClient()
+          completion = LDClient.init(application, ldConfig, ldContext)
           LDClient.get().registerAllFlagsListener(allFlagsListener)
         }
 
@@ -372,14 +334,8 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       "identify" -> {
         defaultScope.launch {
           withContext(Dispatchers.IO) {
-            var completion: Future<*>
-            completion = if (call.hasArgument("user")) {
-              val ldUser: LDUser = userFrom(call.argument("user")!!)
-              LDClient.get().identify(ldUser)
-            } else {
-              val ldContext: LDContext = contextFrom(call.argument("context")!!)
-              LDClient.get().identify(ldContext)
-            }
+            val ldContext: LDContext = contextFrom(call.argument("context")!!)
+            val completion = LDClient.get().identify(ldContext)
             try {
               completion.get()
             } finally {

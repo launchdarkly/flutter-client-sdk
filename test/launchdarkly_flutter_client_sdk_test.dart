@@ -163,8 +163,10 @@ void testLDEvaluationDetail() {
 Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   final Map<String, dynamic> result = <String, dynamic>{};
   result['mobileKey'] = mobileKey;
-  result['applicationId'] = '';
-  result['applicationVersion'] = '';
+  result['applicationId'] = null;
+  result['applicationName'] = null;
+  result['applicationVersion'] = null;
+  result['applicationVersionName'] = null;
   result['pollUri'] = 'https://clientsdk.launchdarkly.com';
   result['streamUri'] = 'https://clientstream.launchdarkly.com';
   result['eventsUri'] = 'https://events.launchdarkly.com';
@@ -181,6 +183,7 @@ Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   result['useReport'] = false;
   result['evaluationReasons'] = false;
   result['diagnosticOptOut'] = false;
+  result['autoEnvAttributes'] = true;
   result['allAttributesPrivate'] = false;
   result['privateAttributes'] = null;
   result['wrapperName'] = 'FlutterClientSdk';
@@ -245,7 +248,7 @@ void testLDClient() {
     channel.setMockMethodCallHandler(mockHandler);
     // Must start SDK so it can register it's native call handler before we can mock native calling into flutter
     LDContext context = (LDContextBuilder()..kind('user','user key')).build();
-    await LDClient.start(LDConfigBuilder('mobile key').build(), context);
+    await LDClient.start(LDConfigBuilder('mobile key', AutoEnvAttributes.Enabled).build(), context);
     callQueue.removeAt(0);
     // Force reset start completion to allow testing start completion behavior
     simulateNativeCall('_resetStartCompletion', null);
@@ -259,7 +262,7 @@ void testLDClient() {
   });
 
   test('start', () async {
-    LDConfig config = LDConfigBuilder('mobile key').build();
+    LDConfig config = LDConfigBuilder('mobile key', AutoEnvAttributes.Enabled).build();
     LDContextBuilder builder = LDContextBuilder();
     builder.kind("kindA", "keyA").name("nameA");
     LDContext context = builder.build();
@@ -270,14 +273,21 @@ void testLDClient() {
   });
 
   test('start with application info', () async {
-    LDConfig config = LDConfigBuilder('mobile key').applicationId('myId').applicationVersion('myVersion').build();
+    LDConfig config = LDConfigBuilder('mobile key', AutoEnvAttributes.Enabled)
+        .applicationId('myId')
+        .applicationName('myName')
+        .applicationVersion('myVersion')
+        .applicationVersionName('myVersionName')
+        .build();
     LDContext context = (LDContextBuilder()..kind('user','user key')).build();
     Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
     Map<String, dynamic> expectedUser = defaultUser('user key');
     await LDClient.start(config, context);
     var arguments = takeCall.arguments['config'];
     expect(arguments['applicationId'], equals('myId'));
+    expect(arguments['applicationName'], equals('myName'));
     expect(arguments['applicationVersion'], equals('myVersion'));
+    expect(arguments['applicationVersionName'], equals('myVersionName'));
   });
 
   test('startFuture after completed', () async {

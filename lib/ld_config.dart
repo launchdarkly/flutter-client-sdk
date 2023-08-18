@@ -6,8 +6,10 @@ class LDConfig {
   /// The configured mobile SDK key.
   final String mobileKey;
 
-  final String applicationId;
-  final String applicationVersion;
+  final String? applicationId;
+  final String? applicationName;
+  final String? applicationVersion;
+  final String? applicationVersionName;
 
   /// The configured URI for polling requests.
   final String pollUri;
@@ -45,6 +47,9 @@ class LDConfig {
   final bool evaluationReasons;
   /// Whether the SDK is configured to not send diagnostic data to LaunchDarkly.
   final bool diagnosticOptOut;
+  /// Whether the SDK will automatically provide data about the mobile environment
+  /// where the application is running.
+  final bool autoEnvAttributes;
 
   /// Whether the SDK is configured to never include context attribute values in analytics requests.
   final bool allAttributesPrivate;
@@ -54,7 +59,9 @@ class LDConfig {
   LDConfig._builder(LDConfigBuilder builder) :
         mobileKey = builder._mobileKey,
         applicationId = builder._applicationId,
+        applicationName = builder._applicationName,
         applicationVersion = builder._applicationVersion,
+        applicationVersionName = builder._applicationVersionName,
         pollUri = builder._pollUri,
         eventsUri = builder._eventsUri,
         streamUri = builder._streamUri,
@@ -71,6 +78,7 @@ class LDConfig {
         useReport = builder._useReport,
         evaluationReasons = builder._evaluationReasons,
         diagnosticOptOut = builder._diagnosticOptOut,
+        autoEnvAttributes = builder._autoEnvAttributes,
         allAttributesPrivate = builder._allAttributesPrivate,
         privateAttributes = builder._privateAttributes.isEmpty ? null : List.unmodifiable(builder._privateAttributes);
 
@@ -78,7 +86,9 @@ class LDConfig {
     final Map<String, dynamic> result = <String, dynamic>{};
     result['mobileKey'] = mobileKey;
     result['applicationId'] = applicationId;
+    result['applicationName'] = applicationName;
     result['applicationVersion'] = applicationVersion;
+    result['applicationVersionName'] = applicationVersionName;
     result['pollUri'] = pollUri;
     result['eventsUri'] = eventsUri;
     result['streamUri'] = streamUri;
@@ -95,6 +105,7 @@ class LDConfig {
     result['useReport'] = useReport;
     result['evaluationReasons'] = evaluationReasons;
     result['diagnosticOptOut'] = diagnosticOptOut;
+    result['autoEnvAttributes'] = autoEnvAttributes;
     result['allAttributesPrivate'] = allAttributesPrivate;
     result['privateAttributes'] = privateAttributes;
     result['wrapperName'] = 'FlutterClientSdk';
@@ -107,8 +118,10 @@ class LDConfig {
 class LDConfigBuilder {
   String _mobileKey;
 
-  String _applicationId = "";
-  String _applicationVersion = "";
+  String? _applicationId;
+  String? _applicationName;
+  String? _applicationVersion;
+  String? _applicationVersionName;
 
   String _pollUri = "https://clientsdk.launchdarkly.com";
   String _eventsUri = "https://events.launchdarkly.com";
@@ -128,12 +141,26 @@ class LDConfigBuilder {
   bool _useReport = false;
   bool _evaluationReasons = false;
   bool _diagnosticOptOut = false;
+  bool _autoEnvAttributes = false;
 
   bool _allAttributesPrivate = false;
   Set<String> _privateAttributes = Set();
 
-  /// Create a new `LDConfigBuilder` for the given mobile key.
-  LDConfigBuilder(this._mobileKey);
+  ///  Create a new `LDConfigBuilder`.  Configurable values are all set to their
+  ///  default values. The client app can modify these values as desired.
+  ///
+  /// - Parameters:
+  ///     - mobileKey: key for authentication with LaunchDarkly.
+  ///     - autoEnvAttributes: Enable / disable Auto Environment Attributes functionality.
+  ///     When enabled, the SDK will automatically provide data about the mobile environment
+  ///     where the application is running. This data makes it simpler to target your mobile
+  ///     customers based on application name or version, or on device characteristics including
+  ///     manufacturer, model, operating system, locale, and so on. We recommend enabling
+  ///     this when you configure the SDK.  See https://docs.launchdarkly.com/sdk/features/environment-attributes
+  ///     for more documentation.
+  LDConfigBuilder(this._mobileKey, AutoEnvAttributes autoEnvAttributes) {
+    _autoEnvAttributes = autoEnvAttributes == AutoEnvAttributes.Enabled; // mapping enum to boolean
+  }
 
   /// A unique identifier representing the application where the LaunchDarkly SDK is running.
   ///
@@ -144,6 +171,18 @@ class LDConfigBuilder {
   /// Example: 'authentication-service'
   LDConfigBuilder applicationId(String applicationId) {
     this._applicationId = applicationId;
+    return this;
+  }
+
+  /// A friendly name for the application where the LaunchDarkly SDK is running.
+  ///
+  /// This can be specified as any string value as long as it only uses the following characters:
+  /// ASCII letters, ASCII digits, spaces, period, hyphen, underscore. A string containing any other
+  /// characters will be ignored.
+  ///
+  /// Example: 'My Cool Application'
+  LDConfigBuilder applicationName(String applicationName) {
+    this._applicationName = applicationName;
     return this;
   }
 
@@ -158,6 +197,18 @@ class LDConfigBuilder {
   ///
   LDConfigBuilder applicationVersion(String applicationVersion) {
     this._applicationVersion = applicationVersion;
+    return this;
+  }
+
+  /// A friendly name for the application version where the LaunchDarkly SDK is running.
+  ///
+  /// This can be specified as any string value as long as it only uses the following characters:
+  /// ASCII letters, ASCII digits, spaces, period, hyphen, underscore. A string containing any other
+  /// characters will be ignored.
+  ///
+  /// Example: '1.0'
+  LDConfigBuilder applicationVersionName(String applicationVersionName) {
+    this._applicationVersionName = applicationVersionName;
     return this;
   }
 
@@ -316,3 +367,15 @@ class LDConfigBuilder {
     return LDConfig._builder(this);
   }
 }
+
+/// Enable / disable options for Auto Environment Attributes functionality.  When enabled, the SDK will automatically
+/// provide data about the mobile environment where the application is running. This data makes it simpler to target
+/// your mobile customers based on application name or version, or on device characteristics including manufacturer,
+/// model, operating system, locale, and so on. We recommend enabling this when you configure the SDK.  See TKTK
+/// for more documentation.
+/// For example, consider a “dark mode” feature being added to an app. Versions 10 through 14 contain early,
+/// incomplete versions of the feature. These versions are available to all customers, but the “dark mode” feature is only
+/// enabled for testers.  With version 15, the feature is considered complete. With Auto Environment Attributes enabled,
+/// you can use targeting rules to enable "dark mode" for all customers who are using version 15 or greater, and ensure
+/// that customers on previous versions don't use the earlier, unfinished version of the feature.
+enum AutoEnvAttributes { Enabled, Disabled }

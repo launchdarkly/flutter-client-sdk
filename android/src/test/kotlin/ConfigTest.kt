@@ -24,7 +24,9 @@ internal class ConfigTest {
         val input: Map<String, Any> = hashMapOf(
                 "mobileKey" to "mobileKey",
                 "applicationId" to "myAppId",
+                "applicationName" to "myAppName"
                 "applicationVersion" to "myAppVersion",
+                "applicationVersionName" to "myAppVersionName",
                 "pollUri" to "pollUri",
                 "eventsUri" to "eventsUri",
                 "streamUri" to "streamUri",
@@ -63,7 +65,9 @@ internal class ConfigTest {
 
         val capturedAppInfo = appInfoSlot.captured.createApplicationInfo()
         assertEquals("myAppId", capturedAppInfo.getApplicationId())
+        assertEquals("myAppName", capturedAppInfo.getApplicationName())
         assertEquals("myAppVersion", capturedAppInfo.getApplicationVersion())
+        assertEquals("myAppVersionName", capturedAppInfo.getApplicationVersionName())
 
         val capturedServiceEndpoints = endpointsSlot.captured.createServiceEndpoints()
         assertEquals("pollUri", capturedServiceEndpoints.getPollingBaseUri().toString())
@@ -79,7 +83,9 @@ internal class ConfigTest {
     fun `test configFromMap builds application data correctly`() {
         val input: Map<String, Any> = hashMapOf(
                 "applicationId" to "myAppId",
+                "applicationName" to "myAppName",
                 "applicationVersion" to "myAppVersion",
+                "applicationVersionName" to "myAppVersionName",
         )
 
         val spyBuilder = spyk(LDConfig.Builder())
@@ -90,7 +96,9 @@ internal class ConfigTest {
 
         val capturedAppInfo = slot.captured.createApplicationInfo()
         assertEquals("myAppId", capturedAppInfo.getApplicationId())
+        assertEquals("myAppName", capturedAppInfo.getApplicationName())
         assertEquals("myAppVersion", capturedAppInfo.getApplicationVersion())
+        assertEquals("myAppVersionName", capturedAppInfo.getApplicationVersionName())
     }
 
     @Test
@@ -105,7 +113,9 @@ internal class ConfigTest {
 
         val capturedAppInfo = slot.captured.createApplicationInfo()
         assertEquals(null, capturedAppInfo.getApplicationId())
+        assertEquals(null, capturedAppInfo.getApplicationName())
         assertEquals(null, capturedAppInfo.getApplicationVersion())
+        assertEquals(null, capturedAppInfo.getApplicationVersionName())
     }
 
     @Test
