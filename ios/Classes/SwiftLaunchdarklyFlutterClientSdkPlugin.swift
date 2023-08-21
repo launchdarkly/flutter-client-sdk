@@ -28,12 +28,19 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
   }
 
   public static func configFrom(dict: [String: Any?]) -> LDConfig {
-    var config = LDConfig(mobileKey: dict["mobileKey"] as! String)
+    let autoEnvAttributes: AutoEnvAttributes = (dict["autoEnvAttributes"] as? Bool ?? false) ? .enabled : .disabled
+    var config = LDConfig(mobileKey: dict["mobileKey"] as! String, autoEnvAttributes: autoEnvAttributes)
 
+    // Only provide application info if at least one property is present
+    var applicationInfoIsNonEmpty = false
     var applicationInfo = ApplicationInfo()
-    whenIs(String.self, dict["applicationId"]) { applicationInfo.applicationIdentifier($0) }
-    whenIs(String.self, dict["applicationVersion"]) { applicationInfo.applicationVersion($0) }
-    config.applicationInfo = applicationInfo
+    whenIs(String.self, dict["applicationId"]) { applicationInfo.applicationIdentifier($0); applicationInfoIsNonEmpty = true }
+    whenIs(String.self, dict["applicationName"]) { applicationInfo.applicationName($0); applicationInfoIsNonEmpty = true }
+    whenIs(String.self, dict["applicationVersion"]) { applicationInfo.applicationVersion($0); applicationInfoIsNonEmpty = true }
+    whenIs(String.self, dict["applicationVersionName"]) { applicationInfo.applicationVersionName($0); applicationInfoIsNonEmpty = true }
+    if (applicationInfoIsNonEmpty) {
+      config.applicationInfo = applicationInfo
+    }
 
     whenIs(String.self, dict["pollUri"]) { config.baseUrl = URL(string: $0)! }
     whenIs(String.self, dict["eventsUri"]) { config.eventsUrl = URL(string: $0)! }
@@ -59,25 +66,6 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     return config
   }
 
-  func userFrom(dict: [String: Any?]) -> LDUser {
-    let user = LDUser(
-      key: dict["key"] as? String,
-      name: dict["name"] as? String,
-      firstName: dict["firstName"] as? String,
-      lastName: dict["firstName"] as? String,
-      country: dict["country"] as? String,
-      ipAddress: dict["ip"] as? String,
-      email: dict["email"] as? String,
-      avatar: dict["avatar"] as? String,
-      
-      custom: (dict["custom"] as? [String: Any] ?? [:]).mapValues { LDValue.fromBridge($0) },
-      isAnonymous: dict["anonymous"] as? Bool,
-      privateAttributes: (dict["privateAttributeNames"] as? [String] ?? []).map { UserAttribute.forName($0) }
-    )
-
-    return user
-  }
-  
   /// Creates a context from a list of provided dictionaries of serialized contexts.
   ///
   /// - Parameters:
@@ -180,29 +168,13 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     closure(client)
   }
   
-  func startWithUser(configDict: [String: Any], userDict: [String: Any], result: @escaping FlutterResult) {
-    let user = userFrom(dict: userDict)
-    let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
-    let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: configDict)
-    if let client = LDClient.get() {
-      // We've already initialized the native SDK so just switch to the new user.
-      client.identify(user: user, completion: completion)
-    } else {
-      // We have not already initialized the native SDK.
-      LDClient.start(config: config, user: user, completion: completion)
-      LDClient.get()?.observeFlagsUnchanged(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: [String]()) }
-      LDClient.get()?.observeAll(owner: self) { self.channel.invokeMethod("handleFlagsReceived", arguments: Array($0.keys)) }
-    }
-    result(nil)
-  }
-  
   func startWithContext(configDict: [String: Any], contextList: [[String: Any]], result: @escaping FlutterResult) {
     let completion = { self.channel.invokeMethod("completeStart", arguments: nil) }
     let config = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: configDict)
     switch SwiftLaunchdarklyFlutterClientSdkPlugin.contextFrom(list: contextList) {
     case .success(let context):
       if let client = LDClient.get() {
-        // We've already initialized the native SDK so just switch to the new user.
+        // We've already initialized the native SDK so just switch to the new context.
         client.identify(context: context, completion: completion)
       } else {
         // We have not already initialized the native SDK.
@@ -214,10 +186,6 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     case .failure(let error):
       result(FlutterError(code: "INVALID_CONTEXT", message: error.localizedDescription, details: nil))
     }
-  }
-  
-  func identifyWithUser(userDict: [String: Any], result: @escaping FlutterResult) {
-    withLDClient(result) { $0.identify(user: userFrom(dict: userDict)) { result(nil) } }
   }
   
   func identifyWithContext(contextList: [[String: Any]], result: @escaping FlutterResult) {
@@ -234,19 +202,11 @@ public class SwiftLaunchdarklyFlutterClientSdkPlugin: NSObject, FlutterPlugin {
     switch call.method {
     case "start":
       let configArg = args?["config"] as! [String: Any]
-      if let userArg = (args?["user"] as? [String: Any]) {
-        startWithUser(configDict: configArg, userDict: userArg, result: result)
-      } else {
-        let contextArg = args!["context"] as! [[String: Any]]
-        startWithContext(configDict: configArg, contextList: contextArg, result: result)
-      }
+      let contextArg = args!["context"] as! [[String: Any]]
+      startWithContext(configDict: configArg, contextList: contextArg, result: result)
     case "identify":
-      if let userArg = (args?["user"] as? [String: Any]) {
-        identifyWithUser(userDict: userArg, result: result)
-      } else {
-        let contextArg = args!["context"] as! [[String: Any]]
-        identifyWithContext(contextList: contextArg, result: result)
-      }
+      let contextArg = args!["context"] as! [[String: Any]]
+      identifyWithContext(contextList: contextArg, result: result)
     case "track":
       withLDClient(result) { client in
         client.track(key: args?["eventName"] as! String,
