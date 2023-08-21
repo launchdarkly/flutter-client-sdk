@@ -371,8 +371,9 @@ class LDConfigBuilder {
 /// Enable / disable options for Auto Environment Attributes functionality.  When enabled, the SDK will automatically
 /// provide data about the mobile environment where the application is running. This data makes it simpler to target
 /// your mobile customers based on application name or version, or on device characteristics including manufacturer,
-/// model, operating system, locale, and so on. We recommend enabling this when you configure the SDK.  See TKTK
-/// for more documentation.
+/// model, operating system, locale, and so on. We recommend enabling this when you configure the SDK.  See
+/// https://docs.launchdarkly.com/sdk/features/environment-attributes for more documentation.
+///
 /// For example, consider a “dark mode” feature being added to an app. Versions 10 through 14 contain early,
 /// incomplete versions of the feature. These versions are available to all customers, but the “dark mode” feature is only
 /// enabled for testers.  With version 15, the feature is considered complete. With Auto Environment Attributes enabled,
