@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.NonNull
+import androidx.annotation.VisibleForTesting;
 import com.launchdarkly.sdk.EvaluationReason
 import com.launchdarkly.sdk.LDContext
 import com.launchdarkly.sdk.LDValue
@@ -84,10 +85,16 @@ public class LaunchdarklyFlutterClientSdkPlugin: FlutterPlugin, MethodCallHandle
       } else {
         AutoEnvAttributes.Disabled
       }
+
+      val configBuilder = LDConfig.Builder(autoEnvAttributes).generateAnonymousKeys(true)
+      return internalConfigFromMap(map, configBuilder)
+    }
+
+    @VisibleForTesting
+    fun internalConfigFromMap(map: Map<String, Any>, configBuilder: LDConfig.Builder): LDConfig {
       // We want this Flutter plugin to support omitting keys from anonymous contexts.  The Android
       // SDK requires us turn this on for it to operate.  iOS handles it automatically, which
       // is why this is only appearing here in the Android plugin code.
-      val configBuilder = LDConfig.Builder(autoEnvAttributes).generateAnonymousKeys(true)
       whenIs<String>(map["mobileKey"]) { configBuilder.mobileKey(it) }
       whenIs<Int>(map["maxCachedContexts"]) { configBuilder.maxCachedContexts(it) }
       whenIs<Boolean>(map["offline"]) { configBuilder.offline(it) }
