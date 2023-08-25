@@ -15,7 +15,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String? typeDropdown = 'Boolean';
-  String userKey = '';
+  final String contextKind = 'user';
+  String contextKey = '';
   String evalKey = '';
   String evalResult = '';
   bool offline = false;
@@ -28,11 +29,12 @@ class _MyAppState extends State<MyApp> {
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
-    final LDConfig ldConfig = LDConfigBuilder('MOBILE_KEY')
+    final LDConfig ldConfig = LDConfigBuilder('MOBILE_KEY', AutoEnvAttributes.Enabled)
         .build();
-    final LDUser ldUser = LDUserBuilder('user key').build();
 
-    await LDClient.start(ldConfig, ldUser);
+    LDContextBuilder builder = LDContextBuilder();
+    builder.kind(contextKind, "user-key-123abc");
+    await LDClient.start(ldConfig, builder.build());
 
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
@@ -72,8 +74,9 @@ class _MyAppState extends State<MyApp> {
   }
 
   void identify() async {
-    final LDUser ldUser = LDUserBuilder(userKey).build();
-    await LDClient.identify(ldUser);
+    LDContextBuilder builder = LDContextBuilder();
+    builder.kind(contextKind, contextKey);
+    await LDClient.identify(builder.build());
   }
 
   void flush() async {
@@ -125,7 +128,7 @@ class _MyAppState extends State<MyApp> {
               Spacer(),
               Divider(),
               Row(children: [
-                Expanded(child: TextField(onChanged: (text) { setState(() { userKey = text; }); },
+                Expanded(child: TextField(onChanged: (text) { setState(() { contextKey = text; }); },
                     decoration: InputDecoration.collapsed(hintText: 'User Key', border: UnderlineInputBorder()))),
                 Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
                 ElevatedButton(child: Text('Identify'), onPressed: identify)

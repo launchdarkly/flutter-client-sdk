@@ -163,8 +163,10 @@ void testLDEvaluationDetail() {
 Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   final Map<String, dynamic> result = <String, dynamic>{};
   result['mobileKey'] = mobileKey;
-  result['applicationId'] = '';
-  result['applicationVersion'] = '';
+  result['applicationId'] = null;
+  result['applicationName'] = null;
+  result['applicationVersion'] = null;
+  result['applicationVersionName'] = null;
   result['pollUri'] = 'https://clientsdk.launchdarkly.com';
   result['streamUri'] = 'https://clientstream.launchdarkly.com';
   result['eventsUri'] = 'https://events.launchdarkly.com';
@@ -181,6 +183,7 @@ Map<String, dynamic> defaultConfigBridged(String mobileKey) {
   result['useReport'] = false;
   result['evaluationReasons'] = false;
   result['diagnosticOptOut'] = false;
+  result['autoEnvAttributes'] = true;
   result['allAttributesPrivate'] = false;
   result['privateAttributes'] = null;
   result['wrapperName'] = 'FlutterClientSdk';
@@ -244,7 +247,8 @@ void testLDClient() {
   setUp(() async {
     channel.setMockMethodCallHandler(mockHandler);
     // Must start SDK so it can register it's native call handler before we can mock native calling into flutter
-    await LDClient.start(LDConfigBuilder('mobile key').build(), LDUserBuilder('user key').build());
+    LDContext context = (LDContextBuilder()..kind('user','user key')).build();
+    await LDClient.start(LDConfigBuilder('mobile key', AutoEnvAttributes.Enabled).build(), context);
     callQueue.removeAt(0);
     // Force reset start completion to allow testing start completion behavior
     simulateNativeCall('_resetStartCompletion', null);
@@ -258,34 +262,32 @@ void testLDClient() {
   });
 
   test('start', () async {
-    LDConfig config = LDConfigBuilder('mobile key').build();
-    LDUser user = LDUserBuilder('user key').build();
-    Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
-    Map<String, dynamic> expectedUser = defaultUser('user key');
-    await LDClient.start(config, user);
-    expectCall('start', {'config': expectedConfig, 'user': expectedUser });
-  });
-
-  test('startWithContext', () async {
-    LDConfig config = LDConfigBuilder('mobile key').build();
+    LDConfig config = LDConfigBuilder('mobile key', AutoEnvAttributes.Enabled).build();
     LDContextBuilder builder = LDContextBuilder();
     builder.kind("kindA", "keyA").name("nameA");
     LDContext context = builder.build();
     Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
     Map<String, dynamic> expectedContext = {'kind':'kindA','key':'keyA', 'name':'nameA', '_meta':{}};
-    await LDClient.startWithContext(config, context);
+    await LDClient.start(config, context);
     expectCall('start', {'config': expectedConfig, 'context': [expectedContext] });
   });
 
   test('start with application info', () async {
-    LDConfig config = LDConfigBuilder('mobile key').applicationId('myId').applicationVersion('myVersion').build();
-    LDUser user = LDUserBuilder('user key').build();
+    LDConfig config = LDConfigBuilder('mobile key', AutoEnvAttributes.Enabled)
+        .applicationId('myId')
+        .applicationName('myName')
+        .applicationVersion('myVersion')
+        .applicationVersionName('myVersionName')
+        .build();
+    LDContext context = (LDContextBuilder()..kind('user','user key')).build();
     Map<String, dynamic> expectedConfig = defaultConfigBridged('mobile key');
     Map<String, dynamic> expectedUser = defaultUser('user key');
-    await LDClient.start(config, user);
+    await LDClient.start(config, context);
     var arguments = takeCall.arguments['config'];
     expect(arguments['applicationId'], equals('myId'));
+    expect(arguments['applicationName'], equals('myName'));
     expect(arguments['applicationVersion'], equals('myVersion'));
+    expect(arguments['applicationVersionName'], equals('myVersionName'));
   });
 
   test('startFuture after completed', () async {
@@ -330,26 +332,11 @@ void testLDClient() {
   });
 
   test('identify', () async {
-    LDUser user = LDUserBuilder('user key')
-        .email('test@example.com')
-        .privateIp('192.0.2.5')
-        .custom('data', LDValue.buildObject().addBool('isValid', true).build())
-        .build();
-    Map<String, dynamic> expectedUser = defaultUser('user key');
-    expectedUser['email'] = 'test@example.com';
-    expectedUser['ip'] = '192.0.2.5';
-    expectedUser['custom'] = { 'data': { 'isValid': true } };
-    expectedUser['privateAttributeNames'] = ['ip'];
-    await LDClient.identify(user);
-    expectCall('identify', {'user': expectedUser });
-  });
-
-  test('identifyWithContext', () async {
     LDContextBuilder builder = LDContextBuilder();
     builder.kind("kindA", "keyA").name("nameA");
     LDContext context = builder.build();
     Map<String, dynamic> expectedContext = {'kind':'kindA','key':'keyA', 'name':'nameA', '_meta':{}};
-    await LDClient.identifyWithContext(context);
+    await LDClient.identify(context);
     expectCall('identify', {'context': [expectedContext] });
   });
 

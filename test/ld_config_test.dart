@@ -8,7 +8,7 @@ class BuildTester<TBuilder, TBuilt> {
   BuildTester(this.constructor, this.buildMethod);
 
   BuildPropertyTester<TBuilder, TBuilt, TValue> prop<TValue>(
-      TValue Function(TBuilt) getter,
+      TValue? Function(TBuilt) getter,
       void Function(TBuilder, TValue) setter) {
     return BuildPropertyTester(this, getter, setter);
   }
@@ -16,12 +16,12 @@ class BuildTester<TBuilder, TBuilt> {
 
 class BuildPropertyTester<TBuilder, TBuilt, TValue> {
   final BuildTester<TBuilder, TBuilt> owner;
-  final TValue Function(TBuilt) getter;
+  final TValue? Function(TBuilt) getter;
   final void Function(TBuilder, TValue) builderSetter;
 
   BuildPropertyTester(this.owner, this.getter, this.builderSetter);
 
-  expectDefault(TValue defaultValue) {
+  expectDefault(TValue? defaultValue) {
     TBuilder b = owner.constructor();
     expectValue(b, defaultValue);
   }
@@ -36,7 +36,7 @@ class BuildPropertyTester<TBuilder, TBuilt, TValue> {
     expectValue(b, resultingValue);
   }
 
-  expectValue(TBuilder b, TValue v) {
+  expectValue(TBuilder b, TValue? v) {
     TBuilt o = owner.buildMethod(b);
     expect(getter(o), equals(v));
   }
@@ -44,24 +44,36 @@ class BuildPropertyTester<TBuilder, TBuilt, TValue> {
 
 void main() {
   var tester = BuildTester<LDConfigBuilder, LDConfig>(
-    () { return LDConfigBuilder('test-key'); },
+    () { return LDConfigBuilder('test-key', AutoEnvAttributes.Enabled); },
     (builder) { return builder.build(); });
 
   test('mobileKey', () {
-    var builder = LDConfigBuilder('test-key');
+    var builder = LDConfigBuilder('test-key', AutoEnvAttributes.Enabled);
     expect(builder.build().mobileKey, equals('test-key'));
   });
 
   test('applicationId', () {
     var propTester = tester.prop<String>((c) => c.applicationId, (b, v) => b.applicationId(v));
-    propTester.expectDefault('');
+    propTester.expectDefault(null);
     propTester.expectCanSet('myId');
+  });
+
+  test('applicationName', () {
+    var propTester = tester.prop<String>((c) => c.applicationName, (b, v) => b.applicationName(v));
+    propTester.expectDefault(null);
+    propTester.expectCanSet('myName');
   });
 
   test('applicationVersion', () {
     var propTester = tester.prop<String>((c) => c.applicationVersion, (b, v) => b.applicationVersion(v));
-    propTester.expectDefault('');
+    propTester.expectDefault(null);
     propTester.expectCanSet('myVersion');
+  });
+
+  test('applicationVersionName', () {
+    var propTester = tester.prop<String>((c) => c.applicationVersionName, (b, v) => b.applicationVersionName(v));
+    propTester.expectDefault(null);
+    propTester.expectCanSet('myVersionName');
   });
 
   test('pollUri', () {
@@ -116,15 +128,6 @@ void main() {
     var propTester = tester.prop<int>((c) => c.diagnosticRecordingIntervalMillis, (b, v) => b.diagnosticRecordingIntervalMillis(v));
     propTester.expectDefault(15 * 60 * 1000);
     propTester.expectCanSet(30 * 60 * 1000);
-  });
-
-  test('maxCachedUsers', () {
-    // test that calling maxCachedUsers updated maxCachedContexts
-    var propTester = tester.prop<int>((c) => c.maxCachedContexts, (b, v) => b.maxCachedUsers(v));
-    propTester.expectDefault(5);
-    propTester.expectCanSet(10);
-    propTester.expectCanSet(-1);
-    propTester.expectSetIsChangedTo(-2, -1);
   });
 
   test('maxCachedContexts', () {
@@ -186,9 +189,11 @@ void main() {
   });
 
   test('config encoding', () {
-    var output = LDConfigBuilder('test-key')
+    var output = LDConfigBuilder('test-key', AutoEnvAttributes.Enabled)
         .applicationId('anID')
+        .applicationName('aName')
         .applicationVersion('aVersion')
+        .applicationVersionName('aVersionName')
         .pollUri('pollingUrl')
         .eventsUri('eventsUrl')
         .streamUri('streamUri')
@@ -210,7 +215,9 @@ void main() {
     Map<String, dynamic> expectedOutput = {
       'mobileKey': 'test-key',
       'applicationId': 'anID',
+      'applicationName': 'aName',
       'applicationVersion': 'aVersion',
+      'applicationVersionName': 'aVersionName',
       'pollUri': 'pollingUrl',
       'eventsUri': 'eventsUrl',
       'streamUri': 'streamUri',
@@ -227,6 +234,7 @@ void main() {
       'useReport': false,
       'evaluationReasons': true,
       'diagnosticOptOut': false,
+      'autoEnvAttributes': true,
       'allAttributesPrivate': false,
       'privateAttributes': null,
       'wrapperName': 'FlutterClientSdk',
