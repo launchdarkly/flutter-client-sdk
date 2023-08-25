@@ -67,10 +67,11 @@
 
     <dl class="constructor-summary-list">
         <dt id="LDConfigBuilder" class="callable">
-          <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/LDConfigBuilder.html">LDConfigBuilder</a></span><span class="signature">(<span class="parameter" id="-param-_mobileKey"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">_mobileKey</span></span>)</span>
+          <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/LDConfigBuilder.html">LDConfigBuilder</a></span><span class="signature">(<span class="parameter" id="-param-_mobileKey"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">_mobileKey</span>, </span><span class="parameter" id="-param-autoEnvAttributes"><span class="type-annotation"><a href="../launchdarkly_flutter_client_sdk/AutoEnvAttributes.html">AutoEnvAttributes</a></span> <span class="parameter-name">autoEnvAttributes</span></span>)</span>
         </dt>
         <dd>
-          Create a new <code>LDConfigBuilder</code> for the given mobile key.
+          Create a new <code>LDConfigBuilder</code>.  Configurable values are all set to their
+ default values. The client app can modify these values as desired.
         </dd>
     </dl>
   </section>
@@ -136,6 +137,19 @@
 
 </dd>
 
+        <dt id="applicationName" class="callable">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationName.html">applicationName</a></span><span class="signature">(<wbr><span class="parameter" id="applicationName-param-applicationName"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">applicationName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  A friendly name for the application where the LaunchDarkly SDK is running.
+  
+
+</dd>
+
         <dt id="applicationVersion" class="callable">
   <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationVersion.html">applicationVersion</a></span><span class="signature">(<wbr><span class="parameter" id="applicationVersion-param-applicationVersion"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">applicationVersion</span></span>)
     <span class="returntype parameter">&#8594; <a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></span>
@@ -146,6 +160,19 @@
 <dd>
   A unique identifier representing the version of the application where the LaunchDarkly SDK is
 running.
+  
+
+</dd>
+
+        <dt id="applicationVersionName" class="callable">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationVersionName.html">applicationVersionName</a></span><span class="signature">(<wbr><span class="parameter" id="applicationVersionName-param-applicationVersionName"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">applicationVersionName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  A friendly name for the application version where the LaunchDarkly SDK is running.
   
 
 </dd>
@@ -289,19 +316,6 @@ running.
 </dt>
 <dd>
   Sets how many contexts to store the flag values for in on-device storage.
-  
-
-</dd>
-
-        <dt id="maxCachedUsers" class="callable">
-  <span class="name deprecated"><a class="deprecated" href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/maxCachedUsers.html">maxCachedUsers</a></span><span class="signature">(<wbr><span class="parameter" id="maxCachedUsers-param-maxCachedUsers"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">maxCachedUsers</span></span>)
-    <span class="returntype parameter">&#8594; <a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></span>
-  </span>
-  
-
-</dt>
-<dd>
-  Sets how many users to store the flag values for in on-device storage.
   
 
 </dd>
@@ -481,8 +495,6 @@ running.
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationDetail-class.html">LDEvaluationDetail</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationReason-class.html">LDEvaluationReason</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDFailure-class.html">LDFailure</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueArrayBuilder-class.html">LDValueArrayBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueObjectBuilder-class.html">LDValueObjectBuilder</a></li>
@@ -490,13 +502,13 @@ running.
       <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#extensions">Extensions</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/ContextAttributesCodec.html">ContextAttributesCodec</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/ContextCodec.html">ContextCodec</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></li>
 
 
 
 
 
       <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#enums">Enums</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/AutoEnvAttributes.html">AutoEnvAttributes</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionState.html">LDConnectionState</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDErrorKind.html">LDErrorKind</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDFailureType.html">LDFailureType</a></li>
@@ -527,7 +539,9 @@ running.
         <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html#instance-methods">Methods</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/allAttributesPrivate.html">allAttributesPrivate</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationId.html">applicationId</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationName.html">applicationName</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationVersion.html">applicationVersion</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/applicationVersionName.html">applicationVersionName</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/backgroundPollingIntervalMillis.html">backgroundPollingIntervalMillis</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/build.html">build</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/connectionTimeoutMillis.html">connectionTimeoutMillis</a></li>
@@ -539,7 +553,6 @@ running.
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/eventsFlushIntervalMillis.html">eventsFlushIntervalMillis</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/eventsUri.html">eventsUri</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/maxCachedContexts.html">maxCachedContexts</a></li>
-          <li><a class="deprecated" href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/maxCachedUsers.html">maxCachedUsers</a></li>
           <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/offline.html">offline</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfigBuilder/pollingIntervalMillis.html">pollingIntervalMillis</a></li>
@@ -565,7 +578,7 @@ running.
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      2.0.0
+      3.0.0
   </span>
 
   

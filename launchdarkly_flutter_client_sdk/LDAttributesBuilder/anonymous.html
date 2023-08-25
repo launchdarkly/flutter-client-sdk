@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the anonymous method from the LDUserBuilder class, for the Dart programming language.">
-  <title>anonymous method - LDUserBuilder class - launchdarkly_flutter_client_sdk library - Dart API</title>
+  <meta name="description" content="API docs for the anonymous method from the LDAttributesBuilder class, for the Dart programming language.">
+  <title>anonymous method - LDAttributesBuilder class - launchdarkly_flutter_client_sdk library - Dart API</title>
 
 
   
@@ -30,7 +30,7 @@
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html">LDAttributesBuilder</a></li>
     <li class="self-crumb">anonymous method</li>
   </ol>
   <div class="self-name">anonymous</div>
@@ -57,7 +57,7 @@
     <section class="multi-line-signature">
       
 
-<span class="returntype"><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></span>
+<span class="returntype"><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html">LDAttributesBuilder</a></span>
 <span class="name ">anonymous</span>(<wbr><ol class="parameter-list"><li><span class="parameter" id="anonymous-param-anonymous"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">anonymous</span></span></li>
 </ol>)
 
@@ -66,15 +66,23 @@
     </section>
     
 <section class="desc markdown">
-  <p>Sets whether the user is anonymous.</p>
+  <p>Sets whether the LDContext is only intended for flag evaluations and
+should not be indexed by LaunchDarkly.</p>
+<p>The default value is false. False means that this LDContext represents an
+entity such as a user that you want to be able to see on the LaunchDarkly
+dashboard.</p>
+<p>Setting anonymous to true excludes this <a href="../../launchdarkly_flutter_client_sdk/LDContext-class.html">LDContext</a> from the dashboard.
+It does not exclude it from analytics event data, so it is not the same as
+making attributes private; all non-private attributes will still be
+included in events and data export.</p>
 </section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">LDUserBuilder anonymous(bool anonymous) {
-  _anonymous = anonymous;
+  <pre class="language-dart"><code class="language-dart">LDAttributesBuilder anonymous(bool anonymous) {
+  _attributes[_ANONYMOUS] = LDValue.ofBool(anonymous);
   return this;
 }</code></pre>
 </section>
@@ -92,47 +100,31 @@
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
   <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
-  <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></li>
+  <li><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html">LDAttributesBuilder</a></li>
   <li class="self-crumb">anonymous method</li>
 </ol>
 
 
-    <h5>LDUserBuilder class</h5>
+    <h5>LDAttributesBuilder class</h5>
     <ol>
 
-        <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html#constructors">Constructors</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/LDUserBuilder.html">LDUserBuilder</a></li>
 
 
         <li class="section-title inherited">
-          <a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html#instance-properties">Properties</a>
+          <a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html#instance-properties">Properties</a>
         </li>
           <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></li>
           <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></li>
 
-        <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html#instance-methods">Methods</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/anonymous.html">anonymous</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/avatar.html">avatar</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/build.html">build</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/country.html">country</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/custom.html">custom</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/email.html">email</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/firstName.html">firstName</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/ip.html">ip</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/lastName.html">lastName</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/name.html">name</a></li>
+        <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html#instance-methods">Methods</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder/anonymous.html">anonymous</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder/name.html">name</a></li>
           <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/privateAvatar.html">privateAvatar</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/privateCountry.html">privateCountry</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/privateCustom.html">privateCustom</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/privateEmail.html">privateEmail</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/privateFirstName.html">privateFirstName</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/privateIp.html">privateIp</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/privateLastName.html">privateLastName</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder/privateName.html">privateName</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder/privateAttributes.html">privateAttributes</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder/set.html">set</a></li>
           <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></li>
 
-        <li class="section-title inherited"><a href="../../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html#operators">Operators</a></li>
+        <li class="section-title inherited"><a href="../../launchdarkly_flutter_client_sdk/LDAttributesBuilder-class.html#operators">Operators</a></li>
           <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></li>
 
 
@@ -150,7 +142,7 @@
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      2.0.0
+      3.0.0
   </span>
 
   

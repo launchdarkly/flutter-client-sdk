@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the pollingIntervalMillis method from the LDConfigBuilder class, for the Dart programming language.">
-  <title>pollingIntervalMillis method - LDConfigBuilder class - launchdarkly_flutter_client_sdk library - Dart API</title>
+  <meta name="description" content="API docs for the applicationName method from the LDConfigBuilder class, for the Dart programming language.">
+  <title>applicationName method - LDConfigBuilder class - launchdarkly_flutter_client_sdk library - Dart API</title>
 
 
   
@@ -31,9 +31,9 @@
     <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
-    <li class="self-crumb">pollingIntervalMillis method</li>
+    <li class="self-crumb">applicationName method</li>
   </ol>
-  <div class="self-name">pollingIntervalMillis</div>
+  <div class="self-name">applicationName</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -50,7 +50,7 @@
 
   <div id="dartdoc-main-content" class="main-content">
       <div>
-<h1><span class="kind-method">pollingIntervalMillis</span> method 
+<h1><span class="kind-method">applicationName</span> method 
     <a href="https://dart.dev/null-safety" class="feature feature-null-safety" title="Supports the null safety language feature.">Null safety</a>
 </h1></div>
 
@@ -58,7 +58,7 @@
       
 
 <span class="returntype"><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></span>
-<span class="name ">pollingIntervalMillis</span>(<wbr><ol class="parameter-list"><li><span class="parameter" id="pollingIntervalMillis-param-pollingIntervalMillis"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">pollingIntervalMillis</span></span></li>
+<span class="name ">applicationName</span>(<wbr><ol class="parameter-list"><li><span class="parameter" id="applicationName-param-applicationName"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">applicationName</span></span></li>
 </ol>)
 
       
@@ -66,16 +66,19 @@
     </section>
     
 <section class="desc markdown">
-  <p>Sets the interval between foreground flag poll requests.</p>
-<p>Foreground polling is only used when streaming has been disabled with <a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder/stream.html">LDConfigBuilder.stream</a>.</p>
+  <p>A friendly name for the application where the LaunchDarkly SDK is running.</p>
+<p>This can be specified as any string value as long as it only uses the following characters:
+ASCII letters, ASCII digits, spaces, period, hyphen, underscore. A string containing any other
+characters will be ignored.</p>
+<p>Example: 'My Cool Application'</p>
 </section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">LDConfigBuilder pollingIntervalMillis(int pollingIntervalMillis) {
-  this._pollingIntervalMillis = pollingIntervalMillis;
+  <pre class="language-dart"><code class="language-dart">LDConfigBuilder applicationName(String applicationName) {
+  this._applicationName = applicationName;
   return this;
 }</code></pre>
 </section>
@@ -94,7 +97,7 @@
   <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/LDConfigBuilder-class.html">LDConfigBuilder</a></li>
-  <li class="self-crumb">pollingIntervalMillis method</li>
+  <li class="self-crumb">applicationName method</li>
 </ol>
 
 

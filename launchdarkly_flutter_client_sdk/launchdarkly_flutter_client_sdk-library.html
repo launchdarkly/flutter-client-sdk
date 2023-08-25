@@ -160,22 +160,6 @@ the evaluation with an explanation of how it was calculated.
   Describes an error encountered during an attempt to retrieve flag values from the LaunchDarkly service.
 </dd>
 
-        <dt id="LDUser">
-  <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></span> 
-
-</dt>
-<dd>
-  An <a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a> contains the attributes of a user context.
-</dd>
-
-        <dt id="LDUserBuilder">
-  <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></span> 
-
-</dt>
-<dd>
-  A builder for constructing <a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a> objects.
-</dd>
-
         <dt id="LDValue">
   <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a></span> 
 
@@ -228,16 +212,6 @@ be ingested as method channel arguments
 </dd>
 
 
-        <dt id="UserCodec">
-    <span class="name "><a href="../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></span> 
-
-</dt>
-<dd>
-    Extension functionality for converting <a href="../launchdarkly_flutter_client_sdk/UserCodec/toCodecValue.html">toCodecValue</a> to value that can
-be ingested as method channel arguments
-</dd>
-
-
       </dl>
     </section>
 
@@ -248,6 +222,18 @@ be ingested as method channel arguments
       <h2>Enums</h2>
 
       <dl>
+        <dt id="AutoEnvAttributes">
+  <span class="name "><a href="../launchdarkly_flutter_client_sdk/AutoEnvAttributes.html">AutoEnvAttributes</a></span> 
+
+</dt>
+<dd>
+  Enable / disable options for Auto Environment Attributes functionality.  When enabled, the SDK will automatically
+provide data about the mobile environment where the application is running. This data makes it simpler to target
+your mobile customers based on application name or version, or on device characteristics including manufacturer,
+model, operating system, locale, and so on. We recommend enabling this when you configure the SDK.  See
+<a href="https://docs.launchdarkly.com/sdk/features/environment-attributes">https://docs.launchdarkly.com/sdk/features/environment-attributes</a> for more documentation.
+</dd>
+
         <dt id="LDConnectionState">
   <span class="name "><a href="../launchdarkly_flutter_client_sdk/LDConnectionState.html">LDConnectionState</a></span> 
 
@@ -365,8 +351,6 @@ be ingested as method channel arguments
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationDetail-class.html">LDEvaluationDetail</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationReason-class.html">LDEvaluationReason</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDFailure-class.html">LDFailure</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueArrayBuilder-class.html">LDValueArrayBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueObjectBuilder-class.html">LDValueObjectBuilder</a></li>
@@ -374,13 +358,13 @@ be ingested as method channel arguments
       <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#extensions">Extensions</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/ContextAttributesCodec.html">ContextAttributesCodec</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/ContextCodec.html">ContextCodec</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></li>
 
 
 
 
 
       <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#enums">Enums</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/AutoEnvAttributes.html">AutoEnvAttributes</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionState.html">LDConnectionState</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDErrorKind.html">LDErrorKind</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDFailureType.html">LDFailureType</a></li>
@@ -400,7 +384,7 @@ be ingested as method channel arguments
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      2.0.0
+      3.0.0
   </span>
 
   

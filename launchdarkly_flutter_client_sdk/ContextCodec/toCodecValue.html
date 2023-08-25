@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the toCodecValue method from the UserCodec extension, for the Dart programming language.">
-  <title>toCodecValue method - UserCodec extension - launchdarkly_flutter_client_sdk library - Dart API</title>
+  <meta name="description" content="API docs for the toCodecValue method from the LDConfig class, for the Dart programming language.">
+  <title>toCodecValue method - LDConfig class - launchdarkly_flutter_client_sdk library - Dart API</title>
 
 
   
@@ -30,7 +30,7 @@
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
     <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
-    <li><a href="../../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></li>
+    <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></li>
     <li class="self-crumb">toCodecValue method</li>
   </ol>
   <div class="self-name">toCodecValue</div>
@@ -56,14 +56,10 @@
 
     <section class="multi-line-signature">
       
-  <div>
-    <ol class="annotation-list">
-        <li>@<a href="https://pub.dev/documentation/meta/1.8.0/meta/visibleForTesting-constant.html">visibleForTesting</a></li>
-    </ol>
-  </div>
 
 <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>
-<span class="name ">toCodecValue</span>(<wbr>)
+<span class="name ">toCodecValue</span>(<wbr><ol class="parameter-list"><li><span class="parameter" id="toCodecValue-param-wrapperVersion"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">wrapperVersion</span></span></li>
+</ol>)
 
       
 
@@ -74,20 +70,34 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">@visibleForTesting
-Map&lt;String, dynamic&gt; toCodecValue() {
+  <pre class="language-dart"><code class="language-dart">Map&lt;String, dynamic&gt; toCodecValue(String wrapperVersion) {
   final Map&lt;String, dynamic&gt; result = &lt;String, dynamic&gt;{};
-  result[&#39;key&#39;] = key;
-  result[&#39;anonymous&#39;] = anonymous;
-  result[&#39;ip&#39;] = ip;
-  result[&#39;email&#39;] = email;
-  result[&#39;name&#39;] = name;
-  result[&#39;firstName&#39;] = firstName;
-  result[&#39;lastName&#39;] = lastName;
-  result[&#39;avatar&#39;] = avatar;
-  result[&#39;country&#39;] = country;
-  result[&#39;custom&#39;] = custom?.map((key, value) =&gt; MapEntry(key, value.codecValue()));
-  result[&#39;privateAttributeNames&#39;] = privateAttributeNames;
+  result[&#39;mobileKey&#39;] = mobileKey;
+  result[&#39;applicationId&#39;] = applicationId;
+  result[&#39;applicationName&#39;] = applicationName;
+  result[&#39;applicationVersion&#39;] = applicationVersion;
+  result[&#39;applicationVersionName&#39;] = applicationVersionName;
+  result[&#39;pollUri&#39;] = pollUri;
+  result[&#39;eventsUri&#39;] = eventsUri;
+  result[&#39;streamUri&#39;] = streamUri;
+  result[&#39;eventsCapacity&#39;] = eventsCapacity;
+  result[&#39;eventsFlushIntervalMillis&#39;] = eventsFlushIntervalMillis;
+  result[&#39;connectionTimeoutMillis&#39;] = connectionTimeoutMillis;
+  result[&#39;pollingIntervalMillis&#39;] = pollingIntervalMillis;
+  result[&#39;backgroundPollingIntervalMillis&#39;] = backgroundPollingIntervalMillis;
+  result[&#39;diagnosticRecordingIntervalMillis&#39;] = diagnosticRecordingIntervalMillis;
+  result[&#39;maxCachedContexts&#39;] = maxCachedContexts;
+  result[&#39;stream&#39;] = stream;
+  result[&#39;offline&#39;] = offline;
+  result[&#39;disableBackgroundUpdating&#39;] = disableBackgroundUpdating;
+  result[&#39;useReport&#39;] = useReport;
+  result[&#39;evaluationReasons&#39;] = evaluationReasons;
+  result[&#39;diagnosticOptOut&#39;] = diagnosticOptOut;
+  result[&#39;autoEnvAttributes&#39;] = autoEnvAttributes;
+  result[&#39;allAttributesPrivate&#39;] = allAttributesPrivate;
+  result[&#39;privateAttributes&#39;] = privateAttributes;
+  result[&#39;wrapperName&#39;] = &#39;FlutterClientSdk&#39;;
+  result[&#39;wrapperVersion&#39;] = wrapperVersion;
   return result;
 }</code></pre>
 </section>
@@ -105,20 +115,53 @@ Map&lt;String, dynamic&gt; toCodecValue() {
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
   <li><a href="../../index.html">launchdarkly_flutter_client_sdk</a></li>
   <li><a href="../../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html">launchdarkly_flutter_client_sdk</a></li>
-  <li><a href="../../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></li>
+  <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html">LDConfig</a></li>
   <li class="self-crumb">toCodecValue method</li>
 </ol>
 
 
-    <h5>UserCodec extension</h5>
+    <h5>LDConfig class</h5>
     <ol>
 
 
 
+        <li class="section-title">
+          <a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html#instance-properties">Properties</a>
+        </li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/allAttributesPrivate.html">allAttributesPrivate</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/applicationId.html">applicationId</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/applicationName.html">applicationName</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/applicationVersion.html">applicationVersion</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/applicationVersionName.html">applicationVersionName</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/autoEnvAttributes.html">autoEnvAttributes</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/backgroundPollingIntervalMillis.html">backgroundPollingIntervalMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/connectionTimeoutMillis.html">connectionTimeoutMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/diagnosticOptOut.html">diagnosticOptOut</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/diagnosticRecordingIntervalMillis.html">diagnosticRecordingIntervalMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/disableBackgroundUpdating.html">disableBackgroundUpdating</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/evaluationReasons.html">evaluationReasons</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/eventsCapacity.html">eventsCapacity</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/eventsFlushIntervalMillis.html">eventsFlushIntervalMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/eventsUri.html">eventsUri</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/maxCachedContexts.html">maxCachedContexts</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/mobileKey.html">mobileKey</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/offline.html">offline</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/pollingIntervalMillis.html">pollingIntervalMillis</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/pollUri.html">pollUri</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/privateAttributes.html">privateAttributes</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/stream.html">stream</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/streamUri.html">streamUri</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/useReport.html">useReport</a></li>
 
+        <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html#instance-methods">Methods</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
+          <li><a href="../../launchdarkly_flutter_client_sdk/LDConfig/toCodecValue.html">toCodecValue</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></li>
 
-        <li class="section-title"><a href="../../launchdarkly_flutter_client_sdk/UserCodec.html#instance-methods">Methods</a></li>
-          <li><a href="../../launchdarkly_flutter_client_sdk/UserCodec/toCodecValue.html">toCodecValue</a></li>
+        <li class="section-title inherited"><a href="../../launchdarkly_flutter_client_sdk/LDConfig-class.html#operators">Operators</a></li>
+          <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></li>
 
 
 
@@ -135,7 +178,7 @@ Map&lt;String, dynamic&gt; toCodecValue() {
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      2.0.0
+      3.0.0
   </span>
 
   

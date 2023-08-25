@@ -73,14 +73,25 @@
 
 </dt>
 <dd>
-  Whether the SDK is configured to never include user attribute values in analytics requests.
+  Whether the SDK is configured to never include context attribute values in analytics requests.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
 
         <dt id="applicationId" class="property">
   <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfig/applicationId.html">applicationId</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> 
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> 
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="applicationName" class="property">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfig/applicationName.html">applicationName</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> 
 
 </dt>
 <dd>
@@ -91,11 +102,34 @@
 
         <dt id="applicationVersion" class="property">
   <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfig/applicationVersion.html">applicationVersion</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> 
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> 
 
 </dt>
 <dd>
   
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="applicationVersionName" class="property">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfig/applicationVersionName.html">applicationVersionName</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> 
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="autoEnvAttributes" class="property">
+  <span class="name"><a href="../launchdarkly_flutter_client_sdk/LDConfig/autoEnvAttributes.html">autoEnvAttributes</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> 
+
+</dt>
+<dd>
+  Whether the SDK will automatically provide data about the mobile environment
+where the application is running.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -238,7 +272,7 @@
 
 </dt>
 <dd>
-  Whether the SDK is configured not to connect to LaunchDarkly on <a class="deprecated" href="../launchdarkly_flutter_client_sdk/LDClient/start.html">LDClient.start</a>.
+  Whether the SDK is configured not to connect to LaunchDarkly on <a href="../launchdarkly_flutter_client_sdk/LDClient/start.html">LDClient.start</a>.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -426,8 +460,6 @@
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationDetail-class.html">LDEvaluationDetail</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDEvaluationReason-class.html">LDEvaluationReason</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDFailure-class.html">LDFailure</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/LDUser-class.html">LDUser</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/LDUserBuilder-class.html">LDUserBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValue-class.html">LDValue</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueArrayBuilder-class.html">LDValueArrayBuilder</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDValueObjectBuilder-class.html">LDValueObjectBuilder</a></li>
@@ -435,13 +467,13 @@
       <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#extensions">Extensions</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/ContextAttributesCodec.html">ContextAttributesCodec</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/ContextCodec.html">ContextCodec</a></li>
-        <li><a href="../launchdarkly_flutter_client_sdk/UserCodec.html">UserCodec</a></li>
 
 
 
 
 
       <li class="section-title"><a href="../launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk-library.html#enums">Enums</a></li>
+        <li><a href="../launchdarkly_flutter_client_sdk/AutoEnvAttributes.html">AutoEnvAttributes</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDConnectionState.html">LDConnectionState</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDErrorKind.html">LDErrorKind</a></li>
         <li><a href="../launchdarkly_flutter_client_sdk/LDFailureType.html">LDFailureType</a></li>
@@ -466,7 +498,10 @@
         </li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/allAttributesPrivate.html">allAttributesPrivate</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/applicationId.html">applicationId</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/applicationName.html">applicationName</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/applicationVersion.html">applicationVersion</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/applicationVersionName.html">applicationVersionName</a></li>
+          <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/autoEnvAttributes.html">autoEnvAttributes</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/backgroundPollingIntervalMillis.html">backgroundPollingIntervalMillis</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/connectionTimeoutMillis.html">connectionTimeoutMillis</a></li>
           <li><a href="../launchdarkly_flutter_client_sdk/LDConfig/diagnosticOptOut.html">diagnosticOptOut</a></li>
@@ -508,7 +543,7 @@
 <footer>
   <span class="no-break">
     launchdarkly_flutter_client_sdk
-      2.0.0
+      3.0.0
   </span>
 
   
