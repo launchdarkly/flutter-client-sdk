@@ -23,14 +23,15 @@ final class RunnerTests: XCTestCase {
       "useReport" : false,
       "evaluationReasons" : false,
       "diagnosticOptOut" : true,
+      "autoEnvAttributes" : true,
       "allAttributesPrivate" : true,
       "privateAttributes" : ["name", "avatar"]
     ]
     
     let output = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: input)
     
-    var expected = LDConfig(mobileKey: "mobileKey")
-    expected.applicationInfo = ApplicationInfo()
+    var expected = LDConfig(mobileKey: "mobileKey", autoEnvAttributes: .enabled)
+    expected.applicationInfo = nil
     expected.baseUrl = URL(string: "pollUri")!
     expected.eventsUrl = URL(string: "eventsUri")!
     expected.streamUrl = URL(string: "streamUri")!
@@ -54,31 +55,33 @@ final class RunnerTests: XCTestCase {
   }
   
   func testApplicationInfoConfiguredCorrectly() {
-    let input = [
+    let input: [String: Any] = [
       "mobileKey" : "aMobileKey",
-      "applicationId": "myApplicationId",
-      "applicationVersion": "myApplicationVersion"
+      "applicationId" : "myApplicationId",
+      "applicationName" : "myApplicationName",
+      "applicationVersion" : "myApplicationVersion",
+      "applicationVersionName" : "myApplicationVersionName",
+      "autoEnvAttributes" : true
     ]
     let output = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: input)
     
-    var expected = LDConfig(mobileKey: "aMobileKey")
+    var expected = LDConfig(mobileKey: "aMobileKey", autoEnvAttributes: .enabled)
     expected.applicationInfo = ApplicationInfo()
     expected.applicationInfo?.applicationIdentifier("myApplicationId")
+    expected.applicationInfo?.applicationName("myApplicationName")
     expected.applicationInfo?.applicationVersion("myApplicationVersion")
-    
+    expected.applicationInfo?.applicationVersionName("myApplicationVersionName")
+
     XCTAssertEqual(expected, output)
   }
   
   func testApplicationInfoMissingIsHandled() {
-    let input = [
-      "mobileKey" : "aMobileKey"
+    let input: [String: Any] = [
+      "mobileKey" : "aMobileKey",
+      "autoEnvAttributes" : true
     ]
     let output = SwiftLaunchdarklyFlutterClientSdkPlugin.configFrom(dict: input)
-    
-    var expected = LDConfig(mobileKey: "aMobileKey")
-    expected.applicationInfo = ApplicationInfo()
-    
-    XCTAssertEqual(expected, output)
+    XCTAssertNil(output.applicationInfo)
   }
   
   func testContextFromSingle() throws {
