@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [3.0.0] - 2023-08-25
+### Added:
+- Added Automatic Mobile Environment Attributes functionality which makes it simpler to target your mobile customers based on application name or version, or on device characteristics including manufacturer, model, operating system, locale, and so on. To learn more, read [Automatic environment attributes](https://docs.launchdarkly.com/sdk/features/environment-attributes).
+
+### Removed:
+- Removed LDUser and related functionality. Use LDContext instead. To learn more, read https://docs.launchdarkly.com/home/contexts.
+
 ## [2.1.0] - 2023-08-17
 ### Changed:
 - Deprecated LDUser and related functionality. Use LDContext instead. To learn more, read about [contexts](https://docs.launchdarkly.com/home/contexts).
