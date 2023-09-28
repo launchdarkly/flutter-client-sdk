@@ -26,7 +26,17 @@ apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    compileSdkVersion 31
+    namespace 'com.launchdarkly.launchdarkly_flutter_client_sdk_example'
+    compileSdk 33
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget=17
+    }
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
@@ -39,7 +49,7 @@ android {
     defaultConfig {
         applicationId "com.launchdarkly.launchdarkly_flutter_client_sdk_example"
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
