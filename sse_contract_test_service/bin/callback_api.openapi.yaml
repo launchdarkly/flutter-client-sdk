@@ -1,0 +1,42 @@
+openapi: 3.0.1
+info:
+  title: Callback API
+  version: 1.0.0
+  x-dart-name: CallbackApi
+
+paths:
+  /{callbackNumber}:
+    parameters:
+      - name: callbackNumber
+        in: path
+        required: true
+        schema:
+          type: integer
+    post:
+      summary: Send callback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCallback'
+      responses:
+        '202':
+          description: Callback accepted
+components:
+  schemas:
+    PostCallback:
+      properties:
+        kind:
+          type: string
+        comment:
+          type: string
+        event:
+          type: object
+          properties:
+            type:
+              type: string
+            data:
+              type: string
+            id:
+              type: string

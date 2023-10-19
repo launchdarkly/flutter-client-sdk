@@ -1,0 +1,83 @@
+openapi: 3.0.1
+info:
+  title: Test Service API
+  version: 1.0.0
+  x-dart-name: TestApi
+
+paths:
+  /:
+    get:
+      summary: Get service status
+      responses:
+        '200':
+          description: Service has started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceStatusResponse'
+    delete:
+      summary: Stop test service
+      responses:
+        '200':
+          description: Service stopped
+    post:
+      summary: Create stream
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStreamRequest'
+      responses:
+        '201':
+          description: Stream created
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+                format: url
+  /client/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Delete client and close connection
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Client not found
+components:
+  schemas:
+    ServiceStatusResponse:
+      properties:
+        capabilities:
+          type: array
+          items:
+            type: string
+    CreateStreamRequest:
+      properties:
+        streamUrl:
+          type: string
+        callbackUrl:
+          type: string
+        tag:
+          type: string
+        initialDelayMs:
+          type: integer
+        readTimeoutMs:
+          type: integer
+        lastEventId:
+          type: string
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        method:
+          type: string
+        body:
+          type: string
