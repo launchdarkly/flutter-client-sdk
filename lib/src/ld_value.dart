@@ -15,16 +15,21 @@ import 'package:quiver/core.dart';
 enum LDValueType {
   /// The value is null.
   NULL,
+
   /// The value is a boolean.
   BOOLEAN,
+
   /// The value is a number.
   ///
   /// JSON does not have separate types for integers and floating-point values, but you can convert to either.
   NUMBER,
+
   /// The value is a string.
   STRING,
+
   /// The value is an array.
   ARRAY,
+
   /// The value is an object (map).
   OBJECT
 }
@@ -96,13 +101,16 @@ abstract class LDValue {
   /// Returns an instance for a bool value.
   ///
   /// For each input value, [ofBool] will always return the same instance.
-  static LDValue ofBool(bool? value) => value == null ? _NULL : (value ? _TRUE : _FALSE);
+  static LDValue ofBool(bool? value) =>
+      value == null ? _NULL : (value ? _TRUE : _FALSE);
 
   /// Returns an instance for a numeric value.
-  static LDValue ofNum(num? value) => value == null ? _NULL : _LDValueNumber(value);
+  static LDValue ofNum(num? value) =>
+      value == null ? _NULL : _LDValueNumber(value);
 
   /// Returns an instance for a string value.
-  static LDValue ofString(String? value) => value == null ? _NULL : _LDValueString(value);
+  static LDValue ofString(String? value) =>
+      value == null ? _NULL : _LDValueString(value);
 
   /// Starts building an array value.
   ///
@@ -179,7 +187,8 @@ abstract class LDValue {
         }
         return true;
       }
-      if (getType() == LDValueType.OBJECT && other.getType() == LDValueType.OBJECT) {
+      if (getType() == LDValueType.OBJECT &&
+          other.getType() == LDValueType.OBJECT) {
         if (size() != other.size()) {
           return false;
         }
@@ -230,10 +239,13 @@ class LDValueArrayBuilder {
 
   /// Append a bool value to the builder.
   LDValueArrayBuilder addBool(bool? value) => addValue(LDValue.ofBool(value));
+
   /// Append a numeric value to the builder.
   LDValueArrayBuilder addNum(num? value) => addValue(LDValue.ofNum(value));
+
   /// Append a String value to the builder.
-  LDValueArrayBuilder addString(String? value) => addValue(LDValue.ofString(value));
+  LDValueArrayBuilder addString(String? value) =>
+      addValue(LDValue.ofString(value));
 
   /// Returns an [LDValue] of type [LDValueType.ARRAY] containing the builder's current elements.
   ///
@@ -261,11 +273,16 @@ class LDValueObjectBuilder {
   }
 
   /// Associated the given key and bool in the builder.
-  LDValueObjectBuilder addBool(String key, bool? value) => addValue(key, LDValue.ofBool(value));
+  LDValueObjectBuilder addBool(String key, bool? value) =>
+      addValue(key, LDValue.ofBool(value));
+
   /// Associated the given key and num in the builder.
-  LDValueObjectBuilder addNum(String key, num? value) => addValue(key, LDValue.ofNum(value));
+  LDValueObjectBuilder addNum(String key, num? value) =>
+      addValue(key, LDValue.ofNum(value));
+
   /// Associated the given key and String in the builder.
-  LDValueObjectBuilder addString(String key, String? value) => addValue(key, LDValue.ofString(value));
+  LDValueObjectBuilder addString(String key, String? value) =>
+      addValue(key, LDValue.ofString(value));
 
   /// Returns an [LDValue] of type [LDValueType.OBJECT] containing the builder's current elements.
   ///
@@ -278,7 +295,7 @@ class LDValueObjectBuilder {
 }
 
 class _LDValueNull extends LDValue {
-  const _LDValueNull(): super._const();
+  const _LDValueNull() : super._const();
 
   LDValueType getType() => LDValueType.NULL;
   dynamic codecValue() => null;
@@ -287,67 +304,83 @@ class _LDValueNull extends LDValue {
 class _LDValueBool extends LDValue {
   final bool _value;
 
-  const _LDValueBool(this._value): super._const();
+  const _LDValueBool(this._value) : super._const();
 
   LDValueType getType() => LDValueType.BOOLEAN;
   dynamic codecValue() => _value;
 
-  @override bool booleanValue() => _value;
+  @override
+  bool booleanValue() => _value;
 }
 
 class _LDValueNumber extends LDValue {
   final num _value;
 
-  const _LDValueNumber(this._value): super._const();
+  const _LDValueNumber(this._value) : super._const();
 
   LDValueType getType() => LDValueType.NUMBER;
   dynamic codecValue() => _value;
 
-  @override int intValue() => _value.toInt();
-  @override double doubleValue() => _value.toDouble();
-  @override num numValue() => _value;
+  @override
+  int intValue() => _value.toInt();
+  @override
+  double doubleValue() => _value.toDouble();
+  @override
+  num numValue() => _value;
 }
 
 class _LDValueString extends LDValue {
   final String _value;
 
-  const _LDValueString(this._value): super._const();
+  const _LDValueString(this._value) : super._const();
 
   LDValueType getType() => LDValueType.STRING;
   dynamic codecValue() => _value;
 
-  @override String stringValue() => _value;
+  @override
+  String stringValue() => _value;
 }
 
 class _LDValueArray extends LDValue {
   final List<LDValue> _values;
 
-  const _LDValueArray(this._values): super._const();
+  const _LDValueArray(this._values) : super._const();
 
   // Takes ownership to prevent copy, allows copy-on-write behavior in LDValueArrayBuilder.
-  static LDValue ofIterable(Iterable<LDValue> values) =>_LDValueArray(UnmodifiableListView(values));
+  static LDValue ofIterable(Iterable<LDValue> values) =>
+      _LDValueArray(UnmodifiableListView(values));
 
   LDValueType getType() => LDValueType.ARRAY;
   dynamic codecValue() => List.of(_values.map((value) => value.codecValue()));
 
-  @override int size() => _values.length;
-  @override Iterable<LDValue> values() => _values;
-  @override LDValue get(int index) => index >= 0 && index < _values.length ? _values[index] : LDValue.ofNull();
+  @override
+  int size() => _values.length;
+  @override
+  Iterable<LDValue> values() => _values;
+  @override
+  LDValue get(int index) =>
+      index >= 0 && index < _values.length ? _values[index] : LDValue.ofNull();
 }
 
 class _LDValueObject extends LDValue {
   final Map<String, LDValue> _values;
 
-  const _LDValueObject(this._values): super._const();
+  const _LDValueObject(this._values) : super._const();
 
   // Takes ownership to prevent copy, allows copy-on-write behavior in LDValueArrayBuilder.
-  static LDValue ofMap(Map<String, LDValue> values) => _LDValueObject(UnmodifiableMapView(values));
+  static LDValue ofMap(Map<String, LDValue> values) =>
+      _LDValueObject(UnmodifiableMapView(values));
 
   LDValueType getType() => LDValueType.OBJECT;
-  dynamic codecValue() => _values.map((key, value) => MapEntry(key, value.codecValue()));
+  dynamic codecValue() =>
+      _values.map((key, value) => MapEntry(key, value.codecValue()));
 
-  @override int size() => _values.length;
-  @override Iterable<String> keys() => _values.keys;
-  @override Iterable<LDValue> values() => _values.values;
-  @override LDValue getFor(String key) => _values[key] ?? LDValue.ofNull();
+  @override
+  int size() => _values.length;
+  @override
+  Iterable<String> keys() => _values.keys;
+  @override
+  Iterable<LDValue> values() => _values.values;
+  @override
+  LDValue getFor(String key) => _values[key] ?? LDValue.ofNull();
 }

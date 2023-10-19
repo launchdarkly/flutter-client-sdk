@@ -7,17 +7,21 @@
 library launchdarkly_flutter_client_sdk;
 
 import 'dart:async';
-import 'dart:developer';
-import 'ld_value.dart';
+import 'src/ld_config.dart';
+import 'src/ld_connection_information.dart';
+import 'src/ld_context.dart';
+import 'src/ld_evaluation_detail.dart';
+import 'src/ld_value.dart';
 
-export 'ld_value.dart';
-export 'src/network/sse/sse_client.dart';
+export 'src/ld_value.dart';
 
-part 'ld_config.dart';
-part 'ld_context.dart';
-part 'ld_context_attributes.dart';
-part 'ld_evaluation_detail.dart';
-part 'ld_connection_information.dart';
+export 'src/attribute_reference.dart';
+
+export 'src/ld_config.dart' show LDConfig, LDConfigBuilder;
+export 'src/ld_context.dart'
+    show LDContext, LDContextBuilder, LDAttributesBuilder, LDContextAttributes;
+export 'src/ld_evaluation_detail.dart' show LDEvaluationDetail;
+export 'src/ld_connection_information.dart' show LDConnectionInformation;
 
 /// Type of function callback used by `LDClient.registerFlagsReceivedListener`.
 ///

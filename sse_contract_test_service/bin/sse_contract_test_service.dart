@@ -10,7 +10,6 @@ import 'dart:io';
 class TestApiImpl extends TestApi {
   static const clientUrlPrefix = "/client/";
 
-
   final Map<int, StreamSubscription> clientSubMap = {};
   var nextIdToGive = 0;
 
@@ -54,7 +53,9 @@ class TestApiImpl extends TestApi {
     nextIdToGive++;
 
     final Map<String, List<String>> headers = {};
-    headers[HttpHeaders.locationHeader] = [clientUrlPrefix + clientId.toString()];
+    headers[HttpHeaders.locationHeader] = [
+      clientUrlPrefix + clientId.toString()
+    ];
     var response = PostResponse.response201();
     response.headers.addAll(headers);
     return response;

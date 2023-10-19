@@ -1,5 +1,4 @@
 // @dart=3.1
-part of launchdarkly_flutter_client_sdk;
 
 /// A configuration object used when initializing the [LDClient].
 class LDConfig {
@@ -13,23 +12,31 @@ class LDConfig {
 
   /// The configured URI for polling requests.
   final String pollUri;
+
   /// The configured URI for eventing requests.
   final String eventsUri;
+
   /// The configured URI for stream requests.
   final String streamUri;
 
   /// The configured event capacity.
   final int eventsCapacity;
+
   /// The configured event flush interval in milliseconds.
   final int eventsFlushIntervalMillis;
+
   /// The configured connection timeout in milliseconds.
   final int connectionTimeoutMillis;
+
   /// The configured foreground polling interval in milliseconds.
   final int pollingIntervalMillis;
+
   /// The configured background polling interval in milliseconds.
   final int backgroundPollingIntervalMillis;
+
   /// The configured diagnostic recording interval in milliseconds.
   final int diagnosticRecordingIntervalMillis;
+
   /// The count of contexts to store the flag values for in on-device storage.
   ///
   /// A value of `-1` indicates that an unlimited number of contexts will be cached locally.
@@ -37,27 +44,34 @@ class LDConfig {
 
   /// Whether the SDK is configured to use a streaming connection when in the foreground.
   final bool stream;
+
   /// Whether the SDK is configured not to connect to LaunchDarkly on [LDClient.start].
   final bool offline;
+
   /// Whether the SDK is configured to disable polling for feature flag values when the application is in the background.
   final bool disableBackgroundUpdating;
+
   /// Whether the SDK is configured to use the HTTP `REPORT` verb for flag requests.
   final bool useReport;
+
   /// Whether the SDK is configured to request evaluation reasons to be included in flag data from the service.
   final bool evaluationReasons;
+
   /// Whether the SDK is configured to not send diagnostic data to LaunchDarkly.
   final bool diagnosticOptOut;
+
   /// Whether the SDK will automatically provide data about the mobile environment
   /// where the application is running.
   final bool autoEnvAttributes;
 
   /// Whether the SDK is configured to never include context attribute values in analytics requests.
   final bool allAttributesPrivate;
+
   /// The configured set of attributes to never include values for in analytics requests.
   final List<String>? privateAttributes;
 
-  LDConfig._builder(LDConfigBuilder builder) :
-        mobileKey = builder._mobileKey,
+  LDConfig._builder(LDConfigBuilder builder)
+      : mobileKey = builder._mobileKey,
         applicationId = builder._applicationId,
         applicationName = builder._applicationName,
         applicationVersion = builder._applicationVersion,
@@ -69,8 +83,10 @@ class LDConfig {
         eventsFlushIntervalMillis = builder._eventsFlushIntervalMillis,
         connectionTimeoutMillis = builder._connectionTimeoutMillis,
         pollingIntervalMillis = builder._pollingIntervalMillis,
-        backgroundPollingIntervalMillis = builder._backgroundPollingIntervalMillis,
-        diagnosticRecordingIntervalMillis = builder._diagnosticRecordingIntervalMillis,
+        backgroundPollingIntervalMillis =
+            builder._backgroundPollingIntervalMillis,
+        diagnosticRecordingIntervalMillis =
+            builder._diagnosticRecordingIntervalMillis,
         maxCachedContexts = builder._maxCachedContexts,
         stream = builder._stream,
         offline = builder._offline,
@@ -80,7 +96,9 @@ class LDConfig {
         diagnosticOptOut = builder._diagnosticOptOut,
         autoEnvAttributes = builder._autoEnvAttributes,
         allAttributesPrivate = builder._allAttributesPrivate,
-        privateAttributes = builder._privateAttributes.isEmpty ? null : List.unmodifiable(builder._privateAttributes);
+        privateAttributes = builder._privateAttributes.isEmpty
+            ? null
+            : List.unmodifiable(builder._privateAttributes);
 
   Map<String, dynamic> toCodecValue(String wrapperVersion) {
     final Map<String, dynamic> result = <String, dynamic>{};
@@ -97,7 +115,8 @@ class LDConfig {
     result['connectionTimeoutMillis'] = connectionTimeoutMillis;
     result['pollingIntervalMillis'] = pollingIntervalMillis;
     result['backgroundPollingIntervalMillis'] = backgroundPollingIntervalMillis;
-    result['diagnosticRecordingIntervalMillis'] = diagnosticRecordingIntervalMillis;
+    result['diagnosticRecordingIntervalMillis'] =
+        diagnosticRecordingIntervalMillis;
     result['maxCachedContexts'] = maxCachedContexts;
     result['stream'] = stream;
     result['offline'] = offline;
@@ -159,7 +178,8 @@ class LDConfigBuilder {
   ///     this when you configure the SDK.  See https://docs.launchdarkly.com/sdk/features/environment-attributes
   ///     for more documentation.
   LDConfigBuilder(this._mobileKey, AutoEnvAttributes autoEnvAttributes) {
-    _autoEnvAttributes = autoEnvAttributes == AutoEnvAttributes.Enabled; // mapping enum to boolean
+    _autoEnvAttributes = autoEnvAttributes ==
+        AutoEnvAttributes.Enabled; // mapping enum to boolean
   }
 
   /// A unique identifier representing the application where the LaunchDarkly SDK is running.
@@ -265,7 +285,8 @@ class LDConfigBuilder {
   /// Sets the interval between background flag poll requests.
   ///
   /// See [LDConfigBuilder.disableBackgroundUpdating] to disable background polls entirely.
-  LDConfigBuilder backgroundPollingIntervalMillis(int backgroundPollingIntervalMillis) {
+  LDConfigBuilder backgroundPollingIntervalMillis(
+      int backgroundPollingIntervalMillis) {
     this._backgroundPollingIntervalMillis = backgroundPollingIntervalMillis;
     return this;
   }
@@ -274,7 +295,8 @@ class LDConfigBuilder {
   ///
   /// The default is every 15 minutes (900,000 milliseconds) and the minimum value is 300,000 (5 minutes). See
   /// [LDConfigBuilder.diagnosticOptOut] for more information on the diagnostic data being sent.
-  LDConfigBuilder diagnosticRecordingIntervalMillis(int diagnosticRecordingIntervalMillis) {
+  LDConfigBuilder diagnosticRecordingIntervalMillis(
+      int diagnosticRecordingIntervalMillis) {
     this._diagnosticRecordingIntervalMillis = diagnosticRecordingIntervalMillis;
     return this;
   }
