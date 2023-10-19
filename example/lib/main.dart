@@ -1,20 +1,21 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 
+
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
-  _MyAppState createState() => _MyAppState();
+  MyAppState createState() => MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class MyAppState extends State<MyApp> {
   String? typeDropdown = 'Boolean';
   final String contextKind = 'user';
   String contextKey = '';
@@ -115,7 +116,7 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
         appBar: AppBar(title: const Text('LaunchDarkly Example')),
         body: Container(
-            padding: EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8.0),
             child: Column(children: [
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Expanded(
@@ -125,9 +126,9 @@ class _MyAppState extends State<MyApp> {
                             evalKey = text;
                           });
                         },
-                        decoration: InputDecoration.collapsed(
+                        decoration: const InputDecoration.collapsed(
                             hintText: 'Key', border: UnderlineInputBorder()))),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
                 DropdownButton<String>(
                     value: typeDropdown,
                     isDense: true,
@@ -142,20 +143,21 @@ class _MyAppState extends State<MyApp> {
                           value: value, child: Text(value));
                     }).toList())
               ]),
-              Padding(padding: EdgeInsets.symmetric(vertical: 4.0)),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 4.0)),
               Row(children: [
                 Expanded(
                     child: ElevatedButton(
-                        child: Text('Evaluate'), onPressed: evaluate)),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
+                        onPressed: evaluate,
+                        child: const Text('Evaluate'))),
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
                 Expanded(
                     child:
-                        ElevatedButton(child: Text('Track'), onPressed: track))
+                        ElevatedButton(onPressed: track, child: const Text('Track')))
               ]),
-              Divider(),
-              Row(children: [Text("$evalResult", textAlign: TextAlign.start)]),
-              Spacer(),
-              Divider(),
+              const Divider(),
+              Row(children: [Text(evalResult, textAlign: TextAlign.start)]),
+              const Spacer(),
+              const Divider(),
               Row(children: [
                 Expanded(
                     child: TextField(
@@ -164,16 +166,16 @@ class _MyAppState extends State<MyApp> {
                             contextKey = text;
                           });
                         },
-                        decoration: InputDecoration.collapsed(
+                        decoration: const InputDecoration.collapsed(
                             hintText: 'User Key',
                             border: UnderlineInputBorder()))),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
-                ElevatedButton(child: Text('Identify'), onPressed: identify)
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 4.0)),
+                ElevatedButton(onPressed: identify, child: const Text('Identify'))
               ]),
               Row(children: [
-                ElevatedButton(child: Text('Flush'), onPressed: flush),
-                Spacer(),
-                Text('Offline'),
+                ElevatedButton(onPressed: flush, child: const Text('Flush')),
+                const Spacer(),
+                const Text('Offline'),
                 Switch(value: offline, onChanged: toggleOffline)
               ])
             ])),

@@ -60,16 +60,6 @@ enum LDErrorKind {
 
 /// Describes the reason that a flag evaluation produced a particular value.
 class LDEvaluationReason {
-  static const _errorKindNames = {
-    'CLIENT_NOT_READY': LDErrorKind.CLIENT_NOT_READY,
-    'FLAG_NOT_FOUND': LDErrorKind.FLAG_NOT_FOUND,
-    'MALFORMED_FLAG': LDErrorKind.MALFORMED_FLAG,
-    'USER_NOT_SPECIFIED': LDErrorKind.USER_NOT_SPECIFIED,
-    'WRONG_TYPE': LDErrorKind.WRONG_TYPE,
-    'EXCEPTION': LDErrorKind.EXCEPTION,
-    'UNKNOWN': LDErrorKind.UNKNOWN
-  };
-
   static const _OFF_INSTANCE = LDEvaluationReason._(LDKind.OFF);
   static const _FALLTHROUGH_INSTANCE =
       LDEvaluationReason._(LDKind.FALLTHROUGH, inExperiment: false);
@@ -108,36 +98,6 @@ class LDEvaluationReason {
   ///
   /// For all other kinds, this field is undefined.
   final LDErrorKind? errorKind;
-
-  static LDEvaluationReason _fromCodecValue(dynamic value) {
-    if (!(value is Map)) return unknown();
-    Map<String, dynamic> map = Map.from(value as Map);
-    switch (map['kind']) {
-      case 'OFF':
-        return off();
-      case 'FALLTHROUGH':
-        return fallthrough(inExperiment: map['inExperiment']);
-      case 'TARGET_MATCH':
-        return targetMatch();
-      case 'RULE_MATCH':
-        return ruleMatch(
-            ruleIndex: map['ruleIndex'],
-            ruleId: map['ruleId'],
-            inExperiment: map['inExperiment'] ?? false);
-      case 'PREREQUISITE_FAILED':
-        String? prereqKey = map['prerequisiteKey'];
-        if (prereqKey == null) {
-          return unknown();
-        }
-        return prerequisiteFailed(prerequisiteKey: prereqKey);
-      case 'ERROR':
-        return error(
-            errorKind:
-                _errorKindNames[map['errorKind']] ?? LDErrorKind.UNKNOWN);
-      default:
-        return unknown();
-    }
-  }
 
   const LDEvaluationReason._(this.kind,
       {this.ruleIndex,

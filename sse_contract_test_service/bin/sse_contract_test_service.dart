@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 
 import 'package:openapi_base/openapi_base.dart';
 import 'callback_api.openapi.dart';
@@ -79,8 +80,10 @@ class TestApiImpl extends TestApi {
 }
 
 void main(List<String> args) async {
+  final port = 8080;
   final server = OpenApiShelfServer(
     TestApiRouter(ApiEndpointProvider.static(TestApiImpl())),
   );
-  server.startServer();
+  print("Server listening on port $port");
+  server.startServer(port: port);
 }

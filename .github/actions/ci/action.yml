@@ -1,0 +1,50 @@
+# This is a composite to allow sharing these steps into other workflows.
+# It isn't a shared workflow, because then it isn't convenient to add
+# additional workflow specific steps. This workflow is used for both CI and release process.
+name: Shared CI Workflow
+
+description: Shared build and test for CI and release.
+runs:
+  using: composite
+  steps:
+    - name: Install Dart
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: stable
+
+    - name: Install Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.13.6'
+        channel: 'stable'
+
+    - name: Install Dependencies
+      shell: bash
+      run: flutter pub get
+
+    - name: Lint
+      shell: bash
+      run: flutter analyze
+
+    - name: Test
+      shell: bash
+      run: flutter test
+
+    - name: SSE Contract Tests
+      shell: bash
+      if: ${{ false }} # Temporarily disable SSE tests.
+      run: |
+        cd sse_contract_test_service
+        dart pub get
+        dart run bin/sse_contract_test_service.dart > test-service.log 2>&1 & disown
+        curl -s https://raw.githubusercontent.com/launchdarkly/sse-contract-tests/v2.0.0/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -stop-service-at-end" sh
+
+    - name: Upload Test Service Logs
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        path: sse_contract_test_service/test-service.log
+
+    - name: Build Docs
+      shell: bash
+      run: dart doc

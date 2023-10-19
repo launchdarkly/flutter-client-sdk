@@ -17,7 +17,7 @@ export 'src/ld_value.dart';
 
 export 'src/attribute_reference.dart';
 
-export 'src/ld_config.dart' show LDConfig, LDConfigBuilder;
+export 'src/ld_config.dart' show LDConfig, LDConfigBuilder, AutoEnvAttributes;
 export 'src/ld_context.dart'
     show LDContext, LDContextBuilder, LDAttributesBuilder, LDContextAttributes;
 export 'src/ld_evaluation_detail.dart' show LDEvaluationDetail;
@@ -49,6 +49,8 @@ typedef void LDFlagUpdatedCallback(String flagKey);
 /// record custom events, and provides various status configuration and monitoring utilities. See the individual class
 /// and method documentation for more details.
 class LDClient {
+  // TODO: Remove when used.
+  // ignore: unused_field
   static const String _sdkVersion = "5.0.0";
 
   // Empty hidden constructor to hide default constructor.
@@ -65,7 +67,7 @@ class LDClient {
 
   /// Checks whether the SDK has completed starting.
   ///
-  /// This is equivilent to checking if the `Future` returned by [LDClient.startFuture] is already completed.
+  /// This is equivalent to checking if the `Future` returned by [LDClient.startFuture] is already completed.
   static bool isInitialized() {
     return false;
   }

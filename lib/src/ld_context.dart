@@ -173,8 +173,6 @@ class LDAttributesBuilder {
 /// Besides the kind and key (required), [LDContext] supports built in attributes (optional to use)
 /// and also custom attributes.
 ///
-/// [LDContext] is the newer replacement for the previous, less flexible [LDUser] type.
-///
 /// For a more complete description of context attributes and how they can be referenced in feature flag rules, see the
 /// reference guide on [setting user attributes](https://docs.launchdarkly.com/home/contexts/attributes) and
 /// [targeting users](https://docs.launchdarkly.com/home/flags/targeting).
