@@ -1,7 +1,7 @@
 // @dart=3.1
 
 /// A configuration object used when initializing the [LDClient].
-class LDConfig {
+final class LDConfig {
   /// The configured mobile SDK key.
   final String mobileKey;
 

@@ -44,7 +44,7 @@ enum LDFailureType {
 }
 
 /// Describes an error encountered during an attempt to retrieve flag values from the LaunchDarkly service.
-class LDFailure {
+final class LDFailure {
   /// A message describing the failure.
   final String? message;
 
@@ -58,7 +58,7 @@ class LDFailure {
 }
 
 /// Describes the connectivity state of the SDK, and information on occurrence of request failures and successes.
-class LDConnectionInformation {
+final class LDConnectionInformation {
   /// The connectivity state of the SDK.
   ///
   /// See [LDConnectionState] for details on the possible values.

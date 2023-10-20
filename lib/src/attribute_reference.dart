@@ -1,6 +1,8 @@
 import 'dart:collection';
 import 'dart:core';
 
+import 'package:launchdarkly_flutter_client_sdk/src/collections.dart';
+
 import 'ld_context.dart';
 
 // Regular expression that matches "~" or "/". They are different groups so
@@ -74,7 +76,7 @@ List<String> _getComponents(String value) {
 /// or '~' in a path component are escaped as '~1' or '~0' respectively. This syntax
 /// deliberately resembles JSON Pointer, but no JSON Pointer behaviors other than those
 /// mentioned here are supported.
-class AttributeReference {
+final class AttributeReference {
   final bool valid;
   final String redactionName;
   final List<String> components;
@@ -89,16 +91,8 @@ class AttributeReference {
 
   @override
   bool operator ==(Object other) {
-    if(other is AttributeReference &&
-        other.components.length == components.length){
-      for(var i = 0; i < components.length; i++) {
-        if(components[i] != other.components[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-    return false;
+    return other is AttributeReference &&
+        components.equals(other.components);
   }
 
   /// Create an attribute reference from a literal.

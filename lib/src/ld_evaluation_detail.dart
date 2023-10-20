@@ -59,7 +59,7 @@ enum LDErrorKind {
 }
 
 /// Describes the reason that a flag evaluation produced a particular value.
-class LDEvaluationReason {
+final class LDEvaluationReason {
   static const _OFF_INSTANCE = LDEvaluationReason._(LDKind.OFF);
   static const _FALLTHROUGH_INSTANCE =
       LDEvaluationReason._(LDKind.FALLTHROUGH, inExperiment: false);
@@ -148,7 +148,7 @@ class LDEvaluationReason {
 
 /// Class returned by the "variation detail" methods such as [LDClient.boolVariationDetail], combining the result of
 /// the evaluation with an explanation of how it was calculated.
-class LDEvaluationDetail<T> {
+final class LDEvaluationDetail<T> {
   /// The result of the flag evaluation.
   final T value;
 

@@ -5,7 +5,7 @@ import 'dart:developer';
 import 'ld_value.dart';
 
 /// Collection of attributes for a [LDContext]
-class LDContextAttributes {
+final class LDContextAttributes {
   final Map<String, LDValue> attributes;
   final Map<String, LDValue> meta;
 
@@ -13,7 +13,7 @@ class LDContextAttributes {
 }
 
 /// A builder for constructing [LDContextAttributes].
-class LDAttributesBuilder {
+final class LDAttributesBuilder {
   static const String _KIND = "kind";
   static const String _KEY = "key";
   static const String _NAME = "name";
@@ -132,7 +132,7 @@ class LDAttributesBuilder {
 
     switch (name) {
       case _KIND:
-        if (value.getType() != LDValueType.STRING ||
+        if (value.type != LDValueType.STRING ||
             value.stringValue().isEmpty) {
           log("Ignoring attribute.  $_KIND must be a non-empty string.");
           return false;
@@ -140,20 +140,20 @@ class LDAttributesBuilder {
 
         break;
       case _KEY:
-        if (value.getType() != LDValueType.STRING ||
+        if (value.type != LDValueType.STRING ||
             value.stringValue().isEmpty) {
           log("Ignoring attribute.  $_KEY must be a non-empty string.");
           return false;
         }
         break;
       case _NAME:
-        if (value.getType() != LDValueType.STRING) {
+        if (value.type != LDValueType.STRING) {
           log("Ignoring attribute.  $_NAME must be a string.");
           return false;
         }
         break;
       case _ANONYMOUS:
-        if (value.getType() != LDValueType.BOOLEAN) {
+        if (value.type != LDValueType.BOOLEAN) {
           log("Ignoring attribute.  $_ANONYMOUS must be a boolean.");
           return false;
         }
@@ -176,7 +176,7 @@ class LDAttributesBuilder {
 /// For a more complete description of context attributes and how they can be referenced in feature flag rules, see the
 /// reference guide on [setting user attributes](https://docs.launchdarkly.com/home/contexts/attributes) and
 /// [targeting users](https://docs.launchdarkly.com/home/flags/targeting).
-class LDContext {
+final class LDContext {
   final Map<String, LDContextAttributes> attributesByKind;
 
   LDContext._internal(this.attributesByKind);
@@ -192,7 +192,7 @@ class LDContext {
 /// builder.kind('company', 'company-key-123abc').name('Microsoft');
 /// LDContext context = builder.build();
 /// ```
-class LDContextBuilder {
+final class LDContextBuilder {
   final Map<String, LDAttributesBuilder> _buildersByKind = Map();
 
   /// Adds another kind to the context.  [kind] and optional [key] must be
