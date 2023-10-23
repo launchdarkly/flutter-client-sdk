@@ -1,0 +1,13 @@
+name: launchdarkly_dart_client
+description: Client-side SDK code for dart.
+version: 0.0.1
+homepage: https://github.com/launchdarkly/flutter-client-sdk
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  launchdarkly_dart_common: 0.0.1
+
+dev_dependencies:
+  test: ^1.24.3

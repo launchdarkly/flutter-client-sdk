@@ -1,0 +1,4 @@
+# Once the SSE client exists, and things compile, then we can delete this file and fix any issues.
+analyzer:
+  exclude:
+    - bin

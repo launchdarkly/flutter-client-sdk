@@ -1,0 +1,11 @@
+name: launchdarkly_dart_common
+description: Common dart libraries used by LaunchDarkly SDKs.
+version: 0.0.1
+homepage: https://github.com/launchdarkly/dart-sdks/packages/common
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dev_dependencies:
+  test: ^1.24.3
+  mocktail: ^1.0.1

@@ -20,10 +20,19 @@ Build instructions
 
 See the [Flutter install](https://flutter.dev/docs/get-started/install) page for setting up Flutter for building Android and iOS plugins.
 
+This repository uses [Melos](https://github.com/invertase/melos) to manage the project and its dependencies.
+
+To install Melos you can run:
+```
+dart pub global activate melos
+```
+
 ### Building
 
-The `flutter` command line tool can be used to build and run the example application for manual testing. Run `flutter run` in the `example` directory.
+Install dependencies using `melos bootstrap`
+
+The `melos` command line tool can be used to build and run the example application for manual testing. Run `melos run launchdarkly_flutter_example` in the root of the repository.
 
 ### Testing
 
-To run the unit tests for the SDK, run `flutter test` in the SDK repo. These tests only cover the pure Dart behavior of the SDK, not the native plugin code that wraps the native SDKs.
+To run the unit tests for the SDK, run `melos run test` in the SDK repo. These tests only cover the pure Dart behavior of the SDK, not the native plugin code that wraps the native SDKs.

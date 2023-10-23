@@ -1,3 +1,0 @@
-analyzer:
-  exclude:
-    - sse_contract_test_service

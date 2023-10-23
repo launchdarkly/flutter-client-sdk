@@ -30,3 +30,6 @@ build/
 doc/
 
 cmdline-tools.zip
+
+packages/**/pubspec.lock
+pubspec_overrides.yaml

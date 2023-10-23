@@ -1,0 +1,17 @@
+name: launchdarkly_dart_sdks
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+packages:
+  - packages/*
+  - apps/*
+  - examples/*
+
+scripts:
+  analyze:
+    exec: dart analyze .
+
+  test:
+    # Add more packages as more of them have tests.
+    run: MELOS_PACKAGES="launchdarkly_dart_common" melos exec -- dart test .

@@ -18,24 +18,30 @@ runs:
         flutter-version: '3.13.6'
         channel: 'stable'
 
+
+    - name: Install Melos
+      shell: bash
+      run: |
+        dart pub global activate melos
+        echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
     - name: Install Dependencies
       shell: bash
-      run: flutter pub get
+      run: melos bs
 
     - name: Lint
       shell: bash
-      run: flutter analyze
+      run: melos run analyze
 
     - name: Test
       shell: bash
-      run: flutter test
+      run: melos run test
 
     - name: SSE Contract Tests
       shell: bash
       if: ${{ false }} # Temporarily disable SSE tests.
       run: |
-        cd sse_contract_test_service
-        dart pub get
+        cd apps/sse_contract_test_service
         dart run bin/sse_contract_test_service.dart > test-service.log 2>&1 & disown
         curl -s https://raw.githubusercontent.com/launchdarkly/sse-contract-tests/v2.0.0/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -stop-service-at-end" sh
 
@@ -43,8 +49,9 @@ runs:
       uses: actions/upload-artifact@v3
       if: always()
       with:
-        path: sse_contract_test_service/test-service.log
+        path: apps/sse_contract_test_service/test-service.log
 
     - name: Build Docs
       shell: bash
-      run: dart doc
+      # Just document the end SDK package for now.
+      run: melos exec --scope launchdarkly_flutter_client_sdk dart doc
