@@ -1,49 +1,100 @@
-import 'dart:developer';
-
 import 'ld_value.dart';
+import 'attribute_reference.dart';
+
+RegExp _kindExp = RegExp(r'^(\w|\.|-)+$');
+
+const String _KIND_ATTR = "kind";
+const String _KEY_ATTR = "key";
+const String _NAME_ATTR = "name";
+const String _ANONYMOUS_ATTR = "anonymous";
+const String _META_ATTR = "_meta";
+
+String _encodeKey(String key) {
+  if (key.contains('%') || key.contains(':')) {
+    // Keys should be small, so this should be fine, but we could
+    // use replaceAllMapped if we need to gain some performance.
+    return key.replaceAll('%', '%25').replaceAll(':', '%3A');
+  }
+  return key;
+}
+
+bool _validKind(String kind) {
+  return kind != "kind" && _kindExp.hasMatch(kind);
+}
+
+bool _referenceIs(AttributeReference reference, String value) {
+  if (reference.components.length == 1) {
+    return reference.components[0] == value;
+  }
+  return false;
+}
 
 /// Collection of attributes for a [LDContext]
 final class LDContextAttributes {
-  final Map<String, LDValue> attributes;
-  final Map<String, LDValue> meta;
+  final Map<String, LDValue> customAttributes;
 
-  LDContextAttributes._internal(this.attributes, this.meta);
+  final String kind;
+  final String key;
+  final bool anonymous;
+  final String? name;
+  final Set<AttributeReference> privateAttributes;
+
+  LDContextAttributes._internal(this.customAttributes, this.kind, this.key,
+      this.anonymous, this.privateAttributes, this.name);
+
+  LDValue _get(AttributeReference reference) {
+    if (!reference.valid) {
+      return LDValue.ofNull();
+    }
+    if (_referenceIs(reference, _NAME_ATTR)) {
+      return name == null ? LDValue.ofNull() : LDValue.ofString(name!);
+    }
+    if (_referenceIs(reference, _KEY_ATTR)) {
+      return LDValue.ofString(key);
+    }
+    if (_referenceIs(reference, _ANONYMOUS_ATTR)) {
+      return LDValue.ofBool(anonymous);
+    }
+    if (_referenceIs(reference, _KIND_ATTR)) {
+      return LDValue.ofString(kind);
+    }
+
+    var pointer = customAttributes[reference.components.first];
+
+    for (var index = 1; index < reference.components.length; index++) {
+      if (pointer == null || pointer.type != LDValueType.OBJECT) {
+        return LDValue.ofNull();
+      }
+
+      pointer = pointer.getFor(reference.components[index]);
+    }
+    return pointer ?? LDValue.ofNull();
+  }
 }
 
 /// A builder for constructing [LDContextAttributes].
 final class LDAttributesBuilder {
-  static const String _KIND = "kind";
-  static const String _KEY = "key";
-  static const String _NAME = "name";
-  static const String _ANONYMOUS = "anonymous";
-  static const String _META = "_meta";
-  static const String _PRIVATE_ATTRIBUTES = "privateAttributes";
+  final String _kind;
+  final LDContextBuilder _parent;
+  String? _key;
+  String? _name;
+  bool _anonymous = false;
+  Set<AttributeReference> _privateAttributes = {};
 
   // map for tracking attributes of the context
   Map<String, LDValue> _attributes = new Map();
 
-  // map for tracking meta data about the context.  privateAttributes is one
-  // such example of a possible entry in the meta data map.
-  Map<String, LDValue> _meta = new Map();
-
   /// Creates the builder with the provided kind.
-  LDAttributesBuilder._internal(String kind) {
-    _attributes[_KIND] = LDValue.ofString(kind);
-  }
+  LDAttributesBuilder._internal(LDContextBuilder parent, String kind)
+      : _kind = kind,
+        _parent = parent;
 
-  /// Sets the context's key attribute.  This method is private as it is only
-  /// used internally at the moment.
-  LDAttributesBuilder _key(String key) {
-    _attributes[_KEY] = LDValue.ofString(key);
-    return this;
-  }
+  /// Builds the context.
+  LDContext build() => _parent.build();
 
-  /// Sets the context's name attribute.  This attribute is optional.
-  /// This will be used as the preferred display name for the context in LaunchDarkly.
-  LDAttributesBuilder name(String name) {
-    _attributes[_NAME] = LDValue.ofString(name);
-    return this;
-  }
+  /// Start building a new context with the given kind.
+  LDAttributesBuilder kind(String kind, [String? key]) =>
+      _parent.kind(kind, key);
 
   /// Sets whether the LDContext is only intended for flag evaluations and
   /// should not be indexed by LaunchDarkly.
@@ -57,7 +108,7 @@ final class LDAttributesBuilder {
   /// making attributes private; all non-private attributes will still be
   /// included in events and data export.
   LDAttributesBuilder anonymous(bool anonymous) {
-    _attributes[_ANONYMOUS] = LDValue.ofBool(anonymous);
+    _anonymous = anonymous;
     return this;
   }
 
@@ -70,14 +121,16 @@ final class LDAttributesBuilder {
   /// different values: for instance, null, false, and the empty string "" are
   /// not the same, and the number 1 is not the same as the string "1".
   ///
-  /// The following attribute names have special restrictions on their value
-  /// types, and any value of an unsupported type will be ignored (leaving
-  /// the attribute unchanged):
+  /// You cannot use this method to set the following attributes.
   ///
-  /// - "kind", "key": Required and must be a non-empty string.
-  /// - "name": Must be a non-empty string.
-  /// - "anonymous": Must be a boolean.
-  /// - "_meta": Is reserved for internal use.
+  /// - "" - A name with an empty string.
+  /// - "kind"
+  /// - "key"
+  /// - "anonymous"
+  /// - "name"
+  /// - "_meta"
+  ///
+  /// Attempts to set these attributes will be ignored.
   ///
   /// Values that are JSON arrays or objects have special behavior when
   /// referenced in flag/segment rules.
@@ -88,20 +141,77 @@ final class LDAttributesBuilder {
   /// an attribute with a null value will behave as if the attribute did not
   /// exist.
   LDAttributesBuilder set(String name, LDValue value) {
-    // validates attribute, will log info if invalid
-    if (_validateAttribute(name, value)) {
-      _attributes[name] = value;
-    }
+    _trySet(name, value);
 
     return this;
   }
 
-  LDAttributesBuilder privateAttributes(List<String> prvAttrs) {
-    LDValueArrayBuilder builder = LDValueArrayBuilder();
-    prvAttrs.forEach((attr) {
-      builder.addString(attr);
-    });
-    _meta[_PRIVATE_ATTRIBUTES] = builder.build();
+  /// Sets the value of any attribute for the Context and mark it as private.
+  ///
+  /// This method uses the [LDValue] type to represent a value of any JSON
+  /// type: null, boolean, number, string, array, or object. For all attribute
+  /// names that do not have special meaning to LaunchDarkly, you may use any
+  /// of those types. Values of different JSON types are always treated as
+  /// different values: for instance, null, false, and the empty string "" are
+  /// not the same, and the number 1 is not the same as the string "1".
+  ///
+  /// You cannot use this method to set the following attributes.
+  ///
+  /// - "" - A name with an empty string.
+  /// - "kind"
+  /// - "key"
+  /// - "anonymous"
+  /// - "name"
+  /// - "_meta"
+  ///
+  /// Attempts to set these attributes will be ignored.
+  ///
+  /// Values that are JSON arrays or objects have special behavior when
+  /// referenced in flag/segment rules.
+  ///
+  /// A value of [LDValue.ofNull] is equivalent to removing any current
+  /// non-default value of the attribute. Null is not a valid attribute value
+  /// in the LaunchDarkly model; any expressions in feature flags that reference
+  /// an attribute with a null value will behave as if the attribute did not
+  /// exist.
+  LDAttributesBuilder setPrivate(String name, LDValue value) {
+    if (_trySet(name, value)) {
+      _privateAttributes.add(AttributeReference.fromLiteral(name));
+    }
+    return this;
+  }
+
+  bool _trySet(String name, LDValue value) {
+    if (_canSet(name, value)) {
+      if (value.type == LDValueType.NULL) {
+        _attributes.remove(value.stringValue());
+        return true;
+      }
+      _attributes[name] = value;
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Mark additional attributes as private. This will add additional
+  /// private attributes, it will not replace existing attributes that have
+  /// been added using [addPrivateAttributes] or [setPrivate]. Each string
+  /// should be in attribute reference format, not literal names.
+  ///
+  /// The attributes 'key', 'kind', '_meta', and 'anonymous' cannot be
+  /// private. Adding them to the private attributes will have no effect.
+  LDAttributesBuilder addPrivateAttributes(List<String> private) {
+    private
+        .map((refStr) => AttributeReference(refStr))
+        .where((ref) => ref.valid)
+        .forEach(_privateAttributes.add);
+    return this;
+  }
+
+  /// Set the name of the context.
+  LDAttributesBuilder name(String name) {
+    _name = name;
     return this;
   }
 
@@ -112,53 +222,35 @@ final class LDAttributesBuilder {
   /// The [LDContextAttributes] is immutable and will not be affected by
   /// any subsequent actions on the [LDAttributesBuilder].
   LDContextAttributes? _build() {
-    return LDContextAttributes._internal(
-        // create immutable shallow copy
-        Map.unmodifiable(_attributes),
-        Map.unmodifiable(_meta));
+    // TODO: Add anonymous key generation.
+    if (_key != null && _validKind(_kind) && _key != "") {
+      return LDContextAttributes._internal(
+          // create immutable shallow copy
+          Map.unmodifiable(_attributes),
+          _kind,
+          _key!,
+          _anonymous,
+          _privateAttributes,
+          _name);
+    }
+    return null;
   }
 
-  /// Performs minimal validation to provide some guarantees in Flutter layer.
-  /// Additional validation is performed by the native SDK and we don't want
-  /// to duplicate more complex validation (ex: valid characters) in this layer.
-  /// Returns true if valid, false if invalid
-  static bool _validateAttribute(String name, LDValue value) {
+  static bool _canSet(String name, LDValue value) {
     if (name.isEmpty) {
-      log("Ignoring attribute.  Name was empty.  Value was ${value.toString()}");
       return false;
     }
 
     switch (name) {
-      case _KIND:
-        if (value.type != LDValueType.STRING || value.stringValue().isEmpty) {
-          log("Ignoring attribute.  $_KIND must be a non-empty string.");
-          return false;
-        }
-
-        break;
-      case _KEY:
-        if (value.type != LDValueType.STRING || value.stringValue().isEmpty) {
-          log("Ignoring attribute.  $_KEY must be a non-empty string.");
-          return false;
-        }
-        break;
-      case _NAME:
-        if (value.type != LDValueType.STRING) {
-          log("Ignoring attribute.  $_NAME must be a string.");
-          return false;
-        }
-        break;
-      case _ANONYMOUS:
-        if (value.type != LDValueType.BOOLEAN) {
-          log("Ignoring attribute.  $_ANONYMOUS must be a boolean.");
-          return false;
-        }
-        break;
-      case _META:
-        log("Ignoring attribute.  $_META is a reserved attribute for internal usage.");
+      case _KIND_ATTR:
+      case _KEY_ATTR:
+      case _NAME_ATTR:
+      case _ANONYMOUS_ATTR:
+      case _META_ATTR:
         return false;
+      default:
+        return true;
     }
-    return true;
   }
 }
 
@@ -174,8 +266,32 @@ final class LDAttributesBuilder {
 /// [targeting users](https://docs.launchdarkly.com/home/flags/targeting).
 final class LDContext {
   final Map<String, LDContextAttributes> attributesByKind;
+  final bool valid;
 
-  LDContext._internal(this.attributesByKind);
+  LDContext._valid(this.attributesByKind) : valid = true;
+
+  LDContext._invalid()
+      : attributesByKind = {},
+        valid = false;
+
+  String get canonicalKey {
+    if (attributesByKind.length == 1 && attributesByKind.containsKey('user')) {
+      return attributesByKind['user']!.key;
+    }
+
+    final kinds = attributesByKind.keys.toList();
+    kinds.sort();
+    return kinds
+        .map((kind) => '${kind}:${_encodeKey(attributesByKind[kind]!.key)}')
+        .join(":");
+  }
+
+  /// For the given context kind get an attribute using a reference.
+  /// If the attribute does not exist, then a null LDValue type will
+  /// be returned.
+  LDValue get(String kind, AttributeReference reference) {
+    return attributesByKind[kind]?._get(reference) ?? LDValue.ofNull();
+  }
 }
 
 /// A builder to facilitate the creation of [LDContext]s.  Note that the return
@@ -199,11 +315,11 @@ final class LDContextBuilder {
   /// The generated key will be persisted and reused for future application runs.
   LDAttributesBuilder kind(String kind, [String? key]) {
     LDAttributesBuilder builder = _buildersByKind.putIfAbsent(
-        kind, () => LDAttributesBuilder._internal(kind));
+        kind, () => LDAttributesBuilder._internal(this, kind));
 
     if (key != null) {
       // key may be different on this subsequent call, so need to update it.
-      builder._key(key);
+      builder._key = key;
     }
 
     return builder;
@@ -212,17 +328,20 @@ final class LDContextBuilder {
   /// Builds the context.
   LDContext build() {
     Map<String, LDContextAttributes> contextsByKind = Map();
-    _buildersByKind.forEach((kind, b) {
-      // attempt to build
-      LDContextAttributes? attributes = b._build();
-
-      // if build fails, ignore
-      if (attributes != null) {
-        contextsByKind[kind] = attributes;
-      } else {
-        log("Ignoring context of kind $kind");
+    for (final MapEntry(key: kind, value: builder) in _buildersByKind.entries) {
+      LDContextAttributes? attributes = builder._build();
+      // Component context was invalid. When this context is used for an
+      // evaluation a log entry will be emitted which will let the developer
+      // narrow down the reason.
+      if (attributes == null) {
+        return LDContext._invalid();
       }
-    });
-    return LDContext._internal(Map.unmodifiable(contextsByKind));
+      contextsByKind[kind] = attributes;
+    }
+    // Must contain at least 1 context.
+    if (contextsByKind.isEmpty) {
+      return LDContext._invalid();
+    }
+    return LDContext._valid(Map.unmodifiable(contextsByKind));
   }
 }
