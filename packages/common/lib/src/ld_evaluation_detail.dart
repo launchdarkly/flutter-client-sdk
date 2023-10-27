@@ -1,29 +1,43 @@
 /// Enumerated type defining the possible reasons for a flag evaluation result, used in [LDEvaluationReason].
 enum LDKind {
   /// Indicates that the flag was off and therefore returned its configured off value.
-  OFF,
+  off("OFF"),
 
   /// Indicates that the flag was on but the user did not match any targets or rules, resulting in the fallback value.
-  FALLTHROUGH,
+  fallthrough("FALLTHROUGH"),
 
   /// Indicates that the context key was specifically targeted for this flag.
-  TARGET_MATCH,
+  targetMatch("TARGET_MATCH"),
 
   /// Indicates that the context matched one of the flag's rules.
-  RULE_MATCH,
+  ruleMatch("RULE_MATCH"),
 
   /// Indicates that the flag was considered off because it had at least one prerequisite flag that was off or did not
   /// return the desired variation.
-  PREREQUISITE_FAILED,
+  prerequisiteFailed("PREREQUISITE_FAILED"),
 
   /// Indicates that the flag could not be evaluated, e.g. because it does not exist or due to an unexpected error.
   ///
   /// In this case the result value will be the default value that the caller passed to the client. See the
   /// [LDErrorKind] for the defined error cases which can be retrieved from [LDEvaluationReason.errorKind].
-  ERROR,
+  error("ERROR"),
 
   /// Indicates that LaunchDarkly provided an [LDKind] value that is not supported by this version of the SDK.
-  UNKNOWN
+  unknown("UNKNOWN");
+
+  final String _value;
+
+  const LDKind(this._value);
+
+  @override
+  String toString() {
+    return _value;
+  }
+
+  static LDKind fromString(String value) {
+    return LDKind.values.firstWhere((entry) => entry._value == value,
+        orElse: () => LDKind.unknown);
+  }
 }
 
 /// Enumerated type defining the defined error cases for an [LDEvaluationReason] with the kind [LDKind.ERROR].
@@ -32,40 +46,54 @@ enum LDKind {
 /// [LDEvaluationReason.errorKind] property.
 enum LDErrorKind {
   /// Indicates that the caller tried to evaluate a flag before the client had successfully initialized.
-  CLIENT_NOT_READY,
+  clientNotReady("CLIENT_NOT_READY"),
 
   /// Indicates that the caller provided a flag key that did not match any known flag.
-  FLAG_NOT_FOUND,
+  flagNotFound("FLAG_NOT_FOUND"),
 
   /// Indicates that there was an internal inconsistency in the flag data, e.g. a rule specified a non-existent
   /// variation.
-  MALFORMED_FLAG,
+  malformedFlag("MALFORMED_FLAG"),
 
   /// Indicates that the caller passed `null` for the `context` parameter, or the context lacked a key.  This
   /// enum name is an artifact of user being the predecessor to context.
-  USER_NOT_SPECIFIED,
+  userNotSpecified("USER_NOT_SPECIFIED"),
 
   /// Indicates that the result value was not of the requested type, e.g. you called `LDClient.boolVariationDetail` but
   /// the flag value was an `int`.
-  WRONG_TYPE,
+  wrongType("WRONG_TYPE"),
 
   /// Indicates that an unexpected exception stopped flag evaluation.
-  EXCEPTION,
+  exception("EXCEPTION"),
 
   /// Indicates that LaunchDarkly provided an [LDErrorKind] value that is not supported by this version of the SDK.
-  UNKNOWN
+  unknown("UNKNOWN");
+
+  final String _value;
+
+  const LDErrorKind(this._value);
+
+  @override
+  String toString() {
+    return _value;
+  }
+
+  static LDErrorKind fromString(String value) {
+    return LDErrorKind.values.firstWhere((entry) => entry._value == value,
+        orElse: () => LDErrorKind.unknown);
+  }
 }
 
 /// Describes the reason that a flag evaluation produced a particular value.
 final class LDEvaluationReason {
-  static const _OFF_INSTANCE = LDEvaluationReason._(LDKind.OFF);
+  static const _OFF_INSTANCE = LDEvaluationReason._(LDKind.off);
   static const _FALLTHROUGH_INSTANCE =
-      LDEvaluationReason._(LDKind.FALLTHROUGH, inExperiment: false);
+      LDEvaluationReason._(LDKind.fallthrough, inExperiment: false);
   static const _FALLTHROUGH_EXPERIMENT_INSTANCE =
-      LDEvaluationReason._(LDKind.FALLTHROUGH, inExperiment: true);
+      LDEvaluationReason._(LDKind.fallthrough, inExperiment: true);
   static const _TARGET_MATCH_INSTANCE =
-      LDEvaluationReason._(LDKind.TARGET_MATCH);
-  static const _UNKNOWN_INSTANCE = LDEvaluationReason._(LDKind.UNKNOWN);
+      LDEvaluationReason._(LDKind.targetMatch);
+  static const _UNKNOWN_INSTANCE = LDEvaluationReason._(LDKind.unknown);
 
   /// The general category for the reason responsible for the evaluation result.
   ///
@@ -85,7 +113,7 @@ final class LDEvaluationReason {
   /// Whether the rule or fallthrough is part of an experiment when [kind] is [LDKind.RULE_MATCH] or [LDKind.FALLTHROUGH].
   ///
   /// For all other kinds, this field is undefined.
-  final bool? inExperiment;
+  final bool inExperiment;
 
   /// The key of the first prerequisite that failed when [kind] is [LDKind.PREREQUISITE_FAILED].
   ///
@@ -102,7 +130,7 @@ final class LDEvaluationReason {
       this.ruleId,
       this.prerequisiteKey,
       this.errorKind,
-      this.inExperiment});
+      this.inExperiment = false});
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.OFF].
   static LDEvaluationReason off() => _OFF_INSTANCE;
@@ -121,7 +149,7 @@ final class LDEvaluationReason {
   /// Returns an [LDEvaluationReason] with the kind [LDKind.RULE_MATCH] and the given [ruleIndex] and [ruleId].
   static LDEvaluationReason ruleMatch(
       {required int ruleIndex, required String ruleId, bool? inExperiment}) {
-    return LDEvaluationReason._(LDKind.RULE_MATCH,
+    return LDEvaluationReason._(LDKind.ruleMatch,
         ruleIndex: ruleIndex,
         ruleId: ruleId,
         inExperiment: inExperiment ?? false);
@@ -130,18 +158,45 @@ final class LDEvaluationReason {
   /// Returns an [LDEvaluationReason] with the kind [LDKind.PREREQUISITE_FAILED] and the given [prerequisiteKey].
   static LDEvaluationReason prerequisiteFailed(
       {required String prerequisiteKey}) {
-    return LDEvaluationReason._(LDKind.PREREQUISITE_FAILED,
+    return LDEvaluationReason._(LDKind.prerequisiteFailed,
         prerequisiteKey: prerequisiteKey);
   }
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.ERROR] and the given [errorKind].
   static LDEvaluationReason error(
-      {LDErrorKind errorKind = LDErrorKind.UNKNOWN}) {
-    return LDEvaluationReason._(LDKind.ERROR, errorKind: errorKind);
+      {LDErrorKind errorKind = LDErrorKind.unknown}) {
+    return LDEvaluationReason._(LDKind.error, errorKind: errorKind);
   }
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.UNKNOWN].
   static LDEvaluationReason unknown() => _UNKNOWN_INSTANCE;
+
+  @override
+  String toString() {
+    return 'LDEvaluationReason{kind: $kind, ruleIndex: $ruleIndex, '
+        'ruleId: $ruleId, inExperiment: $inExperiment,'
+        ' prerequisiteKey: $prerequisiteKey, errorKind: $errorKind}';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LDEvaluationReason &&
+          kind == other.kind &&
+          ruleIndex == other.ruleIndex &&
+          ruleId == other.ruleId &&
+          inExperiment == other.inExperiment &&
+          prerequisiteKey == other.prerequisiteKey &&
+          errorKind == other.errorKind;
+
+  @override
+  int get hashCode =>
+      kind.hashCode ^
+      ruleIndex.hashCode ^
+      ruleId.hashCode ^
+      inExperiment.hashCode ^
+      prerequisiteKey.hashCode ^
+      errorKind.hashCode;
 }
 
 /// Class returned by the "variation detail" methods such as [LDClient.boolVariationDetail], combining the result of
@@ -151,7 +206,7 @@ final class LDEvaluationDetail<T> {
   final T value;
 
   /// The index of the returned flag within the list of variations if the default value was not returned.
-  final int variationIndex;
+  final int? variationIndex;
 
   /// An object describing the primary reason for the resultant flag value.
   ///
@@ -160,4 +215,19 @@ final class LDEvaluationDetail<T> {
 
   /// Constructor for [LDEvaluationDetail].
   const LDEvaluationDetail(this.value, this.variationIndex, this.reason);
+
+  @override
+  String toString() {
+    return 'LDEvaluationDetail{value: $value, variationIndex:'
+        ' $variationIndex, reason: $reason}';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LDEvaluationDetail &&
+          value == other.value;
+
+  @override
+  int get hashCode => value.hashCode;
 }
