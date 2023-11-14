@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:ffi';
 
+import 'package:launchdarkly_event_source_client/sse_client.dart';
 import 'package:openapi_base/openapi_base.dart';
 import 'callback_api.openapi.dart';
 import 'service_api.openapi.dart';
-// TODO: Uncomment as part of sc-215077
-// import 'package:launchdarkly_flutter_client_sdk/src/network/sse/sse_client.dart';
 import 'dart:io';
 
 class TestApiImpl extends TestApi {
@@ -30,27 +29,27 @@ class TestApiImpl extends TestApi {
     // create a new streaming client
     final streamUri = Uri.parse(body.streamUrl!);
 
-    // ignore: cancel_subscriptions
-
-    // TODO: Uncomment as part of sc-215077
-    // final subscription = SSEClient(streamUri, "").stream.listen((event) {
-    //   callbackClient.callbackNumberPost(
-    //       PostCallback(
-    //           kind: 'event',
-    //           event: PostCallbackEvent(
-    //               type: event.type, data: event.data, id: event.id)),
-    //       callbackNumber: callbackId);
-    //   callbackId++;
-    // }, onError: (error) {
-    //   callbackClient.callbackNumberPost(
-    //       PostCallback(kind: 'error', comment: error.toString()),
-    //       callbackNumber: callbackId);
-    //   callbackId++;
-    // });
+    // TODO: it would be nice if we didn't have to specify all the event types, but because the web
+    // event source must specify them, we are doomed to this pergatory.
+    final subscription =
+        SSEClient(streamUri, {'put', 'patch', 'delete', 'message', 'greeting', ' greeting'}).stream.listen((event) {
+      callbackClient.callbackNumberPost(
+          PostCallback(
+              kind: 'event',
+              event: PostCallbackEvent(
+                  type: event.type, data: event.data, id: event.id)),
+          callbackNumber: callbackId);
+      callbackId++;
+    }, onError: (error) {
+      callbackClient.callbackNumberPost(
+          PostCallback(kind: 'error', comment: error.toString()),
+          callbackNumber: callbackId);
+      callbackId++;
+    });
 
     final clientId = nextIdToGive;
     // TODO: Uncomment as part of sc-215077
-    // clientSubMap[clientId] = subscription;
+    clientSubMap[clientId] = subscription;
     nextIdToGive++;
 
     final Map<String, List<String>> headers = {};

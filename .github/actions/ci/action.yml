@@ -39,7 +39,6 @@ runs:
 
     - name: SSE Contract Tests
       shell: bash
-      if: ${{ false }} # Temporarily disable SSE tests.
       run: |
         cd apps/sse_contract_test_service
         dart run bin/sse_contract_test_service.dart > test-service.log 2>&1 & disown

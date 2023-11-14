@@ -9,7 +9,7 @@ environment:
 
 dependencies:
   http: ^1.1.0
-  io: ^1.0.4
 
 dev_dependencies:
   test: ^1.24.3
+  mocktail: ^1.0.1
