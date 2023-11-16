@@ -19,3 +19,5 @@ export 'src/serialization/ld_evaluation_result_serialization.dart'
     show LDEvaluationResultSerialization;
 export 'src/serialization/ld_evaluation_results_serialization.dart'
     show LDEvaluationResultsSerialization;
+
+export 'src/collections.dart' show ListComparisons, MapComparisons;

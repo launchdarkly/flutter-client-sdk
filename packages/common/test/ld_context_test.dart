@@ -36,6 +36,10 @@ void main() {
     }
   });
 
+  test('can get the canonical key for an invalid context', () {
+    expect(LDContextBuilder().build().canonicalKey, '');
+  });
+
   test('can change the key of a context during build', () {
     final context = LDContextBuilder()
         .kind('user', 'user-key')
