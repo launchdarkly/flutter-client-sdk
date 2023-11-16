@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('given different evaluation reasons', () {
-    [
+    for (var reason in [
       LDEvaluationReason.unknown(),
       LDEvaluationReason.error(),
       LDEvaluationReason.error(errorKind: LDErrorKind.clientNotReady),
@@ -23,10 +23,10 @@ void main() {
       LDEvaluationReason.fallthrough(inExperiment: false),
       LDEvaluationReason.targetMatch(),
       LDEvaluationReason.off(),
-    ].forEach((reason) {
+    ]) {
       test(
           'it can serialize/deserialize the evaluation detail: '
-              '${reason}', () {
+              '$reason', () {
         final detail = LDEvaluationDetail(
             LDValue.ofString("test"), null, reason);
         var serialized = jsonEncode(LDEvaluationDetailSerialization.toJson(
@@ -36,11 +36,11 @@ void main() {
 
         expect(deserialized, detail);
       });
-    });
+    }
   });
 
   group('given different values', () {
-    [
+    for (var value in [
       LDValue.ofString("test"),
       LDValue.ofNum(42),
       LDValue.ofBool(true),
@@ -52,7 +52,7 @@ void main() {
           .addValue(LDValue.buildObject().addString('potato', 'cheese').build())
           .addValue(LDValue.buildArray().addString('nested').build())
           .build()
-    ].forEach((value) {
+    ]) {
       test('it serializes and deserializes the value: ${value.type}', () {
         var serialized = jsonEncode(LDEvaluationDetailSerialization.toJson(
             LDEvaluationDetail(value, null, LDEvaluationReason.off())));
@@ -61,13 +61,13 @@ void main() {
 
         expect(deserialized.value, value);
       });
-    });
+    }
   });
 
   group('given different variation indexes', () {
-    [42, 10, 0, null].forEach((variationIndex) {
+    for (var variationIndex in [42, 10, 0, null]) {
       test(
-          'it serializes and deserializes the variationIndex: ${variationIndex}',
+          'it serializes and deserializes the variationIndex: $variationIndex',
               () {
             var serialized = jsonEncode(LDEvaluationDetailSerialization.toJson(
                 LDEvaluationDetail(
@@ -78,6 +78,6 @@ void main() {
 
             expect(deserialized.variationIndex, variationIndex);
           });
-    });
+    }
   });
 }

@@ -4,24 +4,24 @@ import 'collections.dart';
 /// Describes the type of an [LDValue]. These correspond to the standard types in JSON.
 enum LDValueType {
   /// The value is null.
-  NULL,
+  nullType,
 
   /// The value is a boolean.
-  BOOLEAN,
+  boolean,
 
   /// The value is a number.
   ///
   /// JSON does not have separate types for integers and floating-point values, but you can convert to either.
-  NUMBER,
+  number,
 
   /// The value is a string.
-  STRING,
+  string,
 
   /// The value is an array.
-  ARRAY,
+  array,
 
   /// The value is an object (map).
-  OBJECT
+  object
 }
 
 // Constant instances reused for all null and boolean [LDValue] instances.
@@ -88,27 +88,27 @@ final class LDValue {
   /// Get the type of this value.
   LDValueType get type {
     if (_value is bool) {
-      return LDValueType.BOOLEAN;
+      return LDValueType.boolean;
     }
     if (_value is num) {
-      return LDValueType.NUMBER;
+      return LDValueType.number;
     }
     if (_value is String) {
-      return LDValueType.STRING;
+      return LDValueType.string;
     }
     if (_value is _LDValueArray) {
-      return LDValueType.ARRAY;
+      return LDValueType.array;
     }
     if (_value is _LDValueObject) {
-      return LDValueType.OBJECT;
+      return LDValueType.object;
     }
     if (_value == null) {
-      return LDValueType.NULL;
+      return LDValueType.nullType;
     }
 
     assert(false,
         "Unsupported LDValue type. Please ensure exhaustive support in `get type`");
-    return LDValueType.NULL;
+    return LDValueType.nullType;
   }
 
   /// Retrieves an array element by index.
@@ -243,7 +243,7 @@ class _LDValueObject {
       _value.entries.map((item) => Object.hash(item.key, item.value)));
 }
 
-/// Builder for constructing an [LDValueType.ARRAY] typed [LDValue].
+/// Builder for constructing an [LDValueType.array] typed [LDValue].
 class LDValueArrayBuilder {
   List<LDValue> _builder = [];
   bool _copyOnWrite = false;
@@ -251,7 +251,7 @@ class LDValueArrayBuilder {
   /// Append an [LDValue] to the builder.
   LDValueArrayBuilder addValue(LDValue value) {
     if (_copyOnWrite) {
-      _builder = new List.of(_builder);
+      _builder = List.of(_builder);
       _copyOnWrite = false;
     }
     _builder.add(value);
@@ -268,7 +268,7 @@ class LDValueArrayBuilder {
   LDValueArrayBuilder addString(String value) =>
       addValue(LDValue.ofString(value));
 
-  /// Returns an [LDValue] of type [LDValueType.ARRAY] containing the builder's current elements.
+  /// Returns an [LDValue] of type [LDValueType.array] containing the builder's current elements.
   ///
   /// Subsequent changes to the builder will not affect the returned value (it uses copy-on-write logic, so the previous
   /// values will only be copied to a new list if you continue to add elements after calling [build]).
@@ -278,15 +278,15 @@ class LDValueArrayBuilder {
   }
 }
 
-/// Builder for constructing an [LDValueType.OBJECT] typed [LDValue].
+/// Builder for constructing an [LDValueType.object] typed [LDValue].
 class LDValueObjectBuilder {
-  Map<String, LDValue> _builder = new Map();
+  Map<String, LDValue> _builder = {};
   bool _copyOnWrite = false;
 
   /// Associated the given key and [LDValue] in the builder.
   LDValueObjectBuilder addValue(String key, LDValue value) {
     if (_copyOnWrite) {
-      _builder = new Map.of(_builder);
+      _builder = Map.of(_builder);
       _copyOnWrite = false;
     }
     _builder[key] = value;
@@ -305,7 +305,7 @@ class LDValueObjectBuilder {
   LDValueObjectBuilder addString(String key, String value) =>
       addValue(key, LDValue.ofString(value));
 
-  /// Returns an [LDValue] of type [LDValueType.OBJECT] containing the builder's current elements.
+  /// Returns an [LDValue] of type [LDValueType.object] containing the builder's current elements.
   ///
   /// Subsequent changes to the builder will not affect the returned value (it uses copy-on-write logic, so the previous
   /// values will only be copied to a new list if you continue to add elements after calling [build]).

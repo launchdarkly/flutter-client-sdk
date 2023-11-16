@@ -10,8 +10,29 @@ packages:
 
 scripts:
   analyze:
-    exec: dart analyze .
+    exec: dart analyze --fatal-infos .
+
+  fix:
+    exec: dart fix --apply .
 
   test:
     # Add more packages as more of them have tests.
-    run: MELOS_PACKAGES="launchdarkly_dart_common" melos exec -- dart test .
+    # Tests are ran with flutter as it supports coverage. Some packages may also include flutter
+    # dependencies.
+    run: MELOS_PACKAGES="launchdarkly_dart_common" melos exec -- flutter test . --coverage
+
+  merge-trace-files:
+    description: Merge all packages coverage trace files ignoring data related to generated files.
+    run: >
+      coverde rm MELOS_ROOT_PATH/coverage/filtered.lcov.info &&
+      melos exec --file-exists=coverage/lcov.info -- "coverde filter --input ./coverage/lcov.info --output MELOS_ROOT_PATH/coverage/filtered.lcov.info --paths-parent MELOS_PACKAGE_PATH --filters '\.g\.dart'"
+
+  coverage-report:
+    run: >
+      melos run merge-trace-files &&
+      coverde value -i coverage/filtered.lcov.info
+
+  coverage-report-html:
+    run: >
+      melos run merge-trace-files &&
+      coverde report -i coverage/filtered.lcov.info -o coverage/html/

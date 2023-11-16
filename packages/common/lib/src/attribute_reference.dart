@@ -43,7 +43,7 @@ String _unescape(String ref) {
 
 /// Check if an attribute reference string is valid.
 bool _validate(String ref) {
-  return ref.length != 0 && !_invalidExp.hasMatch(ref);
+  return ref.isNotEmpty && !_invalidExp.hasMatch(ref);
 }
 
 /// Check if the reference is a literal.

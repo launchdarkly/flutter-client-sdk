@@ -13,16 +13,17 @@ final class LDValueSerialization {
     }
     if (json is List<dynamic>) {
       final arrayBuilder = LDValueArrayBuilder();
-      json.forEach((item) =>
-          arrayBuilder.addValue(LDValueSerialization.fromJson(item)));
+      for (var item in json) {
+        arrayBuilder.addValue(LDValueSerialization.fromJson(item));
+      }
       return arrayBuilder.build();
     }
     if (json is Map<String, dynamic>) {
       final objectBuilder = LDValueObjectBuilder();
-      json.entries.forEach((entry) {
+      for (var entry in json.entries) {
         final value = LDValueSerialization.fromJson(entry.value);
         objectBuilder.addValue(entry.key, value);
-      });
+      }
       return objectBuilder.build();
     }
     if (json == null) {
@@ -37,22 +38,22 @@ final class LDValueSerialization {
 
   static dynamic toJson(LDValue value) {
     switch (value.type) {
-      case LDValueType.NULL:
+      case LDValueType.nullType:
         return null;
-      case LDValueType.BOOLEAN:
+      case LDValueType.boolean:
         return value.booleanValue();
-      case LDValueType.NUMBER:
+      case LDValueType.number:
         return value.doubleValue();
-      case LDValueType.STRING:
+      case LDValueType.string:
         return value.stringValue();
-      case LDValueType.ARRAY:
+      case LDValueType.array:
         List<dynamic> items = [];
         for (var index = 0; index < value.length; index++) {
           var jsonValue = LDValueSerialization.toJson(value.get(index));
           items.add(jsonValue);
         }
         return items;
-      case LDValueType.OBJECT:
+      case LDValueType.object:
         Map<String, dynamic> items = {};
         final objectKeys = value.keys.toList();
         for (var index = 0; index < value.length; index++) {

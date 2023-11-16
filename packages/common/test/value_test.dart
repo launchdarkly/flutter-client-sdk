@@ -8,7 +8,7 @@ void main() {
     final nullValue = LDValue.ofNull();
 
     test('is of correct type', () {
-      expect(nullValue.type, LDValueType.NULL);
+      expect(nullValue.type, LDValueType.nullType);
     });
 
     test('can compare values', () {
@@ -32,8 +32,8 @@ void main() {
     final trueValue = LDValue.ofBool(true);
     final falseValue = LDValue.ofBool(false);
     test('values are of correct type', () {
-      expect(trueValue.type, LDValueType.BOOLEAN);
-      expect(falseValue.type, LDValueType.BOOLEAN);
+      expect(trueValue.type, LDValueType.boolean);
+      expect(falseValue.type, LDValueType.boolean);
     });
 
     test('contains the correct boolean value', () {
@@ -68,8 +68,8 @@ void main() {
     final fractional = LDValue.ofNum(pi);
 
     test('is of the correct type', () {
-      expect(whole.type, LDValueType.NUMBER);
-      expect(fractional.type, LDValueType.NUMBER);
+      expect(whole.type, LDValueType.number);
+      expect(fractional.type, LDValueType.number);
     });
 
     test('contains the correct numeric values', () {
@@ -99,7 +99,7 @@ void main() {
     final stringValue = LDValue.ofString('value1');
 
     test('is the correct type', () {
-      expect(stringValue.type, LDValueType.STRING);
+      expect(stringValue.type, LDValueType.string);
     });
 
     test('contains the correct value', () {
@@ -142,8 +142,8 @@ void main() {
         .build();
 
     test('is of correct type', () {
-      expect(emptyArray.type, LDValueType.ARRAY);
-      expect(allTypesArray.type, LDValueType.ARRAY);
+      expect(emptyArray.type, LDValueType.array);
+      expect(allTypesArray.type, LDValueType.array);
     });
 
     test('can get by index', () {
@@ -212,8 +212,8 @@ void main() {
         .build();
 
     test('is of correct type', () {
-      expect(emptyObject.type, LDValueType.OBJECT);
-      expect(allTypesObject.type, LDValueType.OBJECT);
+      expect(emptyObject.type, LDValueType.object);
+      expect(allTypesObject.type, LDValueType.object);
     });
 
     test('can get by key', () {

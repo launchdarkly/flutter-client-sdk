@@ -3,11 +3,11 @@ import 'attribute_reference.dart';
 
 RegExp _kindExp = RegExp(r'^(\w|\.|-)+$');
 
-const String _KIND_ATTR = "kind";
-const String _KEY_ATTR = "key";
-const String _NAME_ATTR = "name";
-const String _ANONYMOUS_ATTR = "anonymous";
-const String _META_ATTR = "_meta";
+const String _kindAttr = "kind";
+const String _keyAttr = "key";
+const String _nameAttr = "name";
+const String _anonymousAttr = "anonymous";
+const String _metaAttr = "_meta";
 
 String _encodeKey(String key) {
   if (key.contains('%') || key.contains(':')) {
@@ -46,23 +46,23 @@ final class LDContextAttributes {
     if (!reference.valid) {
       return LDValue.ofNull();
     }
-    if (_referenceIs(reference, _NAME_ATTR)) {
+    if (_referenceIs(reference, _nameAttr)) {
       return name == null ? LDValue.ofNull() : LDValue.ofString(name!);
     }
-    if (_referenceIs(reference, _KEY_ATTR)) {
+    if (_referenceIs(reference, _keyAttr)) {
       return LDValue.ofString(key);
     }
-    if (_referenceIs(reference, _ANONYMOUS_ATTR)) {
+    if (_referenceIs(reference, _anonymousAttr)) {
       return LDValue.ofBool(anonymous);
     }
-    if (_referenceIs(reference, _KIND_ATTR)) {
+    if (_referenceIs(reference, _kindAttr)) {
       return LDValue.ofString(kind);
     }
 
     var pointer = customAttributes[reference.components.first];
 
     for (var index = 1; index < reference.components.length; index++) {
-      if (pointer == null || pointer.type != LDValueType.OBJECT) {
+      if (pointer == null || pointer.type != LDValueType.object) {
         return LDValue.ofNull();
       }
 
@@ -79,10 +79,10 @@ final class LDAttributesBuilder {
   String? _key;
   String? _name;
   bool _anonymous = false;
-  Set<AttributeReference> _privateAttributes = {};
+  final Set<AttributeReference> _privateAttributes = {};
 
   // map for tracking attributes of the context
-  Map<String, LDValue> _attributes = new Map();
+  final Map<String, LDValue> _attributes = {};
 
   /// Creates the builder with the provided kind.
   LDAttributesBuilder._internal(LDContextBuilder parent, String kind)
@@ -183,7 +183,7 @@ final class LDAttributesBuilder {
 
   bool _trySet(String name, LDValue value) {
     if (_canSet(name, value)) {
-      if (value.type == LDValueType.NULL) {
+      if (value.type == LDValueType.nullType) {
         _attributes.remove(value.stringValue());
         return true;
       }
@@ -242,11 +242,11 @@ final class LDAttributesBuilder {
     }
 
     switch (name) {
-      case _KIND_ATTR:
-      case _KEY_ATTR:
-      case _NAME_ATTR:
-      case _ANONYMOUS_ATTR:
-      case _META_ATTR:
+      case _kindAttr:
+      case _keyAttr:
+      case _nameAttr:
+      case _anonymousAttr:
+      case _metaAttr:
         return false;
       default:
         return true;
@@ -282,7 +282,7 @@ final class LDContext {
     final kinds = attributesByKind.keys.toList();
     kinds.sort();
     return kinds
-        .map((kind) => '${kind}:${_encodeKey(attributesByKind[kind]!.key)}')
+        .map((kind) => '$kind:${_encodeKey(attributesByKind[kind]!.key)}')
         .join(":");
   }
 
@@ -305,7 +305,7 @@ final class LDContext {
 /// LDContext context = builder.build();
 /// ```
 final class LDContextBuilder {
-  final Map<String, LDAttributesBuilder> _buildersByKind = Map();
+  final Map<String, LDAttributesBuilder> _buildersByKind = {};
 
   /// Adds another kind to the context.  [kind] and optional [key] must be
   /// non-empty.  Calling this method again with the same kind returns the same
@@ -327,7 +327,7 @@ final class LDContextBuilder {
 
   /// Builds the context.
   LDContext build() {
-    Map<String, LDContextAttributes> contextsByKind = Map();
+    Map<String, LDContextAttributes> contextsByKind = {};
     for (final MapEntry(key: kind, value: builder) in _buildersByKind.entries) {
       LDContextAttributes? attributes = builder._build();
       // Component context was invalid. When this context is used for an

@@ -36,3 +36,19 @@ The `melos` command line tool can be used to build and run the example applicati
 ### Testing
 
 To run the unit tests for the SDK, run `melos run test` in the SDK repo. These tests only cover the pure Dart behavior of the SDK, not the native plugin code that wraps the native SDKs.
+
+### Code Coverage
+
+Coverage reports are generated during testing and `coverde` is used to merge the test reports.
+
+To install Coverde you can run:
+```
+dart pub global activate coverde
+```
+
+Before a report can be generated `melos run test` must be ran.
+
+To view a coverage report:
+```
+melos run coverage-report
+```

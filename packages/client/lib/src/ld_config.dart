@@ -133,7 +133,7 @@ final class LDConfig {
 
 /// A builder for [LDConfig].
 class LDConfigBuilder {
-  String _mobileKey;
+  final String _mobileKey;
 
   String? _applicationId;
   String? _applicationName;
@@ -161,7 +161,7 @@ class LDConfigBuilder {
   bool _autoEnvAttributes = false;
 
   bool _allAttributesPrivate = false;
-  Set<String> _privateAttributes = Set();
+  Set<String> _privateAttributes = {};
 
   ///  Create a new `LDConfigBuilder`.  Configurable values are all set to their
   ///  default values. The client app can modify these values as desired.
@@ -177,7 +177,7 @@ class LDConfigBuilder {
   ///     for more documentation.
   LDConfigBuilder(this._mobileKey, AutoEnvAttributes autoEnvAttributes) {
     _autoEnvAttributes = autoEnvAttributes ==
-        AutoEnvAttributes.Enabled; // mapping enum to boolean
+        AutoEnvAttributes.enabled; // mapping enum to boolean
   }
 
   /// A unique identifier representing the application where the LaunchDarkly SDK is running.
@@ -188,7 +188,7 @@ class LDConfigBuilder {
   ///
   /// Example: 'authentication-service'
   LDConfigBuilder applicationId(String applicationId) {
-    this._applicationId = applicationId;
+    _applicationId = applicationId;
     return this;
   }
 
@@ -200,7 +200,7 @@ class LDConfigBuilder {
   ///
   /// Example: 'My Cool Application'
   LDConfigBuilder applicationName(String applicationName) {
-    this._applicationName = applicationName;
+    _applicationName = applicationName;
     return this;
   }
 
@@ -214,7 +214,7 @@ class LDConfigBuilder {
   /// Example: `1.0.0` (standard version string) or `abcdef` (sha prefix)
   ///
   LDConfigBuilder applicationVersion(String applicationVersion) {
-    this._applicationVersion = applicationVersion;
+    _applicationVersion = applicationVersion;
     return this;
   }
 
@@ -226,25 +226,25 @@ class LDConfigBuilder {
   ///
   /// Example: '1.0'
   LDConfigBuilder applicationVersionName(String applicationVersionName) {
-    this._applicationVersionName = applicationVersionName;
+    _applicationVersionName = applicationVersionName;
     return this;
   }
 
   /// Sets the URI for polling requests.
   LDConfigBuilder pollUri(String pollUri) {
-    this._pollUri = pollUri;
+    _pollUri = pollUri;
     return this;
   }
 
   /// Sets the URI for eventing requests.
   LDConfigBuilder eventsUri(String eventsUri) {
-    this._eventsUri = eventsUri;
+    _eventsUri = eventsUri;
     return this;
   }
 
   /// Sets the URI for stream requests.
   LDConfigBuilder streamUri(String streamUri) {
-    this._streamUri = streamUri;
+    _streamUri = streamUri;
     return this;
   }
 
@@ -256,19 +256,19 @@ class LDConfigBuilder {
   ///
   /// See [LDConfigBuilder.eventsFlushIntervalMillis] for configuring the flush interval.
   LDConfigBuilder eventsCapacity(int eventsCapacity) {
-    this._eventsCapacity = eventsCapacity;
+    _eventsCapacity = eventsCapacity;
     return this;
   }
 
   /// Sets the maximum amount of time in between sending analytics events to LaunchDarkly.
   LDConfigBuilder eventsFlushIntervalMillis(int eventsFlushIntervalMillis) {
-    this._eventsFlushIntervalMillis = eventsFlushIntervalMillis;
+    _eventsFlushIntervalMillis = eventsFlushIntervalMillis;
     return this;
   }
 
   /// Sets the connection timeout for network requests.
   LDConfigBuilder connectionTimeoutMillis(int connectionTimeoutMillis) {
-    this._connectionTimeoutMillis = connectionTimeoutMillis;
+    _connectionTimeoutMillis = connectionTimeoutMillis;
     return this;
   }
 
@@ -276,7 +276,7 @@ class LDConfigBuilder {
   ///
   /// Foreground polling is only used when streaming has been disabled with [LDConfigBuilder.stream].
   LDConfigBuilder pollingIntervalMillis(int pollingIntervalMillis) {
-    this._pollingIntervalMillis = pollingIntervalMillis;
+    _pollingIntervalMillis = pollingIntervalMillis;
     return this;
   }
 
@@ -285,7 +285,7 @@ class LDConfigBuilder {
   /// See [LDConfigBuilder.disableBackgroundUpdating] to disable background polls entirely.
   LDConfigBuilder backgroundPollingIntervalMillis(
       int backgroundPollingIntervalMillis) {
-    this._backgroundPollingIntervalMillis = backgroundPollingIntervalMillis;
+    _backgroundPollingIntervalMillis = backgroundPollingIntervalMillis;
     return this;
   }
 
@@ -295,7 +295,7 @@ class LDConfigBuilder {
   /// [LDConfigBuilder.diagnosticOptOut] for more information on the diagnostic data being sent.
   LDConfigBuilder diagnosticRecordingIntervalMillis(
       int diagnosticRecordingIntervalMillis) {
-    this._diagnosticRecordingIntervalMillis = diagnosticRecordingIntervalMillis;
+    _diagnosticRecordingIntervalMillis = diagnosticRecordingIntervalMillis;
     return this;
   }
 
@@ -308,7 +308,7 @@ class LDConfigBuilder {
   ///
   /// The default value of this configuration option is `5`.
   LDConfigBuilder maxCachedContexts(int maxCachedContexts) {
-    this._maxCachedContexts = maxCachedContexts < 0 ? -1 : maxCachedContexts;
+    _maxCachedContexts = maxCachedContexts < 0 ? -1 : maxCachedContexts;
     return this;
   }
 
@@ -316,7 +316,7 @@ class LDConfigBuilder {
   ///
   /// Defaults to `true` (streaming enabled), when `false` polling is used instead.
   LDConfigBuilder stream(bool stream) {
-    this._stream = stream;
+    _stream = stream;
     return this;
   }
 
@@ -326,7 +326,7 @@ class LDConfigBuilder {
   ///
   /// Can also be configured at runtime using [LDClient.setOnline].
   LDConfigBuilder offline(bool offline) {
-    this._offline = offline;
+    _offline = offline;
     return this;
   }
 
@@ -335,7 +335,7 @@ class LDConfigBuilder {
   /// See [LDConfigBuilder.backgroundPollingIntervalMillis] for configuring the interval between background polling
   /// requests.
   LDConfigBuilder disableBackgroundUpdating(bool disableBackgroundUpdating) {
-    this._disableBackgroundUpdating = disableBackgroundUpdating;
+    _disableBackgroundUpdating = disableBackgroundUpdating;
     return this;
   }
 
@@ -344,7 +344,7 @@ class LDConfigBuilder {
   /// Normally the SDK uses a `GET` request, with the user attributes encoded in the URL. This option configures the
   /// SDK to instead include the user in the HTTP `body` of a `REPORT` request.
   LDConfigBuilder useReport(bool useReport) {
-    this._useReport = useReport;
+    _useReport = useReport;
     return this;
   }
 
@@ -353,7 +353,7 @@ class LDConfigBuilder {
   /// This will allow the additional information included in [LDEvaluationDetail] to be populated when using the
   /// variation detail methods such as [LDClient.boolVariationDetail].
   LDConfigBuilder evaluationReasons(bool evaluationReasons) {
-    this._evaluationReasons = evaluationReasons;
+    _evaluationReasons = evaluationReasons;
     return this;
   }
 
@@ -366,19 +366,19 @@ class LDConfigBuilder {
   ///
   /// See [LDConfigBuilder.diagnosticRecordingIntervalMillis] for configuration of periodic payload frequency.
   LDConfigBuilder diagnosticOptOut(bool diagnosticOptOut) {
-    this._diagnosticOptOut = diagnosticOptOut;
+    _diagnosticOptOut = diagnosticOptOut;
     return this;
   }
 
   /// Configures the SDK to never include optional attribute values in analytics events.
   LDConfigBuilder allAttributesPrivate(bool allAttributesPrivate) {
-    this._allAttributesPrivate = allAttributesPrivate;
+    _allAttributesPrivate = allAttributesPrivate;
     return this;
   }
 
   /// Sets a `Set` of private attributes to never include the values for in analytics events.
   LDConfigBuilder privateAttributes(Set<String> privateAttributes) {
-    this._privateAttributes = privateAttributes;
+    _privateAttributes = privateAttributes;
     return this;
   }
 
@@ -399,4 +399,4 @@ class LDConfigBuilder {
 /// enabled for testers.  With version 15, the feature is considered complete. With Auto Environment Attributes enabled,
 /// you can use targeting rules to enable "dark mode" for all customers who are using version 15 or greater, and ensure
 /// that customers on previous versions don't use the earlier, unfinished version of the feature.
-enum AutoEnvAttributes { Enabled, Disabled }
+enum AutoEnvAttributes { enabled, disabled }

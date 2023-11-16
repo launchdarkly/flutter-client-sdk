@@ -8,6 +8,8 @@ environment:
 
 dependencies:
   launchdarkly_dart_common: 0.0.1
+  crypto: ^3.0.3
 
 dev_dependencies:
   test: ^1.24.3
+  lints: ^3.0.0

@@ -33,3 +33,5 @@ cmdline-tools.zip
 
 packages/**/pubspec.lock
 pubspec_overrides.yaml
+
+**/coverage/

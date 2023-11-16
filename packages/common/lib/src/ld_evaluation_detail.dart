@@ -86,14 +86,14 @@ enum LDErrorKind {
 
 /// Describes the reason that a flag evaluation produced a particular value.
 final class LDEvaluationReason {
-  static const _OFF_INSTANCE = LDEvaluationReason._(LDKind.off);
-  static const _FALLTHROUGH_INSTANCE =
+  static const _offInstance = LDEvaluationReason._(LDKind.off);
+  static const _fallthroughInstance =
       LDEvaluationReason._(LDKind.fallthrough, inExperiment: false);
-  static const _FALLTHROUGH_EXPERIMENT_INSTANCE =
+  static const _fallthroughExperimentInsance =
       LDEvaluationReason._(LDKind.fallthrough, inExperiment: true);
-  static const _TARGET_MATCH_INSTANCE =
+  static const _targetMatchInstance =
       LDEvaluationReason._(LDKind.targetMatch);
-  static const _UNKNOWN_INSTANCE = LDEvaluationReason._(LDKind.unknown);
+  static const _unknownInstance = LDEvaluationReason._(LDKind.unknown);
 
   /// The general category for the reason responsible for the evaluation result.
   ///
@@ -133,18 +133,18 @@ final class LDEvaluationReason {
       this.inExperiment = false});
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.OFF].
-  static LDEvaluationReason off() => _OFF_INSTANCE;
+  static LDEvaluationReason off() => _offInstance;
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.FALLTHROUGH].
   static LDEvaluationReason fallthrough({bool? inExperiment}) {
     if (inExperiment == true) {
-      return _FALLTHROUGH_EXPERIMENT_INSTANCE;
+      return _fallthroughExperimentInsance;
     }
-    return _FALLTHROUGH_INSTANCE;
+    return _fallthroughInstance;
   }
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.TARGET_MATCH].
-  static LDEvaluationReason targetMatch() => _TARGET_MATCH_INSTANCE;
+  static LDEvaluationReason targetMatch() => _targetMatchInstance;
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.RULE_MATCH] and the given [ruleIndex] and [ruleId].
   static LDEvaluationReason ruleMatch(
@@ -169,7 +169,7 @@ final class LDEvaluationReason {
   }
 
   /// Returns an [LDEvaluationReason] with the kind [LDKind.UNKNOWN].
-  static LDEvaluationReason unknown() => _UNKNOWN_INSTANCE;
+  static LDEvaluationReason unknown() => _unknownInstance;
 
   @override
   String toString() {

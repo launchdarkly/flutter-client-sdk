@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('given boolean values', () {
-    [true, false].forEach((value) {
+    for (var value in [true, false]) {
       test('it can serialize boolean: $value', () {
         var res = LDValueSerialization.toJson(LDValue.ofBool(value));
         expect(res, value);
@@ -15,11 +15,11 @@ void main() {
         var res = LDValueSerialization.fromJson(jsonDecode('$value'));
         expect(res, LDValue.ofBool(value));
       });
-    });
+    }
   });
 
   group('given numeric values', () {
-    [42, 3.145926].forEach((value) {
+    for (var value in [42, 3.145926]) {
       test('it can serialize number: $value', () {
         var res = LDValueSerialization.toJson(LDValue.ofNum(value));
         expect(res, value);
@@ -29,11 +29,11 @@ void main() {
         var res = LDValueSerialization.fromJson(jsonDecode('$value'));
         expect(res, LDValue.ofNum(value));
       });
-    });
+    }
   });
 
   group('given string values', () {
-    ["cheese", "ham"].forEach((value) {
+    for (var value in ["cheese", "ham"]) {
       test('it can serialize string: $value', () {
         var res = LDValueSerialization.toJson(LDValue.ofString(value));
         expect(res, value);
@@ -43,7 +43,7 @@ void main() {
         var res = LDValueSerialization.fromJson(jsonDecode('"$value"'));
         expect(res, LDValue.ofString(value));
       });
-    });
+    }
   });
 
   group('given a complex array', () {

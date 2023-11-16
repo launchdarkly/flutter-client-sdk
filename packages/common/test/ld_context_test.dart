@@ -29,11 +29,11 @@ void main() {
   });
 
   group('given invalid kinds', () {
-    ["", "kind", "#*%"].forEach((kind) {
+    for (var kind in ["", "kind", "#*%"]) {
       test('invalid kinds produce invalid contexts', () {
         expect(LDContextBuilder().kind(kind, 'my-key').build().valid, false);
       });
-    });
+    }
   });
 
   test('can change the key of a context during build', () {

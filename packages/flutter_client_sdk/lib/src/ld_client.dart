@@ -1,26 +1,14 @@
-/// [launchdarkly_flutter_client_sdk] provides a Flutter wrapper around the LaunchDarkly mobile SDKs for
-/// [Android](https://github.com/launchdarkly/android-client-sdk) and [iOS](https://github.com/launchdarkly/ios-client-sdk).
-///
-/// A complete [reference guide](https://docs.launchdarkly.com/sdk/client-side/flutter) is available on the LaunchDarkly
-/// documentation site.
-library launchdarkly_flutter_client_sdk;
-
-import 'dart:async';
-
 import 'package:launchdarkly_dart_client/ld_client.dart';
-
-// Re-export the client package, which includes the common dependencies as well.
-export 'package:launchdarkly_dart_client/ld_client.dart';
 
 /// Type of function callback used by `LDClient.registerFlagsReceivedListener`.
 ///
 /// The callback will be called with a list of flag keys for which values were received.
-typedef void LDFlagsReceivedCallback(List<String> changedFlagKeys);
+typedef LDFlagsReceivedCallback = void Function(List<String> changedFlagKeys);
 
 /// Type of function callback used by `LDClient.registerFeatureFlagListener`.
 ///
 /// The callback will be called with the flag key that triggered the listener.
-typedef void LDFlagUpdatedCallback(String flagKey);
+typedef LDFlagUpdatedCallback = void Function(String flagKey);
 
 /// The main interface for the LaunchDarkly Flutter SDK.
 ///
@@ -50,14 +38,14 @@ class LDClient {
   /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
   /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
   /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
-  static Future<void> start(LDConfig config, LDContext context) async {
+  Future<void> start(LDConfig config, LDContext context) async {
     // TODO
   }
 
   /// Checks whether the SDK has completed starting.
   ///
   /// This is equivalent to checking if the `Future` returned by [LDClient.startFuture] is already completed.
-  static bool isInitialized() {
+  bool isInitialized() {
     return false;
   }
 
@@ -66,7 +54,7 @@ class LDClient {
   /// When the context is changed, the SDK will load flag values for the context from a local cache if available, while
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
-  static Future<void> identify(LDContext context) async {
+  Future<void> identify(LDContext context) async {
     // TODO
   }
 
@@ -74,25 +62,24 @@ class LDClient {
   ///
   /// The [eventName] is the key associated with the event or experiment. [data] is an optional parameter for additional
   /// data to include in the event for data export. [metricValue] can be used to record numeric metric for experimentation.
-  static Future<void> track(String eventName,
-      {LDValue? data, num? metricValue}) async {
+  track(String eventName, {LDValue? data, num? metricValue}) async {
     // TODO
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
-  static Future<bool> boolVariation(String flagKey, bool defaultValue) async {
+  bool boolVariation(String flagKey, bool defaultValue) {
     // TODO
-    return Future.value(false);
+    return false;
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool, along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  static Future<LDEvaluationDetail<bool>> boolVariationDetail(
-      String flagKey, bool defaultValue) async {
+  LDEvaluationDetail<bool> boolVariationDetail(
+      String flagKey, bool defaultValue) {
     // TODO
     return LDEvaluationDetail(defaultValue, -1, LDEvaluationReason.error());
   }
@@ -101,16 +88,16 @@ class LDClient {
   ///
   /// The resultant map contains an entry for each known flag, the key being the flag's key and the value being its
   /// value as an [LDValue].
-  static Future<Map<String, LDValue>> allFlags() async {
+  Map<String, LDValue> allFlags() {
     // TODO
-    Map<String, LDValue> allFlagsRes = Map();
+    Map<String, LDValue> allFlagsRes = {};
     return allFlagsRes;
   }
 
   /// Triggers immediate sending of pending events to LaunchDarkly.
   ///
   /// Note that the future completes after the native SDK is requested to perform a flush, not when the said flush completes.
-  static Future<void> flush() async {
+  Future<void> flush() async {
     // TODO:
   }
 
@@ -118,23 +105,23 @@ class LDClient {
   ///
   /// If the SDK is set offline, `LDClient.setOnline(false)`, it will close network connections and not make any
   /// further requests until `LDClient.setOnline(true)` is called.
-  static Future<void> setOnline(bool online) async {
+  void setOnline(bool online) {
     // TODO
   }
 
   /// Returns whether the SDK is currently configured not to make network connections.
-  static Future<bool> isOffline() async {
+  bool isOffline() {
     // TODO
-    return Future.value(false);
+    return false;
   }
 
   /// Returns information about the current state of the SDK's connection to the LaunchDarkly.
   ///
   /// See [LDConnectionInformation] for the available information.
-  static Future<LDConnectionInformation?> getConnectionInformation() async {
+  LDConnectionInformation? getConnectionInformation() {
     // TODO
-    var state = LDConnectionState.OFFLINE;
-    var failure = LDFailure("womp", LDFailureType.UNKNOWN_ERROR);
+    var state = LDConnectionState.offline;
+    var failure = LDFailure("womp", LDFailureType.unknownError);
     DateTime? lastSuccessful, lastFailed;
     lastSuccessful = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     lastFailed = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
@@ -144,31 +131,30 @@ class LDClient {
   /// Permanently shuts down the client.
   ///
   /// It's not normally necessary to explicitly shut down the client.
-  static Future<void> close() async {
+  Future<void> close() async {
     // TODO
   }
 
   /// Registers a callback to be notified when the value of the flag [flagKey] is updated.
-  static Future<void> registerFeatureFlagListener(
-      String flagKey, LDFlagUpdatedCallback flagUpdateCallback) async {
+  registerFeatureFlagListener(
+      String flagKey, LDFlagUpdatedCallback flagUpdateCallback) {
     // TODO
   }
 
   /// Unregisters an [LDFlagUpdatedCallback] from the [flagKey] flag.
-  static Future<void> unregisterFeatureFlagListener(
-      String flagKey, LDFlagUpdatedCallback flagUpdateCallback) async {
+  unregisterFeatureFlagListener(
+      String flagKey, LDFlagUpdatedCallback flagUpdateCallback) {
     // TODO
   }
 
   /// Registers a callback to be notified when flag data is received by the SDK.
-  static Future<void> registerFlagsReceivedListener(
-      LDFlagsReceivedCallback flagsReceivedCallback) async {
+  registerFlagsReceivedListener(LDFlagsReceivedCallback flagsReceivedCallback) {
     // TODO
   }
 
   /// Unregisters an [LDFlagsReceivedCallback].
-  static Future<void> unregisterFlagsReceivedListener(
-      LDFlagsReceivedCallback flagsReceivedCallback) async {
+  unregisterFlagsReceivedListener(
+      LDFlagsReceivedCallback flagsReceivedCallback) {
     // TODO
   }
 }
