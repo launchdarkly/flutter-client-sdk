@@ -58,12 +58,14 @@ final class FlagPersistence {
     return _storeCache(context);
   }
 
-  upsert(LDContext context, String key, ItemDescriptor item) async {
+  Future<bool> upsert(LDContext context, String key, ItemDescriptor item) async {
     if (_updater.upsert(context, key, item)) {
       // We only need to store the cache if there was an update.
       // This is executed asynchronously.
-      return _storeCache(context);
+      await _storeCache(context);
+      return true;
     }
+    return false;
   }
 
   loadCached(LDContext context) async {

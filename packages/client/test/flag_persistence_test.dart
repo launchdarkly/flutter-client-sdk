@@ -8,27 +8,7 @@ import 'package:launchdarkly_dart_client/src/flag_manager/flag_updater.dart';
 import 'package:launchdarkly_dart_client/src/item_descriptor.dart';
 import 'package:test/test.dart';
 
-final class MockPersistence implements Persistence {
-  final storage = <String, Map<String, String>>{};
-
-  @override
-  Future<String?> read(String namespace, String key) async {
-    return storage[namespace]?[key];
-  }
-
-  @override
-  Future<void> remove(String namespace, String key) async {
-    storage[namespace]?.remove(key);
-  }
-
-  @override
-  Future<void> set(String namespace, String key, String data) async {
-    if (!storage.containsKey(namespace)) {
-      storage[namespace] = <String, String>{};
-    }
-    storage[namespace]![key] = data;
-  }
-}
+import 'mock_persistence.dart';
 
 const sdkKey = 'fake-sdk-key';
 final sdkKeyPersistence = 'LaunchDarkly_${sha256.convert(utf8.encode(sdkKey))}';
@@ -114,8 +94,8 @@ void main() {
           detail: LDEvaluationDetail(
               LDValue.ofString("test3"), 1, LDEvaluationReason.targetMatch()));
 
-      await flagPersistence.upsert(
-          context, "flagB", ItemDescriptor(version: 3, flag: flagB));
+      expect(await flagPersistence.upsert(
+          context, "flagB", ItemDescriptor(version: 3, flag: flagB)), true);
 
       // 1 environment
       expect(mockPersistence.storage.length, 1);
@@ -162,8 +142,8 @@ void main() {
           detail: LDEvaluationDetail(
               LDValue.ofString("test1"), 1, LDEvaluationReason.targetMatch()));
 
-      await flagPersistence.upsert(
-          context, "flagB", ItemDescriptor(version: 1, flag: flagB));
+      expect(await flagPersistence.upsert(
+          context, "flagB", ItemDescriptor(version: 1, flag: flagB)), false);
 
       // 1 environment
       expect(mockPersistence.storage.length, 1);
