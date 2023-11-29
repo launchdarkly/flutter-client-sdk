@@ -33,7 +33,7 @@ void main() {
   });
 
   group('given string values', () {
-    for (var value in ["cheese", "ham"]) {
+    for (var value in ['cheese', 'ham']) {
       test('it can serialize string: $value', () {
         var res = LDValueSerialization.toJson(LDValue.ofString(value));
         expect(res, value);

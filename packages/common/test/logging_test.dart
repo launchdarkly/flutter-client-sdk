@@ -8,9 +8,9 @@ void main() {
   setUpAll(() {
     registerFallbackValue(LDLogRecord(
         level: LDLogLevel.debug,
-        message: "",
+        message: '',
         time: DateTime.now(),
-        logTag: ""));
+        logTag: ''));
   });
 
   test('logging can be disabled', () {
@@ -97,7 +97,7 @@ void main() {
     test('can set a custom log tag', () {
       final adapter = MockAdapter();
       final logger = LDLogger(
-          adapter: adapter, level: LDLogLevel.debug, logTag: "POTATO");
+          adapter: adapter, level: LDLogLevel.debug, logTag: 'POTATO');
 
       logger.debug('debug message');
       final debugMessage =
@@ -123,7 +123,7 @@ void main() {
     test('can make a sub-logger with tag', () {
       final adapter = MockAdapter();
       final baseLogger = LDLogger(
-          adapter: adapter, level: LDLogLevel.debug, logTag: "POTATO");
+          adapter: adapter, level: LDLogLevel.debug, logTag: 'POTATO');
       final logger = baseLogger.subLogger('CHEESE');
 
       logger.debug('debug message');

@@ -21,12 +21,12 @@ void main() {
         flag: LDEvaluationResult(
             version: 1,
             detail: LDEvaluationDetail(
-                LDValue.ofString("test"), 0, LDEvaluationReason.off()))),
+                LDValue.ofString('test'), 0, LDEvaluationReason.off()))),
     'flagB': ItemDescriptor(
         version: 2,
         flag: LDEvaluationResult(
             version: 2,
-            detail: LDEvaluationDetail(LDValue.ofString("test2"), 1,
+            detail: LDEvaluationDetail(LDValue.ofString('test2'), 1,
                 LDEvaluationReason.targetMatch())))
   };
 
@@ -56,7 +56,7 @@ void main() {
       sha256.convert(utf8.encode(context.canonicalKey)).toString();
 
       // The context index.
-      expect(mockPersistence.storage[sdkKeyPersistence]!["ContextIndex"],
+      expect(mockPersistence.storage[sdkKeyPersistence]!['ContextIndex'],
           '{"index":[{"id":"$contextPersistenceKey","msTimestamp":0}]}');
 
       // The flags for the cached context.
@@ -92,10 +92,10 @@ void main() {
       final flagB = LDEvaluationResult(
           version: 3,
           detail: LDEvaluationDetail(
-              LDValue.ofString("test3"), 1, LDEvaluationReason.targetMatch()));
+              LDValue.ofString('test3'), 1, LDEvaluationReason.targetMatch()));
 
       expect(await flagPersistence.upsert(
-          context, "flagB", ItemDescriptor(version: 3, flag: flagB)), true);
+          context, 'flagB', ItemDescriptor(version: 3, flag: flagB)), true);
 
       // 1 environment
       expect(mockPersistence.storage.length, 1);
@@ -106,7 +106,7 @@ void main() {
       sha256.convert(utf8.encode(context.canonicalKey)).toString();
 
       // The context index.
-      expect(mockPersistence.storage[sdkKeyPersistence]!["ContextIndex"],
+      expect(mockPersistence.storage[sdkKeyPersistence]!['ContextIndex'],
           '{"index":[{"id":"$contextPersistenceKey","msTimestamp":0}]}');
 
       // The flags for the cached context.
@@ -140,10 +140,10 @@ void main() {
       final flagB = LDEvaluationResult(
           version: 1,
           detail: LDEvaluationDetail(
-              LDValue.ofString("test1"), 1, LDEvaluationReason.targetMatch()));
+              LDValue.ofString('test1'), 1, LDEvaluationReason.targetMatch()));
 
       expect(await flagPersistence.upsert(
-          context, "flagB", ItemDescriptor(version: 1, flag: flagB)), false);
+          context, 'flagB', ItemDescriptor(version: 1, flag: flagB)), false);
 
       // 1 environment
       expect(mockPersistence.storage.length, 1);
@@ -154,7 +154,7 @@ void main() {
       sha256.convert(utf8.encode(context.canonicalKey)).toString();
 
       // The context index.
-      expect(mockPersistence.storage[sdkKeyPersistence]!["ContextIndex"],
+      expect(mockPersistence.storage[sdkKeyPersistence]!['ContextIndex'],
           '{"index":[{"id":"$contextPersistenceKey","msTimestamp":0}]}');
 
       // The flags for the cached context.
@@ -202,8 +202,8 @@ void main() {
 
       await flagPersistence.loadCached(context);
 
-      expect(flagStore.get("flagA"), basicData['flagA']);
-      expect(flagStore.get("flagB"), basicData['flagB']);
+      expect(flagStore.get('flagA'), basicData['flagA']);
+      expect(flagStore.get('flagB'), basicData['flagB']);
     });
 
     test('it can handle a corrupt cached flag payload', () async {
@@ -259,8 +259,8 @@ void main() {
 
       flagPersistence.init(context, basicData);
 
-      expect(flagStore.get("flagA"), basicData['flagA']);
-      expect(flagStore.get("flagB"), basicData['flagB']);
+      expect(flagStore.get('flagA'), basicData['flagA']);
+      expect(flagStore.get('flagB'), basicData['flagB']);
 
       expect(flagStore
           .getAll()

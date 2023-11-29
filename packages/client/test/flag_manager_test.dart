@@ -19,12 +19,12 @@ void main() {
         flag: LDEvaluationResult(
             version: 1,
             detail: LDEvaluationDetail(
-                LDValue.ofString("test"), 0, LDEvaluationReason.off()))),
+                LDValue.ofString('test'), 0, LDEvaluationReason.off()))),
     'flagB': ItemDescriptor(
         version: 2,
         flag: LDEvaluationResult(
             version: 2,
-            detail: LDEvaluationDetail(LDValue.ofString("test2"), 1,
+            detail: LDEvaluationDetail(LDValue.ofString('test2'), 1,
                 LDEvaluationReason.targetMatch())))
   };
 
@@ -57,16 +57,16 @@ void main() {
     await flagManager.init(context, basicData);
     final flagB = LDEvaluationResult(
         version: 3,
-        detail: LDEvaluationDetail(LDValue.ofString("test3"), 2,
+        detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,
             LDEvaluationReason.fallthrough(inExperiment: true)));
 
     expect(
         await flagManager.upsert(
-            context, "flagB", ItemDescriptor(version: 3, flag: flagB)),
+            context, 'flagB', ItemDescriptor(version: 3, flag: flagB)),
         true);
 
-    final flagBFromStore = flagManager.get("flagB");
-    expect(flagBFromStore?.flag?.detail.value.stringValue(), "test3");
+    final flagBFromStore = flagManager.get('flagB');
+    expect(flagBFromStore?.flag?.detail.value.stringValue(), 'test3');
     expect(flagBFromStore?.flag?.version, 3);
     expect(flagBFromStore?.flag?.detail.variationIndex, 2);
     expect(flagBFromStore?.flag?.detail.reason,
@@ -83,12 +83,12 @@ void main() {
     expectLater(flagManager.changes, emits(FlagsChangedEvent(keys: ['flagB'])));
     final flagB = LDEvaluationResult(
         version: 3,
-        detail: LDEvaluationDetail(LDValue.ofString("test3"), 2,
+        detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,
             LDEvaluationReason.fallthrough(inExperiment: true)));
 
     expect(
         await flagManager.upsert(
-            context, "flagB", ItemDescriptor(version: 3, flag: flagB)),
+            context, 'flagB', ItemDescriptor(version: 3, flag: flagB)),
         true);
   });
 
@@ -99,9 +99,9 @@ void main() {
     await flagManager.init(context, basicData);
 
     expect(
-        await flagManager.upsert(context, "flagB", ItemDescriptor(version: 3)), true);
+        await flagManager.upsert(context, 'flagB', ItemDescriptor(version: 3)), true);
 
-    final flagBFromStore = flagManager.get("flagB");
+    final flagBFromStore = flagManager.get('flagB');
     expect(flagBFromStore?.flag, null);
   });
 
@@ -124,7 +124,7 @@ void main() {
     final flagManager = FlagManager(sdkKey: sdkKey, maxCachedContexts: 5, logger: logger, persistence: mockPersistence);
     await flagManager.loadCached(context);
 
-    expect(flagManager.get("flagA"), basicData['flagA']);
-    expect(flagManager.get("flagB"), basicData['flagB']);
+    expect(flagManager.get('flagA'), basicData['flagA']);
+    expect(flagManager.get('flagB'), basicData['flagB']);
   });
 }

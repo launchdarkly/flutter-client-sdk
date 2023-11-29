@@ -140,9 +140,9 @@ class LDConfigBuilder {
   String? _applicationVersion;
   String? _applicationVersionName;
 
-  String _pollUri = "https://clientsdk.launchdarkly.com";
-  String _eventsUri = "https://events.launchdarkly.com";
-  String _streamUri = "https://clientstream.launchdarkly.com";
+  String _pollUri = 'https://clientsdk.launchdarkly.com';
+  String _eventsUri = 'https://events.launchdarkly.com';
+  String _streamUri = 'https://clientstream.launchdarkly.com';
 
   int _eventsCapacity = 100;
   int _eventsFlushIntervalMillis = 30 * 1000;

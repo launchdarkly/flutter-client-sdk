@@ -137,7 +137,7 @@ final class LDLogger {
   LDLogger(
       {adapter = const LDBasicLogPrinter(),
       this.level = LDLogLevel.info,
-      this.logTag = "LaunchDarkly"}) {
+      this.logTag = 'LaunchDarkly'}) {
     _adapter = adapter;
   }
 
@@ -147,7 +147,7 @@ final class LDLogger {
   /// `LaunchDarkly.Streaming`. This is primarily intended to structure the
   /// log messages emitted by the SDK.
   LDLogger subLogger(String subTag) {
-    return LDLogger(adapter: _adapter, level: level, logTag: "$logTag.$subTag");
+    return LDLogger(adapter: _adapter, level: level, logTag: '$logTag.$subTag');
   }
 
   /// Check if the specified log level is enabled.

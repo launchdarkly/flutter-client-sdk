@@ -7,7 +7,7 @@ import 'package:launchdarkly_dart_client/src/item_descriptor.dart';
 void main() {
   test('can get an item that does not exist', () {
     final store = FlagStore();
-    expect(store.get("flagKey"), null);
+    expect(store.get('flagKey'), null);
   });
 
   test('can get all flags when there are no flags', () {
@@ -20,12 +20,12 @@ void main() {
     final flagA = LDEvaluationResult(
         version: 1,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test"), 0, LDEvaluationReason.off()));
+            LDValue.ofString('test'), 0, LDEvaluationReason.off()));
 
     final flagB = LDEvaluationResult(
         version: 2,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test2"), 1, LDEvaluationReason.targetMatch()));
+            LDValue.ofString('test2'), 1, LDEvaluationReason.targetMatch()));
 
     store.init({
       'flagA': ItemDescriptor(version: 1, flag: flagA),
@@ -41,12 +41,12 @@ void main() {
     final flagA = LDEvaluationResult(
         version: 1,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test"), 0, LDEvaluationReason.off()));
+            LDValue.ofString('test'), 0, LDEvaluationReason.off()));
 
     final flagB = LDEvaluationResult(
         version: 2,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test2"), 1, LDEvaluationReason.targetMatch()));
+            LDValue.ofString('test2'), 1, LDEvaluationReason.targetMatch()));
 
     store.init({
       'flagA': ItemDescriptor(version: 1, flag: flagA),
@@ -56,12 +56,12 @@ void main() {
     final flagC = LDEvaluationResult(
         version: 3,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test3"), 0, LDEvaluationReason.off()));
+            LDValue.ofString('test3'), 0, LDEvaluationReason.off()));
 
     final flagD = LDEvaluationResult(
         version: 4,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test4"), 1, LDEvaluationReason.targetMatch()));
+            LDValue.ofString('test4'), 1, LDEvaluationReason.targetMatch()));
 
     store.init({
       'flagC': ItemDescriptor(version: 3, flag: flagC),
@@ -81,7 +81,7 @@ void main() {
     final flagA = LDEvaluationResult(
         version: 1,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test"), 0, LDEvaluationReason.off()));
+            LDValue.ofString('test'), 0, LDEvaluationReason.off()));
 
     store.insertOrUpdate('flagA', ItemDescriptor(version: 1, flag: flagA));
 
@@ -94,14 +94,14 @@ void main() {
     final flagA = LDEvaluationResult(
         version: 1,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test"), 0, LDEvaluationReason.off()));
+            LDValue.ofString('test'), 0, LDEvaluationReason.off()));
 
     store.insertOrUpdate('flagA', ItemDescriptor(version: 1, flag: flagA));
 
     final flagA2 = LDEvaluationResult(
         version: 2,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test2"), 1, LDEvaluationReason.off()));
+            LDValue.ofString('test2'), 1, LDEvaluationReason.off()));
 
     store.insertOrUpdate('flagA', ItemDescriptor(version: 2, flag: flagA2));
 
@@ -114,7 +114,7 @@ void main() {
     final flagA = LDEvaluationResult(
         version: 1,
         detail: LDEvaluationDetail(
-            LDValue.ofString("test"), 0, LDEvaluationReason.off()));
+            LDValue.ofString('test'), 0, LDEvaluationReason.off()));
 
     store.insertOrUpdate('flagA', ItemDescriptor(version: 1, flag: flagA));
 

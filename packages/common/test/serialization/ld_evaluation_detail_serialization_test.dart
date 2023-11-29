@@ -14,11 +14,11 @@ void main() {
       LDEvaluationReason.error(errorKind: LDErrorKind.malformedFlag),
       LDEvaluationReason.error(errorKind: LDErrorKind.userNotSpecified),
       LDEvaluationReason.error(errorKind: LDErrorKind.wrongType),
-      LDEvaluationReason.prerequisiteFailed(prerequisiteKey: "flagA"),
+      LDEvaluationReason.prerequisiteFailed(prerequisiteKey: 'flagA'),
       LDEvaluationReason.ruleMatch(
-          ruleIndex: 10, ruleId: "RULE", inExperiment: true),
+          ruleIndex: 10, ruleId: 'RULE', inExperiment: true),
       LDEvaluationReason.ruleMatch(
-          ruleIndex: 10, ruleId: "RULE", inExperiment: false),
+          ruleIndex: 10, ruleId: 'RULE', inExperiment: false),
       LDEvaluationReason.fallthrough(inExperiment: true),
       LDEvaluationReason.fallthrough(inExperiment: false),
       LDEvaluationReason.targetMatch(),
@@ -28,7 +28,7 @@ void main() {
           'it can serialize/deserialize the evaluation detail: '
               '$reason', () {
         final detail = LDEvaluationDetail(
-            LDValue.ofString("test"), null, reason);
+            LDValue.ofString('test'), null, reason);
         var serialized = jsonEncode(LDEvaluationDetailSerialization.toJson(
             detail));
         var deserialized =
@@ -41,7 +41,7 @@ void main() {
 
   group('given different values', () {
     for (var value in [
-      LDValue.ofString("test"),
+      LDValue.ofString('test'),
       LDValue.ofNum(42),
       LDValue.ofBool(true),
       LDValue.buildArray()

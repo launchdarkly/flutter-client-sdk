@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:launchdarkly_dart_common/ld_common.dart';
 
 void main() {
-  group("given invalid attribute references", () {
+  group('given invalid attribute references', () {
     final references = [
       '/',
       '',
@@ -17,7 +17,7 @@ void main() {
     }
   });
 
-  group("given valid attribute references", () {
+  group('given valid attribute references', () {
     final testVectors = {
       '/a/b': ['a', 'b'],
       '/~1~0~1': ['/~/'],
@@ -36,7 +36,7 @@ void main() {
     }
   });
 
-  group("given literals", () {
+  group('given literals', () {
     final testVectors = {
       '/a/b': ['/a/b', '/~1a~1b'],
       '/~1~0~1': ['/~1~0~1', '/~1~01~00~01'],
@@ -62,28 +62,28 @@ void main() {
   });
 
   test('it finds two references equal when they are', () {
-    final abc = AttributeReference("/a/b/c");
-    final abc2 = AttributeReference("/a/b/c");
+    final abc = AttributeReference('/a/b/c');
+    final abc2 = AttributeReference('/a/b/c');
     expect(abc, abc2);
   });
 
   test('it finds two references equal when they are', () {
-    final abc = AttributeReference("/a/b/c");
-    final abc2 = AttributeReference("/a/b/c");
+    final abc = AttributeReference('/a/b/c');
+    final abc2 = AttributeReference('/a/b/c');
     expect(abc, abc2);
 
-    final obscure = AttributeReference.fromLiteral("/~1~0~1");
-    final obscure2 = AttributeReference("/~1~01~00~01");
+    final obscure = AttributeReference.fromLiteral('/~1~0~1');
+    final obscure2 = AttributeReference('/~1~01~00~01');
     expect(obscure, obscure2);
   });
 
   test('finds components in different orders not equal', () {
-    final abc = AttributeReference("/a/b/c");
-    final bac = AttributeReference("/b/a/c");
+    final abc = AttributeReference('/a/b/c');
+    final bac = AttributeReference('/b/a/c');
     expect(abc, isNot(equals(bac)));
   });
 
-  group("given components", () {
+  group('given components', () {
     final testVectors = {
       '/a/b': ['a', 'b'],
       '/~1~0~1': ['/~/'],

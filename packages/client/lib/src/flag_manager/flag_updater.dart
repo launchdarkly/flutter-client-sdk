@@ -77,7 +77,7 @@ final class FlagUpdater {
     // that we received a patch without having receives a put or having loaded
     // previously cached values.
     if (_activeContextKey != context.canonicalKey) {
-      _logger.warn("Received an update for an inactive context.");
+      _logger.warn('Received an update for an inactive context.');
       return false;
     }
     final currentValue = _flagStore.get(key);

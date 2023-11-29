@@ -10,23 +10,23 @@ void main() {
 
   test('can serialize and deserialize a map of evaluation results', () {
     final results = {
-      "basic": LDEvaluationResult(version: 1, detail: basicEvalReason),
-      "trackEvents": LDEvaluationResult(
+      'basic': LDEvaluationResult(version: 1, detail: basicEvalReason),
+      'trackEvents': LDEvaluationResult(
           version: 2,
           detail: basicEvalReason,
           trackEvents: true,
           trackReason: false),
-      "trackReason": LDEvaluationResult(
+      'trackReason': LDEvaluationResult(
           version: 3,
           detail: basicEvalReason,
           trackEvents: false,
           trackReason: true),
-      "trackBoth": LDEvaluationResult(
+      'trackBoth': LDEvaluationResult(
           version: 4,
           detail: basicEvalReason,
           trackEvents: true,
           trackReason: true),
-      "withDate": LDEvaluationResult(
+      'withDate': LDEvaluationResult(
           version: 5,
           detail: basicEvalReason,
           debugEventsUntilDate: DateTime.now().millisecondsSinceEpoch)

@@ -29,7 +29,7 @@ void main() {
   });
 
   group('given invalid kinds', () {
-    for (var kind in ["", "kind", "#*%"]) {
+    for (var kind in ['', 'kind', '#*%']) {
       test('invalid kinds produce invalid contexts', () {
         expect(LDContextBuilder().kind(kind, 'my-key').build().valid, false);
       });
@@ -54,7 +54,7 @@ void main() {
   test('can set custom attributes', () {
     final context = LDContextBuilder()
         .kind('user', 'user-key')
-        .set("customA", LDValue.ofNum(42))
+        .set('customA', LDValue.ofNum(42))
         .build();
 
     expect(context.get('user', AttributeReference('customA')).intValue(), 42);
@@ -63,7 +63,7 @@ void main() {
   test('can get a nested attribute', () {
     final context = LDContextBuilder()
         .kind('org', 'org-key')
-        .set("myJson", LDValue.buildObject().addBool("myBool", true).build())
+        .set('myJson', LDValue.buildObject().addBool('myBool', true).build())
         .build();
 
     expect(
@@ -84,8 +84,8 @@ void main() {
       () {
     final context = LDContextBuilder()
         .kind('org', 'org-key')
-        .set("myJson",
-            LDValue.buildObject().addString("myString", 'true').build())
+        .set('myJson',
+            LDValue.buildObject().addString('myString', 'true').build())
         .build();
 
     expect(context.get('org', AttributeReference('/myJson/myBool')),
@@ -96,7 +96,7 @@ void main() {
       () {
     final context = LDContextBuilder()
         .kind('org', 'org-key')
-        .set("myJson", LDValue.buildObject().addBool("myBool", true).build())
+        .set('myJson', LDValue.buildObject().addBool('myBool', true).build())
         .build();
 
     expect(context.get('user', AttributeReference('/myJson/myBool')),
@@ -128,18 +128,18 @@ void main() {
   test('can set private attributes using setPrivate', () {
     final context = LDContextBuilder()
         .kind('org', 'org-key')
-        .setPrivate("custom1", LDValue.ofString("test"))
-        .setPrivate("/cus~tom/", LDValue.ofString("test"))
+        .setPrivate('custom1', LDValue.ofString('test'))
+        .setPrivate('/cus~tom/', LDValue.ofString('test'))
         .build();
 
     final attributes = context.attributesByKind['org'];
     expect(
-        attributes?.privateAttributes.contains(AttributeReference("custom1")),
+        attributes?.privateAttributes.contains(AttributeReference('custom1')),
         true);
 
     expect(
         attributes?.privateAttributes
-            .contains(AttributeReference("/~1cus~0tom~1")),
+            .contains(AttributeReference('/~1cus~0tom~1')),
         true);
     expect(attributes?.privateAttributes.length, 2);
   });
@@ -148,13 +148,13 @@ void main() {
     final context = LDContextBuilder()
         .kind('franchise', 'org-key')
         // "/test" and "test" are dupes and "/test/" is invalid.
-        .addPrivateAttributes(["/test", "test", "/test/", "/bacon"]).build();
+        .addPrivateAttributes(['/test', 'test', '/test/', '/bacon']).build();
 
     final attributes = context.attributesByKind['franchise'];
-    expect(attributes?.privateAttributes.contains(AttributeReference("test")),
+    expect(attributes?.privateAttributes.contains(AttributeReference('test')),
         true);
 
-    expect(attributes?.privateAttributes.contains(AttributeReference("bacon")),
+    expect(attributes?.privateAttributes.contains(AttributeReference('bacon')),
         true);
     expect(attributes?.privateAttributes.length, 2);
   });
@@ -162,16 +162,16 @@ void main() {
   test('can get attributes by kind', () {
     final context = LDContextBuilder()
         .kind('zoo', 'zoo-key:%')
-        .set("a", LDValue.ofString("b"))
+        .set('a', LDValue.ofString('b'))
         .kind('organization', 'org-key%:')
-        .set("a", LDValue.ofNum(42))
+        .set('a', LDValue.ofNum(42))
         .build();
 
     expect(
-        context.attributesByKind['zoo']?.customAttributes["a"]?.stringValue(),
-        "b");
+        context.attributesByKind['zoo']?.customAttributes['a']?.stringValue(),
+        'b');
     expect(
-        context.attributesByKind['organization']?.customAttributes["a"]
+        context.attributesByKind['organization']?.customAttributes['a']
             ?.intValue(),
         42);
   });

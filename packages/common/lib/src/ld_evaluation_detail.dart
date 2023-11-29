@@ -1,29 +1,29 @@
 /// Enumerated type defining the possible reasons for a flag evaluation result, used in [LDEvaluationReason].
 enum LDKind {
   /// Indicates that the flag was off and therefore returned its configured off value.
-  off("OFF"),
+  off('OFF'),
 
   /// Indicates that the flag was on but the user did not match any targets or rules, resulting in the fallback value.
-  fallthrough("FALLTHROUGH"),
+  fallthrough('FALLTHROUGH'),
 
   /// Indicates that the context key was specifically targeted for this flag.
-  targetMatch("TARGET_MATCH"),
+  targetMatch('TARGET_MATCH'),
 
   /// Indicates that the context matched one of the flag's rules.
-  ruleMatch("RULE_MATCH"),
+  ruleMatch('RULE_MATCH'),
 
   /// Indicates that the flag was considered off because it had at least one prerequisite flag that was off or did not
   /// return the desired variation.
-  prerequisiteFailed("PREREQUISITE_FAILED"),
+  prerequisiteFailed('PREREQUISITE_FAILED'),
 
   /// Indicates that the flag could not be evaluated, e.g. because it does not exist or due to an unexpected error.
   ///
   /// In this case the result value will be the default value that the caller passed to the client. See the
   /// [LDErrorKind] for the defined error cases which can be retrieved from [LDEvaluationReason.errorKind].
-  error("ERROR"),
+  error('ERROR'),
 
   /// Indicates that LaunchDarkly provided an [LDKind] value that is not supported by this version of the SDK.
-  unknown("UNKNOWN");
+  unknown('UNKNOWN');
 
   final String _value;
 
@@ -46,28 +46,28 @@ enum LDKind {
 /// [LDEvaluationReason.errorKind] property.
 enum LDErrorKind {
   /// Indicates that the caller tried to evaluate a flag before the client had successfully initialized.
-  clientNotReady("CLIENT_NOT_READY"),
+  clientNotReady('CLIENT_NOT_READY'),
 
   /// Indicates that the caller provided a flag key that did not match any known flag.
-  flagNotFound("FLAG_NOT_FOUND"),
+  flagNotFound('FLAG_NOT_FOUND'),
 
   /// Indicates that there was an internal inconsistency in the flag data, e.g. a rule specified a non-existent
   /// variation.
-  malformedFlag("MALFORMED_FLAG"),
+  malformedFlag('MALFORMED_FLAG'),
 
   /// Indicates that the caller passed `null` for the `context` parameter, or the context lacked a key.  This
   /// enum name is an artifact of user being the predecessor to context.
-  userNotSpecified("USER_NOT_SPECIFIED"),
+  userNotSpecified('USER_NOT_SPECIFIED'),
 
   /// Indicates that the result value was not of the requested type, e.g. you called `LDClient.boolVariationDetail` but
   /// the flag value was an `int`.
-  wrongType("WRONG_TYPE"),
+  wrongType('WRONG_TYPE'),
 
   /// Indicates that an unexpected exception stopped flag evaluation.
-  exception("EXCEPTION"),
+  exception('EXCEPTION'),
 
   /// Indicates that LaunchDarkly provided an [LDErrorKind] value that is not supported by this version of the SDK.
-  unknown("UNKNOWN");
+  unknown('UNKNOWN');
 
   final String _value;
 

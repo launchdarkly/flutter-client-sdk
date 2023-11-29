@@ -18,12 +18,12 @@ void main() {
         flag: LDEvaluationResult(
             version: 1,
             detail: LDEvaluationDetail(
-                LDValue.ofString("test"), 0, LDEvaluationReason.off()))),
+                LDValue.ofString('test'), 0, LDEvaluationReason.off()))),
     'flagB': ItemDescriptor(
         version: 2,
         flag: LDEvaluationResult(
             version: 2,
-            detail: LDEvaluationDetail(LDValue.ofString("test2"), 1,
+            detail: LDEvaluationDetail(LDValue.ofString('test2'), 1,
                 LDEvaluationReason.targetMatch())))
   };
 
@@ -67,12 +67,12 @@ void main() {
           flag: LDEvaluationResult(
               version: 1,
               detail: LDEvaluationDetail(
-                  LDValue.ofString("test"), 0, LDEvaluationReason.off()))),
+                  LDValue.ofString('test'), 0, LDEvaluationReason.off()))),
       'flagB': ItemDescriptor(
           version: 3,
           flag: LDEvaluationResult(
               version: 3,
-              detail: LDEvaluationDetail(LDValue.ofString("test3"), 1,
+              detail: LDEvaluationDetail(LDValue.ofString('test3'), 1,
                   LDEvaluationReason.targetMatch())))
     };
 
@@ -96,7 +96,7 @@ void main() {
           flag: LDEvaluationResult(
               version: 1,
               detail: LDEvaluationDetail(
-                  LDValue.ofString("test"), 0, LDEvaluationReason.off()))),
+                  LDValue.ofString('test'), 0, LDEvaluationReason.off()))),
     };
 
     await flagUpdater.init(context, secondData);
@@ -111,16 +111,16 @@ void main() {
     await flagUpdater.init(context, basicData);
     final flagB = LDEvaluationResult(
         version: 3,
-        detail: LDEvaluationDetail(LDValue.ofString("test3"), 2,
+        detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,
             LDEvaluationReason.fallthrough(inExperiment: true)));
 
     expect(
         flagUpdater.upsert(
-            context, "flagB", ItemDescriptor(version: 3, flag: flagB)),
+            context, 'flagB', ItemDescriptor(version: 3, flag: flagB)),
         true);
 
-    final flagBFromStore = flagStore.get("flagB");
-    expect(flagBFromStore?.flag?.detail.value.stringValue(), "test3");
+    final flagBFromStore = flagStore.get('flagB');
+    expect(flagBFromStore?.flag?.detail.value.stringValue(), 'test3');
     expect(flagBFromStore?.flag?.version, 3);
     expect(flagBFromStore?.flag?.detail.variationIndex, 2);
     expect(flagBFromStore?.flag?.detail.reason,
@@ -138,12 +138,12 @@ void main() {
     expectLater(flagUpdater.changes, emits(FlagsChangedEvent(keys: ['flagB'])));
     final flagB = LDEvaluationResult(
         version: 3,
-        detail: LDEvaluationDetail(LDValue.ofString("test3"), 2,
+        detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,
             LDEvaluationReason.fallthrough(inExperiment: true)));
 
     expect(
         flagUpdater.upsert(
-            context, "flagB", ItemDescriptor(version: 3, flag: flagB)),
+            context, 'flagB', ItemDescriptor(version: 3, flag: flagB)),
         true);
   });
 
@@ -156,9 +156,9 @@ void main() {
     await flagUpdater.init(context, basicData);
 
     expect(
-        flagUpdater.upsert(context, "flagB", ItemDescriptor(version: 3)), true);
+        flagUpdater.upsert(context, 'flagB', ItemDescriptor(version: 3)), true);
 
-    final flagBFromStore = flagStore.get("flagB");
+    final flagBFromStore = flagStore.get('flagB');
     expect(flagBFromStore?.flag, null);
   });
 
@@ -173,9 +173,9 @@ void main() {
     expectLater(flagUpdater.changes, emits(FlagsChangedEvent(keys: ['flagB'])));
 
     expect(
-        flagUpdater.upsert(context, "flagB", ItemDescriptor(version: 3)), true);
+        flagUpdater.upsert(context, 'flagB', ItemDescriptor(version: 3)), true);
 
-    final flagBFromStore = flagStore.get("flagB");
+    final flagBFromStore = flagStore.get('flagB');
     expect(flagBFromStore?.flag, null);
   });
 
@@ -188,12 +188,12 @@ void main() {
     await flagUpdater.init(context, basicData);
     final flagB = LDEvaluationResult(
         version: 2,
-        detail: LDEvaluationDetail(LDValue.ofString("test3"), 2,
+        detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,
             LDEvaluationReason.fallthrough(inExperiment: true)));
 
     expect(
         flagUpdater.upsert(
-            context, "flagB", ItemDescriptor(version: 2, flag: flagB)),
+            context, 'flagB', ItemDescriptor(version: 2, flag: flagB)),
         false);
 
     expect(flagStore.getAll().equals(basicData), true);
@@ -208,14 +208,14 @@ void main() {
     await flagUpdater.init(context, basicData);
     final flagB = LDEvaluationResult(
         version: 2,
-        detail: LDEvaluationDetail(LDValue.ofString("test3"), 2,
+        detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,
             LDEvaluationReason.fallthrough(inExperiment: true)));
 
     expectLater(flagUpdater.changes, neverEmits(anything));
 
     expect(
         flagUpdater.upsert(
-            context, "flagB", ItemDescriptor(version: 2, flag: flagB)),
+            context, 'flagB', ItemDescriptor(version: 2, flag: flagB)),
         false);
 
     flagUpdater.close();

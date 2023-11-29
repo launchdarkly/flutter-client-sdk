@@ -107,7 +107,7 @@ final class AttributeReference {
         components = UnmodifiableListView(components);
 
   @override
-  int get hashCode => components.join("/").hashCode;
+  int get hashCode => components.join('/').hashCode;
 
   @override
   String toString() {

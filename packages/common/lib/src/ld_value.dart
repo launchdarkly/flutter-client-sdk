@@ -67,7 +67,7 @@ final class LDValue {
   double doubleValue() => _value is num ? (_value as num).toDouble() : 0;
 
   /// Returns this value as a `String` if the type matches, otherwise returns an empty string.
-  String stringValue() => _value is String ? (_value as String) : "";
+  String stringValue() => _value is String ? (_value as String) : '';
 
   /// Starts building an array value.
   ///
@@ -107,7 +107,7 @@ final class LDValue {
     }
 
     assert(false,
-        "Unsupported LDValue type. Please ensure exhaustive support in `get type`");
+        'Unsupported LDValue type. Please ensure exhaustive support in `get type`');
     return LDValueType.nullType;
   }
 

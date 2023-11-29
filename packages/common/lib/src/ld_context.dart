@@ -3,11 +3,11 @@ import 'attribute_reference.dart';
 
 RegExp _kindExp = RegExp(r'^(\w|\.|-)+$');
 
-const String _kindAttr = "kind";
-const String _keyAttr = "key";
-const String _nameAttr = "name";
-const String _anonymousAttr = "anonymous";
-const String _metaAttr = "_meta";
+const String _kindAttr = 'kind';
+const String _keyAttr = 'key';
+const String _nameAttr = 'name';
+const String _anonymousAttr = 'anonymous';
+const String _metaAttr = '_meta';
 
 String _encodeKey(String key) {
   if (key.contains('%') || key.contains(':')) {
@@ -19,7 +19,7 @@ String _encodeKey(String key) {
 }
 
 bool _validKind(String kind) {
-  return kind != "kind" && _kindExp.hasMatch(kind);
+  return kind != 'kind' && _kindExp.hasMatch(kind);
 }
 
 bool _referenceIs(AttributeReference reference, String value) {
@@ -223,7 +223,7 @@ final class LDAttributesBuilder {
   /// any subsequent actions on the [LDAttributesBuilder].
   LDContextAttributes? _build() {
     // TODO: Add anonymous key generation.
-    if (_key != null && _validKind(_kind) && _key != "") {
+    if (_key != null && _validKind(_kind) && _key != '') {
       return LDContextAttributes._internal(
           // create immutable shallow copy
           Map.unmodifiable(_attributes),
@@ -283,7 +283,7 @@ final class LDContext {
     kinds.sort();
     return kinds
         .map((kind) => '$kind:${_encodeKey(attributesByKind[kind]!.key)}')
-        .join(":");
+        .join(':');
   }
 
   /// For the given context kind get an attribute using a reference.

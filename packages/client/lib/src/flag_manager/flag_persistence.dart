@@ -8,8 +8,8 @@ import 'context_index.dart';
 import 'flag_updater.dart';
 import 'flag_store.dart';
 
-const String _globalNamespace = "LaunchDarkly";
-const String _indexKey = "ContextIndex";
+const String _globalNamespace = 'LaunchDarkly';
+const String _indexKey = 'ContextIndex';
 
 String _encodePersistenceKey(String input) {
   final bytes = utf8.encode(input);
