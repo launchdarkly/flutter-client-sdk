@@ -1,4 +1,5 @@
 
+
 /// Compare the contents of two lists using those items equality comparisons.
 /// This does not recursively apply this operation to lists/maps within the
 /// array. Items will be compared using `==`/`!=`, so nested/lists maps will
@@ -12,6 +13,21 @@ extension ListComparisons<T> on List<T> {
       }
     }
     return true;
+  }
+}
+
+extension IterableWhere<T> on Iterable<T> {
+  /// Find the first item matching a prerequisite or null.
+  ///
+  /// This functionality is also provided by collection package. If we ever
+  /// add that package as a dependency, then we should remove this implementation.
+  T? firstWhereOrNull(bool Function(T) prerequisite) {
+    for(var item in this) {
+      if(prerequisite(item)) {
+        return item;
+      }
+    }
+    return null;
   }
 }
 

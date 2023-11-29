@@ -82,4 +82,22 @@ void main() {
     final bac = AttributeReference("/b/a/c");
     expect(abc, isNot(equals(bac)));
   });
+
+  group("given components", () {
+    final testVectors = {
+      '/a/b': ['a', 'b'],
+      '/~1~0~1': ['/~/'],
+      '/a/~1b/~0c': ['a', '/b', '~c'],
+      '/a': ['a'],
+      '/a~01b~00c': ['a~1b~0c'],
+      '/~01': ['~1'],
+      '/a~1b': ['a/b']
+    };
+
+    for (final vector in testVectors.entries) {
+      test('it produces the expected redaction string for "${vector.value}"', () {
+        expect(AttributeReference.fromComponents(vector.value).redactionName, vector.key);
+      });
+    }
+  });
 }

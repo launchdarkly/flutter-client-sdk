@@ -3,3 +3,5 @@ include: package:lints/recommended.yaml
 linter:
   rules:
     - eol_at_end_of_file
+    # Within a lib always use relative imports. https://dart.dev/effective-dart/usage#prefer-relative-import-paths
+    - prefer_relative_imports

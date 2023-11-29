@@ -100,6 +100,17 @@ final class AttributeReference {
         _isLiteral(literal) ? literal : _toRefString(literal));
   }
 
+  /// Create an attribute reference from a list of components.
+  AttributeReference.fromComponents(List<String> components)
+      : valid = true,
+        redactionName = components.map((e) => _toRefString(e)).join(),
+        components = UnmodifiableListView(components);
+
   @override
   int get hashCode => components.join("/").hashCode;
+
+  @override
+  String toString() {
+    return 'AttributeReference{valid: $valid, redactionName: $redactionName, components: $components}';
+  }
 }

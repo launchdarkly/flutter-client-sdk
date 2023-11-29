@@ -55,7 +55,7 @@ final class LDValueSerialization {
         return items;
       case LDValueType.object:
         Map<String, dynamic> items = {};
-        final objectKeys = value.keys.toList();
+        final objectKeys = value.keys.toList(growable: false);
         for (var index = 0; index < value.length; index++) {
           var jsonKey = objectKeys[index];
           var jsonValue = LDValueSerialization.toJson(value.getFor(jsonKey));

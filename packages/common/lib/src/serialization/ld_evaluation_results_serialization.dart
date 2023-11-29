@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_common/src/serialization/ld_evaluation_result_serialization.dart';
+import 'ld_evaluation_result_serialization.dart';
 
 import '../ld_evaluation_result.dart';
 

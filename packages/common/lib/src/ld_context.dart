@@ -279,7 +279,7 @@ final class LDContext {
       return attributesByKind['user']!.key;
     }
 
-    final kinds = attributesByKind.keys.toList();
+    final kinds = attributesByKind.keys.toList(growable: false);
     kinds.sort();
     return kinds
         .map((kind) => '$kind:${_encodeKey(attributesByKind[kind]!.key)}')
