@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:launchdarkly_dart_client/ld_client.dart';
 import 'package:launchdarkly_dart_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_dart_client/src/item_descriptor.dart';
+import 'package:launchdarkly_dart_common/ld_common.dart';
 import 'package:test/test.dart';
 
 import 'mock_persistence.dart';

@@ -19,5 +19,10 @@ export 'src/serialization/ld_evaluation_result_serialization.dart'
     show LDEvaluationResultSerialization;
 export 'src/serialization/ld_evaluation_results_serialization.dart'
     show LDEvaluationResultsSerialization;
+export 'src/serialization/ld_context_serialization.dart'
+    show LDContextSerialization;
+
+export 'src/config/service_endpoints.dart' show ServiceEndpoints;
+export 'src/config/http_properties.dart' show HttpProperties;
 
 export 'src/collections.dart' show ListComparisons, MapComparisons;
