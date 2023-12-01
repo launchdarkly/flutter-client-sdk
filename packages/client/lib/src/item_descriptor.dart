@@ -16,7 +16,6 @@ final class ItemDescriptor {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ItemDescriptor &&
-          runtimeType == other.runtimeType &&
           version == other.version &&
           flag == other.flag;
 
