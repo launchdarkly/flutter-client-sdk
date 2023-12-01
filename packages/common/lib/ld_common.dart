@@ -14,7 +14,7 @@ export 'src/ld_evaluation_result.dart' show LDEvaluationResult;
 export 'src/serialization/ld_value_serialization.dart'
     show LDValueSerialization;
 export 'src/serialization/ld_evaluation_detail_serialization.dart'
-    show LDEvaluationDetailSerialization;
+    show LDEvaluationDetailSerialization, LDEvaluationReasonSerialization;
 export 'src/serialization/ld_evaluation_result_serialization.dart'
     show LDEvaluationResultSerialization;
 export 'src/serialization/ld_evaluation_results_serialization.dart'

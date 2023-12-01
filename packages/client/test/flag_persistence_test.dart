@@ -64,12 +64,16 @@ void main() {
           mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey],
           '{"flagA":{'
               '"version":1,'
-              '"detail":{"value":"test","variationIndex":0,"reason":{"kind":"OFF"}}'
+              '"value":"test",'
+              '"variation":0,'
+              '"reason":{"kind":"OFF"}'
               '},'
               '"flagB":{'
               '"version":2,'
-              '"detail":{"value":"test2","variationIndex":1,"reason":{"kind":"TARGET_MATCH"}}}'
-              '}');
+              '"value":"test2",'
+              '"variation":1,'
+              '"reason":{"kind":"TARGET_MATCH"}'
+              '}}');
 
       expect(flagStore.getAll().equals(basicData), true);
     });
@@ -114,12 +118,16 @@ void main() {
           mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey],
           '{"flagA":{'
               '"version":1,'
-              '"detail":{"value":"test","variationIndex":0,"reason":{"kind":"OFF"}}'
+              '"value":"test",'
+              '"variation":0,'
+              '"reason":{"kind":"OFF"}'
               '},'
               '"flagB":{'
               '"version":3,'
-              '"detail":{"value":"test3","variationIndex":1,"reason":{"kind":"TARGET_MATCH"}}}'
-              '}');
+              '"value":"test3",'
+              '"variation":1,'
+              '"reason":{"kind":"TARGET_MATCH"}'
+              '}}');
     });
 
     test('it discards out of order updates', () async {
@@ -162,12 +170,16 @@ void main() {
           mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey],
           '{"flagA":{'
               '"version":1,'
-              '"detail":{"value":"test","variationIndex":0,"reason":{"kind":"OFF"}}'
+              '"value":"test",'
+              '"variation":0,'
+              '"reason":{"kind":"OFF"}'
               '},'
               '"flagB":{'
               '"version":2,'
-              '"detail":{"value":"test2","variationIndex":1,"reason":{"kind":"TARGET_MATCH"}}}'
-              '}');
+              '"value":"test2",'
+              '"variation":1,'
+              '"reason":{"kind":"TARGET_MATCH"}'
+              '}}');
 
       expect(flagStore.getAll().equals(basicData), true);
     });
@@ -183,12 +195,16 @@ void main() {
       mockPersistence.storage[sdkKeyPersistence] = {
         contextPersistenceKey: '{"flagA":{'
             '"version":1,'
-            '"detail":{"value":"test","variationIndex":0,"reason":{"kind":"OFF"}}'
+            '"value":"test",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
             '},'
             '"flagB":{'
             '"version":2,'
-            '"detail":{"value":"test2","variationIndex":1,"reason":{"kind":"TARGET_MATCH"}}}'
-            '}',
+            '"value":"test2",'
+            '"variation":1,'
+            '"reason":{"kind":"TARGET_MATCH"}'
+            '}}',
       };
 
       final flagPersistence = FlagPersistence(
@@ -218,8 +234,10 @@ void main() {
         contextPersistenceKey: '{"flagA":{'
             '"version":1,'
             'CORRUPTION!!!!'
-            '"detail":{"value":"test2","variationIndex":1,"reason":{"kind":"TARGET_MATCH"}}}'
-            '}',
+            '"value":"test",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
+            '}}',
       };
 
       final flagPersistence = FlagPersistence(

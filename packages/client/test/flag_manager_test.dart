@@ -114,12 +114,16 @@ void main() {
     mockPersistence.storage[sdkKeyPersistence] = {
       contextPersistenceKey: '{"flagA":{'
           '"version":1,'
-          '"detail":{"value":"test","variationIndex":0,"reason":{"kind":"OFF"}}'
+          '"value":"test",'
+          '"variation":0,'
+          '"reason":{"kind":"OFF"}'
           '},'
           '"flagB":{'
           '"version":2,'
-          '"detail":{"value":"test2","variationIndex":1,"reason":{"kind":"TARGET_MATCH"}}}'
-          '}',
+          '"value":"test2",'
+          '"variation":1,'
+          '"reason":{"kind":"TARGET_MATCH"}'
+          '}}',
     };
 
     final flagManager = FlagManager(sdkKey: sdkKey, maxCachedContexts: 5, logger: logger, persistence: mockPersistence);

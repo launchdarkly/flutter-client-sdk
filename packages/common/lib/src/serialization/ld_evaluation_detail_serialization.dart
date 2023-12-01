@@ -28,7 +28,7 @@ final class _LDKindSerialization {
   }
 }
 
-final class _LDEvaluationReasonSerialization {
+final class LDEvaluationReasonSerialization {
   static LDEvaluationReason fromJson(Map<String, dynamic> json) {
     final kind = _LDKindSerialization.fromJson(json['kind']);
     switch (kind) {
@@ -96,8 +96,7 @@ final class LDEvaluationDetailSerialization {
   static LDEvaluationDetail<LDValue> fromJson(Map<String, dynamic> json) {
     final value = LDValueSerialization.fromJson(json['value']);
     final variationIndex = json['variationIndex'] as num?;
-    final reasonJson =
-        _LDEvaluationReasonSerialization.fromJson(json['reason']);
+    final reasonJson = LDEvaluationReasonSerialization.fromJson(json['reason']);
 
     return LDEvaluationDetail(value, variationIndex?.toInt(), reasonJson);
   }
@@ -108,8 +107,10 @@ final class LDEvaluationDetailSerialization {
 
     result['value'] = LDValueSerialization.toJson(evaluationResult.value);
     result['variationIndex'] = evaluationResult.variationIndex;
-    result['reason'] =
-        _LDEvaluationReasonSerialization.toJson(evaluationResult.reason);
+    if (evaluationResult.reason != null) {
+      result['reason'] =
+          LDEvaluationReasonSerialization.toJson(evaluationResult.reason!);
+    }
 
     return result;
   }

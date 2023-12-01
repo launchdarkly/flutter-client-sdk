@@ -1,5 +1,4 @@
-import '../ld_evaluation_result.dart';
-import 'ld_evaluation_detail_serialization.dart';
+import '../../ld_common.dart';
 
 final class LDEvaluationResultSerialization {
   static LDEvaluationResult fromJson(Map<String, dynamic> json) {
@@ -7,11 +6,20 @@ final class LDEvaluationResultSerialization {
     final trackEvents = (json['trackEvents'] ?? false) as bool;
     final trackReason = (json['trackReason'] ?? false) as bool;
     final debugEventsUntilDateRaw = json['debugEventsUntilDate'] as num?;
-    final detail = LDEvaluationDetailSerialization.fromJson(json['detail']);
+    final value = LDValueSerialization.fromJson(json['value']);
+    final jsonReason = json['reason'];
+
+    LDEvaluationReason? reason = jsonReason != null
+        ? LDEvaluationReasonSerialization.fromJson(jsonReason)
+        : null;
+
+    final jsonVariation = json['variation'];
+    final variationIndex =
+        jsonVariation != null ? (jsonVariation as num).toInt() : null;
 
     return LDEvaluationResult(
         version: version.toInt(),
-        detail: detail,
+        detail: LDEvaluationDetail(value, variationIndex, reason),
         trackEvents: trackEvents,
         trackReason: trackReason,
         debugEventsUntilDate: debugEventsUntilDateRaw?.toInt());
@@ -30,8 +38,14 @@ final class LDEvaluationResultSerialization {
     if (evaluationResult.debugEventsUntilDate != null) {
       result['debugEventsUntilDate'] = evaluationResult.debugEventsUntilDate;
     }
-    result['detail'] =
-        LDEvaluationDetailSerialization.toJson(evaluationResult.detail);
+    result['value'] = LDValueSerialization.toJson(evaluationResult.detail.value);
+    if (evaluationResult.detail.variationIndex != null) {
+      result['variation'] = evaluationResult.detail.variationIndex;
+    }
+    if (evaluationResult.detail.reason != null) {
+      result['reason'] = LDEvaluationReasonSerialization.toJson(
+          evaluationResult.detail.reason!);
+    }
 
     return result;
   }

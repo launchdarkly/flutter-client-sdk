@@ -211,7 +211,7 @@ final class LDEvaluationDetail<T> {
   /// An object describing the primary reason for the resultant flag value.
   ///
   /// See [LDEvaluationReason] for details.
-  final LDEvaluationReason reason;
+  final LDEvaluationReason? reason;
 
   /// Constructor for [LDEvaluationDetail].
   const LDEvaluationDetail(this.value, this.variationIndex, this.reason);
