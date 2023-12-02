@@ -1,3 +1,5 @@
+import 'defaults/common_default_config.dart';
+
 final class HttpProperties {
   /// The connection timeout for requests.
   final Duration connectTimeout;
@@ -12,7 +14,8 @@ final class HttpProperties {
 
   /// Headers that are included in all requests when possible. Not all
   /// connections support headers. Streaming requests on web will not include
-  /// any customized headers.
+  /// any customized headers. Additionally some headers are forbidden on some
+  /// platforms and will be omitted on those platforms.
   final Map<String, String> baseHeaders;
 
   /// Construct an http properties instance.
@@ -29,11 +32,17 @@ final class HttpProperties {
   /// [baseHeaders] are headers that will be added to all requests
   /// when possible. Not all connections support including headers.
   HttpProperties(
-      {this.connectTimeout = const Duration(seconds: 10),
-      this.readTimeout = const Duration(seconds: 10),
-      this.writeTimeout = const Duration(seconds: 10),
+      {Duration? connectTimeout,
+      Duration? readTimeout,
+      Duration? writeTimeout,
       Map<String, String> baseHeaders = const {}})
-      : baseHeaders = Map.unmodifiable(baseHeaders);
+      : baseHeaders = Map.unmodifiable(baseHeaders),
+        connectTimeout =
+            connectTimeout ?? CommonDefaultConfig.networkConfig.connectTimeout,
+        readTimeout =
+            readTimeout ?? CommonDefaultConfig.networkConfig.readTimeout,
+        writeTimeout =
+            writeTimeout ?? CommonDefaultConfig.networkConfig.writeTimeout;
 
   /// Create an http properties instance based on this instance with
   /// additional headers.
