@@ -9,7 +9,6 @@ import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.html) 'src/sse_client_html.dart';
 
-// TODO: unit tests: backoff, jitter, terminal errors
 // TODO: sc-157779 - add general logging
 // TODO: around alpha phase - need the backoff jitter around web client to prevent
 // flooding cloud servers on service interruption
