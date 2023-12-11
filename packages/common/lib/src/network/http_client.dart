@@ -77,10 +77,13 @@ final class HttpClient {
           ..addAll(_httpProperties.baseHeaders)
           ..addAll(additionalHeaders));
 
-    request.headers.addAll(_filterHeaders(_forbiddenHeaders, headers));
     if (body != null) {
       request.body = body;
     }
+
+    // The headers are set after the body because setting the body will set or
+    // adjust the content-type header. Setting headers afterwards resolves this.
+    request.headers.addAll(_filterHeaders(_forbiddenHeaders, headers));
 
     // The write timeout is a applied a little liberally here as we do not
     // have a discrete steps for connecting and then writing.

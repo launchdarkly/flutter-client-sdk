@@ -7,3 +7,7 @@ class DefaultPollingPaths {
     return '/msdk/evalx/contexts';
   }
 }
+
+class NetworkConfig {
+  Set<String> get restrictedHeaders => {};
+}

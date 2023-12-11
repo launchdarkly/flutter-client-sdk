@@ -77,17 +77,22 @@ final class DataSourceStatusManager {
   }
 
   /// Report an http error response.
-  setErrorResponse(num statusCode, String message) {
+  setErrorResponse(num statusCode, String message, {bool shutdown = false}) {
     _errorInfo = DataSourceStatusErrorInfo(
         kind: ErrorKind.errorResponse,
         statusCode: statusCode,
         message: message,
         time: _stamper());
-    _updateState(DataSourceState.interrupted, isError: true);
+    _updateState(
+        shutdown ? DataSourceState.shutdown : DataSourceState.interrupted,
+        isError: true);
   }
 
   /// Report a specific error with a message. For error responses use
-  /// [setErrorResponse].
+  ///
+  /// If [shutdown] is true, then the state will transition to
+  /// [DataSourceState.shutdown] otherwise it will be
+  /// [DataSourceState.interrupted].
   setErrorByKind(ErrorKind kind, String message) {
     _errorInfo = DataSourceStatusErrorInfo(
         kind: kind, statusCode: null, message: message, time: _stamper());

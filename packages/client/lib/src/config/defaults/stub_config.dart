@@ -8,3 +8,7 @@ class DefaultPollingPaths {
     throw Exception('Stub implementation');
   }
 }
+
+class NetworkConfig {
+  Set<String> get restrictedHeaders => throw Exception('Stub implementation');
+}

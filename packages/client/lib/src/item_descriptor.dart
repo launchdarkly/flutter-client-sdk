@@ -21,4 +21,9 @@ final class ItemDescriptor {
 
   @override
   int get hashCode => version.hashCode ^ flag.hashCode;
+
+  @override
+  String toString() {
+    return 'ItemDescriptor{version: $version, flag: $flag}';
+  }
 }

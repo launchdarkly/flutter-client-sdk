@@ -78,7 +78,7 @@ void main() {
     test(
         'initializing does not transition to interrupted via an error response',
         () {
-      manager!.setErrorResponse(404, 'why?');
+      manager!.setErrorResponse(503, 'why?');
       final status = manager!.status;
       expect(status.state, DataSourceState.initializing);
       expect(status.stateSince, DateTime(1));
@@ -90,6 +90,13 @@ void main() {
       final status = manager!.status;
       expect(status.state, DataSourceState.initializing);
       expect(status.stateSince, DateTime(1));
+    });
+
+    test('a terminal error transition will shutdown', () {
+      manager!.setErrorResponse(404, 'why?', shutdown: true);
+      final status = manager!.status;
+      expect(status.state, DataSourceState.shutdown);
+      expect(status.stateSince, DateTime(3));
     });
 
     test('it records error information for an error response', () {
@@ -117,7 +124,8 @@ void main() {
               lastError: DataSourceStatusErrorInfo(
                   kind: ErrorKind.networkError,
                   message: 'bad network',
-                  time: DateTime(2), statusCode: null))));
+                  time: DateTime(2),
+                  statusCode: null))));
       manager!.setErrorByKind(ErrorKind.networkError, 'bad network');
     });
   });

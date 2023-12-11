@@ -30,3 +30,6 @@ export 'src/collections.dart' show ListComparisons, MapComparisons;
 export 'src/config/defaults/common_default_config.dart'
     show CommonDefaultConfig;
 export 'src/network/http_client.dart' show HttpClient, RequestMethod;
+
+export 'src/network/utils.dart'
+    show appendPath, isHttpGloballyRecoverable, isHttpLocallyRecoverable;
