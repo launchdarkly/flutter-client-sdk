@@ -1,3 +1,4 @@
+import '../collections.dart';
 import '../ld_context.dart';
 import '../ld_evaluation_detail.dart';
 import '../ld_value.dart';
@@ -18,7 +19,7 @@ final class EvalEvent {
   /// Used in determining if the event processor should output a debug event.
   final DateTime? debugEventsUntilDate;
 
-  final num? version;
+  final int? version;
 
   EvalEvent(
       {required this.flagKey,
@@ -45,7 +46,7 @@ final class CustomEvent {
   final String key;
   final DateTime creationDate;
   final LDContext context;
-  final num? metricValue;
+  final int? metricValue;
   final LDValue? data;
 
   CustomEvent({
@@ -59,7 +60,7 @@ final class CustomEvent {
 
 final class FlagCounter {
   final LDValue value;
-  final num count;
+  final int count;
   final int? variation;
   final int? version;
   final bool unknown;
@@ -71,6 +72,29 @@ final class FlagCounter {
       this.version,
       bool? unknown})
       : unknown = unknown ?? false;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FlagCounter &&
+          value == other.value &&
+          count == other.count &&
+          variation == other.variation &&
+          version == other.version &&
+          unknown == other.unknown;
+
+  @override
+  int get hashCode =>
+      value.hashCode ^
+      count.hashCode ^
+      variation.hashCode ^
+      version.hashCode ^
+      unknown.hashCode;
+
+  @override
+  String toString() {
+    return 'FlagCounter{value: $value, count: $count, variation: $variation, version: $version, unknown: $unknown}';
+  }
 }
 
 final class FlagSummary {
@@ -82,6 +106,23 @@ final class FlagSummary {
       {required this.defaultValue,
       required this.counters,
       required this.contextKinds});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FlagSummary &&
+          defaultValue == other.defaultValue &&
+          counters.equals(other.counters) &&
+          contextKinds.equals(other.contextKinds);
+
+  @override
+  int get hashCode =>
+      defaultValue.hashCode ^ counters.hashCode ^ contextKinds.hashCode;
+
+  @override
+  String toString() {
+    return 'FlagSummary{defaultValue: $defaultValue, counters: $counters, contextKinds: $contextKinds}';
+  }
 }
 
 final class SummaryEvent {
