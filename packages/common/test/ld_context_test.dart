@@ -17,6 +17,15 @@ void main() {
         'organization:org-key%25%3A');
   });
 
+  test('can get keys for a single kind context', () {
+    expect(
+        LDContextBuilder()
+            .kind('organization', 'org-key%:')
+            .build()
+            .keys,
+        <String, String>{'organization': 'org-key%:'});
+  });
+
   test('can get a canonical key for a multi-kind context', () {
     // Should be sorted by kind and also the keys should be encoded.
     expect(
@@ -26,6 +35,17 @@ void main() {
             .build()
             .canonicalKey,
         'organization:org-key%25%3A:zoo:zoo-key%3A%25');
+  });
+
+  test('can get a keys for a multi-kind context', () {
+    // Should be sorted by kind and also the keys should be encoded.
+    expect(
+        LDContextBuilder()
+            .kind('zoo', 'zoo-key:%')
+            .kind('organization', 'org-key%:')
+            .build()
+            .keys,
+        <String, String>{'zoo': 'zoo-key:%', 'organization': 'org-key%:'});
   });
 
   group('given invalid kinds', () {

@@ -268,22 +268,63 @@ final class LDContext {
   final Map<String, LDContextAttributes> attributesByKind;
   final bool valid;
 
+  /// The canonical key and the kind-key map are generated once on demand and
+  /// subsequently these memo fields will be used.
+  String? _canonicalKeyMemo;
+  Map<String, String>? _keysMemo;
+
   LDContext._valid(this.attributesByKind) : valid = true;
 
   LDContext._invalid()
       : attributesByKind = {},
         valid = false;
 
+  /// Get the canonical key for the context.
+  ///
+  /// An invalid context cannot be used to generate a key, so an empty
+  /// string will be returned.
   String get canonicalKey {
+    if (!valid) {
+      return '';
+    }
+    if (_canonicalKeyMemo != null) {
+      return _canonicalKeyMemo!;
+    }
+
     if (attributesByKind.length == 1 && attributesByKind.containsKey('user')) {
       return attributesByKind['user']!.key;
     }
 
     final kinds = attributesByKind.keys.toList(growable: false);
     kinds.sort();
-    return kinds
+    _canonicalKeyMemo = kinds
         .map((kind) => '$kind:${_encodeKey(attributesByKind[kind]!.key)}')
         .join(':');
+
+    return _canonicalKeyMemo!;
+  }
+
+  /// Get a map of all the context kinds and their keys.
+  ///
+  /// An invalid context cannot be used to access a set of kinds and keys and
+  /// an empty map will be returned.
+  ///
+  /// The returned map is immutable.
+  Map<String, String> get keys {
+    if (!valid) {
+      return {};
+    }
+    if (_keysMemo != null) {
+      return _keysMemo!;
+    }
+
+    final kinds = attributesByKind.keys.toList(growable: false);
+    final kindsAndKeys = <String, String>{};
+    for (var kind in kinds) {
+      kindsAndKeys[kind] = attributesByKind[kind]!.key;
+    }
+    _keysMemo = Map.unmodifiable(kindsAndKeys);
+    return _keysMemo!;
   }
 
   /// For the given context kind get an attribute using a reference.
