@@ -46,7 +46,7 @@ final class FlagUpdater {
 
   FlagUpdater({required FlagStore flagStore, required LDLogger logger})
       : _flagStore = flagStore,
-        _logger = logger;
+        _logger = logger.subLogger('FlagUpdater');
 
   init(LDContext context, Map<String, ItemDescriptor> newFlags) {
     _activeContextKey = context.canonicalKey;

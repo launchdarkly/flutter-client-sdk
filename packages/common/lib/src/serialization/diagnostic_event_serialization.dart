@@ -92,6 +92,7 @@ final class DiagnosticInitEventSerialization {
   static Map<String, dynamic> toJson(DiagnosticInitEvent event) {
     final json = <String, dynamic>{};
 
+    json['kind'] = 'diagnostic-init';
     json['id'] = _DiagnosticIdSerialization.toJson(event.id);
     json['creationDate'] = event.creationDate.millisecondsSinceEpoch;
     json['sdk'] = _DiagnosticSdkDataSerialization.toJson(event.sdk);
@@ -120,6 +121,7 @@ final class DiagnosticStatsEventSerialization {
   static Map<String, dynamic> toJson(DiagnosticStatsEvent event) {
     final json = <String, dynamic>{};
 
+    json['kind'] = 'diagnostic';
     json['id'] = _DiagnosticIdSerialization.toJson(event.id);
     json['creationDate'] = event.creationDate.millisecondsSinceEpoch;
     json['dataSinceDate'] = event.dataSinceDate.millisecondsSinceEpoch;

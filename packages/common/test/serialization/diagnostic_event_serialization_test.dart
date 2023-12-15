@@ -29,7 +29,8 @@ void main() {
         jsonEncode(DiagnosticInitEventSerialization.toJson(event));
 
     final expectedSerializedEvent =
-        '{"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
+        '{"kind":"diagnostic-init",'
+        '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"sdk":{"name":"sdk-name","version":"sdk-version"},'
         '"configuration":'
@@ -86,7 +87,8 @@ void main() {
         jsonEncode(DiagnosticInitEventSerialization.toJson(event));
 
     final expectedSerializedEvent =
-        '{"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
+        '{"kind":"diagnostic-init",'
+        '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"sdk":{"name":"sdk-name","version":"sdk-version", '
         '"wrapperName":"the-wrapper", "wrapperVersion":"the-wrapper-version"},'
@@ -136,7 +138,8 @@ void main() {
         jsonEncode(DiagnosticStatsEventSerialization.toJson(event));
 
     final expectedSerializedEvent =
-        '{"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
+        '{"kind":"diagnostic",'
+        '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"dataSinceDate":2000,'
         '"droppedEvents":5,'

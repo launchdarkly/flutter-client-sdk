@@ -50,7 +50,9 @@ final class DataSourceStatusManager {
     // changed. For error state changes we always want to notify the listeners
     // of the new error data.
     if (changedState || isError) {
-      _controller.sink.add(status);
+      if (_controller.hasListener) {
+        _controller.sink.add(status);
+      }
     }
   }
 

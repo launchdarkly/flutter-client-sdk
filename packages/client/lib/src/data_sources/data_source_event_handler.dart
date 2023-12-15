@@ -89,5 +89,5 @@ final class DataSourceEventHandler {
       : _context = context,
         _flagManager = flagManager,
         _statusManager = statusManager,
-        _logger = logger;
+        _logger = logger.subLogger('DataSourceEventHandler');
 }

@@ -50,7 +50,7 @@ final class FlagPersistence {
         _updater = updater,
         _environmentKey = _makeEnvironment(sdkKey),
         _store = store,
-        _logger = logger,
+        _logger = logger.subLogger('FlagPersistence'),
         _stamper = stamper;
 
   init(LDContext context, Map<String, ItemDescriptor> newFlags) async {

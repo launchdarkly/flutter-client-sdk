@@ -60,14 +60,11 @@ final class PollingDataSource {
       HttpClient Function(HttpProperties) clientFactory =
           _defaultClientFactory})
       : _endpoints = endpoints,
-        _logger = logger,
+        _logger = logger.subLogger('PollingDataSource'),
         _statusManager = statusManager,
         _dataSourceEventHandler = dataSourceEventHandler,
         _dataSourceConfig = dataSourceConfig {
-    _pollingInterval = testingInterval ??
-        Duration(
-            seconds: max(dataSourceConfig.minPollingInterval.inSeconds,
-                dataSourceConfig.pollingInterval.inSeconds));
+    _pollingInterval = testingInterval ?? dataSourceConfig.pollingInterval;
 
     if (_dataSourceConfig.useReport) {
       final updatedProperties =

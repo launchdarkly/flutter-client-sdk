@@ -1,5 +1,5 @@
-
 import 'defaults/default_config.dart';
+import 'limits.dart';
 
 sealed class DataSourceConfig {
   /// Include evaluation reasons.
@@ -31,15 +31,21 @@ final class PollingDataSourceConfig extends DataSourceConfig {
     return _defaultPaths.pollingReportPath(credential, context);
   }
 
-  /// The minimum polling interval.
-  final Duration minPollingInterval = Duration(minutes: 5);
-
   /// The current polling interval, if less than min, then the min will be used.
   final Duration pollingInterval;
 
   PollingDataSourceConfig(
-      {required this.pollingInterval,
-      required super.withReasons,
-      required super.useReport,
-      required super.credential});
+      {Duration? pollingInterval,
+      bool? withReasons,
+      bool? useReport,
+      required super.credential})
+      : pollingInterval = durationWithMin(
+            DefaultConfig.pollingConfig.defaultPollingInterval,
+            pollingInterval,
+            DefaultConfig.pollingConfig.minPollingInterval),
+        super(
+            withReasons: withReasons ??
+                DefaultConfig.dataSourceConfig.defaultWithReasons,
+            useReport:
+                useReport ?? DefaultConfig.dataSourceConfig.defaultUseReport);
 }

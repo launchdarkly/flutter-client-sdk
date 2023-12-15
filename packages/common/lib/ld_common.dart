@@ -35,6 +35,16 @@ export 'src/events/events.dart'
         CustomEvent,
         FlagCounter,
         FlagSummary;
+export 'src/events/event_processor.dart' show EventProcessor;
+export 'src/events/diagnostics_manager.dart' show DiagnosticsManager;
+export 'src/events/diagnostic_events.dart'
+    show
+        DiagnosticStatsEvent,
+        DiagnosticPlatformData,
+        DiagnosticConfigData,
+        DiagnosticSdkData,
+        DiagnosticId,
+        DiagnosticInitEvent;
 
 export 'src/config/service_endpoints.dart' show ServiceEndpoints;
 export 'src/config/http_properties.dart' show HttpProperties;

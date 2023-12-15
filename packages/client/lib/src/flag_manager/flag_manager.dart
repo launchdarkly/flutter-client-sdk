@@ -23,7 +23,7 @@ final class FlagManager {
       required String sdkKey,
       required this.maxCachedContexts,
       required LDLogger logger})
-      : _logger = logger {
+      : _logger = logger.subLogger('FlagManager') {
     _flagUpdater = FlagUpdater(flagStore: _flagStore, logger: _logger);
     _flagPersistence = FlagPersistence(
         updater: _flagUpdater,
