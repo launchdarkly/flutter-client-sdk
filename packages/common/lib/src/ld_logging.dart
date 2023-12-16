@@ -31,19 +31,19 @@ enum LDLogLevel {
 
   const LDLogLevel(this._value);
 
-  operator <(LDLogLevel other) {
+  bool operator <(LDLogLevel other) {
     return _value < other._value;
   }
 
-  operator <=(LDLogLevel other) {
+  bool operator <=(LDLogLevel other) {
     return _value <= other._value;
   }
 
-  operator >(LDLogLevel other) {
+  bool operator >(LDLogLevel other) {
     return _value > other._value;
   }
 
-  operator >=(LDLogLevel other) {
+  bool operator >=(LDLogLevel other) {
     return _value >= other._value;
   }
 }
@@ -97,7 +97,7 @@ final class LDLogRecord {
 abstract interface class LDLogAdapter {
   /// Handle a log record emitted by the logger. This can be used to control
   /// the output of SDK log messages.
-  log(LDLogRecord record);
+  void log(LDLogRecord record);
 }
 
 /// Basic log printer which will output all messages using
@@ -106,7 +106,7 @@ class LDBasicLogPrinter implements LDLogAdapter {
   const LDBasicLogPrinter();
 
   @override
-  log(LDLogRecord record) {
+  void log(LDLogRecord record) {
     print(
         '[${record.logTag} ${record.level.name} ${record.time.toIso8601String()}] ${record.message}');
   }
@@ -155,7 +155,7 @@ final class LDLogger {
     return toCheck >= level;
   }
 
-  _log(LDLogLevel level, String message) {
+  void _log(LDLogLevel level, String message) {
     if (isLevelEnabled(level)) {
       _adapter.log(LDLogRecord(
           level: level,
@@ -167,17 +167,17 @@ final class LDLogger {
 
   /// Log a debug message. The message will not be sent to the [LDLogAdapter]
   /// if the logging level is not enabled.
-  debug(String message) => _log(LDLogLevel.debug, message);
+  void debug(String message) => _log(LDLogLevel.debug, message);
 
   /// Log an informative message. The message will not be sent to the
   /// [LDLogAdapter] if the logging level is not enabled.
-  info(String message) => _log(LDLogLevel.info, message);
+  void info(String message) => _log(LDLogLevel.info, message);
 
   /// Log a warning message. The message will not be sent to the [LDLogAdapter]
   /// if the logging level is not enabled.
-  warn(String message) => _log(LDLogLevel.warn, message);
+  void warn(String message) => _log(LDLogLevel.warn, message);
 
   /// Log an error message. The message will not be sent to the [LDLogAdapter]
   /// if the logging level is not enabled.
-  error(String message) => _log(LDLogLevel.error, message);
+  void error(String message) => _log(LDLogLevel.error, message);
 }

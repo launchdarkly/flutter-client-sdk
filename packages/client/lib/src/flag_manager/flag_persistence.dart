@@ -18,7 +18,7 @@ String _encodePersistenceKey(String input) {
   return digest.toString();
 }
 
-_makeEnvironment(String sdkKey) {
+String _makeEnvironment(String sdkKey) {
   return '${_globalNamespace}_${_encodePersistenceKey(sdkKey)}';
 }
 
@@ -53,12 +53,13 @@ final class FlagPersistence {
         _logger = logger.subLogger('FlagPersistence'),
         _stamper = stamper;
 
-  init(LDContext context, Map<String, ItemDescriptor> newFlags) async {
+  Future<void> init(LDContext context, Map<String, ItemDescriptor> newFlags) async {
     _updater.init(context, newFlags);
     return _storeCache(context);
   }
 
-  Future<bool> upsert(LDContext context, String key, ItemDescriptor item) async {
+  Future<bool> upsert(
+      LDContext context, String key, ItemDescriptor item) async {
     if (_updater.upsert(context, key, item)) {
       // We only need to store the cache if there was an update.
       // This is executed asynchronously.
@@ -68,12 +69,12 @@ final class FlagPersistence {
     return false;
   }
 
-  loadCached(LDContext context) async {
+  Future<bool> loadCached(LDContext context) async {
     final json = await _persistence?.read(
         _environmentKey, _encodePersistenceKey(context.canonicalKey));
 
     if (json == null) {
-      return;
+      return false;
     }
 
     try {
@@ -84,13 +85,14 @@ final class FlagPersistence {
           context,
           flagConfig.map((key, value) => MapEntry(
               key, ItemDescriptor(version: value.version, flag: value))));
+      return true;
     } catch (e) {
       _logger.warn('Could not load cached flag values for context: $e');
-      return;
     }
+    return false;
   }
 
-  _loadIndex() async {
+  Future<void> _loadIndex() async {
     if (_contextIndex != null) {
       return;
     }
@@ -107,7 +109,7 @@ final class FlagPersistence {
     _contextIndex ??= ContextIndex();
   }
 
-  _storeCache(LDContext context) async {
+  Future<void> _storeCache(LDContext context) async {
     await _loadIndex();
 
     // Will be set via _loadIndex non-conditionally.

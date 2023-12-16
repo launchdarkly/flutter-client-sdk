@@ -34,7 +34,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
 
     expect(flagStore.getAll().equals(basicData), true);
   });
@@ -48,7 +48,7 @@ void main() {
     expectLater(flagUpdater.changes,
         emits(FlagsChangedEvent(keys: ['flagA', 'flagB'])));
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
   });
 
   test('it emits events for init changes', () async {
@@ -57,7 +57,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
 
     expectLater(flagUpdater.changes,
         emits(FlagsChangedEvent(keys: ['flagB'])));
@@ -77,7 +77,7 @@ void main() {
                   LDEvaluationReason.targetMatch())))
     };
 
-    await flagUpdater.init(context, secondData);
+    flagUpdater.init(context, secondData);
   });
 
   test('it emits events for init with fewer flags', () async {
@@ -86,7 +86,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
 
     expectLater(flagUpdater.changes,
         emits(FlagsChangedEvent(keys: ['flagB'])));
@@ -100,7 +100,7 @@ void main() {
                   LDValue.ofString('test'), 0, LDEvaluationReason.off()))),
     };
 
-    await flagUpdater.init(context, secondData);
+    flagUpdater.init(context, secondData);
   });
 
   test('it updates the store on upsert', () async {
@@ -109,7 +109,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
     final flagB = LDEvaluationResult(
         version: 3,
         detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,
@@ -134,7 +134,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
 
     expectLater(flagUpdater.changes, emits(FlagsChangedEvent(keys: ['flagB'])));
     final flagB = LDEvaluationResult(
@@ -154,7 +154,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
 
     expect(
         flagUpdater.upsert(context, 'flagB', ItemDescriptor(version: 3)), true);
@@ -169,7 +169,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
 
     expectLater(flagUpdater.changes, emits(FlagsChangedEvent(keys: ['flagB'])));
 
@@ -186,7 +186,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
     final flagB = LDEvaluationResult(
         version: 2,
         detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,
@@ -206,7 +206,7 @@ void main() {
 
     final context = LDContextBuilder().kind('user', 'user-key').build();
 
-    await flagUpdater.init(context, basicData);
+    flagUpdater.init(context, basicData);
     final flagB = LDEvaluationResult(
         version: 2,
         detail: LDEvaluationDetail(LDValue.ofString('test3'), 2,

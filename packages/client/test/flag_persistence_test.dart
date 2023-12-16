@@ -53,7 +53,7 @@ void main() {
       expect(mockPersistence.storage.values.first.length, 2);
 
       final contextPersistenceKey =
-      sha256.convert(utf8.encode(context.canonicalKey)).toString();
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
 
       // The context index.
       expect(mockPersistence.storage[sdkKeyPersistence]!['ContextIndex'],
@@ -63,17 +63,17 @@ void main() {
       expect(
           mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey],
           '{"flagA":{'
-              '"version":1,'
-              '"value":"test",'
-              '"variation":0,'
-              '"reason":{"kind":"OFF"}'
-              '},'
-              '"flagB":{'
-              '"version":2,'
-              '"value":"test2",'
-              '"variation":1,'
-              '"reason":{"kind":"TARGET_MATCH"}'
-              '}}');
+          '"version":1,'
+          '"value":"test",'
+          '"variation":0,'
+          '"reason":{"kind":"OFF"}'
+          '},'
+          '"flagB":{'
+          '"version":2,'
+          '"value":"test2",'
+          '"variation":1,'
+          '"reason":{"kind":"TARGET_MATCH"}'
+          '}}');
 
       expect(flagStore.getAll().equals(basicData), true);
     });
@@ -98,8 +98,10 @@ void main() {
           detail: LDEvaluationDetail(
               LDValue.ofString('test3'), 1, LDEvaluationReason.targetMatch()));
 
-      expect(await flagPersistence.upsert(
-          context, 'flagB', ItemDescriptor(version: 3, flag: flagB)), true);
+      expect(
+          await flagPersistence.upsert(
+              context, 'flagB', ItemDescriptor(version: 3, flag: flagB)),
+          true);
 
       // 1 environment
       expect(mockPersistence.storage.length, 1);
@@ -107,7 +109,7 @@ void main() {
       expect(mockPersistence.storage.values.first.length, 2);
 
       final contextPersistenceKey =
-      sha256.convert(utf8.encode(context.canonicalKey)).toString();
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
 
       // The context index.
       expect(mockPersistence.storage[sdkKeyPersistence]!['ContextIndex'],
@@ -117,17 +119,17 @@ void main() {
       expect(
           mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey],
           '{"flagA":{'
-              '"version":1,'
-              '"value":"test",'
-              '"variation":0,'
-              '"reason":{"kind":"OFF"}'
-              '},'
-              '"flagB":{'
-              '"version":3,'
-              '"value":"test3",'
-              '"variation":1,'
-              '"reason":{"kind":"TARGET_MATCH"}'
-              '}}');
+          '"version":1,'
+          '"value":"test",'
+          '"variation":0,'
+          '"reason":{"kind":"OFF"}'
+          '},'
+          '"flagB":{'
+          '"version":3,'
+          '"value":"test3",'
+          '"variation":1,'
+          '"reason":{"kind":"TARGET_MATCH"}'
+          '}}');
     });
 
     test('it discards out of order updates', () async {
@@ -150,8 +152,10 @@ void main() {
           detail: LDEvaluationDetail(
               LDValue.ofString('test1'), 1, LDEvaluationReason.targetMatch()));
 
-      expect(await flagPersistence.upsert(
-          context, 'flagB', ItemDescriptor(version: 1, flag: flagB)), false);
+      expect(
+          await flagPersistence.upsert(
+              context, 'flagB', ItemDescriptor(version: 1, flag: flagB)),
+          false);
 
       // 1 environment
       expect(mockPersistence.storage.length, 1);
@@ -159,7 +163,7 @@ void main() {
       expect(mockPersistence.storage.values.first.length, 2);
 
       final contextPersistenceKey =
-      sha256.convert(utf8.encode(context.canonicalKey)).toString();
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
 
       // The context index.
       expect(mockPersistence.storage[sdkKeyPersistence]!['ContextIndex'],
@@ -169,17 +173,17 @@ void main() {
       expect(
           mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey],
           '{"flagA":{'
-              '"version":1,'
-              '"value":"test",'
-              '"variation":0,'
-              '"reason":{"kind":"OFF"}'
-              '},'
-              '"flagB":{'
-              '"version":2,'
-              '"value":"test2",'
-              '"variation":1,'
-              '"reason":{"kind":"TARGET_MATCH"}'
-              '}}');
+          '"version":1,'
+          '"value":"test",'
+          '"variation":0,'
+          '"reason":{"kind":"OFF"}'
+          '},'
+          '"flagB":{'
+          '"version":2,'
+          '"value":"test2",'
+          '"variation":1,'
+          '"reason":{"kind":"TARGET_MATCH"}'
+          '}}');
 
       expect(flagStore.getAll().equals(basicData), true);
     });
@@ -187,7 +191,7 @@ void main() {
     test('it can load cache', () async {
       final context = LDContextBuilder().kind('user', 'user-key').build();
       final contextPersistenceKey =
-      sha256.convert(utf8.encode(context.canonicalKey)).toString();
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
 
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
@@ -216,7 +220,8 @@ void main() {
           logger: logger,
           stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
 
-      await flagPersistence.loadCached(context);
+      final loaded = await flagPersistence.loadCached(context);
+      expect(loaded, isTrue);
 
       expect(flagStore.get('flagA'), basicData['flagA']);
       expect(flagStore.get('flagB'), basicData['flagB']);
@@ -225,7 +230,7 @@ void main() {
     test('it can handle a corrupt cached flag payload', () async {
       final context = LDContextBuilder().kind('user', 'user-key').build();
       final contextPersistenceKey =
-      sha256.convert(utf8.encode(context.canonicalKey)).toString();
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
 
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
@@ -249,11 +254,10 @@ void main() {
           logger: logger,
           stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
 
-      await flagPersistence.loadCached(context);
+      final loaded = await flagPersistence.loadCached(context);
+      expect(loaded, isFalse);
 
-      expect(flagStore
-          .getAll()
-          .length, 0);
+      expect(flagStore.getAll().length, 0);
     });
 
     test('it can handle a corrupt context index', () async {
@@ -280,9 +284,7 @@ void main() {
       expect(flagStore.get('flagA'), basicData['flagA']);
       expect(flagStore.get('flagB'), basicData['flagB']);
 
-      expect(flagStore
-          .getAll()
-          .length, 2);
+      expect(flagStore.getAll().length, 2);
     });
 
     test('it evicts contexts beyond max', () async {
@@ -362,12 +364,11 @@ void main() {
           logger: logger,
           stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
 
-      await flagPersistence
+      final loaded = await flagPersistence
           .loadCached(LDContextBuilder().kind('user', 'user-key').build());
+      expect(loaded, isFalse);
 
-      expect(flagStore
-          .getAll()
-          .length, 0);
+      expect(flagStore.getAll().length, 0);
     });
   });
 }

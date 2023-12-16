@@ -1,13 +1,13 @@
 /// Specifies the base service URLs used by SDK components.
 abstract class ServiceEndpoints {
   /// The default polling endpoint.
-  get defaultPolling;
+  String get defaultPolling;
 
   /// The default streaming endpoint.
-  get defaultStreaming;
+  String get defaultStreaming;
 
   /// The default events endpoint.
-  get defaultEvents;
+  String get defaultEvents;
 
   /// The base polling url.
   late final String polling;

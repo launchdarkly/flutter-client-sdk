@@ -48,14 +48,14 @@ final class FlagUpdater {
       : _flagStore = flagStore,
         _logger = logger.subLogger('FlagUpdater');
 
-  init(LDContext context, Map<String, ItemDescriptor> newFlags) {
+  void init(LDContext context, Map<String, ItemDescriptor> newFlags) {
     _activeContextKey = context.canonicalKey;
     final oldFlags = _flagStore.getAll();
     _handleChanges(oldFlags, newFlags);
     _flagStore.init(newFlags);
   }
 
-  initCached(LDContext context, Map<String, ItemDescriptor> newFlags) {
+  void initCached(LDContext context, Map<String, ItemDescriptor> newFlags) {
     // The store has been initialized from our data source for this context,
     // so we can discard this update.
     // This would happen because the network response was faster than loading
@@ -94,7 +94,7 @@ final class FlagUpdater {
     return true;
   }
 
-  close() {
+  void close() {
     _controller.close();
   }
 
@@ -106,11 +106,11 @@ final class FlagUpdater {
     return true;
   }
 
-  _sendNotifications(List<String> keys) {
+  void _sendNotifications(List<String> keys) {
     _controller.sink.add(FlagsChangedEvent(keys: keys));
   }
 
-  _handleChanges(Map<String, ItemDescriptor> oldItems,
+  void _handleChanges(Map<String, ItemDescriptor> oldItems,
       Map<String, ItemDescriptor> newItems) {
     if (_controller.hasListener) {
       final List<String> changedKeys = [];

@@ -4,7 +4,7 @@ import '../ld_value.dart';
 import '../collections.dart';
 import 'ld_value_serialization.dart';
 
-_executeIfNotRedacted(
+void _executeIfNotRedacted(
     bool isEvent,
     bool allAttributesPrivate,
     Map<String, dynamic> container,
@@ -31,7 +31,7 @@ _executeIfNotRedacted(
 
 /// Given an LDValue, that is an object, serialize it and perform any needed
 /// redactions if being serialized for an event.
-_redactInLDValueObject(
+void _redactInLDValueObject(
     Map<String, dynamic> container,
     List<String> parentComponents,
     LDValue object,
@@ -51,7 +51,7 @@ _redactInLDValueObject(
 
 /// Given a map of LDValues, serialize them and perform any needed redactions
 /// if being serialized for an event.
-_redactInValueMap(
+void _redactInValueMap(
   Map<String, dynamic> container,
   List<String> parentComponents,
   Map<String, LDValue> values,

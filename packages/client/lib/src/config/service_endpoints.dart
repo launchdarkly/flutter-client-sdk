@@ -5,13 +5,13 @@ import 'defaults/default_config.dart';
 /// Specifies the base service URLs used by SDK components.
 final class ServiceEndpoints extends common.ServiceEndpoints {
   @override
-  get defaultPolling => DefaultConfig.endpoints.polling;
+  String get defaultPolling => DefaultConfig.endpoints.polling;
 
   @override
-  get defaultEvents => DefaultConfig.endpoints.events;
+  String get defaultEvents => DefaultConfig.endpoints.events;
 
   @override
-  get defaultStreaming => DefaultConfig.endpoints.streaming;
+  String get defaultStreaming => DefaultConfig.endpoints.streaming;
 
   /// Construct custom service endpoints.
   ///

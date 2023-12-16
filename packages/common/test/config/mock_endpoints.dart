@@ -8,13 +8,13 @@ String _defaultEvents = 'events';
 /// the default endpoints for that SDK type. For instance ClientServiceEndpoints.
 final class MockEndpoints extends ServiceEndpoints {
   @override
-  get defaultPolling => _defaultPolling;
+  String get defaultPolling => _defaultPolling;
 
   @override
-  get defaultEvents => _defaultEvents;
+  String get defaultEvents => _defaultEvents;
 
   @override
-  get defaultStreaming => _defaultStreaming;
+  String get defaultStreaming => _defaultStreaming;
 
   /// Construct custom service endpoints.
   ///

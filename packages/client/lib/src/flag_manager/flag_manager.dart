@@ -42,7 +42,7 @@ final class FlagManager {
 
   /// Initializes the flag manager with data from a data source.
   /// Persistence initialization is handled by [FlagPersistence].
-  init(LDContext context, Map<String, ItemDescriptor> newFlags) =>
+  Future<void> init(LDContext context, Map<String, ItemDescriptor> newFlags) =>
       _flagPersistence.init(context, newFlags);
 
   /// Attempt to update a flag. If the flag is for the wrong context, or
@@ -51,7 +51,7 @@ final class FlagManager {
       _flagPersistence.upsert(context, key, item);
 
   /// Asynchronously load cached values from persistence.
-  loadCached(LDContext context) async {
+  Future<bool> loadCached(LDContext context) async {
     return _flagPersistence.loadCached(context);
   }
 

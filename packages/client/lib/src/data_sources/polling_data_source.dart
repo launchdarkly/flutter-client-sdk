@@ -101,7 +101,7 @@ final class PollingDataSource {
     _uri = Uri.parse(completeUrl);
   }
 
-  _makeRequest() async {
+  Future<void> _makeRequest() async {
     try {
       final res = await _client.request(_method, _uri,
           additionalHeaders: _lastEtag != null ? {'etag': _lastEtag!} : null,
@@ -113,7 +113,7 @@ final class PollingDataSource {
     }
   }
 
-  _handleResponse(http.Response res) async {
+  Future<void> _handleResponse(http.Response res) async {
     // The data source has been instructed to stop, so we discard the response.
     if (_stopped) {
       return;
@@ -145,7 +145,7 @@ final class PollingDataSource {
     }
   }
 
-  _doPoll() async {
+  Future<void> _doPoll() async {
     _pollStopwatch.reset();
     _pollStopwatch.start();
 
@@ -153,7 +153,7 @@ final class PollingDataSource {
     _schedulePoll();
   }
 
-  _schedulePoll() {
+  void _schedulePoll() {
     if (_stopped) {
       return;
     }

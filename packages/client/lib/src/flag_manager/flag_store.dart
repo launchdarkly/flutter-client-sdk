@@ -6,12 +6,12 @@ import '../item_descriptor.dart';
 final class FlagStore {
   final Map<String, ItemDescriptor> _flags = {};
 
-  init(Map<String, ItemDescriptor> newFlags) {
+  void init(Map<String, ItemDescriptor> newFlags) {
     _flags.clear();
     _flags.addAll(newFlags);
   }
 
-  insertOrUpdate(String key, ItemDescriptor update) {
+  void insertOrUpdate(String key, ItemDescriptor update) {
     _flags[key] = update;
   }
 

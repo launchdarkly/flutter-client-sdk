@@ -9,7 +9,7 @@ final class _Counter {
   int count = 0;
   final LDValue value;
 
-  increment() {
+  void increment() {
     count++;
   }
 
@@ -23,7 +23,7 @@ final class _SummaryCounter {
 
   _SummaryCounter(this.defaultValue);
 
-  count(Variation variation, Version version, LDValue value,
+  void count(Variation variation, Version version, LDValue value,
       Set<String> inKinds) {
     contextKinds.addAll(inKinds);
     if (!counters.containsKey(variation)) {

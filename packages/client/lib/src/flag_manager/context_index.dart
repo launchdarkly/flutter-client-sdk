@@ -45,7 +45,7 @@ final class ContextIndex {
   /// Notice that a context has been used, and when it was used. This will
   /// update an existing record with the given timestamp, or create a new
   /// record if one doesn't exist.
-  notice(String id, DateTime timestamp) {
+  void notice(String id, DateTime timestamp) {
     var found = false;
     // This could use firstWhereOrNull, but it requires using package:collection.
     // If we someday add that dependency, then we could simplify this.

@@ -6,3 +6,4 @@ linter:
     # Within a lib always use relative imports. https://dart.dev/effective-dart/usage#prefer-relative-import-paths
     - prefer_relative_imports
     - prefer_single_quotes
+    - always_declare_return_types

@@ -32,7 +32,7 @@ final class DataSourceStatusManager {
         _stateSince = stamper(),
         _stamper = stamper;
 
-  _updateState(DataSourceState requestedState, {bool isError = false}) {
+  void _updateState(DataSourceState requestedState, {bool isError = false}) {
     // While initializing the state remains initializing if the desired
     // transition is interrupted.
     final newState = requestedState == DataSourceState.interrupted &&
@@ -57,29 +57,29 @@ final class DataSourceStatusManager {
   }
 
   /// Report that the data source is in a valid state.
-  setValid() {
+  void setValid() {
     _updateState(DataSourceState.valid);
   }
 
   /// Report that the data source has been set offline.
-  setOffline() {
+  void setOffline() {
     _updateState(DataSourceState.setOffline);
   }
 
   /// Report that the data source has been disabled from entering the
   /// background.
-  setBackgroundDisabled() {
+  void setBackgroundDisabled() {
     _updateState(DataSourceState.backgroundDisabled);
   }
 
   /// Report that the data source is temporarily disabled while the device
   /// is offline.
-  setNetworkUnavailable() {
+  void setNetworkUnavailable() {
     _updateState(DataSourceState.networkUnavailable);
   }
 
   /// Report an http error response.
-  setErrorResponse(num statusCode, String message, {bool shutdown = false}) {
+  void setErrorResponse(num statusCode, String message, {bool shutdown = false}) {
     _errorInfo = DataSourceStatusErrorInfo(
         kind: ErrorKind.errorResponse,
         statusCode: statusCode,
@@ -95,7 +95,7 @@ final class DataSourceStatusManager {
   /// If [shutdown] is true, then the state will transition to
   /// [DataSourceState.shutdown] otherwise it will be
   /// [DataSourceState.interrupted].
-  setErrorByKind(ErrorKind kind, String message) {
+  void setErrorByKind(ErrorKind kind, String message) {
     _errorInfo = DataSourceStatusErrorInfo(
         kind: kind, statusCode: null, message: message, time: _stamper());
     _updateState(DataSourceState.interrupted, isError: true);
