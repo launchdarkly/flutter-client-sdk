@@ -31,4 +31,5 @@ final class DefaultConfig {
   static final eventConfig = DefaultEventConfiguration();
   static final pollingConfig = DefaultPollingConfiguration();
   static final dataSourceConfig = DefaultDataSourceConfig();
+  static final credentialConfig = CredentialConfig();
 }

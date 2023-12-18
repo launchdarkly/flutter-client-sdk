@@ -28,6 +28,11 @@ final class FlagsChangedEvent {
 
   @override
   int get hashCode => keys.hashCode;
+
+  @override
+  String toString() {
+    return 'FlagsChangedEvent{keys: $keys}';
+  }
 }
 
 /// The flag updater handles logic required during the flag update process.

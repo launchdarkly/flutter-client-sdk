@@ -1,8 +1,10 @@
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/ld_common.dart'
+    show LDLogger, HttpProperties;
 
 import '../persistence.dart';
 import 'data_source_config.dart';
 import 'events_config.dart';
+import 'service_endpoints.dart';
 
 final class LDDartConfig {
   // TODO: Implement configuration.
@@ -17,10 +19,15 @@ final class LDDartConfig {
   // TODO: Builder?
   LDDartConfig(
       {required this.sdkCredential,
-      required this.logger,
-      required this.endpoints,
-      required this.pollingConfig,
-        required this.httpProperties,
-        required this.eventsConfig,
-      this.persistence});
+      LDLogger? logger,
+      ServiceEndpoints? endpoints,
+      PollingDataSourceConfig? pollingConfig,
+      HttpProperties? httpProperties,
+      EventsConfig? eventsConfig,
+      this.persistence})
+      : logger = logger ?? LDLogger(),
+        endpoints = endpoints ?? ServiceEndpoints(),
+        pollingConfig = pollingConfig ?? PollingDataSourceConfig(),
+        httpProperties = httpProperties ?? HttpProperties(),
+        eventsConfig = eventsConfig ?? EventsConfig();
 }

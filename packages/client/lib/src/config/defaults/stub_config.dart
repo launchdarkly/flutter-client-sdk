@@ -1,3 +1,5 @@
+import 'credential_type.dart';
+
 class DefaultPollingPaths {
   String pollingGetPath(String credential, String context) {
     throw Exception('Stub implementation');
@@ -30,4 +32,8 @@ final class DefaultEndpoints {
   final String polling = '';
   final String streaming = '';
   final String events = '';
+}
+
+final class CredentialConfig {
+  CredentialType get credentialType => throw Exception('Stub implementation');
 }

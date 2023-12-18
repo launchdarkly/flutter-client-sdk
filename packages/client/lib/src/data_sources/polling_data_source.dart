@@ -49,7 +49,8 @@ final class PollingDataSource {
   ///
   /// The [testingInterval] should only be used for tests.
   PollingDataSource(
-      {required LDContext context,
+      {required String credential,
+      required LDContext context,
       required ServiceEndpoints endpoints,
       required LDLogger logger,
       required DataSourceStatusManager statusManager,
@@ -72,8 +73,8 @@ final class PollingDataSource {
       _method = RequestMethod.report;
       _client = clientFactory(updatedProperties);
     } else {
-      final updatedProperties = httpProperties
-          .withHeaders({'authorization': _dataSourceConfig.credential});
+      final updatedProperties =
+          httpProperties.withHeaders({'authorization': credential});
       _method = RequestMethod.get;
       _client = clientFactory(updatedProperties);
     }
@@ -89,10 +90,10 @@ final class PollingDataSource {
     String completeUrl;
     if (_dataSourceConfig.useReport) {
       completeUrl = appendPath(_endpoints.polling,
-          _dataSourceConfig.pollingReportPath(_contextString));
+          _dataSourceConfig.pollingReportPath(credential, _contextString));
     } else {
-      completeUrl = appendPath(
-          _endpoints.polling, _dataSourceConfig.pollingGetPath(_contextString));
+      completeUrl = appendPath(_endpoints.polling,
+          _dataSourceConfig.pollingGetPath(credential, _contextString));
     }
     if (_dataSourceConfig.withReasons) {
       completeUrl = '$completeUrl?withReasons=true';
@@ -118,6 +119,7 @@ final class PollingDataSource {
     if (_stopped) {
       return;
     }
+
     if (res.statusCode == 200 || res.statusCode == 304) {
       final etag = res.headers['etag'];
       if (etag != null && etag == _lastEtag) {

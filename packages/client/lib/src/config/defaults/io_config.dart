@@ -1,3 +1,5 @@
+import 'credential_type.dart';
+
 class DefaultPollingPaths {
   String pollingGetPath(String credential, String context) {
     return '/msdk/evalx/contexts/$context';
@@ -26,4 +28,8 @@ final class DefaultEndpoints {
   final String polling = 'https://clientsdk.launchdarkly.com';
   final String streaming = 'https://clientstream.launchdarkly.com';
   final String events = 'https://mobile.launchdarkly.com';
+}
+
+final class CredentialConfig {
+  CredentialType get credentialType => CredentialType.mobileKey;
 }

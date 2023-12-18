@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:http/testing.dart';
 import 'package:launchdarkly_dart_client/ld_client.dart';
-import 'package:launchdarkly_dart_client/src/config/data_source_config.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_status_manager.dart';
@@ -30,6 +29,7 @@ import 'package:test/test.dart';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
   final polling = PollingDataSource(
+      credential: sdkKey,
       context: context,
       endpoints: ServiceEndpoints(),
       logger: logger,
@@ -42,8 +42,7 @@ import 'package:test/test.dart';
       dataSourceConfig: PollingDataSourceConfig(
           pollingInterval: const Duration(seconds: 30),
           withReasons: withReasons,
-          useReport: useReport,
-          credential: sdkKey),
+          useReport: useReport),
       httpProperties: httpProperties,
       clientFactory: (properties) =>
           ld_common.HttpClient(client: innerClient, httpProperties: properties),
@@ -308,12 +307,14 @@ void main() {
             lastError: DataSourceStatusErrorInfo(
                 kind: ErrorKind.invalidData,
                 message: 'Could not parse PUT message',
-                time: DateTime(1), statusCode: null))));
+                time: DateTime(1),
+                statusCode: null))));
 
     polling.start();
   });
 
-  test('it reports recoverable errors while initializing - invalid put data', () {
+  test('it reports recoverable errors while initializing - invalid put data',
+      () {
     var methodCalled = false;
     final innerClient = MockClient((request) async {
       methodCalled = true;
@@ -333,7 +334,8 @@ void main() {
             lastError: DataSourceStatusErrorInfo(
                 kind: ErrorKind.invalidData,
                 message: 'PUT message contained invalid data',
-                time: DateTime(1), statusCode: null))));
+                time: DateTime(1),
+                statusCode: null))));
 
     polling.start();
   });
@@ -346,7 +348,8 @@ void main() {
       return http.Response('{}', statusCode);
     });
 
-    final (polling, _, statusManager) = makeDataSourceForTest(innerClient, testingInterval: Duration(milliseconds: 100));
+    final (polling, _, statusManager) = makeDataSourceForTest(innerClient,
+        testingInterval: Duration(milliseconds: 100));
 
     statusManager.changes.listen((event) {
       statusCode = 503;
@@ -356,8 +359,7 @@ void main() {
         statusManager.changes,
         emitsInOrder([
           DataSourceStatus(
-              state: DataSourceState.valid,
-              stateSince: DateTime(1)),
+              state: DataSourceState.valid, stateSince: DateTime(1)),
           DataSourceStatus(
               state: DataSourceState.interrupted,
               stateSince: DateTime(1),

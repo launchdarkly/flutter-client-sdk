@@ -32,6 +32,11 @@ final class EvalEvent {
       this.debugEventsUntilDate,
       this.version})
       : creationDate = creationDate ?? DateTime.now();
+
+  @override
+  String toString() {
+    return 'EvalEvent{flagKey: $flagKey, creationDate: $creationDate, defaultValue: $defaultValue, evaluationDetail: $evaluationDetail, context: $context, withReason: $withReason, trackEvent: $trackEvent, debugEventsUntilDate: $debugEventsUntilDate, version: $version}';
+  }
 }
 
 final class IdentifyEvent {
@@ -40,6 +45,11 @@ final class IdentifyEvent {
 
   IdentifyEvent({required this.context, DateTime? creationDate})
       : creationDate = creationDate ?? DateTime.now();
+
+  @override
+  String toString() {
+    return 'IdentifyEvent{creationDate: $creationDate, context: $context}';
+  }
 }
 
 final class CustomEvent {
@@ -56,6 +66,11 @@ final class CustomEvent {
     this.data,
     DateTime? creationDate,
   }) : creationDate = creationDate ?? DateTime.now();
+
+  @override
+  String toString() {
+    return 'CustomEvent{key: $key, creationDate: $creationDate, context: $context, metricValue: $metricValue, data: $data}';
+  }
 }
 
 final class FlagCounter {
@@ -132,4 +147,9 @@ final class SummaryEvent {
 
   SummaryEvent(
       {required this.startDate, required this.endDate, required this.features});
+
+  @override
+  String toString() {
+    return 'SummaryEvent{startDate: $startDate, endDate: $endDate, features: $features}';
+  }
 }

@@ -88,8 +88,8 @@ final class FlagPersistence {
       return true;
     } catch (e) {
       _logger.warn('Could not load cached flag values for context: $e');
+      return false;
     }
-    return false;
   }
 
   Future<void> _loadIndex() async {

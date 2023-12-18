@@ -16,17 +16,16 @@ void main() {
         final config = PollingDataSourceConfig(
             pollingInterval: Duration(minutes: pollingInterval as int),
             withReasons: withReasons as bool,
-            useReport: useReport as bool,
-            credential: credential as String);
+            useReport: useReport as bool);
         expect(config.pollingInterval.inMinutes, pollingInterval);
-        expect(config.credential, credential);
         expect(config.useReport, useReport);
         expect(config.withReasons, withReasons);
 
         // This will be the io platform defaults.
-        expect(config.pollingGetPath('this-is-a-context'),
+        expect(config.pollingGetPath(credential as String, 'this-is-a-context'),
             '/msdk/evalx/contexts/this-is-a-context');
-        expect(config.pollingReportPath('this-is-a-context'),
+        expect(
+            config.pollingReportPath(credential, 'this-is-a-context'),
             '/msdk/evalx/contexts');
       });
     }
