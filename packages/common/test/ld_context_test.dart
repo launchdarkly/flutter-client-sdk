@@ -195,4 +195,24 @@ void main() {
             ?.intValue(),
         42);
   });
+
+  test('can make a builder from an existing context', () {
+    final context = LDContextBuilder()
+        .kind('user', 'bob')
+        .name('Bobby Person')
+        .setPrivate('email', LDValue.ofString('example@example.example'))
+        .anonymous(true)
+        .kind('zoo', 'zoo-key:%')
+        .set('a', LDValue.ofString('b'))
+        .kind('organization', 'org-key%:')
+        .set('a', LDValue.ofNum(42))
+        .addPrivateAttributes(['a'])
+        .build();
+
+    final context2 = LDContextBuilder.fromContext(context).build();
+
+    final ldValue1 = LDValueSerialization.fromJson(LDContextSerialization.toJson(context, isEvent: false));
+    final ldValue2 = LDValueSerialization.fromJson(LDContextSerialization.toJson(context2, isEvent: false));
+    expect(ldValue1, ldValue2);
+  });
 }

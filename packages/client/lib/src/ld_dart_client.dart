@@ -2,6 +2,8 @@ import 'package:launchdarkly_dart_common/ld_common.dart';
 
 import './config/ld_dart_config.dart';
 import 'config/defaults/default_config.dart';
+import 'context_modifiers/anonymous_context_modifier.dart';
+import 'context_modifiers/context_modifier.dart';
 import 'data_sources/data_source_event_handler.dart';
 import 'data_sources/data_source_status.dart';
 import 'data_sources/data_source_status_manager.dart';
@@ -16,9 +18,16 @@ final class LDDartClient {
   late final EventProcessor _eventProcessor;
   late final DiagnosticsManager? _diagnosticsManager;
   final LDDartConfig _config;
+  // Modifications will happen in the order they are specified in this list.
+  // If there are cross-dependent modifiers, then this must be considered.
+  late final List<ContextModifier> _modifiers;
+  final LDContext _initialUndecoratedContext;
 
+  // During startup the _context will be invalid until the identify process
+  // is complete.
+  LDContext _context = LDContextBuilder().build();
   PollingDataSource? _pollingDataSource;
-  late LDContext _context;
+  bool _startRequested = false;
 
   Stream<DataSourceStatus> get dataSourceStatus {
     return _dataSourceStatusManager.changes;
@@ -36,11 +45,12 @@ final class LDDartClient {
             maxCachedContexts: 5, // TODO: Get from config.
             logger: config.logger,
             persistence: config.persistence),
-        _dataSourceStatusManager = DataSourceStatusManager() {
-    _setAndDecorateContext(context);
-
+        _dataSourceStatusManager = DataSourceStatusManager(),
+        _initialUndecoratedContext = context {
     // TODO: Figure out how we will construct this.
     _diagnosticsManager = null;
+
+    _modifiers = [AnonymousContextModifier(config.persistence)];
 
     _eventProcessor = EventProcessor(
         logger: _logger,
@@ -60,9 +70,10 @@ final class LDDartClient {
             config.eventsConfig.diagnosticRecordingInterval);
   }
 
-  void _setAndDecorateContext(LDContext context) {
-    // TODO: Decorate with things like a generated key.
-    _context = context;
+  Future<void> _setAndDecorateContext(LDContext context) async {
+    _context = await _modifiers.asyncReduce(
+        (reducer, accumulator) async => await reducer.decorate(accumulator),
+        context);
   }
 
   /// This instructs the SDK to start connecting to LaunchDarkly. Ideally
@@ -70,11 +81,17 @@ final class LDDartClient {
   /// has been started, or after starting but before initialization is complete,
   /// will return default values.
   Future<void> start() async {
+    if (_startRequested) {
+      return;
+    }
+    _startRequested = true;
+
     // TODO: Do we start the process when we create the client, and provide
     // a way to know when it completes? Or do we not even start it as we
     // are doing here.
     _eventProcessor.start();
-    return await identify(_context);
+
+    return await identify(_initialUndecoratedContext);
   }
 
   /// Triggers immediate sending of pending events to LaunchDarkly.
@@ -92,7 +109,7 @@ final class LDDartClient {
   Future<void> identify(LDContext context) async {
     // TODO: Check for difference?
     // TODO: Does the SDK need to have been started?
-    _setAndDecorateContext(context);
+    await _setAndDecorateContext(context);
     _identifyInternal();
   }
 

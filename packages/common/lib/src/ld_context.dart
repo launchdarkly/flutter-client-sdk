@@ -222,13 +222,17 @@ final class LDAttributesBuilder {
   /// The [LDContextAttributes] is immutable and will not be affected by
   /// any subsequent actions on the [LDAttributesBuilder].
   LDContextAttributes? _build() {
-    // TODO: Add anonymous key generation.
-    if (_key != null && _validKind(_kind) && _key != '') {
+    final key = _key ?? '';
+    if (key == '' && !_anonymous) {
+      // If the context is not anonymous, then the key cannot be empty.
+      return null;
+    }
+    if (_validKind(_kind)) {
       return LDContextAttributes._internal(
           // create immutable shallow copy
           Map.unmodifiable(_attributes),
           _kind,
-          _key!,
+          _key ?? '',
           _anonymous,
           _privateAttributes,
           _name);
@@ -347,6 +351,26 @@ final class LDContext {
 /// ```
 final class LDContextBuilder {
   final Map<String, LDAttributesBuilder> _buildersByKind = {};
+
+  LDContextBuilder();
+
+  /// Create a context builder from an existing context. If the context is
+  /// not valid, then no attributes will be transcribed.
+  LDContextBuilder.fromContext(LDContext context) {
+    for (var MapEntry(key: kind, value: attributes)
+        in context.attributesByKind.entries) {
+      final attributesBuilder = this.kind(kind, attributes.key);
+      attributesBuilder.anonymous(attributes.anonymous);
+      if (attributes.name != null) {
+        attributesBuilder.name(attributes.name!);
+      }
+      attributesBuilder._privateAttributes.addAll(attributes.privateAttributes);
+      for (var MapEntry(key: name, value: attributeValue)
+          in attributes.customAttributes.entries) {
+        attributesBuilder.set(name, attributeValue);
+      }
+    }
+  }
 
   /// Adds another kind to the context.  [kind] and optional [key] must be
   /// non-empty.  Calling this method again with the same kind returns the same

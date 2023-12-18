@@ -10,6 +10,7 @@ dependencies:
   http: ^1.1.2
   launchdarkly_dart_common: 0.0.1
   crypto: ^3.0.3
+  uuid: ^4.2.1
 
 dev_dependencies:
   test: ^1.24.3

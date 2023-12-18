@@ -49,7 +49,8 @@ export 'src/events/diagnostic_events.dart'
 export 'src/config/service_endpoints.dart' show ServiceEndpoints;
 export 'src/config/http_properties.dart' show HttpProperties;
 
-export 'src/collections.dart' show ListComparisons, MapComparisons;
+export 'src/collections.dart'
+    show ListComparisons, MapComparisons, IterableWhere, IterableAsync;
 
 export 'src/config/defaults/common_default_config.dart'
     show CommonDefaultConfig;
