@@ -13,17 +13,15 @@ sealed class DataSourceConfig {
   DataSourceConfig({required this.withReasons, required this.useReport});
 }
 
-final _defaultPaths = DefaultConfig.pollingPaths;
-
 final class PollingDataSourceConfig extends DataSourceConfig {
   /// The path to use for doing GET requests.
   String pollingGetPath(String credential, String context) {
-    return _defaultPaths.pollingGetPath(credential, context);
+    return DefaultConfig.pollingPaths.pollingGetPath(credential, context);
   }
 
   /// The path to use for doing REPORT requests.
   String pollingReportPath(String credential, String context) {
-    return _defaultPaths.pollingReportPath(credential, context);
+    return DefaultConfig.pollingPaths.pollingReportPath(credential, context);
   }
 
   /// The current polling interval, if less than min, then the min will be used.
@@ -36,6 +34,28 @@ final class PollingDataSourceConfig extends DataSourceConfig {
             pollingInterval,
             DefaultConfig.pollingConfig.minPollingInterval),
         super(
+            withReasons: withReasons ??
+                DefaultConfig.dataSourceConfig.defaultWithReasons,
+            useReport:
+                useReport ?? DefaultConfig.dataSourceConfig.defaultUseReport);
+}
+
+final class StreamingDataSourceConfig extends DataSourceConfig {
+  /// The path to use for doing GET requests.
+  String streamingGetPath(String credential, String context) {
+    return DefaultConfig.streamingPaths.streamingGetPath(credential, context);
+  }
+
+  /// The path to use for doing REPORT requests.
+  String streamingReportPath(String credential, String context) {
+    return DefaultConfig.streamingPaths
+        .streamingReportPath(credential, context);
+  }
+
+  // TODO: Streaming report path support.
+
+  StreamingDataSourceConfig({bool? withReasons, bool? useReport})
+      : super(
             withReasons: withReasons ??
                 DefaultConfig.dataSourceConfig.defaultWithReasons,
             useReport:

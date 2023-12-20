@@ -10,6 +10,16 @@ class DefaultPollingPaths {
   }
 }
 
+class DefaultStreamingPaths {
+  String streamingGetPath(String credential, String context) {
+    return '/eval/$credential/$context';
+  }
+
+  String streamingReportPath(String credential, String context) {
+    return '/eval/$credential';
+  }
+}
+
 class DefaultEventPaths {
   String getAnalyticEventsPath(String credential) {
     return '/events/bulk/$credential';

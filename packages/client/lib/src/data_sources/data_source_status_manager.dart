@@ -79,7 +79,12 @@ final class DataSourceStatusManager {
   }
 
   /// Report an http error response.
-  void setErrorResponse(num statusCode, String message, {bool shutdown = false}) {
+  ///
+  /// If [shutdown] is true, then the state will transition to
+  /// [DataSourceState.shutdown] otherwise it will be
+  /// [DataSourceState.interrupted].
+  void setErrorResponse(num statusCode, String message,
+      {bool shutdown = false}) {
     _errorInfo = DataSourceStatusErrorInfo(
         kind: ErrorKind.errorResponse,
         statusCode: statusCode,
@@ -95,10 +100,12 @@ final class DataSourceStatusManager {
   /// If [shutdown] is true, then the state will transition to
   /// [DataSourceState.shutdown] otherwise it will be
   /// [DataSourceState.interrupted].
-  void setErrorByKind(ErrorKind kind, String message) {
+  void setErrorByKind(ErrorKind kind, String message, {bool shutdown = false}) {
     _errorInfo = DataSourceStatusErrorInfo(
         kind: kind, statusCode: null, message: message, time: _stamper());
-    _updateState(DataSourceState.interrupted, isError: true);
+    _updateState(
+        shutdown ? DataSourceState.shutdown : DataSourceState.interrupted,
+        isError: true);
   }
 
   /// Shutdown the manager closing the changes stream.

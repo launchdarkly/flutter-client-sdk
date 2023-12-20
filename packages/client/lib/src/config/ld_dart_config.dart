@@ -13,6 +13,7 @@ final class LDDartConfig {
   final Persistence? persistence;
   final ServiceEndpoints endpoints;
   final PollingDataSourceConfig pollingConfig;
+  final StreamingDataSourceConfig streamingConfig;
   final HttpProperties httpProperties;
   final EventsConfig eventsConfig;
 
@@ -22,6 +23,7 @@ final class LDDartConfig {
       LDLogger? logger,
       ServiceEndpoints? endpoints,
       PollingDataSourceConfig? pollingConfig,
+      StreamingDataSourceConfig? streamingConfig,
       HttpProperties? httpProperties,
       EventsConfig? eventsConfig,
       this.persistence})
@@ -29,5 +31,6 @@ final class LDDartConfig {
         endpoints = endpoints ?? ServiceEndpoints(),
         pollingConfig = pollingConfig ?? PollingDataSourceConfig(),
         httpProperties = httpProperties ?? HttpProperties(),
-        eventsConfig = eventsConfig ?? EventsConfig();
+        eventsConfig = eventsConfig ?? EventsConfig(),
+        streamingConfig = streamingConfig ?? StreamingDataSourceConfig();
 }

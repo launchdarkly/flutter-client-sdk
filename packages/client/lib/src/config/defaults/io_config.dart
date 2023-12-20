@@ -10,6 +10,16 @@ class DefaultPollingPaths {
   }
 }
 
+class DefaultStreamingPaths {
+  String streamingGetPath(String credential, String context) {
+    return '/meval/$context';
+  }
+
+  String streamingReportPath(String credential, String context) {
+    return '/meval';
+  }
+}
+
 class DefaultEventPaths {
   String getAnalyticEventsPath(String credential) {
     return '/mobile';

@@ -29,6 +29,7 @@ export 'src/ld_dart_client.dart' show LDDartClient;
 
 // TODO: These may need adjusted after the config building process is sorted.
 export 'src/config/ld_dart_config.dart' show LDDartConfig;
-export 'src/config/data_source_config.dart' show PollingDataSourceConfig;
+export 'src/config/data_source_config.dart'
+    show PollingDataSourceConfig, StreamingDataSourceConfig;
 export 'src/config/events_config.dart' show EventsConfig;
 export 'src/config/credential/credential_source.dart' show CredentialSource;

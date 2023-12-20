@@ -7,7 +7,7 @@ import 'context_modifiers/context_modifier.dart';
 import 'data_sources/data_source_event_handler.dart';
 import 'data_sources/data_source_status.dart';
 import 'data_sources/data_source_status_manager.dart';
-import 'data_sources/polling_data_source.dart';
+import 'data_sources/streaming_data_source.dart';
 import 'flag_manager/flag_manager.dart';
 import 'flag_manager/flag_updater.dart';
 
@@ -26,7 +26,7 @@ final class LDDartClient {
   // During startup the _context will be invalid until the identify process
   // is complete.
   LDContext _context = LDContextBuilder().build();
-  PollingDataSource? _pollingDataSource;
+  StreamingDataSource? _streamingDataSource;
   bool _startRequested = false;
 
   Stream<DataSourceStatus> get dataSourceStatus {
@@ -114,12 +114,12 @@ final class LDDartClient {
   }
 
   Future<void> _identifyInternal() async {
-    _pollingDataSource?.stop();
+    _streamingDataSource?.stop();
     _eventProcessor.processIdentifyEvent(IdentifyEvent(context: _context));
     await _flagManager.loadCached(_context);
 
     // TODO: Implement a manager for data sources once we have streaming.
-    _pollingDataSource = PollingDataSource(
+    _streamingDataSource = StreamingDataSource(
         credential: _config.sdkCredential,
         context: _context,
         endpoints: _config.endpoints,
@@ -130,10 +130,10 @@ final class LDDartClient {
             flagManager: _flagManager,
             statusManager: _dataSourceStatusManager,
             logger: _logger),
-        dataSourceConfig: _config.pollingConfig,
+        dataSourceConfig: _config.streamingConfig,
         httpProperties: _config.httpProperties);
 
-    _pollingDataSource!.start();
+    _streamingDataSource!.start();
 
     // TODO: Figure out how to wait.
     // When persistence data is loaded we would complete early.

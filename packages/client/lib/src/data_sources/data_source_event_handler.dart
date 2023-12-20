@@ -10,19 +10,35 @@ import 'data_source_status_manager.dart';
 enum MessageStatus { messageHandled, invalidMessage, unhandledVerb }
 
 /// Represents patch JSON from the LaunchDarkly service.
-final class PatchData {
+final class _PatchData {
   final String key;
   final LDEvaluationResult flag;
 
-  PatchData(this.key, this.flag);
+  _PatchData(this.key, this.flag);
 }
 
 /// Represents delete JSON from the LaunchDarkly service.
-final class DeleteData {
+final class _DeleteData {
   final String key;
   num version;
 
-  DeleteData(this.key, this.version);
+  _DeleteData(this.key, this.version);
+}
+
+final class _PatchDataSerialization {
+  static _PatchData fromJson(dynamic json) {
+    final key = json['key'] as String;
+    final flag = LDEvaluationResultSerialization.fromJson(json);
+    return _PatchData(key, flag);
+  }
+}
+
+final class _DeleteDataSerialization {
+  static _DeleteData fromJson(dynamic json) {
+    final key = json['key'] as String;
+    final version = json['version'] as num;
+    return _DeleteData(key, version);
+  }
 }
 
 /// The put data doesn't have a representation here because it is a map of
@@ -50,13 +66,27 @@ final class DataSourceEventHandler {
         }
       case 'patch':
         {
-          // TODO: Implement. Implement patch deserialization as well.
-          return MessageStatus.unhandledVerb;
+          try {
+            final parsed = jsonDecode(data);
+            return _processPatch(parsed);
+          } catch (err) {
+            _logger.error('patch message contained invalid json: $err');
+            _statusManager.setErrorByKind(
+                ErrorKind.invalidData, 'Could not parse PATCH message');
+            return MessageStatus.invalidMessage;
+          }
         }
       case 'delete':
         {
-          // TODO: Implement. Implement delete deserialization as well.
-          return MessageStatus.unhandledVerb;
+          try {
+            final parsed = jsonDecode(data);
+            return _processDelete(parsed);
+          } catch (err) {
+            _logger.error('delete message contained invalid json: $err');
+            _statusManager.setErrorByKind(
+                ErrorKind.invalidData, 'Could not parse DELETE message');
+            return MessageStatus.invalidMessage;
+          }
         }
       default:
         {
@@ -65,7 +95,7 @@ final class DataSourceEventHandler {
     }
   }
 
-  Future<MessageStatus> _processPut(parsed) async {
+  Future<MessageStatus> _processPut(dynamic parsed) async {
     try {
       final putData = LDEvaluationResultsSerialization.fromJson(parsed).map(
           (key, value) => MapEntry(
@@ -77,6 +107,37 @@ final class DataSourceEventHandler {
       _logger.error('put message contained an invalid payload: $err');
       _statusManager.setErrorByKind(
           ErrorKind.invalidData, 'PUT message contained invalid data');
+      return MessageStatus.invalidMessage;
+    }
+  }
+
+  Future<MessageStatus> _processPatch(dynamic parsed) async {
+    try {
+      final patchData = _PatchDataSerialization.fromJson(parsed);
+      await _flagManager.upsert(
+          _context,
+          patchData.key,
+          ItemDescriptor(
+              version: patchData.flag.version, flag: patchData.flag));
+      return MessageStatus.messageHandled;
+    } catch (err) {
+      _logger.error('patch message contained an invalid payload: $err');
+      _statusManager.setErrorByKind(
+          ErrorKind.invalidData, 'PATCH message contained invalid data');
+      return MessageStatus.invalidMessage;
+    }
+  }
+
+  Future<MessageStatus> _processDelete(dynamic parsed) async {
+    try {
+      final deleteData = _DeleteDataSerialization.fromJson(parsed);
+      await _flagManager.upsert(_context, deleteData.key,
+          ItemDescriptor(version: deleteData.version.toInt()));
+      return MessageStatus.messageHandled;
+    } catch (err) {
+      _logger.error('delete message contained an invalid payload: $err');
+      _statusManager.setErrorByKind(
+          ErrorKind.invalidData, 'DELETE message contained invalid data');
       return MessageStatus.invalidMessage;
     }
   }

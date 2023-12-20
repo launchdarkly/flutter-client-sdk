@@ -10,6 +10,16 @@ class DefaultPollingPaths {
   }
 }
 
+class DefaultStreamingPaths {
+  String streamingGetPath(String credential, String context) {
+    throw Exception('Stub implementation');
+  }
+
+  String streamingReportPath(String credential, String context) {
+    throw Exception('Stub implementation');
+  }
+}
+
 class DefaultEventPaths {
   String getAnalyticEventsPath(String credential) {
     throw Exception('Stub implementation');

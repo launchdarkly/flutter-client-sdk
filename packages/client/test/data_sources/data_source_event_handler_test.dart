@@ -25,7 +25,8 @@ void main() {
       eventHandler = DataSourceEventHandler(
           context: context,
           flagManager: flagManager!,
-          statusManager: statusManager!, logger: logger);
+          statusManager: statusManager!,
+          logger: logger);
     });
 
     test('it handles a put message without reasons', () {
@@ -87,7 +88,7 @@ void main() {
       expect(killSwitch.detail.reason, LDEvaluationReason.fallthrough());
     });
 
-    test('it can handle bad json', () {
+    test('it can handle bad json on PUT', () {
       expectLater(
           statusManager!.changes,
           emits(DataSourceStatus(
@@ -103,7 +104,39 @@ void main() {
           'put', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
     });
 
-    test('it can handle an invalid, but well formed, payload', () {
+    test('it can handle bad json on PATCH', () {
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              lastError: DataSourceStatusErrorInfo(
+                  kind: ErrorKind.invalidData,
+                  message: 'Could not parse PATCH message',
+                  statusCode: null,
+                  time: DateTime(2)),
+              state: DataSourceState.initializing,
+              stateSince: DateTime(1))));
+
+      eventHandler!.handleMessage(
+          'patch', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
+    });
+
+    test('it can handle bad json on DELETE', () {
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              lastError: DataSourceStatusErrorInfo(
+                  kind: ErrorKind.invalidData,
+                  message: 'Could not parse DELETE message',
+                  statusCode: null,
+                  time: DateTime(2)),
+              state: DataSourceState.initializing,
+              stateSince: DateTime(1))));
+
+      eventHandler!.handleMessage(
+          'delete', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
+    });
+
+    test('it can handle an invalid, but well formed on PUT, payload', () {
       expectLater(
           statusManager!.changes,
           emits(DataSourceStatus(
@@ -115,8 +148,91 @@ void main() {
               state: DataSourceState.initializing,
               stateSince: DateTime(1))));
 
-      eventHandler!.handleMessage(
-          'put', '{"HasBob":17}');
+      eventHandler!.handleMessage('put', '{"HasBob":17}');
+    });
+
+    test('it can handle an invalid, but well formed on PATCH, payload', () {
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              lastError: DataSourceStatusErrorInfo(
+                  kind: ErrorKind.invalidData,
+                  message: 'PATCH message contained invalid data',
+                  statusCode: null,
+                  time: DateTime(2)),
+              state: DataSourceState.initializing,
+              stateSince: DateTime(1))));
+
+      eventHandler!.handleMessage('patch', '{"HasBob":17}');
+    });
+
+    test('it can handle an invalid, but well formed on DELETE, payload', () {
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              lastError: DataSourceStatusErrorInfo(
+                  kind: ErrorKind.invalidData,
+                  message: 'DELETE message contained invalid data',
+                  statusCode: null,
+                  time: DateTime(2)),
+              state: DataSourceState.initializing,
+              stateSince: DateTime(1))));
+
+      eventHandler!.handleMessage('delete', '{"HasBob":17}');
+    });
+
+
+
+    group('given a handler which has received a put', () {
+      setUp(() async {
+        await eventHandler!.handleMessage(
+            'put',
+            '{"my-boolean-flag":{"version":11,"flagVersion":5,"value":false,"variation":1,'
+                '"trackEvents":false},'
+                '"killswitch":{"version":10,"flagVersion":4,"value":true,'
+                '"variation":0,"trackEvents":false}'
+                '}');
+      });
+
+      test('it handles a PATCH message without reasons', () async {
+        expect(
+            await eventHandler!.handleMessage(
+                'patch',
+                '{"key": "my-boolean-flag", "version": 681, "flagVersion": 53,'
+                    ' "value": true, "variation": 1, "trackEvents": false}'),
+            MessageStatus.messageHandled);
+
+        final updated = flagManager!.get('my-boolean-flag')!;
+        expect(updated.version, 681);
+        expect(updated.flag!.detail.value.booleanValue(), true);
+      });
+
+      test('it handles a PATCH message with reasons', () async {
+        expect(
+            await eventHandler!.handleMessage(
+                'patch',
+                '{"key":"my-boolean-flag","version":681,"flagVersion":56,'
+                    '"value":true,"variation":0,"trackEvents":false,'
+                    '"reason":{"kind":"FALLTHROUGH"}}'),
+            MessageStatus.messageHandled);
+
+        final updated = flagManager!.get('my-boolean-flag')!;
+        expect(updated.version, 681);
+        expect(updated.flag!.detail.value.booleanValue(), true);
+        expect(updated.flag!.detail.reason, LDEvaluationReason.fallthrough());
+      });
+
+      test('it handles a DELETE message', () async {
+        expect(
+            await eventHandler!.handleMessage(
+                'delete',
+                '{"key":"my-boolean-flag","version":681}'),
+            MessageStatus.messageHandled);
+
+        final updated = flagManager!.get('my-boolean-flag')!;
+        expect(updated.version, 681);
+        expect(updated.flag, isNull);
+      });
     });
   });
 }

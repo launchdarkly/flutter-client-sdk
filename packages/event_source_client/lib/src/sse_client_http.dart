@@ -2,9 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
-import 'package:launchdarkly_event_source_client/sse_client.dart';
 
-import 'message_event.dart';
+import '../sse_client.dart';
 import 'state_idle.dart';
 import 'state_value_object.dart';
 
@@ -75,7 +74,7 @@ class HttpSseClient implements SSEClient {
   }
 }
 
-/// No op sink.  Exists to accomodate unit testing.
+/// No op sink.  Exists to accommodate unit testing.
 class _NoOpSink implements Sink<dynamic> {
   @override
   void add(data) {}

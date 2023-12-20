@@ -42,6 +42,9 @@ final class PollingDataSource {
 
   String? _lastEtag;
 
+  /// Used to track if there has been an unrecoverable error.
+  bool _permanentShutdown = false;
+
   /// The [client] parameter is primarily intended for testing, but it also
   /// could be used for customized clients which support functionality
   /// our default client support does not. For instance domain sockets or
@@ -142,6 +145,7 @@ final class PollingDataSource {
         _statusManager.setErrorResponse(res.statusCode,
             'Received unexpected status code: ${res.statusCode}',
             shutdown: true);
+        _permanentShutdown = true;
         stop();
       }
     }
@@ -175,6 +179,10 @@ final class PollingDataSource {
   }
 
   void start() {
+    if(_permanentShutdown) {
+      return;
+    }
+    _stopped = false;
     _doPoll();
   }
 

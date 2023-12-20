@@ -30,7 +30,7 @@ class TestApiImpl extends TestApi {
     final streamUri = Uri.parse(body.streamUrl!);
 
     // TODO: it would be nice if we didn't have to specify all the event types, but because the web
-    // event source must specify them, we are doomed to this pergatory.
+    // event source must specify them, we are doomed to this purgatory.
     final subscription =
         SSEClient(streamUri, {'put', 'patch', 'delete', 'message', 'greeting', ' greeting'}).stream.listen((event) {
       callbackClient.callbackNumberPost(

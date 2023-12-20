@@ -26,6 +26,7 @@ final class DefaultDataSourceConfig {
 
 final class DefaultConfig {
   static final pollingPaths = DefaultPollingPaths();
+  static final streamingPaths = DefaultStreamingPaths();
   static final eventPaths = DefaultEventPaths();
   static final DefaultEndpoints endpoints = DefaultEndpoints();
   static final eventConfig = DefaultEventConfiguration();
