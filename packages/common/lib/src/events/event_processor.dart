@@ -9,6 +9,7 @@ import '../serialization/event_serialization.dart';
 import 'diagnostics_manager.dart';
 import 'event_summarizer.dart';
 import 'dart:async';
+import 'package:http_parser/http_parser.dart';
 
 import 'package:uuid/uuid.dart';
 
@@ -87,7 +88,7 @@ final class EventProcessor {
   }
 
   void start() {
-    if(_shutdown) {
+    if (_shutdown) {
       return;
     }
     final initEvent = _diagnosticsManager?.getInitEvent();
@@ -176,7 +177,7 @@ final class EventProcessor {
 
       if (response.headers.containsKey('date')) {
         try {
-          _lastKnownServerTime = DateTime.parse(response.headers['date']!);
+          _lastKnownServerTime = parseHttpDate(response.headers['date']!);
         } catch (err) {
           _logger.debug('could not parse server time from event response');
         }
@@ -216,13 +217,12 @@ final class EventProcessor {
     if (_shutdown) {
       return;
     }
-    if(_eventBuffer.length == _eventCapacity - 1) {
+    if (_eventBuffer.length == _eventCapacity - 1) {
       _logger.warn(
           'Event queue at capacity. Increase capacity to avoid dropping events.');
     }
     if (_eventBuffer.length < _eventCapacity) {
       _eventBuffer.add(json);
-
     } else {
       _droppedEvents += 1;
     }

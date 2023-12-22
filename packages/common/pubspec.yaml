@@ -8,6 +8,8 @@ environment:
 
 dependencies:
   http: ^1.1.0
+  # http uses http_parser, so the versions should be kept compatible.
+  http_parser: ^4.0.0
   uuid: ^4.2.1
 
 dev_dependencies:

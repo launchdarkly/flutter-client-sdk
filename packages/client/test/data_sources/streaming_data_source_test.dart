@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:launchdarkly_dart_client/ld_client.dart';
+import 'package:launchdarkly_dart_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_status_manager.dart';
@@ -22,22 +23,22 @@ import 'package:test/test.dart';
   // We are not testing the data source status manager here, so we just want a
   // fixed time to make events easy to get.
   final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+
   final logger = LDLogger();
   final httpProperties = inProperties ?? HttpProperties();
   const sdkKey = 'dummy-key';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
-  final polling = StreamingDataSource(
+  final eventHandler = DataSourceEventHandler(
+      logger: logger,
+      context: context,
+      flagManager: flagManager,
+      statusManager: statusManager);
+  final streaming = StreamingDataSource(
       credential: sdkKey,
       context: context,
       endpoints: ServiceEndpoints(),
       logger: logger,
-      statusManager: statusManager,
-      dataSourceEventHandler: DataSourceEventHandler(
-          logger: logger,
-          context: context,
-          flagManager: flagManager,
-          statusManager: statusManager),
       dataSourceConfig: StreamingDataSourceConfig(
           withReasons: withReasons, useReport: useReport),
       httpProperties: httpProperties,
@@ -48,7 +49,22 @@ import 'package:test/test.dart';
         return mockStream.listen(handler);
       });
 
-  return (polling, flagManager, statusManager);
+  streaming.events.asyncMap((event) async {
+    switch (event) {
+      case DataEvent():
+        return eventHandler.handleMessage(event.type, event.data);
+      case StatusEvent():
+        if (event.statusCode != null) {
+          statusManager.setErrorResponse(event.statusCode!, event.message,
+              shutdown: event.shutdown);
+        } else {
+          statusManager.setErrorByKind(event.kind, event.message,
+              shutdown: event.shutdown);
+        }
+    }
+  }).listen((_) {});
+
+  return (streaming, flagManager, statusManager);
 }
 
 void main() {
@@ -120,56 +136,6 @@ void main() {
     dataSource.start();
     dataSource.stop();
     expect(cancelled, true);
-  });
-
-  test('it restarts the subscription on bad data', () async {
-    var cancelCount = 0;
-    var listenCount = 0;
-    final controller = StreamController<MessageEvent>();
-    final (dataSource, _, statusManager) = makeDataSourceForTest(
-        controller.stream.asBroadcastStream(
-            onCancel: (_) {
-              cancelCount++;
-            },
-            onListen: (_) => listenCount++),
-        withReasons: true);
-
-    dataSource.start();
-    controller.sink.add(MessageEvent('put', '{}', null));
-
-    await statusManager.changes.first;
-
-    expect(cancelCount, isZero);
-    expect(listenCount, 1);
-
-    controller.sink.add(MessageEvent('put', '#*#&', null));
-
-    expect(
-        await statusManager.changes.first,
-        DataSourceStatus(
-            state: DataSourceState.interrupted,
-            stateSince: DateTime(1),
-            lastError: DataSourceStatusErrorInfo(
-                kind: ErrorKind.invalidData,
-                statusCode: null,
-                message: 'Could not parse PUT message',
-                time: DateTime(1))));
-
-    controller.sink.add(MessageEvent('put', '{}', null));
-
-    expect(
-        await statusManager.changes.first,
-        DataSourceStatus(
-            state: DataSourceState.valid,
-            stateSince: DateTime(1),
-            lastError: DataSourceStatusErrorInfo(
-                kind: ErrorKind.invalidData,
-                statusCode: null,
-                message: 'Could not parse PUT message',
-                time: DateTime(1))));
-
-    expect(cancelCount, 1);
-    expect(listenCount, 2);
   });
 
   test('it forwards messages to the data source event handler', () async {

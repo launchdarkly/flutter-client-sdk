@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:launchdarkly_dart_common/ld_common.dart';
 
 import './config/ld_dart_config.dart';
@@ -5,8 +7,10 @@ import 'config/defaults/default_config.dart';
 import 'context_modifiers/anonymous_context_modifier.dart';
 import 'context_modifiers/context_modifier.dart';
 import 'data_sources/data_source_event_handler.dart';
+import 'data_sources/data_source_manager.dart';
 import 'data_sources/data_source_status.dart';
 import 'data_sources/data_source_status_manager.dart';
+import 'data_sources/polling_data_source.dart';
 import 'data_sources/streaming_data_source.dart';
 import 'flag_manager/flag_manager.dart';
 import 'flag_manager/flag_updater.dart';
@@ -15,9 +19,11 @@ final class LDDartClient {
   final LDLogger _logger;
   final FlagManager _flagManager;
   final DataSourceStatusManager _dataSourceStatusManager;
+  late final DataSourceManager _dataSourceManager;
   late final EventProcessor _eventProcessor;
   late final DiagnosticsManager? _diagnosticsManager;
   final LDDartConfig _config;
+
   // Modifications will happen in the order they are specified in this list.
   // If there are cross-dependent modifiers, then this must be considered.
   late final List<ContextModifier> _modifiers;
@@ -27,7 +33,8 @@ final class LDDartClient {
   // is complete.
   LDContext _context = LDContextBuilder().build();
   StreamingDataSource? _streamingDataSource;
-  bool _startRequested = false;
+
+  Future<void>? _startFuture;
 
   Stream<DataSourceStatus> get dataSourceStatus {
     return _dataSourceStatusManager.changes;
@@ -68,6 +75,37 @@ final class LDDartClient {
         endpoints: config.endpoints,
         diagnosticRecordingInterval:
             config.eventsConfig.diagnosticRecordingInterval);
+
+    final dataSourceEventHandler = DataSourceEventHandler(
+        context: _context,
+        flagManager: _flagManager,
+        statusManager: _dataSourceStatusManager,
+        logger: _logger);
+
+    _dataSourceManager = DataSourceManager(
+        statusManager: _dataSourceStatusManager,
+        dataSourceEventHandler: dataSourceEventHandler,
+        logger: _logger,
+        dataSourceFactories: {
+          ConnectionMode.foregroundStreaming: (LDContext context) {
+            return StreamingDataSource(
+                credential: _config.sdkCredential,
+                context: context,
+                endpoints: _config.endpoints,
+                logger: _logger,
+                dataSourceConfig: _config.streamingConfig,
+                httpProperties: _config.httpProperties);
+          },
+          ConnectionMode.foregroundPolling: (LDContext context) {
+            return PollingDataSource(
+                credential: _config.sdkCredential,
+                context: context,
+                endpoints: _config.endpoints,
+                logger: _logger,
+                dataSourceConfig: _config.pollingConfig,
+                httpProperties: _config.httpProperties);
+          },
+        });
   }
 
   Future<void> _setAndDecorateContext(LDContext context) async {
@@ -80,18 +118,27 @@ final class LDDartClient {
   /// this is called before any other methods. Variation calls before the SDK
   /// has been started, or after starting but before initialization is complete,
   /// will return default values.
-  Future<void> start() async {
-    if (_startRequested) {
-      return;
+  Future<void> start() {
+    if (_startFuture != null) {
+      return _startFuture!;
     }
-    _startRequested = true;
+    final completer = Completer<void>();
+    _startFuture = completer.future;
+
+    _startInternal().then((value) => completer.complete());
+
+    return _startFuture!;
+  }
+
+  Future<void> _startInternal() async {
+    // TODO: Environment collection.
 
     // TODO: Do we start the process when we create the client, and provide
     // a way to know when it completes? Or do we not even start it as we
     // are doing here.
     _eventProcessor.start();
 
-    return await identify(_initialUndecoratedContext);
+    await identify(_initialUndecoratedContext);
   }
 
   /// Triggers immediate sending of pending events to LaunchDarkly.
@@ -118,22 +165,7 @@ final class LDDartClient {
     _eventProcessor.processIdentifyEvent(IdentifyEvent(context: _context));
     await _flagManager.loadCached(_context);
 
-    // TODO: Implement a manager for data sources once we have streaming.
-    _streamingDataSource = StreamingDataSource(
-        credential: _config.sdkCredential,
-        context: _context,
-        endpoints: _config.endpoints,
-        logger: _logger,
-        statusManager: _dataSourceStatusManager,
-        dataSourceEventHandler: DataSourceEventHandler(
-            context: _context,
-            flagManager: _flagManager,
-            statusManager: _dataSourceStatusManager,
-            logger: _logger),
-        dataSourceConfig: _config.streamingConfig,
-        httpProperties: _config.httpProperties);
-
-    _streamingDataSource!.start();
+    _dataSourceManager.identify(_context);
 
     // TODO: Figure out how to wait.
     // When persistence data is loaded we would complete early.
@@ -304,5 +336,10 @@ final class LDDartClient {
     }
 
     return res;
+  }
+
+  /// Set the connection mode the SDK should use.
+  void setMode(ConnectionMode mode) {
+    _dataSourceManager.setMode(mode);
   }
 }

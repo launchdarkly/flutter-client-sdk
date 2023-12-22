@@ -13,6 +13,7 @@ export 'package:launchdarkly_dart_common/ld_common.dart'
         LDLogger,
         LDLogAdapter,
         LDLogRecord,
+        LDLogLevel,
         LDBasicLogPrinter,
         LDEvaluationDetail,
         LDEvaluationReason,
@@ -33,3 +34,5 @@ export 'src/config/data_source_config.dart'
     show PollingDataSourceConfig, StreamingDataSourceConfig;
 export 'src/config/events_config.dart' show EventsConfig;
 export 'src/config/credential/credential_source.dart' show CredentialSource;
+// TODO: May be temporary.
+export 'src/data_sources/data_source_manager.dart' show ConnectionMode;

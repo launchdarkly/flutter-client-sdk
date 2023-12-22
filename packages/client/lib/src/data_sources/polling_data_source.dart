@@ -5,20 +5,19 @@ import 'package:launchdarkly_dart_common/ld_common.dart';
 import 'dart:math';
 
 import '../config/data_source_config.dart';
-import 'data_source_event_handler.dart';
+import 'data_source.dart';
 import 'data_source_status.dart';
-import 'data_source_status_manager.dart';
 
 HttpClient _defaultClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
 }
 
-final class PollingDataSource {
+// Currently the polling data source does not accept an external etag. This is
+// because the etag may not correspond to the current payload the SDK has,
+// because streaming could have been used in the interim.
+
+final class PollingDataSource implements DataSource {
   final LDLogger _logger;
-
-  final DataSourceStatusManager _statusManager;
-
-  final DataSourceEventHandler _dataSourceEventHandler;
 
   final ServiceEndpoints _endpoints;
 
@@ -40,6 +39,11 @@ final class PollingDataSource {
 
   late final RequestMethod _method;
 
+  final StreamController<DataSourceEvent> _eventController = StreamController();
+
+  @override
+  Stream<DataSourceEvent> get events => _eventController.stream;
+
   String? _lastEtag;
 
   /// Used to track if there has been an unrecoverable error.
@@ -56,17 +60,14 @@ final class PollingDataSource {
       required LDContext context,
       required ServiceEndpoints endpoints,
       required LDLogger logger,
-      required DataSourceStatusManager statusManager,
-      required DataSourceEventHandler dataSourceEventHandler,
       required PollingDataSourceConfig dataSourceConfig,
       required HttpProperties httpProperties,
       Duration? testingInterval,
+      String? etag,
       HttpClient Function(HttpProperties) clientFactory =
           _defaultClientFactory})
       : _endpoints = endpoints,
         _logger = logger.subLogger('PollingDataSource'),
-        _statusManager = statusManager,
-        _dataSourceEventHandler = dataSourceEventHandler,
         _dataSourceConfig = dataSourceConfig {
     _pollingInterval = testingInterval ?? dataSourceConfig.pollingInterval;
 
@@ -107,13 +108,16 @@ final class PollingDataSource {
 
   Future<void> _makeRequest() async {
     try {
+      _logger.debug(
+          'Making polling request, method: $_method, uri: $_uri, etag: $_lastEtag');
       final res = await _client.request(_method, _uri,
           additionalHeaders: _lastEtag != null ? {'etag': _lastEtag!} : null,
           body: _dataSourceConfig.useReport ? _contextString : null);
       await _handleResponse(res);
     } catch (err) {
       _logger.error('encountered error with polling request: $err, will retry');
-      _statusManager.setErrorByKind(ErrorKind.networkError, err.toString());
+      _eventController.sink
+          .add(StatusEvent(ErrorKind.networkError, null, err.toString()));
     }
   }
 
@@ -132,19 +136,23 @@ final class PollingDataSource {
       }
       _lastEtag = etag;
 
-      await _dataSourceEventHandler.handleMessage('put', res.body);
+      _eventController.sink.add(DataEvent('put', res.body));
     } else {
       if (isHttpGloballyRecoverable(res.statusCode)) {
-        _statusManager.setErrorResponse(res.statusCode,
-            'Received unexpected status code: ${res.statusCode}');
+        _eventController.sink.add(StatusEvent(
+            ErrorKind.networkError,
+            res.statusCode,
+            'Received unexpected status code: ${res.statusCode}'));
         _logger.error(
             'received unexpected status code when polling: ${res.statusCode}, will retry');
       } else {
         _logger.error(
             'received unexpected status code when polling: ${res.statusCode}, stopping polling');
-        _statusManager.setErrorResponse(res.statusCode,
+        _eventController.sink.add(StatusEvent(
+            ErrorKind.networkError,
+            res.statusCode,
             'Received unexpected status code: ${res.statusCode}',
-            shutdown: true);
+            shutdown: true));
         _permanentShutdown = true;
         stop();
       }
@@ -178,14 +186,16 @@ final class PollingDataSource {
     _pollTimer = Timer(delay, _doPoll);
   }
 
+  @override
   void start() {
-    if(_permanentShutdown) {
+    if (_permanentShutdown) {
       return;
     }
     _stopped = false;
     _doPoll();
   }
 
+  @override
   void stop() {
     _stopped = true;
     _pollTimer?.cancel();

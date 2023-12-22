@@ -56,8 +56,8 @@ final class FlagUpdater {
   void init(LDContext context, Map<String, ItemDescriptor> newFlags) {
     _activeContextKey = context.canonicalKey;
     final oldFlags = _flagStore.getAll();
-    _handleChanges(oldFlags, newFlags);
     _flagStore.init(newFlags);
+    _handleChanges(oldFlags, newFlags);
   }
 
   void initCached(LDContext context, Map<String, ItemDescriptor> newFlags) {
@@ -134,7 +134,9 @@ final class FlagUpdater {
         }
       }
 
-      _sendNotifications(changedKeys);
+      if (changedKeys.isNotEmpty) {
+        _sendNotifications(changedKeys);
+      }
     }
   }
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/testing.dart';
 import 'package:launchdarkly_dart_client/ld_client.dart';
+import 'package:launchdarkly_dart_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_status_manager.dart';
@@ -15,10 +16,10 @@ import 'package:test/test.dart';
 (PollingDataSource, FlagManager, DataSourceStatusManager) makeDataSourceForTest(
     MockClient innerClient,
     {LDContext? inContext,
-    HttpProperties? inProperties,
-    bool useReport = false,
-    bool withReasons = false,
-    Duration? testingInterval}) {
+      HttpProperties? inProperties,
+      bool useReport = false,
+      bool withReasons = false,
+      Duration? testingInterval}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
   // We are not testing the data source status manager here, so we just want a
   // fixed time to make events easy to get.
@@ -27,18 +28,19 @@ import 'package:test/test.dart';
   final httpProperties = inProperties ?? HttpProperties();
   const sdkKey = 'dummy-key';
   final flagManager =
-      FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
+  FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
+
+  final eventHandler = DataSourceEventHandler(
+      logger: logger,
+      context: context,
+      flagManager: flagManager,
+      statusManager: statusManager);
+
   final polling = PollingDataSource(
       credential: sdkKey,
       context: context,
       endpoints: ServiceEndpoints(),
       logger: logger,
-      statusManager: statusManager,
-      dataSourceEventHandler: DataSourceEventHandler(
-          logger: logger,
-          context: context,
-          flagManager: flagManager,
-          statusManager: statusManager),
       dataSourceConfig: PollingDataSourceConfig(
           pollingInterval: const Duration(seconds: 30),
           withReasons: withReasons,
@@ -47,6 +49,18 @@ import 'package:test/test.dart';
       clientFactory: (properties) =>
           ld_common.HttpClient(client: innerClient, httpProperties: properties),
       testingInterval: testingInterval);
+
+  polling.events.asyncMap((event) async {
+    switch (event) {
+      case DataEvent():
+        return eventHandler.handleMessage(event.type, event.data);
+      case StatusEvent():
+        if (event.statusCode != null) {
+          statusManager.setErrorResponse(event.statusCode!, event.message, shutdown: event.shutdown);
+        } else {
+          statusManager.setErrorByKind(event.kind, event.message, shutdown: event.shutdown);
+        }
+    }}).listen((_){});
 
   return (polling, flagManager, statusManager);
 }
@@ -108,7 +122,7 @@ void main() {
     });
 
     final (polling, _, statusManager) =
-        makeDataSourceForTest(innerClient, useReport: true);
+    makeDataSourceForTest(innerClient, useReport: true);
 
     statusManager.changes.listen((event) {
       expect(methodCalled, isTrue);
@@ -127,7 +141,7 @@ void main() {
     final innerClient = MockClient((request) async {
       methodCalled = true;
       final actualContextAsValue =
-          ld_common.LDValueSerialization.fromJson(jsonDecode(request.body));
+      ld_common.LDValueSerialization.fromJson(jsonDecode(request.body));
       final expectedContextAsValue = ld_common.LDValueSerialization.fromJson(
           jsonDecode(jsonEncode(ld_common.LDContextSerialization.toJson(context,
               isEvent: false))));
@@ -136,7 +150,7 @@ void main() {
     });
 
     final (polling, _, statusManager) =
-        makeDataSourceForTest(innerClient, useReport: true, inContext: context);
+    makeDataSourceForTest(innerClient, useReport: true, inContext: context);
 
     statusManager.changes.listen((event) {
       expect(methodCalled, isTrue);
@@ -211,7 +225,7 @@ void main() {
     });
 
     final (polling, _, statusManager) =
-        makeDataSourceForTest(innerClient, useReport: true);
+    makeDataSourceForTest(innerClient, useReport: true);
 
     statusManager.changes.listen((event) {
       expect(methodCalled, isTrue);
@@ -314,31 +328,31 @@ void main() {
   });
 
   test('it reports recoverable errors while initializing - invalid put data',
-      () {
-    var methodCalled = false;
-    final innerClient = MockClient((request) async {
-      methodCalled = true;
-      return http.Response('{"boat": true}', 200);
-    });
+          () {
+        var methodCalled = false;
+        final innerClient = MockClient((request) async {
+          methodCalled = true;
+          return http.Response('{"boat": true}', 200);
+        });
 
-    final (polling, _, statusManager) = makeDataSourceForTest(innerClient);
+        final (polling, _, statusManager) = makeDataSourceForTest(innerClient);
 
-    statusManager.changes.listen((event) {
-      expect(methodCalled, isTrue);
-    });
-    expectLater(
-        statusManager.changes,
-        emits(DataSourceStatus(
-            state: DataSourceState.initializing,
-            stateSince: DateTime(1),
-            lastError: DataSourceStatusErrorInfo(
-                kind: ErrorKind.invalidData,
-                message: 'PUT message contained invalid data',
-                time: DateTime(1),
-                statusCode: null))));
+        statusManager.changes.listen((event) {
+          expect(methodCalled, isTrue);
+        });
+        expectLater(
+            statusManager.changes,
+            emits(DataSourceStatus(
+                state: DataSourceState.initializing,
+                stateSince: DateTime(1),
+                lastError: DataSourceStatusErrorInfo(
+                    kind: ErrorKind.invalidData,
+                    message: 'PUT message contained invalid data',
+                    time: DateTime(1),
+                    statusCode: null))));
 
-    polling.start();
-  });
+        polling.start();
+      });
 
   test('it transitions to interrupted for recoverable errors after valid', () {
     var statusCode = 200;

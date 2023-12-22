@@ -5,9 +5,8 @@ import 'package:launchdarkly_dart_common/ld_common.dart';
 import 'package:launchdarkly_event_source_client/sse_client.dart';
 
 import '../config/data_source_config.dart';
-import 'data_source_event_handler.dart';
+import 'data_source.dart';
 import 'data_source_status.dart';
-import 'data_source_status_manager.dart';
 
 typedef MessageHandler = void Function(MessageEvent);
 typedef ErrorHandler = void Function(dynamic);
@@ -29,12 +28,8 @@ StreamSubscription<MessageEvent> _defaultSubscriptionFactory(
   return stream.listen(handler);
 }
 
-final class StreamingDataSource {
+final class StreamingDataSource implements DataSource {
   final LDLogger _logger;
-
-  final DataSourceStatusManager _statusManager;
-
-  final DataSourceEventHandler _dataSourceEventHandler;
 
   final ServiceEndpoints _endpoints;
 
@@ -51,6 +46,11 @@ final class StreamingDataSource {
 
   StreamSubscription<MessageEvent>? _subscription;
 
+  final StreamController<DataSourceEvent> _dataController = StreamController();
+
+  @override
+  Stream<DataSourceEvent> get events => _dataController.stream;
+
   /// Used to track if there has been an unrecoverable error.
   bool _permanentShutdown = false;
 
@@ -63,15 +63,11 @@ final class StreamingDataSource {
       required LDContext context,
       required ServiceEndpoints endpoints,
       required LDLogger logger,
-      required DataSourceStatusManager statusManager,
-      required DataSourceEventHandler dataSourceEventHandler,
       required StreamingDataSourceConfig dataSourceConfig,
       required HttpProperties httpProperties,
       MessageSubscriptionFactory subFactory = _defaultSubscriptionFactory})
       : _endpoints = endpoints,
         _logger = logger.subLogger('StreamingDataSource'),
-        _statusManager = statusManager,
-        _dataSourceEventHandler = dataSourceEventHandler,
         _dataSourceConfig = dataSourceConfig,
         _subFactory = subFactory {
     if (_dataSourceConfig.useReport) {
@@ -93,20 +89,19 @@ final class StreamingDataSource {
     _uri = Uri.parse(completeUrl);
   }
 
+  @override
   void start() {
     if (_subscription != null || _permanentShutdown) {
       return;
     }
     _stopped = false;
+    _logger.debug('Establishing new streaming connection, uri: $_uri');
     _subscription = _subFactory(_uri, _httpProperties, (event) async {
       if (_stopped) {
         return;
       }
-      if (await _dataSourceEventHandler.handleMessage(event.type, event.data) ==
-          MessageStatus.invalidMessage) {
-        _logger.warn('Restarting the event source because of invalid data');
-        _restart();
-      }
+      _dataController.sink.add(DataEvent(event.type, event.data));
+      // TODO: NEED TO RE-THINK restart.
     }, (err) {
       if (_permanentShutdown) {
         return;
@@ -115,19 +110,12 @@ final class StreamingDataSource {
       _logger
           .error('Encountered an unrecoverable error: "$err", Shutting down.');
       stop();
-      _statusManager.setErrorByKind(
-          ErrorKind.unknown, 'Encountered unrecoverable error streaming');
+      _dataController.sink.add(StatusEvent(ErrorKind.unknown, null,
+          'Encountered unrecoverable error streaming'));
     });
   }
 
-  void _restart() {
-    if (_stopped || _permanentShutdown) {
-      return;
-    }
-    stop();
-    start();
-  }
-
+  @override
   void stop() {
     // Cancel is async, but it should only be for the cleanup portion, according
     // to the method documentation.
