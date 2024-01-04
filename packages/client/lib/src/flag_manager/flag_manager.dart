@@ -4,7 +4,7 @@ import '../item_descriptor.dart';
 import 'flag_store.dart';
 import 'flag_persistence.dart';
 import 'flag_updater.dart';
-import '../persistence.dart';
+import '../persistence/persistence.dart';
 
 /// Top level manager of flags for the client. LDClient should be using this
 /// class and not any of the specific instances managed by it. Updates from

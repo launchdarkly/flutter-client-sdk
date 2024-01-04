@@ -1,5 +1,6 @@
 import 'package:launchdarkly_dart_client/ld_client.dart';
 import 'package:launchdarkly_dart_client/src/context_modifiers/anonymous_context_modifier.dart';
+import 'package:launchdarkly_dart_client/src/persistence/persistence.dart';
 import 'package:test/test.dart';
 
 import '../mock_persistence.dart';
@@ -70,8 +71,8 @@ void main() {
 
       final mockPersistence = MockPersistence();
       mockPersistence.storage['LaunchDarkly_GeneratedContextKeys'] = {
-        'user': 'the-user-key',
-        'company': 'the-company-key',
+        encodePersistenceKey('user'): 'the-user-key',
+        encodePersistenceKey('company'): 'the-company-key',
       };
       final decorator = AnonymousContextModifier(mockPersistence);
 
@@ -98,11 +99,11 @@ void main() {
       expect(
           decoratedContext.attributesByKind['user']!.key,
           mockPersistence
-              .storage['LaunchDarkly_GeneratedContextKeys']!['user']);
+              .storage['LaunchDarkly_GeneratedContextKeys']![encodePersistenceKey('user')]);
       expect(
           decoratedContext.attributesByKind['company']!.key,
           mockPersistence
-              .storage['LaunchDarkly_GeneratedContextKeys']!['company']);
+              .storage['LaunchDarkly_GeneratedContextKeys']![encodePersistenceKey('company')]);
     });
   });
 }

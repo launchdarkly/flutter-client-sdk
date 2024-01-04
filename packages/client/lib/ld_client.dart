@@ -25,7 +25,7 @@ export 'package:launchdarkly_dart_common/ld_common.dart'
 export 'src/flag_manager/flag_updater.dart' show FlagsChangedEvent;
 export 'src/config/service_endpoints.dart' show ServiceEndpoints;
 
-export 'src/persistence.dart' show Persistence;
+export 'src/persistence/persistence.dart' show Persistence;
 export 'src/ld_dart_client.dart' show LDDartClient;
 
 // TODO: These may need adjusted after the config building process is sorted.

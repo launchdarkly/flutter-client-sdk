@@ -1,7 +1,7 @@
 import 'ld_value.dart';
 import 'attribute_reference.dart';
 
-RegExp _kindExp = RegExp(r'^(\w|\.|-)+$');
+RegExp _kindExp = RegExp(r'^(\w|\.|-)+$', unicode: false);
 
 const String _kindAttr = 'kind';
 const String _keyAttr = 'key';

@@ -1,7 +1,7 @@
 import 'package:launchdarkly_dart_common/ld_common.dart'
     show LDLogger, HttpProperties;
 
-import '../persistence.dart';
+import '../persistence/persistence.dart';
 import 'data_source_config.dart';
 import 'events_config.dart';
 import 'service_endpoints.dart';

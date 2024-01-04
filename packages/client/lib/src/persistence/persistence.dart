@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+
 /// Interface for a data store that holds feature flag data and other SDK
 /// properties in a serialized form.
 ///
@@ -20,7 +23,7 @@
 /// changing contexts.
 ///
 /// The SDK, with correct usage, will not have overlapping writes to the same
-/// key. The Read/Write methods may not always be called from the same thread.
+/// key.
 ///
 /// This interface does not depend on the ability to list the contents of the
 /// store or namespaces. This is to maintain the simplicity of implementing a
@@ -38,4 +41,13 @@ abstract interface class Persistence {
   /// Attempt to read a value from the store. If the value does not exist,
   /// or could not be read, then return null.
   Future<String?> read(String namespace, String key);
+}
+
+/// When a key needs to be encoded/decoded, because it contains
+/// potentially unacceptable characters, then this method can be used.
+String encodePersistenceKey(String input) {
+  final bytes = utf8.encode(input);
+  final digest = sha256.convert(bytes);
+  // This will be the hex encoded digest.
+  return digest.toString();
 }

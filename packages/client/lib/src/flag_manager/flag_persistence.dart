@@ -1,9 +1,8 @@
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
 import 'package:launchdarkly_dart_common/ld_common.dart';
 import '../item_descriptor.dart';
-import '../persistence.dart';
+import '../persistence/persistence.dart';
 import 'context_index.dart';
 import 'flag_updater.dart';
 import 'flag_store.dart';
@@ -11,15 +10,8 @@ import 'flag_store.dart';
 const String _globalNamespace = 'LaunchDarkly';
 const String _indexKey = 'ContextIndex';
 
-String _encodePersistenceKey(String input) {
-  final bytes = utf8.encode(input);
-  final digest = sha256.convert(bytes);
-  // This will be the hex encoded digest.
-  return digest.toString();
-}
-
 String _makeEnvironment(String sdkKey) {
-  return '${_globalNamespace}_${_encodePersistenceKey(sdkKey)}';
+  return '${_globalNamespace}_${encodePersistenceKey(sdkKey)}';
 }
 
 DateTime _defaultStamper() => DateTime.now();
@@ -71,7 +63,7 @@ final class FlagPersistence {
 
   Future<bool> loadCached(LDContext context) async {
     final json = await _persistence?.read(
-        _environmentKey, _encodePersistenceKey(context.canonicalKey));
+        _environmentKey, encodePersistenceKey(context.canonicalKey));
 
     if (json == null) {
       return false;
@@ -115,7 +107,7 @@ final class FlagPersistence {
     // Will be set via _loadIndex non-conditionally.
     assert(_contextIndex != null);
 
-    final contextPersistenceKey = _encodePersistenceKey(context.canonicalKey);
+    final contextPersistenceKey = encodePersistenceKey(context.canonicalKey);
     _contextIndex!.notice(contextPersistenceKey, _stamper());
 
     final pruned = _contextIndex!.prune(maxCachedContexts);

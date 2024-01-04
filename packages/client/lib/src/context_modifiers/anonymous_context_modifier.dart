@@ -2,7 +2,7 @@ import 'package:launchdarkly_dart_common/ld_common.dart';
 
 import 'package:uuid/uuid.dart';
 
-import '../persistence.dart';
+import '../persistence/persistence.dart';
 import 'context_modifier.dart';
 
 const _generatedKeyNamespace = 'LaunchDarkly_GeneratedContextKeys';
@@ -44,13 +44,14 @@ final class AnonymousContextModifier implements ContextModifier {
     if (_keyCache.containsKey(kind)) {
       return _keyCache[kind]!;
     }
-    final stored = await _persistence?.read(_generatedKeyNamespace, kind);
+    final encodedKind =  encodePersistenceKey(kind);
+    final stored = await _persistence?.read(_generatedKeyNamespace, encodedKind);
     if (stored != null) {
       return stored;
     }
     final newKey = _uuidSource.v4();
     _keyCache[kind] = newKey;
-    await _persistence?.set(_generatedKeyNamespace, kind, newKey);
+    await _persistence?.set(_generatedKeyNamespace, encodedKind, newKey);
     return newKey;
   }
 

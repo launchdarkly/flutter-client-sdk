@@ -36,3 +36,5 @@ packages/**/pubspec.lock
 pubspec_overrides.yaml
 
 **/coverage/
+**/.flutter-plugins-dependencies
+**/.flutter-plugins
