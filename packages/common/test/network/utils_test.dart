@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/src/network/utils.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -32,5 +32,14 @@ void main() {
         expect(isHttpGloballyRecoverable(status), isFalse);
       });
     }
+  });
+
+  test('it hashes and encodes input', () {
+    expect(urlSafeSha256Hash('hashThis!'), 'sfXg3HewbCAVNQLJzPZhnFKntWYvN0nAYyUWFGy24dQ=');
+    expect(urlSafeSha256Hash('OhYeah?HashThis!!!'), 'KzDwVRpvTuf__jfMK27M4OMpIRTecNcJoaffvAEi-as=');
+  });
+
+  test('it url safe encodes input', () {
+    expect(urlSafeBase64String('{"key":"foo>bar__?"}'), 'eyJrZXkiOiJmb28-YmFyX18_In0=');
   });
 }

@@ -6,10 +6,15 @@ export 'src/attribute_reference.dart' show AttributeReference;
 export 'src/ld_evaluation_detail.dart'
     show LDEvaluationDetail, LDEvaluationReason, LDErrorKind, LDKind;
 export 'src/ld_context.dart'
-    show LDContext, LDContextBuilder, LDContextAttributes;
+    show LDContext, LDContextBuilder, LDContextAttributes, LDAttributesBuilder;
 export 'src/ld_logging.dart'
     show LDBasicLogPrinter, LDLogAdapter, LDLogRecord, LDLogger, LDLogLevel;
 export 'src/ld_evaluation_result.dart' show LDEvaluationResult;
+export 'src/application_info.dart' show ApplicationInfo;
+export 'src/os_info.dart' show OsInfo;
+export 'src/device_info.dart' show DeviceInfo;
+export 'src/env_reporting/environment_reporter.dart' show EnvironmentReporter, ConcreteEnvReporter;
+export 'src/env_reporting/environment_reporter_builder.dart' show PrioritizedEnvReporterBuilder;
 
 export 'src/serialization/ld_value_serialization.dart'
     show LDValueSerialization;
@@ -57,4 +62,4 @@ export 'src/config/defaults/common_default_config.dart'
 export 'src/network/http_client.dart' show HttpClient, RequestMethod;
 
 export 'src/network/utils.dart'
-    show appendPath, isHttpGloballyRecoverable, isHttpLocallyRecoverable;
+    show Headers, appendPath, isHttpGloballyRecoverable, isHttpLocallyRecoverable, urlSafeSha256Hash;

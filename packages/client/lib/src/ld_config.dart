@@ -1,12 +1,12 @@
+import 'package:launchdarkly_dart_common/ld_common.dart';
+
 /// A configuration object used when initializing the [LDClient].
 final class LDConfig {
   /// The configured mobile SDK key.
   final String mobileKey;
 
-  final String? applicationId;
-  final String? applicationName;
-  final String? applicationVersion;
-  final String? applicationVersionName;
+  /// The ApplicationInfo for the application the SDK is being used in.
+  final ApplicationInfo? applicationInfo;
 
   /// The configured URI for polling requests.
   final String pollUri;
@@ -70,10 +70,7 @@ final class LDConfig {
 
   LDConfig._builder(LDConfigBuilder builder)
       : mobileKey = builder._mobileKey,
-        applicationId = builder._applicationId,
-        applicationName = builder._applicationName,
-        applicationVersion = builder._applicationVersion,
-        applicationVersionName = builder._applicationVersionName,
+        applicationInfo = builder._applicationInfo,
         pollUri = builder._pollUri,
         eventsUri = builder._eventsUri,
         streamUri = builder._streamUri,
@@ -97,48 +94,13 @@ final class LDConfig {
         privateAttributes = builder._privateAttributes.isEmpty
             ? null
             : List.unmodifiable(builder._privateAttributes);
-
-  Map<String, dynamic> toCodecValue(String wrapperVersion) {
-    final Map<String, dynamic> result = <String, dynamic>{};
-    result['mobileKey'] = mobileKey;
-    result['applicationId'] = applicationId;
-    result['applicationName'] = applicationName;
-    result['applicationVersion'] = applicationVersion;
-    result['applicationVersionName'] = applicationVersionName;
-    result['pollUri'] = pollUri;
-    result['eventsUri'] = eventsUri;
-    result['streamUri'] = streamUri;
-    result['eventsCapacity'] = eventsCapacity;
-    result['eventsFlushIntervalMillis'] = eventsFlushIntervalMillis;
-    result['connectionTimeoutMillis'] = connectionTimeoutMillis;
-    result['pollingIntervalMillis'] = pollingIntervalMillis;
-    result['backgroundPollingIntervalMillis'] = backgroundPollingIntervalMillis;
-    result['diagnosticRecordingIntervalMillis'] =
-        diagnosticRecordingIntervalMillis;
-    result['maxCachedContexts'] = maxCachedContexts;
-    result['stream'] = stream;
-    result['offline'] = offline;
-    result['disableBackgroundUpdating'] = disableBackgroundUpdating;
-    result['useReport'] = useReport;
-    result['evaluationReasons'] = evaluationReasons;
-    result['diagnosticOptOut'] = diagnosticOptOut;
-    result['autoEnvAttributes'] = autoEnvAttributes;
-    result['allAttributesPrivate'] = allAttributesPrivate;
-    result['privateAttributes'] = privateAttributes;
-    result['wrapperName'] = 'FlutterClientSdk';
-    result['wrapperVersion'] = wrapperVersion;
-    return result;
-  }
 }
 
 /// A builder for [LDConfig].
 class LDConfigBuilder {
   final String _mobileKey;
 
-  String? _applicationId;
-  String? _applicationName;
-  String? _applicationVersion;
-  String? _applicationVersionName;
+  ApplicationInfo? _applicationInfo;
 
   String _pollUri = 'https://clientsdk.launchdarkly.com';
   String _eventsUri = 'https://events.launchdarkly.com';
@@ -180,53 +142,9 @@ class LDConfigBuilder {
         AutoEnvAttributes.enabled; // mapping enum to boolean
   }
 
-  /// A unique identifier representing the application where the LaunchDarkly SDK is running.
-  ///
-  /// This can be specified as any string value as long as it only uses the following characters:
-  /// ASCII letters, ASCII digits, period, hyphen, underscore. A string containing any other
-  /// characters will be ignored.
-  ///
-  /// Example: 'authentication-service'
-  LDConfigBuilder applicationId(String applicationId) {
-    _applicationId = applicationId;
-    return this;
-  }
-
-  /// A friendly name for the application where the LaunchDarkly SDK is running.
-  ///
-  /// This can be specified as any string value as long as it only uses the following characters:
-  /// ASCII letters, ASCII digits, spaces, period, hyphen, underscore. A string containing any other
-  /// characters will be ignored.
-  ///
-  /// Example: 'My Cool Application'
-  LDConfigBuilder applicationName(String applicationName) {
-    _applicationName = applicationName;
-    return this;
-  }
-
-  /// A unique identifier representing the version of the application where the LaunchDarkly SDK is
-  /// running.
-  ///
-  /// This can be specified as any string value as long as it only uses the following characters:
-  /// ASCII letters, ASCII digits, period, hyphen, underscore. A string containing any other
-  /// characters will be ignored.
-  ///
-  /// Example: `1.0.0` (standard version string) or `abcdef` (sha prefix)
-  ///
-  LDConfigBuilder applicationVersion(String applicationVersion) {
-    _applicationVersion = applicationVersion;
-    return this;
-  }
-
-  /// A friendly name for the application version where the LaunchDarkly SDK is running.
-  ///
-  /// This can be specified as any string value as long as it only uses the following characters:
-  /// ASCII letters, ASCII digits, spaces, period, hyphen, underscore. A string containing any other
-  /// characters will be ignored.
-  ///
-  /// Example: '1.0'
-  LDConfigBuilder applicationVersionName(String applicationVersionName) {
-    _applicationVersionName = applicationVersionName;
+  /// Sets the ApplicationInfo representing the application this SDK is used in.
+  LDConfigBuilder applicationInfo(ApplicationInfo applicationInfo) {
+    _applicationInfo = applicationInfo;
     return this;
   }
 

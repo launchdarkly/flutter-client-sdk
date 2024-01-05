@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 /// Interface for a data store that holds feature flag data and other SDK
-/// properties in a serialized form.
+/// properties in a serialized form.  Implementations should maintain an
+/// in-memory cache of previously read or written values for performance.
 ///
 /// This interface should be used for platform-specific integrations that store
 /// data somewhere other than in memory.
@@ -41,6 +42,28 @@ abstract interface class Persistence {
   /// Attempt to read a value from the store. If the value does not exist,
   /// or could not be read, then return null.
   Future<String?> read(String namespace, String key);
+}
+
+final class InMemoryPersistence implements Persistence {
+  final _storage = <String, Map<String, String>>{};
+
+  @override
+  Future<String?> read(String namespace, String key) async {
+    return _storage[namespace]?[key];
+  }
+
+  @override
+  Future<void> remove(String namespace, String key) async {
+    _storage[namespace]?.remove(key);
+  }
+
+  @override
+  Future<void> set(String namespace, String key, String data) async {
+    if (!_storage.containsKey(namespace)) {
+      _storage[namespace] = <String, String>{};
+    }
+    _storage[namespace]![key] = data;
+  }
 }
 
 /// When a key needs to be encoded/decoded, because it contains

@@ -1,7 +1,7 @@
 import 'package:launchdarkly_dart_client/ld_client.dart';
 import 'package:launchdarkly_dart_client/src/persistence/validating_persistence.dart';
-import 'package:test/test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:test/test.dart';
 
 import '../mock_persistence.dart';
 

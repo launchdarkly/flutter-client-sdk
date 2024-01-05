@@ -2,28 +2,10 @@ import 'package:http/http.dart' as http;
 
 import '../config/defaults/common_default_config.dart';
 import '../config/http_properties.dart';
-
 import 'platform_client/stub_client.dart'
     if (dart.library.io) 'platform_client/io_client.dart'
     if (dart.library.html) 'platform_client/js_client.dart';
-
-/// Filter a set of headers to remove any headers that are not allowed.
-///
-/// This is primarily for web where a number of headers are forbidden from
-/// modification by JavaScript.
-///
-Map<String, String> _filterHeaders(
-    Set<String> forbidden, Map<String, String> headers) {
-  Map<String, String> filteredHeaders = {};
-
-  for (var entry in headers.entries) {
-    if (!forbidden.contains(entry.key)) {
-      filteredHeaders[entry.key] = entry.value;
-    }
-  }
-
-  return filteredHeaders;
-}
+import 'utils.dart';
 
 /// Http requests methods supported by the HTTP client.
 enum RequestMethod {
@@ -83,7 +65,7 @@ final class HttpClient {
 
     // The headers are set after the body because setting the body will set or
     // adjust the content-type header. Setting headers afterwards resolves this.
-    request.headers.addAll(_filterHeaders(_forbiddenHeaders, headers));
+    request.headers.addAll(filterHeaders(_forbiddenHeaders, headers));
 
     // The write timeout is a applied a little liberally here as we do not
     // have a discrete steps for connecting and then writing.

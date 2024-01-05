@@ -126,8 +126,6 @@ final class LDAttributesBuilder {
   /// - "" - A name with an empty string.
   /// - "kind"
   /// - "key"
-  /// - "anonymous"
-  /// - "name"
   /// - "_meta"
   ///
   /// Attempts to set these attributes will be ignored.
@@ -160,8 +158,6 @@ final class LDAttributesBuilder {
   /// - "" - A name with an empty string.
   /// - "kind"
   /// - "key"
-  /// - "anonymous"
-  /// - "name"
   /// - "_meta"
   ///
   /// Attempts to set these attributes will be ignored.
@@ -181,17 +177,39 @@ final class LDAttributesBuilder {
     return this;
   }
 
-  bool _trySet(String name, LDValue value) {
-    if (_canSet(name, value)) {
-      if (value.type == LDValueType.nullType) {
-        _attributes.remove(value.stringValue());
-        return true;
-      }
-      _attributes[name] = value;
-      return true;
+  bool _trySet(String attrName, LDValue value) {
+    if (attrName.isEmpty) {
+      return false;
     }
 
-    return false;
+    switch (attrName) {
+      case _kindAttr:
+      case _keyAttr:
+      case _metaAttr:
+        return false;
+      case _nameAttr:
+        if (value.type != LDValueType.string) {
+          return false;
+        }
+
+        name(value.stringValue());
+        return true;
+      case _anonymousAttr:
+        if (value.type != LDValueType.boolean) {
+          return false;
+        }
+
+        anonymous(value.booleanValue());
+        return true;
+      default:
+        if (value.type == LDValueType.nullType) {
+          _attributes.remove(value.stringValue());
+        } else {
+          _attributes[attrName] = value;
+        }
+
+        return true;
+    }
   }
 
   /// Mark additional attributes as private. This will add additional
@@ -238,23 +256,6 @@ final class LDAttributesBuilder {
           _name);
     }
     return null;
-  }
-
-  static bool _canSet(String name, LDValue value) {
-    if (name.isEmpty) {
-      return false;
-    }
-
-    switch (name) {
-      case _kindAttr:
-      case _keyAttr:
-      case _nameAttr:
-      case _anonymousAttr:
-      case _metaAttr:
-        return false;
-      default:
-        return true;
-    }
   }
 }
 
@@ -357,8 +358,17 @@ final class LDContextBuilder {
   /// Create a context builder from an existing context. If the context is
   /// not valid, then no attributes will be transcribed.
   LDContextBuilder.fromContext(LDContext context) {
+    mergeContext(context);
+  }
+
+  // TODO: sc-228366 eliminate as part of improving auto env decorator
+  /// Adds a context to the context builder combining the provided context
+  /// kinds with the existing kinds in the builder.  This function is not
+  /// normally needed as the [kind] method can be used for making a
+  /// multicontext.
+  LDContextBuilder mergeContext(LDContext context) {
     for (var MapEntry(key: kind, value: attributes)
-        in context.attributesByKind.entries) {
+    in context.attributesByKind.entries) {
       final attributesBuilder = this.kind(kind, attributes.key);
       attributesBuilder.anonymous(attributes.anonymous);
       if (attributes.name != null) {
@@ -366,10 +376,11 @@ final class LDContextBuilder {
       }
       attributesBuilder._privateAttributes.addAll(attributes.privateAttributes);
       for (var MapEntry(key: name, value: attributeValue)
-          in attributes.customAttributes.entries) {
+      in attributes.customAttributes.entries) {
         attributesBuilder.set(name, attributeValue);
       }
     }
+    return this;
   }
 
   /// Adds another kind to the context.  [kind] and optional [key] must be

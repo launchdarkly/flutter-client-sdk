@@ -1,4 +1,6 @@
-import 'package:launchdarkly_dart_client/ld_client.dart';
+import "package:launchdarkly_dart_client/ld_client.dart";
+
+import 'platform_env_reporter.dart';
 
 /// Type of function callback used by `LDClient.registerFlagsReceivedListener`.
 ///
@@ -28,10 +30,12 @@ typedef LDFlagUpdatedCallback = void Function(String flagKey);
 class LDClient {
   // TODO: Remove when used.
   // ignore: unused_field
-  static const String _sdkVersion = "5.0.0";
 
+  // TODO: figure out constructor/static start
   // Empty hidden constructor to hide default constructor.
-  const LDClient._();
+  // const LDClient._();
+
+  LDDartClient? _client;
 
   /// Initialize the SDK with the given [LDConfig] and [LDContext].
   ///
@@ -39,7 +43,16 @@ class LDClient {
   /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
   /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
   Future<void> start(LDConfig config, LDContext context) async {
-    // TODO
+    // TODO: revise start procedure
+
+    final c = LDDartConfig(
+        sdkCredential: config.mobileKey,
+        logger: LDLogger(level: LDLogLevel.debug),
+        applicationInfo: config.applicationInfo,
+        platformEnvReporter: PlatformEnvReporter(),
+        autoEnvAttributes: config.autoEnvAttributes);
+    _client = LDDartClient(c, context);
+    return _client?.start();
   }
 
   /// Checks whether the SDK has completed starting.
@@ -70,8 +83,7 @@ class LDClient {
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
   bool boolVariation(String flagKey, bool defaultValue) {
-    // TODO
-    return false;
+    return _client?.boolVariation(flagKey, defaultValue) ?? defaultValue;
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool, along with information about the resultant value.

@@ -16,7 +16,7 @@ void main() {
           .anonymous(true)
           .build();
 
-      final decorator = AnonymousContextModifier(null);
+      final decorator = AnonymousContextModifier(InMemoryPersistence());
       final decoratedContext = await decorator.decorate(context);
 
       expect(decoratedContext.attributesByKind['user']!.key, isNotEmpty);
@@ -33,7 +33,7 @@ void main() {
           .anonymous(true)
           .build();
 
-      final decorator = AnonymousContextModifier(null);
+      final decorator = AnonymousContextModifier(InMemoryPersistence());
       final decoratedContext = await decorator.decorate(context);
 
       expect(decoratedContext.attributesByKind['user']!.key,
@@ -49,7 +49,7 @@ void main() {
           .anonymous(true)
           .build();
 
-      final decorator = AnonymousContextModifier(null);
+      final decorator = AnonymousContextModifier(InMemoryPersistence());
       final decoratedContext = await decorator.decorate(context);
       final decoratedContext2 = await decorator.decorate(context);
 

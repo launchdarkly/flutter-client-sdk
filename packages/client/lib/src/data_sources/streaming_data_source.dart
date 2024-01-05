@@ -100,6 +100,8 @@ final class StreamingDataSource implements DataSource {
       if (_stopped) {
         return;
       }
+
+      _logger.debug('Received event, data: ${event.data}');
       _dataController.sink.add(DataEvent(event.type, event.data));
       // TODO: NEED TO RE-THINK restart.
     }, (err) {

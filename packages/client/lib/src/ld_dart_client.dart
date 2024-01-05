@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:launchdarkly_dart_common/ld_common.dart';
 
-import './config/ld_dart_config.dart';
+import '../src/config/ld_dart_config.dart';
+import '../src/flag_manager/flag_updater.dart';
 import 'config/defaults/default_config.dart';
 import 'context_modifiers/anonymous_context_modifier.dart';
 import 'context_modifiers/context_modifier.dart';
+import 'context_modifiers/env_context_modifier.dart';
 import 'data_sources/data_source_event_handler.dart';
 import 'data_sources/data_source_manager.dart';
 import 'data_sources/data_source_status.dart';
@@ -13,16 +15,18 @@ import 'data_sources/data_source_status_manager.dart';
 import 'data_sources/polling_data_source.dart';
 import 'data_sources/streaming_data_source.dart';
 import 'flag_manager/flag_manager.dart';
-import 'flag_manager/flag_updater.dart';
+import 'persistence/persistence.dart';
 
 final class LDDartClient {
+  final LDDartConfig _config;
+  final Persistence _persistence;
   final LDLogger _logger;
   final FlagManager _flagManager;
   final DataSourceStatusManager _dataSourceStatusManager;
   late final DataSourceManager _dataSourceManager;
   late final EventProcessor _eventProcessor;
   late final DiagnosticsManager? _diagnosticsManager;
-  final LDDartConfig _config;
+  late final EnvironmentReporter _envReporter;
 
   // Modifications will happen in the order they are specified in this list.
   // If there are cross-dependent modifiers, then this must be considered.
@@ -46,6 +50,7 @@ final class LDDartClient {
 
   LDDartClient(LDDartConfig config, LDContext context)
       : _config = config,
+        _persistence = config.persistence ?? InMemoryPersistence(),
         _logger = config.logger,
         _flagManager = FlagManager(
             sdkKey: config.sdkCredential,
@@ -56,61 +61,39 @@ final class LDDartClient {
         _initialUndecoratedContext = context {
     // TODO: Figure out how we will construct this.
     _diagnosticsManager = null;
+  }
 
-    _modifiers = [AnonymousContextModifier(config.persistence)];
+  Future<EnvironmentReporter> _makeEnvReporter(LDDartConfig config) async {
+    final reporterBuilder = PrioritizedEnvReporterBuilder();
+    reporterBuilder.setConfigLayer(ConcreteEnvReporter(
+        applicationInfo: Future.value(_config.applicationInfo),
+        osInfo: Future.value(null),
+        deviceInfo: Future.value(null),
+        locale: Future.value(null)));
+    if (_config.autoEnvAttributes) {
+      reporterBuilder.setPlatformLayer(_config.platformEnvReporter);
+    }
+    return await reporterBuilder.build();
+  }
 
-    _eventProcessor = EventProcessor(
-        logger: _logger,
-        eventCapacity: config.eventsConfig.eventCapacity,
-        flushInterval: config.eventsConfig.flushInterval,
-        // TODO: Get from config. Use correct auth header setup.
-        client: HttpClient(
-            httpProperties: config.httpProperties
-                .withHeaders({'authorization': config.sdkCredential})),
-        analyticsEventsPath: DefaultConfig.eventPaths
-            .getAnalyticEventsPath(config.sdkCredential),
-        diagnosticEventsPath: DefaultConfig.eventPaths
-            .getDiagnosticEventsPath(config.sdkCredential),
-        diagnosticsManager: _diagnosticsManager,
-        endpoints: config.endpoints,
-        diagnosticRecordingInterval:
-            config.eventsConfig.diagnosticRecordingInterval);
+  Future<HttpProperties> _makeHttpProperties(LDDartConfig config,
+      EnvironmentReporter reporter, LDLogger logger) async {
+    final appInfo = await _envReporter.applicationInfo;
+    if (appInfo == null) {
+      return _config.httpProperties;
+    }
 
-    final dataSourceEventHandler = DataSourceEventHandler(
-        context: _context,
-        flagManager: _flagManager,
-        statusManager: _dataSourceStatusManager,
-        logger: _logger);
+    if (appInfo.applicationId == null) {
+      // indicates ID was dropped at some point
+      _logger.info('A valid applicationId was not provided.');
+    }
 
-    _dataSourceManager = DataSourceManager(
-        statusManager: _dataSourceStatusManager,
-        dataSourceEventHandler: dataSourceEventHandler,
-        logger: _logger,
-        dataSourceFactories: {
-          ConnectionMode.foregroundStreaming: (LDContext context) {
-            return StreamingDataSource(
-                credential: _config.sdkCredential,
-                context: context,
-                endpoints: _config.endpoints,
-                logger: _logger,
-                dataSourceConfig: _config.streamingConfig,
-                httpProperties: _config.httpProperties);
-          },
-          ConnectionMode.foregroundPolling: (LDContext context) {
-            return PollingDataSource(
-                credential: _config.sdkCredential,
-                context: context,
-                endpoints: _config.endpoints,
-                logger: _logger,
-                dataSourceConfig: _config.pollingConfig,
-                httpProperties: _config.httpProperties);
-          },
-        });
+    return _config.httpProperties.withHeaders(appInfo.asHeaderMap());
   }
 
   Future<void> _setAndDecorateContext(LDContext context) async {
     _context = await _modifiers.asyncReduce(
-        (reducer, accumulator) async => await reducer.decorate(accumulator),
+            (reducer, accumulator) async => await reducer.decorate(accumulator),
         context);
   }
 
@@ -131,12 +114,71 @@ final class LDDartClient {
   }
 
   Future<void> _startInternal() async {
-    // TODO: Environment collection.
-
     // TODO: Do we start the process when we create the client, and provide
     // a way to know when it completes? Or do we not even start it as we
     // are doing here.
+    _envReporter = await _makeEnvReporter(_config);
+
+    // set up context modifiers, adding the auto env modifier if turned on
+    _modifiers = [AnonymousContextModifier(_persistence)];
+    if (_config.autoEnvAttributes) {
+      _modifiers.add(
+          AutoEnvContextModifier(_envReporter, _persistence, _config.logger));
+    }
+
+    final httpProperties =
+        await _makeHttpProperties(_config, _envReporter, _logger);
+
+    _eventProcessor = EventProcessor(
+        logger: _logger,
+        eventCapacity: _config.eventsConfig.eventCapacity,
+        flushInterval: _config.eventsConfig.flushInterval,
+        // TODO: Get from config. Use correct auth header setup.
+        client: HttpClient(
+            httpProperties: httpProperties
+                // TODO: this authorization header location is inconsistent with others
+                .withHeaders({'authorization': _config.sdkCredential})),
+        analyticsEventsPath: DefaultConfig.eventPaths
+            .getAnalyticEventsPath(_config.sdkCredential),
+        diagnosticEventsPath: DefaultConfig.eventPaths
+            .getDiagnosticEventsPath(_config.sdkCredential),
+        diagnosticsManager: _diagnosticsManager,
+        endpoints: _config.endpoints,
+        diagnosticRecordingInterval:
+            _config.eventsConfig.diagnosticRecordingInterval);
     _eventProcessor.start();
+
+    // TODO: Can this _context be used before it has been decorated?
+    final dataSourceEventHandler = DataSourceEventHandler(
+        context: _context,
+        flagManager: _flagManager,
+        statusManager: _dataSourceStatusManager,
+        logger: _logger);
+
+    _dataSourceManager = DataSourceManager(
+        statusManager: _dataSourceStatusManager,
+        dataSourceEventHandler: dataSourceEventHandler,
+        logger: _logger,
+        dataSourceFactories: {
+          ConnectionMode.foregroundStreaming: (LDContext context) {
+            return StreamingDataSource(
+                credential: _config.sdkCredential,
+                context: context,
+                endpoints: _config.endpoints,
+                logger: _logger,
+                dataSourceConfig: _config.streamingConfig,
+                httpProperties: httpProperties);
+          },
+          ConnectionMode.foregroundPolling: (LDContext context) {
+            return PollingDataSource(
+                credential: _config.sdkCredential,
+                context: context,
+                endpoints: _config.endpoints,
+                logger: _logger,
+                dataSourceConfig: _config.pollingConfig,
+                httpProperties: httpProperties);
+          },
+        });
 
     await identify(_initialUndecoratedContext);
   }

@@ -1,18 +1,13 @@
 import 'package:launchdarkly_dart_common/ld_common.dart';
 
-import 'package:uuid/uuid.dart';
-
 import '../persistence/persistence.dart';
 import 'context_modifier.dart';
-
-const _generatedKeyNamespace = 'LaunchDarkly_GeneratedContextKeys';
+import 'utils.dart';
 
 final class AnonymousContextModifier implements ContextModifier {
-  final Persistence? _persistence;
-  final Uuid _uuidSource = Uuid();
-  final Map<String, String> _keyCache = {};
+  final Persistence _persistence;
 
-  AnonymousContextModifier(Persistence? persistence)
+  AnonymousContextModifier(Persistence persistence)
       : _persistence = persistence;
 
   /// For any anonymous contexts, which do not have keys specified, generate
@@ -32,27 +27,12 @@ final class AnonymousContextModifier implements ContextModifier {
       for (var MapEntry(key: kind, value: attributes)
           in context.attributesByKind.entries) {
         if (attributes.anonymous && attributes.key == '') {
-          newBuilder.kind(kind, await _getOrGenerateKey(kind));
+          newBuilder.kind(kind, await getOrGenerateKey(_persistence, kind));
         }
       }
       return newBuilder.build();
     }
     return context;
-  }
-
-  Future<String> _getOrGenerateKey(String kind) async {
-    if (_keyCache.containsKey(kind)) {
-      return _keyCache[kind]!;
-    }
-    final encodedKind =  encodePersistenceKey(kind);
-    final stored = await _persistence?.read(_generatedKeyNamespace, encodedKind);
-    if (stored != null) {
-      return stored;
-    }
-    final newKey = _uuidSource.v4();
-    _keyCache[kind] = newKey;
-    await _persistence?.set(_generatedKeyNamespace, encodedKind, newKey);
-    return newKey;
   }
 
   bool _checkForAnonContexts(LDContext context) {
