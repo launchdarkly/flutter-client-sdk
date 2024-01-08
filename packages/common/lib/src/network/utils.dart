@@ -25,24 +25,25 @@ Map<String, String> filterHeaders(Set<String> forbidden,
 /// are missing.
 extension Headers on ApplicationInfo {
   Map<String, String> asHeaderMap() {
-    final retMap = <String, String>{};
+    final tags = <String>[];
+    // tags should be added in alphabetical order
     if (applicationId != null) {
-      retMap['application-id'] = applicationId!;
+      tags.add('application-id/${applicationId!}');
     }
 
     if (applicationName != null) {
-      retMap['application-name'] = applicationName!;
+      tags.add('application-name/${applicationName!}');
     }
 
     if (applicationVersion != null) {
-      retMap['application-version'] = applicationVersion!;
+      tags.add('application-version/${applicationVersion!}');
     }
 
     if (applicationVersionName != null) {
-      retMap['application-version-name'] = applicationVersionName!;
+      tags.add('application-version-name/${applicationVersionName!}');
     }
 
-    return retMap;
+    return {'X-LaunchDarkly-Tags': tags.join(' ')};
   }
 }
 
