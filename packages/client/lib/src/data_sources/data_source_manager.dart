@@ -32,6 +32,7 @@ final class DataSourceManager {
 
   DataSource? _activeDataSource;
   StreamSubscription<MessageStatus?>? _subscription;
+  bool _stopped = false;
 
   DataSourceManager(
       {ConnectionMode startingMode = ConnectionMode.foregroundStreaming,
@@ -75,6 +76,11 @@ final class DataSourceManager {
   }
 
   void _setupConnection() {
+    if (_stopped) {
+      _logger.debug(
+          'Request to setup connection after data source manager was stopped');
+      return;
+    }
     _stopConnection();
 
     switch (_activeMode) {
@@ -94,7 +100,6 @@ final class DataSourceManager {
       // TODO: Should we go back to initializing, or have some other
       // equivalent state.
     }
-
 
     _activeDataSource = _createDataSource(_activeMode);
     _subscription = _activeDataSource?.events.asyncMap((event) async {
@@ -116,5 +121,10 @@ final class DataSourceManager {
       }
     });
     _activeDataSource?.start();
+  }
+
+  void stop() {
+    _stopped = true;
+    _stopConnection();
   }
 }

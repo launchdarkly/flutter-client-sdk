@@ -1,4 +1,4 @@
-import "package:launchdarkly_dart_client/ld_client.dart";
+import 'package:launchdarkly_dart_client/ld_client.dart';
 
 import 'platform_env_reporter.dart';
 
@@ -28,31 +28,39 @@ typedef LDFlagUpdatedCallback = void Function(String flagKey);
 /// record custom events, and provides various status configuration and monitoring utilities. See the individual class
 /// and method documentation for more details.
 class LDClient {
-  // TODO: Remove when used.
-  // ignore: unused_field
+  late final LDDartClient _client;
 
-  // TODO: figure out constructor/static start
-  // Empty hidden constructor to hide default constructor.
-  // const LDClient._();
+  /// Stream which emits data source status changes.
+  Stream<DataSourceStatus> get dataSourceStatusChanges {
+    return _client.dataSourceStatusChanges;
+  }
 
-  LDDartClient? _client;
+  /// Get the current data source status.
+  DataSourceStatus get dataSourceStatus => _client.dataSourceStatus;
 
-  /// Initialize the SDK with the given [LDConfig] and [LDContext].
-  ///
-  /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
-  /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
-  /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
-  Future<void> start(LDConfig config, LDContext context) async {
-    // TODO: revise start procedure
+  /// Stream which emits flag changes.
+  Stream<FlagsChangedEvent> get flagChanges {
+    return _client.flagChanges;
+  }
 
-    final c = LDDartConfig(
-        sdkCredential: config.mobileKey,
+  /// TODO: Comments
+  LDClient(LDConfig config, LDContext context) {
+    final dartConfig = LDDartConfig(
+        sdkCredential: config.sdkCredential,
         logger: LDLogger(level: LDLogLevel.debug),
         applicationInfo: config.applicationInfo,
         platformEnvReporter: PlatformEnvReporter(),
         autoEnvAttributes: config.autoEnvAttributes);
-    _client = LDDartClient(c, context);
-    return _client?.start();
+    _client = LDDartClient(dartConfig, context);
+  }
+
+  /// Initialize the SDK.
+  ///
+  /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
+  /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
+  /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
+  Future<void> start() async {
+    return _client.start();
   }
 
   /// Checks whether the SDK has completed starting.
@@ -68,22 +76,22 @@ class LDClient {
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
   Future<void> identify(LDContext context) async {
-    // TODO
+    return _client.identify(context);
   }
 
   /// Track custom events associated with the current context for data export or experimentation.
   ///
   /// The [eventName] is the key associated with the event or experiment. [data] is an optional parameter for additional
   /// data to include in the event for data export. [metricValue] can be used to record numeric metric for experimentation.
-  track(String eventName, {LDValue? data, num? metricValue}) async {
-    // TODO
+  void track(String eventName, {LDValue? data, num? metricValue}) {
+    _client.track(eventName, data: data, metricValue: metricValue);
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
   bool boolVariation(String flagKey, bool defaultValue) {
-    return _client?.boolVariation(flagKey, defaultValue) ?? defaultValue;
+    return _client.boolVariation(flagKey, defaultValue);
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool, along with information about the resultant value.
@@ -92,8 +100,71 @@ class LDClient {
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<bool> boolVariationDetail(
       String flagKey, bool defaultValue) {
-    // TODO
-    return LDEvaluationDetail(defaultValue, -1, LDEvaluationReason.error());
+    return _client.boolVariationDetail(flagKey, defaultValue);
+  }
+
+  /// Returns the value of flag [flagKey] for the current context as an int.
+  ///
+  /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
+  int intVariation(String flagKey, int defaultValue) {
+    return _client.intVariation(flagKey, defaultValue);
+  }
+
+  /// Returns the value of flag [flagKey] for the current context as an int, along with information about the resultant value.
+  ///
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// must have been set to `true` to request the additional evaluation information from the backend.
+  LDEvaluationDetail<int> intVariationDetail(String flagKey, int defaultValue) {
+    return _client.intVariationDetail(flagKey, defaultValue);
+  }
+
+  /// Returns the value of flag [flagKey] for the current context as a double.
+  ///
+  /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
+  double doubleVariation(String flagKey, double defaultValue) {
+    return _client.doubleVariation(flagKey, defaultValue);
+  }
+
+  /// Returns the value of flag [flagKey] for the current context as a double, along with information about the resultant value.
+  ///
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// must have been set to `true` to request the additional evaluation information from the backend.
+  LDEvaluationDetail<double> doubleVariationDetail(
+      String flagKey, double defaultValue) {
+    return _client.doubleVariationDetail(flagKey, defaultValue);
+  }
+
+  /// Returns the value of flag [flagKey] for the current context as a string.
+  ///
+  /// Will return the provided [defaultValue] if the flag is missing, not a string, or if some error occurs.
+  String stringVariation(String flagKey, String defaultValue) {
+    return _client.stringVariation(flagKey, defaultValue);
+  }
+
+  //
+  /// Returns the value of flag [flagKey] for the current context as a string, along with information about the resultant value.
+  ///
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// must have been set to `true` to request the additional evaluation information from the backend.
+  LDEvaluationDetail<String> stringVariationDetail(
+      String flagKey, String defaultValue) {
+    return _client.stringVariationDetail(flagKey, defaultValue);
+  }
+
+  /// Returns the value of flag [flagKey] for the current context as an [LDValue].
+  ///
+  /// Will return the provided [defaultValue] if the flag is missing, or if some error occurs.
+  LDValue jsonVariation(String flagKey, LDValue defaultValue) {
+    return _client.jsonVariation(flagKey, defaultValue);
+  }
+
+  /// Returns the value of flag [flagKey] for the current context as an [LDValue], along with information about the resultant value.
+  ///
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// must have been set to `true` to request the additional evaluation information from the backend.
+  LDEvaluationDetail<LDValue> jsonVariationDetail(
+      String flagKey, LDValue defaultValue) {
+    return _client.jsonVariationDetail(flagKey, defaultValue);
   }
 
   /// Returns a map of all feature flags for the current context, without sending evaluation events to LaunchDarkly.
@@ -101,72 +172,34 @@ class LDClient {
   /// The resultant map contains an entry for each known flag, the key being the flag's key and the value being its
   /// value as an [LDValue].
   Map<String, LDValue> allFlags() {
-    // TODO
-    Map<String, LDValue> allFlagsRes = {};
-    return allFlagsRes;
+    return _client.allFlags();
   }
 
   /// Triggers immediate sending of pending events to LaunchDarkly.
   ///
   /// Note that the future completes after the native SDK is requested to perform a flush, not when the said flush completes.
   Future<void> flush() async {
-    // TODO:
+    return _client.flush();
   }
 
-  /// Shuts down or restores network activity made by the SDK.
-  ///
-  /// If the SDK is set offline, `LDClient.setOnline(false)`, it will close network connections and not make any
-  /// further requests until `LDClient.setOnline(true)` is called.
-  void setOnline(bool online) {
-    // TODO
+  /// Set the connection mode the SDK should use.
+  /// TODO: More comments.
+  void setMode(ConnectionMode mode) {
+    _client.setMode(mode);
   }
 
   /// Returns whether the SDK is currently configured not to make network connections.
-  bool isOffline() {
-    // TODO
-    return false;
-  }
-
-  /// Returns information about the current state of the SDK's connection to the LaunchDarkly.
   ///
-  /// See [LDConnectionInformation] for the available information.
-  LDConnectionInformation? getConnectionInformation() {
-    // TODO
-    var state = LDConnectionState.offline;
-    var failure = LDFailure("womp", LDFailureType.unknownError);
-    DateTime? lastSuccessful, lastFailed;
-    lastSuccessful = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-    lastFailed = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-    return LDConnectionInformation(state, failure, lastSuccessful, lastFailed);
-  }
+  /// This is specifically if the client has been set offline, or has been
+  /// instructed to never go online.
+  ///
+  /// For more detailed status information use [dataSourceStatus].
+  bool get offline => _client.offline;
 
   /// Permanently shuts down the client.
   ///
   /// It's not normally necessary to explicitly shut down the client.
   Future<void> close() async {
-    // TODO
-  }
-
-  /// Registers a callback to be notified when the value of the flag [flagKey] is updated.
-  registerFeatureFlagListener(
-      String flagKey, LDFlagUpdatedCallback flagUpdateCallback) {
-    // TODO
-  }
-
-  /// Unregisters an [LDFlagUpdatedCallback] from the [flagKey] flag.
-  unregisterFeatureFlagListener(
-      String flagKey, LDFlagUpdatedCallback flagUpdateCallback) {
-    // TODO
-  }
-
-  /// Registers a callback to be notified when flag data is received by the SDK.
-  registerFlagsReceivedListener(LDFlagsReceivedCallback flagsReceivedCallback) {
-    // TODO
-  }
-
-  /// Unregisters an [LDFlagsReceivedCallback].
-  unregisterFlagsReceivedListener(
-      LDFlagsReceivedCallback flagsReceivedCallback) {
-    // TODO
+    _client.close();
   }
 }

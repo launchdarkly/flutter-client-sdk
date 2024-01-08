@@ -97,14 +97,11 @@ class StateConnecting {
       await svo.connectionDesired.where((desired) => !desired).first;
     } catch (err) {
       // error indicates control stream has terminated, so we want to cleanup
-    } finally {
-      // this is in a finally block so even if connectionDesired has an error
-      // we cleanup and transition to idle.  The idle state can handle state
-      // machine cleanup.
-      return () {
-        client.close();
-        StateIdle.run(svo);
-      };
     }
+
+    return () {
+      client.close();
+      StateIdle.run(svo);
+    };
   }
 }

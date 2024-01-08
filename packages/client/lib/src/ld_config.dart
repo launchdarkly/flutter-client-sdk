@@ -2,8 +2,10 @@ import 'package:launchdarkly_dart_common/ld_common.dart';
 
 /// A configuration object used when initializing the [LDClient].
 final class LDConfig {
-  /// The configured mobile SDK key.
-  final String mobileKey;
+  /// The configured SDK credential. For mobile and desktop deployments this
+  /// should be the mobile key. For web deployments this should be a client-side
+  /// id.
+  final String sdkCredential;
 
   /// The ApplicationInfo for the application the SDK is being used in.
   final ApplicationInfo? applicationInfo;
@@ -69,7 +71,7 @@ final class LDConfig {
   final List<String>? privateAttributes;
 
   LDConfig._builder(LDConfigBuilder builder)
-      : mobileKey = builder._mobileKey,
+      : sdkCredential = builder._credential,
         applicationInfo = builder._applicationInfo,
         pollUri = builder._pollUri,
         eventsUri = builder._eventsUri,
@@ -98,7 +100,7 @@ final class LDConfig {
 
 /// A builder for [LDConfig].
 class LDConfigBuilder {
-  final String _mobileKey;
+  final String _credential;
 
   ApplicationInfo? _applicationInfo;
 
@@ -137,7 +139,7 @@ class LDConfigBuilder {
   ///     manufacturer, model, operating system, locale, and so on. We recommend enabling
   ///     this when you configure the SDK.  See https://docs.launchdarkly.com/sdk/features/environment-attributes
   ///     for more documentation.
-  LDConfigBuilder(this._mobileKey, AutoEnvAttributes autoEnvAttributes) {
+  LDConfigBuilder(this._credential, AutoEnvAttributes autoEnvAttributes) {
     _autoEnvAttributes = autoEnvAttributes ==
         AutoEnvAttributes.enabled; // mapping enum to boolean
   }

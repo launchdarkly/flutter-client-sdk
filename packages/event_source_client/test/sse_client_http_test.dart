@@ -19,8 +19,8 @@ void main() {
         emitsInOrder([StateIdle, StateConnecting, StateConnected]));
 
     final sseClientUnderTest = HttpSseClient.internal(
-        Uri.parse("/path"),
-        {"put"},
+        Uri.parse('/path'),
+        {'put'},
         {},
         Duration(days: 99),
         Duration(days: 99),
@@ -42,8 +42,8 @@ void main() {
         emitsInOrder([StateIdle, StateConnecting, StateConnected, StateIdle]));
 
     final sseClientUnderTest = HttpSseClient.internal(
-        Uri.parse("/path"),
-        {"put"},
+        Uri.parse('/path'),
+        {'put'},
         {},
         Duration(days: 99),
         Duration(days: 99),
@@ -65,8 +65,8 @@ void main() {
         emitsInOrder([StateIdle, StateConnecting, StateConnected, StateIdle]));
 
     final sseClientUnderTest = HttpSseClient.internal(
-        Uri.parse("/path"),
-        {"put"},
+        Uri.parse('/path'),
+        {'put'},
         {},
         Duration(days: 99),
         Duration(days: 99),

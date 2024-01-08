@@ -22,7 +22,7 @@ void main() {
 
     // blocking client to stop us from going to connected state
     final svo = TestUtils.makeMockStateValues(
-        eventTypes: {"put"},
+        eventTypes: {'put'},
         transitionSink: transitionController,
         eventSink: eventController.sink,
         clientFactory: () => mockClient);

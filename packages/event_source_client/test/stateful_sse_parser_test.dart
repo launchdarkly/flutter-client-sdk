@@ -12,7 +12,7 @@ void main() {
     registerFallbackValue(MessageEvent('fallback', 'fallback', 'fallback'));
   });
 
-  void _testCase(String input, List<MessageEvent> expected) {
+  void testCase(String input, List<MessageEvent> expected) {
     final parserUnderTest = StatefulSSEParser();
     final mockSink = MockSink();
     parserUnderTest.parse(input, mockSink);
@@ -20,7 +20,7 @@ void main() {
     final captured = verify(() => mockSink.add(captureAny())).captured;
 
     expect(captured.length, equals(expected.length),
-        reason: "Captured:{$captured}, Expected:{$expected}");
+        reason: 'Captured:{$captured}, Expected:{$expected}');
 
     for (var i = 0; i < captured.length; i++) {
       final expectedMessageEvent = expected[i];
@@ -63,6 +63,6 @@ void main() {
       // extra leading space
       'event:  greeting\ndata:  Hello\n\n': [MessageEvent(' greeting', ' Hello', '')],
     };
-    cases.forEach(_testCase);
+    cases.forEach(testCase);
   });
 }

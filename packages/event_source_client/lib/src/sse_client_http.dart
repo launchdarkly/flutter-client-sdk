@@ -14,8 +14,8 @@ import 'state_value_object.dart';
 /// - HTTP Status Codes other than 200, 400, 408, 429, 500 - 599 will cause an error
 /// - Cases in which a redirect loop is detected or a redirect is malformed.
 class HttpSseClient implements SSEClient {
-  static const defaultConnectTimeout = const Duration(seconds: 30);
-  static const defaultReadTimeout = const Duration(minutes: 5);
+  static const defaultConnectTimeout = Duration(seconds: 30);
+  static const defaultReadTimeout = Duration(minutes: 5);
 
   /// This controller is for the events going to the subscribers of this client.
   late final StreamController<MessageEvent> _messageEventsController;
@@ -66,8 +66,10 @@ class HttpSseClient implements SSEClient {
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect a network delay initially.
+  @override
   Stream<MessageEvent> get stream => _messageEventsController.stream;
 
+  @override
   Future close() async {
     _messageEventsController.close();
     _connectionDesiredStateController.close();

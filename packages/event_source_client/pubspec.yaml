@@ -13,3 +13,4 @@ dependencies:
 dev_dependencies:
   test: ^1.24.3
   mocktail: ^1.0.1
+  lints: ^3.0.0

@@ -28,21 +28,21 @@ class PlatformEnvReporter implements EnvironmentReporter {
       if (Platform.isAndroid) {
         final info = await DeviceInfoPlugin().androidInfo;
         return OsInfo(
-          family: "Android",
-          name: "Android",  // excluding API version int here to be consistent with MAUI
+          family: 'Android',
+          name: 'Android',  // excluding API version int here to be consistent with MAUI
           version: info.version.release, // This is the 9 in 'Android 9 (SDK 28)' and agrees with our Android and MAUI SDKs
         );
       } else if (Platform.isIOS) {
         final info = await DeviceInfoPlugin().iosInfo;
         return OsInfo(
-          family: "Apple",
+          family: 'Apple',
           name: 'iOS',
           version: info.systemVersion,
         );
       } else if (Platform.isMacOS) {
         final info = await DeviceInfoPlugin().macOsInfo;
         return OsInfo(
-          family: "Apple",
+          family: 'Apple',
           name: 'macOS',
           version: '${info.majorVersion}.${info.minorVersion}.${info.patchVersion}',
         );
@@ -98,13 +98,13 @@ class PlatformEnvReporter implements EnvironmentReporter {
         final info = await DeviceInfoPlugin().iosInfo;
         return DeviceInfo(
             model: info.model,
-            manufacturer: "Apple"
+            manufacturer: 'Apple'
         );
       } else if (Platform.isMacOS) {
         final info = await DeviceInfoPlugin().macOsInfo;
         return DeviceInfo(
             model: info.model,
-            manufacturer: "Apple"
+            manufacturer: 'Apple'
         );
       } else {
         // There is no reliable way to get device info for these platforms.

@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:html' as html;
 
-import 'package:launchdarkly_event_source_client/sse_client.dart';
+import '../sse_client.dart';
 
-import 'message_event.dart' as LDMessageEvent;
+import 'message_event.dart' as ld_message_event;
 
 /// An [SSEClient] that uses the [html.EventSource] available on most browsers for web platform support.
 class HtmlSseClient implements SSEClient {
@@ -11,20 +11,20 @@ class HtmlSseClient implements SSEClient {
   html.EventSource? _eventSource;
 
   /// This controller is for the events going to the subscribers of this client.
-  late final StreamController<LDMessageEvent.MessageEvent>
+  late final StreamController<ld_message_event.MessageEvent>
       _messageEventsController;
 
   /// Creates an instance of an SSEClient that will connect in the future
   /// to the [uri] provided.
   HtmlSseClient(Uri uri, Set<String> eventTypes) {
     _messageEventsController =
-        StreamController<LDMessageEvent.MessageEvent>.broadcast(
+        StreamController<ld_message_event.MessageEvent>.broadcast(
       onListen: () {
         // this is triggered when first listener subscribes
         _eventSource = html.EventSource(uri.toString());
-        eventTypes.forEach((eventType) {
+        for (var eventType in eventTypes) {
           _eventSource?.addEventListener(eventType, _handleMessageEvent);
-        });
+        }
       },
       onCancel: () {
         // this is triggered when last listener unsubscribes
@@ -36,16 +36,18 @@ class HtmlSseClient implements SSEClient {
 
   void _handleMessageEvent(html.Event event) {
     final messageEvent = event as html.MessageEvent;
-    final ldMessageEvent = LDMessageEvent.MessageEvent(
+    final ldMessageEvent = ld_message_event.MessageEvent(
         messageEvent.type, messageEvent.data, messageEvent.lastEventId);
     _messageEventsController.sink.add(ldMessageEvent);
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect a network delay initially.
-  Stream<LDMessageEvent.MessageEvent> get stream =>
+  @override
+  Stream<ld_message_event.MessageEvent> get stream =>
       _messageEventsController.stream;
 
+  @override
   Future close() => _messageEventsController.close();
 }
 

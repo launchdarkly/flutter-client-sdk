@@ -37,20 +37,20 @@ class StatefulSSEParser {
 
   // Parsing buffers
   var _lastParsed = _LastParsed.nothing;
-  StringBuffer _fieldBuffer = StringBuffer();
-  StringBuffer _valueBuffer = StringBuffer();
+  final StringBuffer _fieldBuffer = StringBuffer();
+  final StringBuffer _valueBuffer = StringBuffer();
 
   // Event processing temporary variables
   String _id = '';
   String _eventType = '';
-  StringBuffer _dataBuffer = StringBuffer();
+  final StringBuffer _dataBuffer = StringBuffer();
 
   /// This function will iterate over the SSE stream [chunk] provided and statefully process it.
   /// When warranted, [MessageEvent]s may be sent to the provided [sink].  Subsequent calls
   /// with subsequent [chunk]s provided will be treated as a continuation of the data stream.
   void parse(String chunk, EventSink<MessageEvent> sink) {
     // switch statements are used instead of a state machine for memory and performance reasons
-    chunk.runes.forEach((rune) {
+    for (var rune in chunk.runes) {
       switch (_lastParsed) {
         case _LastParsed.fieldRune:
           // parsing the field
@@ -175,7 +175,7 @@ class StatefulSSEParser {
           }
           break;
       }
-    });
+    }
   }
 
   /// This function will determine which buffer will hold the most recently parsed

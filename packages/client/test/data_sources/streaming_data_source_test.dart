@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:launchdarkly_dart_client/ld_client.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_event_handler.dart';
-import 'package:launchdarkly_dart_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/streaming_data_source.dart';
 import 'package:launchdarkly_dart_client/src/flag_manager/flag_manager.dart';

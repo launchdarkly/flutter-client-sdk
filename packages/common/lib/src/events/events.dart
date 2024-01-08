@@ -56,7 +56,7 @@ final class CustomEvent {
   final String key;
   final DateTime creationDate;
   final LDContext context;
-  final int? metricValue;
+  final num? metricValue;
   final LDValue? data;
 
   CustomEvent({

@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// An implementation of persistence which uses the shared_preferences plugin.
 final class SharedPreferencesPersistence implements Persistence {
-  Future<SharedPreferences> _preferencesFuture =
+  final Future<SharedPreferences> _preferencesFuture =
       SharedPreferences.getInstance();
 
   Future<SharedPreferences> getPreferences() async {

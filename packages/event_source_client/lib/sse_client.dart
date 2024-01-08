@@ -30,8 +30,8 @@ abstract class SSEClient {
     HttpHeaders.acceptHeader: MimeTypes.textEventStream,
     HttpHeaders.cacheControlHeader: HttpHeaders.noCacheHeaderValue,
   };
-  static const defaultConnectTimeout = const Duration(seconds: 30);
-  static const defaultReadTimeout = const Duration(minutes: 5);
+  static const defaultConnectTimeout = Duration(seconds: 30);
+  static const defaultReadTimeout = Duration(minutes: 5);
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect network delay initially.

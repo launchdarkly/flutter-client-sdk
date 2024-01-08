@@ -40,9 +40,11 @@ final class LDDartClient {
 
   Future<void>? _startFuture;
 
-  Stream<DataSourceStatus> get dataSourceStatus {
+  Stream<DataSourceStatus> get dataSourceStatusChanges {
     return _dataSourceStatusManager.changes;
   }
+
+  DataSourceStatus get dataSourceStatus => _dataSourceStatusManager.status;
 
   Stream<FlagsChangedEvent> get flagChanges {
     return _flagManager.changes;
@@ -88,7 +90,9 @@ final class LDDartClient {
       _logger.info('A valid applicationId was not provided.');
     }
 
-    return _config.httpProperties.withHeaders(appInfo.asHeaderMap());
+    // TODO: Temp until header is correct.
+    // return _config.httpProperties.withHeaders(appInfo.asHeaderMap());
+    return _config.httpProperties;
   }
 
   Future<void> _setAndDecorateContext(LDContext context) async {
@@ -127,7 +131,7 @@ final class LDDartClient {
     }
 
     final httpProperties =
-        await _makeHttpProperties(_config, _envReporter, _logger);
+    await _makeHttpProperties(_config, _envReporter, _logger);
 
     _eventProcessor = EventProcessor(
         logger: _logger,
@@ -136,7 +140,7 @@ final class LDDartClient {
         // TODO: Get from config. Use correct auth header setup.
         client: HttpClient(
             httpProperties: httpProperties
-                // TODO: this authorization header location is inconsistent with others
+            // TODO: this authorization header location is inconsistent with others
                 .withHeaders({'authorization': _config.sdkCredential})),
         analyticsEventsPath: DefaultConfig.eventPaths
             .getAnalyticEventsPath(_config.sdkCredential),
@@ -145,7 +149,7 @@ final class LDDartClient {
         diagnosticsManager: _diagnosticsManager,
         endpoints: _config.endpoints,
         diagnosticRecordingInterval:
-            _config.eventsConfig.diagnosticRecordingInterval);
+        _config.eventsConfig.diagnosticRecordingInterval);
     _eventProcessor.start();
 
     // TODO: Can this _context be used before it has been decorated?
@@ -218,7 +222,7 @@ final class LDDartClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
   bool boolVariation(String flagKey, bool defaultValue) {
     return _variationInternal(flagKey, LDValue.ofBool(defaultValue),
-            isDetailed: false, type: LDValueType.boolean)
+        isDetailed: false, type: LDValueType.boolean)
         .value
         .booleanValue();
   }
@@ -227,8 +231,8 @@ final class LDDartClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<bool> boolVariationDetail(
-      String flagKey, bool defaultValue) {
+  LDEvaluationDetail<bool> boolVariationDetail(String flagKey,
+      bool defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofBool(defaultValue),
         isDetailed: true, type: LDValueType.boolean);
@@ -242,7 +246,7 @@ final class LDDartClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   int intVariation(String flagKey, int defaultValue) {
     return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-            isDetailed: false, type: LDValueType.number)
+        isDetailed: false, type: LDValueType.number)
         .value
         .intValue();
   }
@@ -265,7 +269,7 @@ final class LDDartClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   double doubleVariation(String flagKey, double defaultValue) {
     return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-            isDetailed: false, type: LDValueType.number)
+        isDetailed: false, type: LDValueType.number)
         .value
         .doubleValue();
   }
@@ -274,8 +278,8 @@ final class LDDartClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<double> doubleVariationDetail(
-      String flagKey, double defaultValue) {
+  LDEvaluationDetail<double> doubleVariationDetail(String flagKey,
+      double defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofNum(defaultValue),
         isDetailed: true, type: LDValueType.number);
@@ -289,7 +293,7 @@ final class LDDartClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a string, or if some error occurs.
   String stringVariation(String flagKey, String defaultValue) {
     return _variationInternal(flagKey, LDValue.ofString(defaultValue),
-            isDetailed: false, type: LDValueType.string)
+        isDetailed: false, type: LDValueType.string)
         .value
         .stringValue();
   }
@@ -299,8 +303,8 @@ final class LDDartClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<String> stringVariationDetail(
-      String flagKey, String defaultValue) {
+  LDEvaluationDetail<String> stringVariationDetail(String flagKey,
+      String defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofString(defaultValue),
         isDetailed: true, type: LDValueType.string);
@@ -320,13 +324,13 @@ final class LDDartClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<LDValue> jsonVariationDetail(
-      String flagKey, LDValue defaultValue) {
+  LDEvaluationDetail<LDValue> jsonVariationDetail(String flagKey,
+      LDValue defaultValue) {
     return _variationInternal(flagKey, defaultValue, isDetailed: true);
   }
 
-  LDEvaluationDetail<LDValue> _variationInternal(
-      String flagKey, LDValue defaultValue,
+  LDEvaluationDetail<LDValue> _variationInternal(String flagKey,
+      LDValue defaultValue,
       {required bool isDetailed, LDValueType? type}) {
     final evalResult = _flagManager.get(flagKey);
 
@@ -354,7 +358,7 @@ final class LDDartClient {
         trackEvent: evalResult?.flag?.trackEvents ?? false,
         debugEventsUntilDate: evalResult?.flag?.debugEventsUntilDate != null
             ? DateTime.fromMillisecondsSinceEpoch(
-                evalResult!.flag!.debugEventsUntilDate!)
+            evalResult!.flag!.debugEventsUntilDate!)
             : null,
         version: evalResult?.version));
 
@@ -365,13 +369,13 @@ final class LDDartClient {
   ///
   /// The resultant map contains an entry for each known flag, the key being the flag's key and the value being its
   /// value as an [LDValue].
-  Future<Map<String, LDValue>> allFlags() async {
+  Map<String, LDValue> allFlags() {
     final res = <String, LDValue>{};
 
     final allEvalResults = _flagManager.getAll();
 
     for (var MapEntry(key: flagKey, value: evalResult)
-        in allEvalResults.entries) {
+    in allEvalResults.entries) {
       if (evalResult.flag != null) {
         res[flagKey] = evalResult.flag!.detail.value;
       }
@@ -383,5 +387,29 @@ final class LDDartClient {
   /// Set the connection mode the SDK should use.
   void setMode(ConnectionMode mode) {
     _dataSourceManager.setMode(mode);
+  }
+
+  bool get offline =>
+      _dataSourceStatusManager.status.state == DataSourceState.setOffline;
+
+  /// Track custom events associated with the current context for data export or experimentation.
+  ///
+  /// The [eventName] is the key associated with the event or experiment. [data] is an optional parameter for additional
+  /// data to include in the event for data export. [metricValue] can be used to record numeric metric for experimentation.
+  void track(String eventName, {LDValue? data, num? metricValue}) async {
+    _eventProcessor.processCustomEvent(CustomEvent(
+        key: eventName,
+        context: _context,
+        metricValue: metricValue,
+        data: data));
+  }
+
+  /// Permanently shuts down the client.
+  ///
+  /// It's not normally necessary to explicitly shut down the client.
+  void close() {
+    _eventProcessor.stop();
+    _dataSourceManager.stop();
+    _dataSourceStatusManager.stop();
   }
 }

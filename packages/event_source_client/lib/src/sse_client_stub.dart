@@ -1,4 +1,4 @@
-import 'package:launchdarkly_event_source_client/sse_client.dart';
+import '../sse_client.dart';
 
 // Stub client that will be used on unsupported platforms.
 SSEClient getSSEClient(

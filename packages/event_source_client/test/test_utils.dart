@@ -48,7 +48,7 @@ class TestUtils {
         if (blocking) {
           await Completer().future; // blocks indefinitely
         }
-        var controller = new StreamController<List<int>>(sync: true);
+        var controller = StreamController<List<int>>(sync: true);
         Future.sync(() {
           controller.add(utf8.encode('event:put\ndata:helloworld\n\n'));
         });

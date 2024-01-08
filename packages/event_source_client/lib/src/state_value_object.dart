@@ -40,24 +40,14 @@ class StateValues {
 
   /// Creates a [_StateValues] instance.  Used by the state machine.
   StateValues(
-      Uri uri,
-      Set<String> eventTypes,
-      Map<String, String> headers,
-      Duration connectTimeout,
-      Duration readTimeout,
-      Stream<bool> connectionDesired,
-      EventSink<MessageEvent> eventSink,
-      Sink<dynamic> transitionSink,
-      ClientFactory clientFactory,
-      math.Random random)
-      : uri = uri,
-        eventTypes = eventTypes,
-        headers = headers,
-        connectTimeout = connectTimeout,
-        readTimeout = readTimeout,
-        connectionDesired = connectionDesired,
-        eventSink = eventSink,
-        transitionSink = transitionSink,
-        clientFactory = clientFactory,
-        random = random;
+      this.uri,
+      this.eventTypes,
+      this.headers,
+      this.connectTimeout,
+      this.readTimeout,
+      this.connectionDesired,
+      this.eventSink,
+      this.transitionSink,
+      this.clientFactory,
+      this.random);
 }
