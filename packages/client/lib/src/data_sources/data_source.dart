@@ -21,6 +21,9 @@ final class StatusEvent implements DataSourceEvent {
 abstract interface class DataSource {
   Stream<DataSourceEvent> get events;
 
+  /// Start the data source returning it from a stopped or suspended state.
   void start();
+
+  /// Stop the data source. Any active connection is dropped.
   void stop();
 }

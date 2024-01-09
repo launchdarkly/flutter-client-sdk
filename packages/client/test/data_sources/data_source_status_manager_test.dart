@@ -33,10 +33,6 @@ void main() {
           DataSourceState.setOffline
         ],
         [
-          (DataSourceStatusManager manager) => manager.setBackgroundDisabled(),
-          DataSourceState.backgroundDisabled
-        ],
-        [
           (DataSourceStatusManager manager) => manager.setNetworkUnavailable(),
           DataSourceState.networkUnavailable
         ],

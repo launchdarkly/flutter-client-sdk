@@ -34,24 +34,17 @@ Map<ConnectionMode, DataSourceFactory> defaultFactories(
     Map<ConnectionMode, MockDataSource> dataSources,
     {bool withBackground = false}) {
   final factories = {
-    ConnectionMode.foregroundStreaming: (context) {
+    ConnectionMode.streaming: (context) {
       final dataSource = MockDataSource();
-      dataSources[ConnectionMode.foregroundStreaming] = dataSource;
+      dataSources[ConnectionMode.streaming] = dataSource;
       return dataSource;
     },
-    ConnectionMode.foregroundPolling: (context) {
+    ConnectionMode.polling: (context) {
       final dataSource = MockDataSource();
-      dataSources[ConnectionMode.foregroundPolling] = dataSource;
+      dataSources[ConnectionMode.polling] = dataSource;
       return dataSource;
     }
   };
-  if (withBackground) {
-    factories[ConnectionMode.backgroundPolling] = (context) {
-      final dataSource = MockDataSource();
-      dataSources[ConnectionMode.backgroundPolling] = dataSource;
-      return dataSource;
-    };
-  }
   return factories;
 }
 
@@ -63,15 +56,15 @@ DataSourceManager makeManager(LDContext context,
   final flagManager =
   FlagManager(sdkKey: 'sdk-key', maxCachedContexts: 5, logger: logger);
   final dataSourceEventHandler = DataSourceEventHandler(
-      context: context,
       flagManager: flagManager,
       statusManager: statusManager,
       logger: logger);
   final manager = DataSourceManager(
       statusManager: statusManager,
       dataSourceEventHandler: dataSourceEventHandler,
-      logger: logger,
-      dataSourceFactories: factories);
+      logger: logger);
+
+  manager.setFactories(factories);
   return manager;
 }
 
@@ -82,7 +75,7 @@ void main() {
     final manager = makeManager(context, defaultFactories(dataSources));
 
     manager.identify(context);
-    final createdDataSource = dataSources[ConnectionMode.foregroundStreaming];
+    final createdDataSource = dataSources[ConnectionMode.streaming];
     expect(createdDataSource, isNotNull);
     expect(createdDataSource!.controller.hasListener, isTrue);
     expect(createdDataSource.startCalled, isTrue);
@@ -115,7 +108,7 @@ void main() {
         manager.identify(context);
         manager.setMode(ConnectionMode.offline);
         final createdDataSource = dataSources[ConnectionMode
-            .foregroundStreaming];
+            .streaming];
         expect(createdDataSource, isNotNull);
         expect(createdDataSource!.controller.hasListener, isFalse);
         expect(createdDataSource.startCalled, isTrue);
@@ -128,43 +121,18 @@ void main() {
     final manager = makeManager(context, defaultFactories(dataSources));
 
     manager.identify(context);
-    manager.setMode(ConnectionMode.foregroundPolling);
-    final streamingDataSource = dataSources[ConnectionMode.foregroundStreaming];
+    manager.setMode(ConnectionMode.polling);
+    final streamingDataSource = dataSources[ConnectionMode.streaming];
     expect(streamingDataSource, isNotNull);
     expect(streamingDataSource!.controller.hasListener, isFalse);
     expect(streamingDataSource.startCalled, isTrue);
     expect(streamingDataSource.stopCalled, isTrue);
 
-    final pollingDataSource = dataSources[ConnectionMode.foregroundPolling];
+    final pollingDataSource = dataSources[ConnectionMode.polling];
     expect(pollingDataSource, isNotNull);
     expect(pollingDataSource!.controller.hasListener, isTrue);
     expect(pollingDataSource.startCalled, isTrue);
     expect(pollingDataSource.stopCalled, isFalse);
-  });
-
-  test('it can detect when background polling is not supported', () {
-    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
-    final dataSources = <ConnectionMode, MockDataSource>{};
-    final context = LDContextBuilder().kind('user', 'bob').build();
-    final manager = makeManager(context, defaultFactories(dataSources),
-        inStatusManager: statusManager);
-
-    expectLater(
-        statusManager.changes,
-        emits(
-          DataSourceStatus(
-              state: DataSourceState.backgroundDisabled,
-              stateSince: DateTime(1)),
-        ));
-
-    manager.identify(context);
-
-    manager.setMode(ConnectionMode.backgroundPolling);
-    final createdDataSource = dataSources[ConnectionMode.foregroundStreaming];
-    expect(createdDataSource, isNotNull);
-    expect(createdDataSource!.controller.hasListener, isFalse);
-    expect(createdDataSource.startCalled, isTrue);
-    expect(createdDataSource.stopCalled, isTrue);
   });
 
   test('it can transition to network unavailable', () {
@@ -184,34 +152,12 @@ void main() {
 
     manager.identify(context);
 
-    manager.setMode(ConnectionMode.networkUnavailable);
-    final createdDataSource = dataSources[ConnectionMode.foregroundStreaming];
+    manager.setNetworkAvailable(false);
+    final createdDataSource = dataSources[ConnectionMode.streaming];
     expect(createdDataSource, isNotNull);
     expect(createdDataSource!.controller.hasListener, isFalse);
     expect(createdDataSource.startCalled, isTrue);
     expect(createdDataSource.stopCalled, isTrue);
-  });
-
-  test('it can transition to background polling', () {
-    final dataSources = <ConnectionMode, MockDataSource>{};
-    final context = LDContextBuilder().kind('user', 'bob').build();
-    final manager = makeManager(
-        context, defaultFactories(dataSources, withBackground: true));
-
-    manager.identify(context);
-
-    manager.setMode(ConnectionMode.backgroundPolling);
-    final streamingDataSource = dataSources[ConnectionMode.foregroundStreaming];
-    expect(streamingDataSource, isNotNull);
-    expect(streamingDataSource!.controller.hasListener, isFalse);
-    expect(streamingDataSource.startCalled, isTrue);
-    expect(streamingDataSource.stopCalled, isTrue);
-
-    final backgroundPolling = dataSources[ConnectionMode.backgroundPolling];
-    expect(backgroundPolling, isNotNull);
-    expect(backgroundPolling!.controller.hasListener, isTrue);
-    expect(backgroundPolling.startCalled, isTrue);
-    expect(backgroundPolling.stopCalled, isFalse);
   });
 
   test('it restarts the data source on bad data', () async {
@@ -222,7 +168,7 @@ void main() {
         inStatusManager: statusManager);
 
     manager.identify(context);
-    final createdDataSource = dataSources[ConnectionMode.foregroundStreaming];
+    final createdDataSource = dataSources[ConnectionMode.streaming];
 
     expect(
         await statusManager.changes.first,
@@ -258,7 +204,7 @@ void main() {
     expect(createdDataSource.startCalled, isTrue);
     expect(createdDataSource.stopCalled, isTrue);
 
-    final createdDataSource2 = dataSources[ConnectionMode.foregroundStreaming];
+    final createdDataSource2 = dataSources[ConnectionMode.streaming];
 
     expect(createdDataSource2, isNotNull);
     expect(createdDataSource2!.controller.hasListener, isTrue);

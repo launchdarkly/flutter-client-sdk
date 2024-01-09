@@ -12,6 +12,7 @@ void main() {
     DataSourceEventHandler? eventHandler;
     DataSourceStatusManager? statusManager;
     FlagManager? flagManager;
+    final context = LDContextBuilder().kind('user', 'user-key').build();
 
     setUp(() {
       flagManager =
@@ -21,9 +22,7 @@ void main() {
         time++;
         return DateTime(time);
       });
-      final context = LDContextBuilder().kind('user', 'user-key').build();
       eventHandler = DataSourceEventHandler(
-          context: context,
           flagManager: flagManager!,
           statusManager: statusManager!,
           logger: logger);
@@ -39,6 +38,7 @@ void main() {
           emits(FlagsChangedEvent(keys: ['HasBob', 'killswitch'])));
 
       eventHandler!.handleMessage(
+          context,
           'put',
           '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
               '"trackEvents":false},'
@@ -69,6 +69,7 @@ void main() {
           emits(FlagsChangedEvent(keys: ['HasBob', 'killswitch'])));
 
       eventHandler!.handleMessage(
+          context,
           'put',
           '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
               '"trackEvents":false,"reason":{"kind":"FALLTHROUGH"}},'
@@ -101,7 +102,7 @@ void main() {
               stateSince: DateTime(1))));
 
       eventHandler!.handleMessage(
-          'put', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
+          context, 'put', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
     });
 
     test('it can handle bad json on PATCH', () {
@@ -117,7 +118,7 @@ void main() {
               stateSince: DateTime(1))));
 
       eventHandler!.handleMessage(
-          'patch', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
+          context, 'patch', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
     });
 
     test('it can handle bad json on DELETE', () {
@@ -133,7 +134,7 @@ void main() {
               stateSince: DateTime(1))));
 
       eventHandler!.handleMessage(
-          'delete', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
+          context, 'delete', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
     });
 
     test('it can handle an invalid, but well formed on PUT, payload', () {
@@ -148,7 +149,7 @@ void main() {
               state: DataSourceState.initializing,
               stateSince: DateTime(1))));
 
-      eventHandler!.handleMessage('put', '{"HasBob":17}');
+      eventHandler!.handleMessage(context, 'put', '{"HasBob":17}');
     });
 
     test('it can handle an invalid, but well formed on PATCH, payload', () {
@@ -163,7 +164,7 @@ void main() {
               state: DataSourceState.initializing,
               stateSince: DateTime(1))));
 
-      eventHandler!.handleMessage('patch', '{"HasBob":17}');
+      eventHandler!.handleMessage(context, 'patch', '{"HasBob":17}');
     });
 
     test('it can handle an invalid, but well formed on DELETE, payload', () {
@@ -178,14 +179,13 @@ void main() {
               state: DataSourceState.initializing,
               stateSince: DateTime(1))));
 
-      eventHandler!.handleMessage('delete', '{"HasBob":17}');
+      eventHandler!.handleMessage(context, 'delete', '{"HasBob":17}');
     });
-
-
 
     group('given a handler which has received a put', () {
       setUp(() async {
         await eventHandler!.handleMessage(
+            context,
             'put',
             '{"my-boolean-flag":{"version":11,"flagVersion":5,"value":false,"variation":1,'
                 '"trackEvents":false},'
@@ -197,6 +197,7 @@ void main() {
       test('it handles a PATCH message without reasons', () async {
         expect(
             await eventHandler!.handleMessage(
+                context,
                 'patch',
                 '{"key": "my-boolean-flag", "version": 681, "flagVersion": 53,'
                     ' "value": true, "variation": 1, "trackEvents": false}'),
@@ -210,6 +211,7 @@ void main() {
       test('it handles a PATCH message with reasons', () async {
         expect(
             await eventHandler!.handleMessage(
+                context,
                 'patch',
                 '{"key":"my-boolean-flag","version":681,"flagVersion":56,'
                     '"value":true,"variation":0,"trackEvents":false,'
@@ -225,8 +227,7 @@ void main() {
       test('it handles a DELETE message', () async {
         expect(
             await eventHandler!.handleMessage(
-                'delete',
-                '{"key":"my-boolean-flag","version":681}'),
+                context, 'delete', '{"key":"my-boolean-flag","version":681}'),
             MessageStatus.messageHandled);
 
         final updated = flagManager!.get('my-boolean-flag')!;

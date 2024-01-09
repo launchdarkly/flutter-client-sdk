@@ -31,9 +31,6 @@ final class LDConfig {
   /// The configured foreground polling interval in milliseconds.
   final int pollingIntervalMillis;
 
-  /// The configured background polling interval in milliseconds.
-  final int backgroundPollingIntervalMillis;
-
   /// The configured diagnostic recording interval in milliseconds.
   final int diagnosticRecordingIntervalMillis;
 
@@ -80,8 +77,6 @@ final class LDConfig {
         eventsFlushIntervalMillis = builder._eventsFlushIntervalMillis,
         connectionTimeoutMillis = builder._connectionTimeoutMillis,
         pollingIntervalMillis = builder._pollingIntervalMillis,
-        backgroundPollingIntervalMillis =
-            builder._backgroundPollingIntervalMillis,
         diagnosticRecordingIntervalMillis =
             builder._diagnosticRecordingIntervalMillis,
         maxCachedContexts = builder._maxCachedContexts,
@@ -112,7 +107,6 @@ class LDConfigBuilder {
   int _eventsFlushIntervalMillis = 30 * 1000;
   int _connectionTimeoutMillis = 10 * 1000;
   int _pollingIntervalMillis = 5 * 60 * 1000;
-  int _backgroundPollingIntervalMillis = 60 * 60 * 1000;
   int _diagnosticRecordingIntervalMillis = 15 * 60 * 1000;
   int _maxCachedContexts = 5;
 
@@ -197,15 +191,6 @@ class LDConfigBuilder {
   /// Foreground polling is only used when streaming has been disabled with [LDConfigBuilder.stream].
   LDConfigBuilder pollingIntervalMillis(int pollingIntervalMillis) {
     _pollingIntervalMillis = pollingIntervalMillis;
-    return this;
-  }
-
-  /// Sets the interval between background flag poll requests.
-  ///
-  /// See [LDConfigBuilder.disableBackgroundUpdating] to disable background polls entirely.
-  LDConfigBuilder backgroundPollingIntervalMillis(
-      int backgroundPollingIntervalMillis) {
-    _backgroundPollingIntervalMillis = backgroundPollingIntervalMillis;
     return this;
   }
 

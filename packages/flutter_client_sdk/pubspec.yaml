@@ -15,12 +15,14 @@ dependencies:
   launchdarkly_dart_client: 0.0.1
   launchdarkly_dart_common: 0.0.1
   shared_preferences: 2.2.2
+  connectivity_plus: 5.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   test: ^1.24.3
   lints: ^3.0.0
+  mocktail: ^1.0.1
 
 # The following section is specific to Flutter.
 flutter:

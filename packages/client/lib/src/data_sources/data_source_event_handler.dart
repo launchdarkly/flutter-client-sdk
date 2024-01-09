@@ -47,16 +47,16 @@ final class _DeleteDataSerialization {
 final class DataSourceEventHandler {
   final FlagManager _flagManager;
   final DataSourceStatusManager _statusManager;
-  final LDContext _context;
   final LDLogger _logger;
 
-  Future<MessageStatus> handleMessage(String type, String data) async {
+  Future<MessageStatus> handleMessage(
+      LDContext context, String type, String data) async {
     switch (type) {
       case 'put':
         {
           try {
             final parsed = jsonDecode(data);
-            return _processPut(parsed);
+            return _processPut(context, parsed);
           } catch (err) {
             _logger.error('put message contained invalid json: $err');
             _statusManager.setErrorByKind(
@@ -68,7 +68,7 @@ final class DataSourceEventHandler {
         {
           try {
             final parsed = jsonDecode(data);
-            return _processPatch(parsed);
+            return _processPatch(context, parsed);
           } catch (err) {
             _logger.error('patch message contained invalid json: $err');
             _statusManager.setErrorByKind(
@@ -80,7 +80,7 @@ final class DataSourceEventHandler {
         {
           try {
             final parsed = jsonDecode(data);
-            return _processDelete(parsed);
+            return _processDelete(context, parsed);
           } catch (err) {
             _logger.error('delete message contained invalid json: $err');
             _statusManager.setErrorByKind(
@@ -95,12 +95,12 @@ final class DataSourceEventHandler {
     }
   }
 
-  Future<MessageStatus> _processPut(dynamic parsed) async {
+  Future<MessageStatus> _processPut(LDContext context, dynamic parsed) async {
     try {
       final putData = LDEvaluationResultsSerialization.fromJson(parsed).map(
           (key, value) => MapEntry(
               key, ItemDescriptor(version: value.version, flag: value)));
-      await _flagManager.init(_context, putData);
+      await _flagManager.init(context, putData);
       _statusManager.setValid();
       return MessageStatus.messageHandled;
     } catch (err) {
@@ -111,11 +111,11 @@ final class DataSourceEventHandler {
     }
   }
 
-  Future<MessageStatus> _processPatch(dynamic parsed) async {
+  Future<MessageStatus> _processPatch(LDContext context, dynamic parsed) async {
     try {
       final patchData = _PatchDataSerialization.fromJson(parsed);
       await _flagManager.upsert(
-          _context,
+          context,
           patchData.key,
           ItemDescriptor(
               version: patchData.flag.version, flag: patchData.flag));
@@ -128,10 +128,11 @@ final class DataSourceEventHandler {
     }
   }
 
-  Future<MessageStatus> _processDelete(dynamic parsed) async {
+  Future<MessageStatus> _processDelete(
+      LDContext context, dynamic parsed) async {
     try {
       final deleteData = _DeleteDataSerialization.fromJson(parsed);
-      await _flagManager.upsert(_context, deleteData.key,
+      await _flagManager.upsert(context, deleteData.key,
           ItemDescriptor(version: deleteData.version.toInt()));
       return MessageStatus.messageHandled;
     } catch (err) {
@@ -143,12 +144,10 @@ final class DataSourceEventHandler {
   }
 
   DataSourceEventHandler(
-      {required LDContext context,
-      required FlagManager flagManager,
+      {required FlagManager flagManager,
       required DataSourceStatusManager statusManager,
       required LDLogger logger})
-      : _context = context,
-        _flagManager = flagManager,
+      : _flagManager = flagManager,
         _statusManager = statusManager,
         _logger = logger.subLogger('DataSourceEventHandler');
 }

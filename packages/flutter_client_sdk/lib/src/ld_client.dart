@@ -1,5 +1,8 @@
 import 'package:launchdarkly_dart_client/ld_client.dart';
 
+import 'config/defaults/flutter_default_config.dart';
+import 'connection_manager.dart';
+import 'flutter_state_detector.dart';
 import 'platform_env_reporter.dart';
 
 /// Type of function callback used by `LDClient.registerFlagsReceivedListener`.
@@ -29,6 +32,7 @@ typedef LDFlagUpdatedCallback = void Function(String flagKey);
 /// and method documentation for more details.
 class LDClient {
   late final LDDartClient _client;
+  late final ConnectionManager _connectionManager;
 
   /// Stream which emits data source status changes.
   Stream<DataSourceStatus> get dataSourceStatusChanges {
@@ -52,6 +56,14 @@ class LDClient {
         platformEnvReporter: PlatformEnvReporter(),
         autoEnvAttributes: config.autoEnvAttributes);
     _client = LDDartClient(dartConfig, context);
+    _connectionManager = ConnectionManager(
+        logger: _client.logger,
+        // TODO: Configuration needs implemented.
+        config: ConnectionManagerConfig(
+            runInBackground:
+                FlutterDefaultConfig.connectionManagerConfig.runInBackground),
+        destination: DartClientAdapter(_client),
+        detector: FlutterStateDetector());
   }
 
   /// Initialize the SDK.
@@ -201,5 +213,6 @@ class LDClient {
   /// It's not normally necessary to explicitly shut down the client.
   Future<void> close() async {
     _client.close();
+    _connectionManager.dispose();
   }
 }

@@ -32,7 +32,6 @@ import 'package:test/test.dart';
 
   final eventHandler = DataSourceEventHandler(
       logger: logger,
-      context: context,
       flagManager: flagManager,
       statusManager: statusManager);
 
@@ -53,7 +52,7 @@ import 'package:test/test.dart';
   polling.events.asyncMap((event) async {
     switch (event) {
       case DataEvent():
-        return eventHandler.handleMessage(event.type, event.data);
+        return eventHandler.handleMessage(context, event.type, event.data);
       case StatusEvent():
         if (event.statusCode != null) {
           statusManager.setErrorResponse(event.statusCode!, event.message, shutdown: event.shutdown);

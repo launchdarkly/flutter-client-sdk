@@ -63,6 +63,16 @@ final class LDDartClient {
         _initialUndecoratedContext = context {
     // TODO: Figure out how we will construct this.
     _diagnosticsManager = null;
+
+    final dataSourceEventHandler = DataSourceEventHandler(
+        flagManager: _flagManager,
+        statusManager: _dataSourceStatusManager,
+        logger: _logger);
+
+    _dataSourceManager = DataSourceManager(
+        statusManager: _dataSourceStatusManager,
+        dataSourceEventHandler: dataSourceEventHandler,
+        logger: _logger);
   }
 
   Future<EnvironmentReporter> _makeEnvReporter(LDDartConfig config) async {
@@ -90,14 +100,12 @@ final class LDDartClient {
       _logger.info('A valid applicationId was not provided.');
     }
 
-    // TODO: Temp until header is correct.
-    // return _config.httpProperties.withHeaders(appInfo.asHeaderMap());
-    return _config.httpProperties;
+    return _config.httpProperties.withHeaders(appInfo.asHeaderMap());
   }
 
   Future<void> _setAndDecorateContext(LDContext context) async {
     _context = await _modifiers.asyncReduce(
-            (reducer, accumulator) async => await reducer.decorate(accumulator),
+        (reducer, accumulator) async => await reducer.decorate(accumulator),
         context);
   }
 
@@ -131,7 +139,7 @@ final class LDDartClient {
     }
 
     final httpProperties =
-    await _makeHttpProperties(_config, _envReporter, _logger);
+        await _makeHttpProperties(_config, _envReporter, _logger);
 
     _eventProcessor = EventProcessor(
         logger: _logger,
@@ -140,7 +148,7 @@ final class LDDartClient {
         // TODO: Get from config. Use correct auth header setup.
         client: HttpClient(
             httpProperties: httpProperties
-            // TODO: this authorization header location is inconsistent with others
+                // TODO: this authorization header location is inconsistent with others
                 .withHeaders({'authorization': _config.sdkCredential})),
         analyticsEventsPath: DefaultConfig.eventPaths
             .getAnalyticEventsPath(_config.sdkCredential),
@@ -149,40 +157,29 @@ final class LDDartClient {
         diagnosticsManager: _diagnosticsManager,
         endpoints: _config.endpoints,
         diagnosticRecordingInterval:
-        _config.eventsConfig.diagnosticRecordingInterval);
+            _config.eventsConfig.diagnosticRecordingInterval);
     _eventProcessor.start();
 
-    // TODO: Can this _context be used before it has been decorated?
-    final dataSourceEventHandler = DataSourceEventHandler(
-        context: _context,
-        flagManager: _flagManager,
-        statusManager: _dataSourceStatusManager,
-        logger: _logger);
-
-    _dataSourceManager = DataSourceManager(
-        statusManager: _dataSourceStatusManager,
-        dataSourceEventHandler: dataSourceEventHandler,
-        logger: _logger,
-        dataSourceFactories: {
-          ConnectionMode.foregroundStreaming: (LDContext context) {
-            return StreamingDataSource(
-                credential: _config.sdkCredential,
-                context: context,
-                endpoints: _config.endpoints,
-                logger: _logger,
-                dataSourceConfig: _config.streamingConfig,
-                httpProperties: httpProperties);
-          },
-          ConnectionMode.foregroundPolling: (LDContext context) {
-            return PollingDataSource(
-                credential: _config.sdkCredential,
-                context: context,
-                endpoints: _config.endpoints,
-                logger: _logger,
-                dataSourceConfig: _config.pollingConfig,
-                httpProperties: httpProperties);
-          },
-        });
+    _dataSourceManager.setFactories({
+      ConnectionMode.streaming: (LDContext context) {
+        return StreamingDataSource(
+            credential: _config.sdkCredential,
+            context: context,
+            endpoints: _config.endpoints,
+            logger: _logger,
+            dataSourceConfig: _config.streamingConfig,
+            httpProperties: httpProperties);
+      },
+      ConnectionMode.polling: (LDContext context) {
+        return PollingDataSource(
+            credential: _config.sdkCredential,
+            context: context,
+            endpoints: _config.endpoints,
+            logger: _logger,
+            dataSourceConfig: _config.pollingConfig,
+            httpProperties: httpProperties);
+      },
+    });
 
     await identify(_initialUndecoratedContext);
   }
@@ -222,7 +219,7 @@ final class LDDartClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
   bool boolVariation(String flagKey, bool defaultValue) {
     return _variationInternal(flagKey, LDValue.ofBool(defaultValue),
-        isDetailed: false, type: LDValueType.boolean)
+            isDetailed: false, type: LDValueType.boolean)
         .value
         .booleanValue();
   }
@@ -231,8 +228,8 @@ final class LDDartClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<bool> boolVariationDetail(String flagKey,
-      bool defaultValue) {
+  LDEvaluationDetail<bool> boolVariationDetail(
+      String flagKey, bool defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofBool(defaultValue),
         isDetailed: true, type: LDValueType.boolean);
@@ -246,7 +243,7 @@ final class LDDartClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   int intVariation(String flagKey, int defaultValue) {
     return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-        isDetailed: false, type: LDValueType.number)
+            isDetailed: false, type: LDValueType.number)
         .value
         .intValue();
   }
@@ -269,7 +266,7 @@ final class LDDartClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   double doubleVariation(String flagKey, double defaultValue) {
     return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-        isDetailed: false, type: LDValueType.number)
+            isDetailed: false, type: LDValueType.number)
         .value
         .doubleValue();
   }
@@ -278,8 +275,8 @@ final class LDDartClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<double> doubleVariationDetail(String flagKey,
-      double defaultValue) {
+  LDEvaluationDetail<double> doubleVariationDetail(
+      String flagKey, double defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofNum(defaultValue),
         isDetailed: true, type: LDValueType.number);
@@ -293,7 +290,7 @@ final class LDDartClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a string, or if some error occurs.
   String stringVariation(String flagKey, String defaultValue) {
     return _variationInternal(flagKey, LDValue.ofString(defaultValue),
-        isDetailed: false, type: LDValueType.string)
+            isDetailed: false, type: LDValueType.string)
         .value
         .stringValue();
   }
@@ -303,8 +300,8 @@ final class LDDartClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<String> stringVariationDetail(String flagKey,
-      String defaultValue) {
+  LDEvaluationDetail<String> stringVariationDetail(
+      String flagKey, String defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofString(defaultValue),
         isDetailed: true, type: LDValueType.string);
@@ -324,13 +321,13 @@ final class LDDartClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<LDValue> jsonVariationDetail(String flagKey,
-      LDValue defaultValue) {
+  LDEvaluationDetail<LDValue> jsonVariationDetail(
+      String flagKey, LDValue defaultValue) {
     return _variationInternal(flagKey, defaultValue, isDetailed: true);
   }
 
-  LDEvaluationDetail<LDValue> _variationInternal(String flagKey,
-      LDValue defaultValue,
+  LDEvaluationDetail<LDValue> _variationInternal(
+      String flagKey, LDValue defaultValue,
       {required bool isDetailed, LDValueType? type}) {
     final evalResult = _flagManager.get(flagKey);
 
@@ -358,7 +355,7 @@ final class LDDartClient {
         trackEvent: evalResult?.flag?.trackEvents ?? false,
         debugEventsUntilDate: evalResult?.flag?.debugEventsUntilDate != null
             ? DateTime.fromMillisecondsSinceEpoch(
-            evalResult!.flag!.debugEventsUntilDate!)
+                evalResult!.flag!.debugEventsUntilDate!)
             : null,
         version: evalResult?.version));
 
@@ -375,7 +372,7 @@ final class LDDartClient {
     final allEvalResults = _flagManager.getAll();
 
     for (var MapEntry(key: flagKey, value: evalResult)
-    in allEvalResults.entries) {
+        in allEvalResults.entries) {
       if (evalResult.flag != null) {
         res[flagKey] = evalResult.flag!.detail.value;
       }
@@ -389,8 +386,17 @@ final class LDDartClient {
     _dataSourceManager.setMode(mode);
   }
 
+  void setNetworkAvailability(bool available) {
+    _dataSourceManager.setNetworkAvailable(available);
+  }
+
   bool get offline =>
       _dataSourceStatusManager.status.state == DataSourceState.setOffline;
+
+  /// Get the logger for the client. This is primarily intended for SDK wrappers
+  /// and LaunchDarkly provided modules. It is not recommended that this
+  /// instance is used for general purpose logging.
+  LDLogger get logger => _logger;
 
   /// Track custom events associated with the current context for data export or experimentation.
   ///
