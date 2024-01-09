@@ -3,6 +3,7 @@ import 'package:launchdarkly_dart_client/ld_client.dart';
 import 'config/defaults/flutter_default_config.dart';
 import 'connection_manager.dart';
 import 'flutter_state_detector.dart';
+import 'persistence/shared_preferences_persistence.dart';
 import 'platform_env_reporter.dart';
 
 /// Type of function callback used by `LDClient.registerFlagsReceivedListener`.
@@ -51,6 +52,7 @@ class LDClient {
   LDClient(LDConfig config, LDContext context) {
     final dartConfig = LDDartConfig(
         sdkCredential: config.sdkCredential,
+        persistence: SharedPreferencesPersistence(),
         logger: LDLogger(level: LDLogLevel.debug),
         applicationInfo: config.applicationInfo,
         platformEnvReporter: PlatformEnvReporter(),

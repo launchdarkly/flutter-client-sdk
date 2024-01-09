@@ -45,7 +45,8 @@ final class FlagPersistence {
         _logger = logger.subLogger('FlagPersistence'),
         _stamper = stamper;
 
-  Future<void> init(LDContext context, Map<String, ItemDescriptor> newFlags) async {
+  Future<void> init(
+      LDContext context, Map<String, ItemDescriptor> newFlags) async {
     _updater.init(context, newFlags);
     return _storeCache(context);
   }
@@ -77,6 +78,7 @@ final class FlagPersistence {
           context,
           flagConfig.map((key, value) => MapEntry(
               key, ItemDescriptor(version: value.version, flag: value))));
+      _logger.debug('Loaded a cached flag config from persistence.');
       return true;
     } catch (e) {
       _logger.warn('Could not load cached flag values for context: $e');
@@ -91,6 +93,7 @@ final class FlagPersistence {
     final json = await _persistence?.read(_environmentKey, _indexKey);
     if (json != null) {
       try {
+        _logger.debug('Loaded context index from persistence.');
         _contextIndex = ContextIndex.fromJson(jsonDecode(json));
       } catch (e) {
         _logger.warn('Could not load index from persistent storage: $e');
