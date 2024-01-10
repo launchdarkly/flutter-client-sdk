@@ -26,7 +26,13 @@ export 'src/flag_manager/flag_updater.dart' show FlagsChangedEvent;
 export 'src/config/service_endpoints.dart' show ServiceEndpoints;
 
 export 'src/persistence/persistence.dart' show Persistence;
-export 'src/ld_dart_client.dart' show LDDartClient;
+export 'src/ld_dart_client.dart'
+    show
+        LDDartClient,
+        IdentifyComplete,
+        IdentifySuperseded,
+        IdentifyError,
+        IdentifyResult;
 
 // TODO: These may need adjusted after the config building process is sorted.
 export 'src/config/ld_dart_config.dart' show LDDartConfig;

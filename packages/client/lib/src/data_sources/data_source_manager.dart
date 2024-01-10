@@ -33,6 +33,8 @@ final class DataSourceManager {
   StreamSubscription<MessageStatus?>? _subscription;
   bool _stopped = false;
 
+  Completer<void>? _identifyCompleter;
+
   DataSourceManager({
     ConnectionMode startingMode = ConnectionMode.streaming,
     required DataSourceStatusManager statusManager,
@@ -51,7 +53,8 @@ final class DataSourceManager {
     _dataSourceFactories.addAll(factories);
   }
 
-  void identify(LDContext context) {
+  void identify(LDContext context, Completer<void> completer) {
+    _identifyCompleter = completer;
     _activeContext = context;
 
     _setupConnection();
@@ -145,9 +148,29 @@ final class DataSourceManager {
       }
       switch (event) {
         case DataEvent():
-          return _dataSourceEventHandler.handleMessage(
+          var handled = await _dataSourceEventHandler.handleMessage(
               _activeContext!, event.type, event.data);
+          // TODO: Do we want to complete on any valid data event, or only put?
+          // Current protocol it will always be a put unless something has
+          // gone wrong.
+          if (handled == MessageStatus.messageHandled &&
+              _identifyCompleter != null) {
+            if (_identifyCompleter!.isCompleted) {
+              _logger.error('Identify was already complete before receiving '
+                  'data. This could represent an issue with SDK logic. Please'
+                  'make a bug report if you encounter this situation.');
+            } else {
+              _identifyCompleter!.complete();
+            }
+          }
+          // Only need to complete this the first time.
+          _identifyCompleter = null;
+          return handled;
         case StatusEvent():
+          if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {
+            _identifyCompleter!.completeError(Exception(event.message));
+            _identifyCompleter = null;
+          }
           if (event.statusCode != null) {
             _statusManager.setErrorResponse(event.statusCode!, event.message,
                 shutdown: event.shutdown);

@@ -63,3 +63,5 @@ export 'src/network/http_client.dart' show HttpClient, RequestMethod;
 
 export 'src/network/utils.dart'
     show Headers, appendPath, isHttpGloballyRecoverable, isHttpLocallyRecoverable, urlSafeSha256Hash;
+
+export 'src/async/async_single_queue.dart' show AsyncSingleQueue, TaskComplete, TaskShed, TaskError, TaskResult;

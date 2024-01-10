@@ -73,7 +73,7 @@ class LDClient {
   /// This should be called before any other SDK methods to initialize the native SDK instance. Note that the SDK
   /// requires the flutter bindings to be initialized to allow bridging communication. In order to start the SDK before
   /// `runApp` is called, you must ensure the binding is initialized with `WidgetsFlutterBinding.ensureInitialized`.
-  Future<void> start() async {
+  Future<IdentifyResult> start() async {
     return _client.start();
   }
 
@@ -89,7 +89,7 @@ class LDClient {
   /// When the context is changed, the SDK will load flag values for the context from a local cache if available, while
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
-  Future<void> identify(LDContext context) async {
+  Future<IdentifyResult> identify(LDContext context) async {
     return _client.identify(context);
   }
 

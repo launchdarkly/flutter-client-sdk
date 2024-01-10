@@ -69,17 +69,19 @@ DataSourceManager makeManager(LDContext context,
 }
 
 void main() {
-  test('it sets up an initial connection on start', () {
+  test('it sets up an initial connection on start', () async {
     final dataSources = <ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources));
+    final completer = Completer<void>();
 
-    manager.identify(context);
+    manager.identify(context, completer);
     final createdDataSource = dataSources[ConnectionMode.streaming];
     expect(createdDataSource, isNotNull);
     expect(createdDataSource!.controller.hasListener, isTrue);
     expect(createdDataSource.startCalled, isTrue);
     expect(createdDataSource.stopCalled, isFalse);
+    await completer.future;
   });
 
   test('it forwards events to the data source event handler', () {
@@ -88,8 +90,9 @@ void main() {
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources),
         inStatusManager: statusManager);
+    final completer = Completer<void>();
 
-    manager.identify(context);
+    manager.identify(context, completer);
 
     expectLater(
         statusManager.changes,
@@ -104,8 +107,9 @@ void main() {
         final dataSources = <ConnectionMode, MockDataSource>{};
         final context = LDContextBuilder().kind('user', 'bob').build();
         final manager = makeManager(context, defaultFactories(dataSources));
+        final completer = Completer<void>();
 
-        manager.identify(context);
+        manager.identify(context, completer);
         manager.setMode(ConnectionMode.offline);
         final createdDataSource = dataSources[ConnectionMode
             .streaming];
@@ -119,8 +123,9 @@ void main() {
     final dataSources = <ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources));
+    final completer = Completer<void>();
 
-    manager.identify(context);
+    manager.identify(context, completer);
     manager.setMode(ConnectionMode.polling);
     final streamingDataSource = dataSources[ConnectionMode.streaming];
     expect(streamingDataSource, isNotNull);
@@ -141,6 +146,7 @@ void main() {
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources),
         inStatusManager: statusManager);
+    final completer = Completer<void>();
 
     expectLater(
         statusManager.changes,
@@ -150,7 +156,7 @@ void main() {
               stateSince: DateTime(1)),
         ));
 
-    manager.identify(context);
+    manager.identify(context, completer);
 
     manager.setNetworkAvailable(false);
     final createdDataSource = dataSources[ConnectionMode.streaming];
@@ -166,8 +172,9 @@ void main() {
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources),
         inStatusManager: statusManager);
+    final completer = Completer<void>();
 
-    manager.identify(context);
+    manager.identify(context, completer);
     final createdDataSource = dataSources[ConnectionMode.streaming];
 
     expect(

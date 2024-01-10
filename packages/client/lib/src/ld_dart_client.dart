@@ -17,6 +17,28 @@ import 'data_sources/streaming_data_source.dart';
 import 'flag_manager/flag_manager.dart';
 import 'persistence/persistence.dart';
 
+/// Base class used for all identify results. Using a sealed class allows for
+/// exhaustive matching the the return from identify operations.
+sealed class IdentifyResult {}
+
+/// The identify has been completed. Either the identify completed with
+/// cached data, or new data was fetched from LaunchDarkly.
+final class IdentifyComplete implements IdentifyResult {
+  IdentifyComplete();
+}
+
+/// The identify has been superseded. Multiple identify calls were outstanding
+/// and this one has been cancelled.
+final class IdentifySuperseded implements IdentifyResult {}
+
+/// The identify operation encountered an error and will not complete.
+final class IdentifyError implements IdentifyResult {
+  /// The error which prevented the identify from completing.
+  final Object error;
+
+  IdentifyError(this.error);
+}
+
 final class LDDartClient {
   final LDDartConfig _config;
   final Persistence _persistence;
@@ -27,6 +49,7 @@ final class LDDartClient {
   late final EventProcessor _eventProcessor;
   late final DiagnosticsManager? _diagnosticsManager;
   late final EnvironmentReporter _envReporter;
+  late final AsyncSingleQueue<void> _identifyQueue = AsyncSingleQueue();
 
   // Modifications will happen in the order they are specified in this list.
   // If there are cross-dependent modifiers, then this must be considered.
@@ -36,9 +59,8 @@ final class LDDartClient {
   // During startup the _context will be invalid until the identify process
   // is complete.
   LDContext _context = LDContextBuilder().build();
-  StreamingDataSource? _streamingDataSource;
 
-  Future<void>? _startFuture;
+  Future<IdentifyResult>? _startFuture;
 
   Stream<DataSourceStatus> get dataSourceStatusChanges {
     return _dataSourceStatusManager.changes;
@@ -113,19 +135,21 @@ final class LDDartClient {
   /// this is called before any other methods. Variation calls before the SDK
   /// has been started, or after starting but before initialization is complete,
   /// will return default values.
-  Future<void> start() {
+  ///
+  /// When starting the [IdentifyResult] will not be [IdentifySuperseded].
+  Future<IdentifyResult> start() {
     if (_startFuture != null) {
       return _startFuture!;
     }
-    final completer = Completer<void>();
+    final completer = Completer<IdentifyResult>();
     _startFuture = completer.future;
 
-    _startInternal().then((value) => completer.complete());
+    _startInternal().then((value) => completer.complete(value));
 
     return _startFuture!;
   }
 
-  Future<void> _startInternal() async {
+  Future<IdentifyResult> _startInternal() async {
     // TODO: Do we start the process when we create the client, and provide
     // a way to know when it completes? Or do we not even start it as we
     // are doing here.
@@ -181,7 +205,7 @@ final class LDDartClient {
       },
     });
 
-    await identify(_initialUndecoratedContext);
+    return await identify(_initialUndecoratedContext);
   }
 
   /// Triggers immediate sending of pending events to LaunchDarkly.
@@ -196,22 +220,34 @@ final class LDDartClient {
   /// When the context is changed, the SDK will load flag values for the context from a local cache if available, while
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
-  Future<void> identify(LDContext context) async {
+  Future<IdentifyResult> identify(LDContext context) async {
     // TODO: Check for difference?
     // TODO: Does the SDK need to have been started?
     await _setAndDecorateContext(context);
-    _identifyInternal();
+    return _identifyInternal();
   }
 
-  Future<void> _identifyInternal() async {
-    _streamingDataSource?.stop();
-    _eventProcessor.processIdentifyEvent(IdentifyEvent(context: _context));
-    await _flagManager.loadCached(_context);
+  Future<IdentifyResult> _identifyInternal() async {
+    final res = await _identifyQueue.execute(() async {
+      final completer = Completer<void>();
+      _eventProcessor.processIdentifyEvent(IdentifyEvent(context: _context));
+      final loadedFromCache = await _flagManager.loadCached(_context);
 
-    _dataSourceManager.identify(_context);
+      _dataSourceManager.identify(_context, completer);
 
-    // TODO: Figure out how to wait.
-    // When persistence data is loaded we would complete early.
+      if (loadedFromCache) {
+        return;
+      }
+      return completer.future;
+    });
+    switch (res) {
+      case TaskComplete<void>():
+        return IdentifyComplete();
+      case TaskShed<void>():
+        return IdentifySuperseded();
+      case TaskError<void>(error: var error):
+        return IdentifyError(error);
+    }
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.
