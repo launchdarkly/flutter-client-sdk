@@ -13,8 +13,10 @@ export 'src/ld_evaluation_result.dart' show LDEvaluationResult;
 export 'src/application_info.dart' show ApplicationInfo;
 export 'src/os_info.dart' show OsInfo;
 export 'src/device_info.dart' show DeviceInfo;
-export 'src/env_reporting/environment_reporter.dart' show EnvironmentReporter, ConcreteEnvReporter;
-export 'src/env_reporting/environment_reporter_builder.dart' show PrioritizedEnvReporterBuilder;
+export 'src/env_reporting/environment_reporter.dart'
+    show EnvironmentReporter, ConcreteEnvReporter;
+export 'src/env_reporting/environment_reporter_builder.dart'
+    show PrioritizedEnvReporterBuilder;
 
 export 'src/serialization/ld_value_serialization.dart'
     show LDValueSerialization;
@@ -41,6 +43,7 @@ export 'src/events/events.dart'
         FlagCounter,
         FlagSummary;
 export 'src/events/event_processor.dart' show EventProcessor;
+export 'src/events/default_event_processor.dart' show DefaultEventProcessor;
 export 'src/events/diagnostics_manager.dart' show DiagnosticsManager;
 export 'src/events/diagnostic_events.dart'
     show
@@ -62,6 +65,12 @@ export 'src/config/defaults/common_default_config.dart'
 export 'src/network/http_client.dart' show HttpClient, RequestMethod;
 
 export 'src/network/utils.dart'
-    show Headers, appendPath, isHttpGloballyRecoverable, isHttpLocallyRecoverable, urlSafeSha256Hash;
+    show
+        Headers,
+        appendPath,
+        isHttpGloballyRecoverable,
+        isHttpLocallyRecoverable,
+        urlSafeSha256Hash;
 
-export 'src/async/async_single_queue.dart' show AsyncSingleQueue, TaskComplete, TaskShed, TaskError, TaskResult;
+export 'src/async/async_single_queue.dart'
+    show AsyncSingleQueue, TaskComplete, TaskShed, TaskError, TaskResult;

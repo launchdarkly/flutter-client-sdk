@@ -21,6 +21,7 @@ final class LDDartConfig {
   final EventsConfig eventsConfig;
   final EnvironmentReporter platformEnvReporter;
   final bool autoEnvAttributes;
+  final bool offline;
 
   LDDartConfig(
       {required this.sdkCredential,
@@ -33,7 +34,7 @@ final class LDDartConfig {
       EventsConfig? eventsConfig,
       this.persistence,
       EnvironmentReporter? platformEnvReporter,
-      bool? autoEnvAttributes})
+      bool? autoEnvAttributes, this.offline = false})
       : logger = logger ?? LDLogger(),
         endpoints = endpoints ?? ServiceEndpoints(),
         pollingConfig = pollingConfig ?? PollingDataSourceConfig(),

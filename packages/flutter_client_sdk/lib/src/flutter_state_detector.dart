@@ -9,8 +9,9 @@ import 'connection_manager.dart';
 /// This class detects the application and network state for flutter.
 final class FlutterStateDetector implements StateDetector {
   final StreamController<ApplicationState> _applicationStateController =
-  StreamController();
-  final StreamController<NetworkState> _networkStateController = StreamController();
+      StreamController();
+  final StreamController<NetworkState> _networkStateController =
+      StreamController();
 
   @override
   Stream<ApplicationState> get applicationState =>
@@ -32,15 +33,22 @@ final class FlutterStateDetector implements StateDetector {
       onStateChange: (state) => _handleApplicationLifecycle(state),
     );
 
+    Connectivity().checkConnectivity().then(_setConnectivity);
+
+    // The changed event does not emit the initial state.
     _connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((connectivityResult) {
-          if (connectivityResult == ConnectivityResult.none) {
-            _networkStateController.sink.add(NetworkState.unavailable);
-          } else {
-            _networkStateController.sink.add(NetworkState.available);
-          }
-        });
+        Connectivity().onConnectivityChanged.listen(_setConnectivity);
   }
+
+  void _setConnectivity(ConnectivityResult connectivityResult) {
+
+    if (connectivityResult == ConnectivityResult.none) {
+      _networkStateController.sink.add(NetworkState.unavailable);
+    } else {
+      _networkStateController.sink.add(NetworkState.available);
+    }
+  }
+
   /// The application lifecycle is as follows.
   /// Diagram based on: https://api.flutter.dev/flutter/widgets/AppLifecycleListener-class.html
   /// +-----------+       onStart             +-----------+

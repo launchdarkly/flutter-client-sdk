@@ -72,8 +72,6 @@ void main() {
             offline: true,
             allAttributesPrivate: true,
             diagnosticRecordingIntervalMillis: 500,
-            backgroundPollingDisabled: false,
-            backgroundPollingIntervalMillis: 555,
             useReport: true,
             evaluationReasonsRequested: true),
         platform: DiagnosticPlatformData(
@@ -104,9 +102,7 @@ void main() {
         '"offline":true,'
         '"allAttributesPrivate":true,'
         '"diagnosticRecordingIntervalMillis":500,'
-        '"backgroundPollingIntervalMillis":555,'
         '"useReport":true,'
-        '"backgroundPollingDisabled":false,'
         '"evaluationReasonsRequested": true'
         '},'
         '"platform":{'

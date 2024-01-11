@@ -36,7 +36,10 @@ abstract interface class StateDetector {
 /// private adapter.
 abstract interface class ConnectionDestination {
   void setMode(ConnectionMode mode);
+
   void setNetworkAvailability(bool available);
+
+  void setEventSendingEnabled(bool enabled, {bool flush = true});
 }
 
 /// Basic adapter that turns an LDDartClient into a ConnectionDestination.
@@ -55,15 +58,13 @@ final class DartClientAdapter implements ConnectionDestination {
     _client.setNetworkAvailability(available);
   }
 
+  @override
+  void setEventSendingEnabled(bool enabled, {bool flush = true}) {
+    _client.setEventSendingEnabled(enabled, flush: flush);
+  }
 }
 
 final class ConnectionManagerConfig {
-  /// It has been requested that the SDK never make a network connection.
-  final bool alwaysOffline;
-
-  /// If background updating is enabled
-  final Duration backgroundPollingInterval;
-
   /// The initial connection mode the SDK should use.
   final ConnectionMode initialConnectionMode;
 
@@ -89,9 +90,7 @@ final class ConnectionManagerConfig {
   final bool disableAutomaticBackgroundHandling;
 
   ConnectionManagerConfig(
-      {this.alwaysOffline = false,
-      this.backgroundPollingInterval = const Duration(hours: 1),
-      this.initialConnectionMode = ConnectionMode.streaming,
+      {this.initialConnectionMode = ConnectionMode.streaming,
       this.runInBackground = true,
       this.disableAutomaticBackgroundHandling = false,
       this.disableAutomaticNetworkHandling = false});
@@ -155,13 +154,16 @@ final class ConnectionManager {
   }
 
   void _setForegroundAvailableMode() {
-    if(offline) {
+    if (offline) {
       _destination.setMode(ConnectionMode.offline);
+      _destination.setEventSendingEnabled(false, flush: false);
       return;
     }
+
     /// Currently the foreground mode will always be whatever the last active
     /// connection mode was.
     _destination.setMode(_currentConnectionMode);
+    _destination.setEventSendingEnabled(true);
   }
 
   void _setBackgroundAvailableMode() {
@@ -170,20 +172,18 @@ final class ConnectionManager {
       // TODO: Is it acceptable for the data source status and `offline` to
       // report an `offline` status?
       _destination.setMode(ConnectionMode.offline);
+      _destination.setEventSendingEnabled(false);
       return;
     }
 
     /// If connections in the background are allowed, then use the same mode
     /// as is configured for the foreground.
     _setForegroundAvailableMode();
+    _destination.setEventSendingEnabled(true);
   }
 
   void _handleState() {
     _logger.debug('Handling state: $_applicationState:$_networkState');
-    if (_config.alwaysOffline) {
-      _logger.debug('SDK configured to always be offline. No action taken.');
-      return;
-    }
 
     switch (_networkState) {
       case NetworkState.unavailable:

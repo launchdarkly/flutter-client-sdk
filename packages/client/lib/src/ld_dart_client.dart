@@ -4,6 +4,7 @@ import 'package:launchdarkly_dart_common/ld_common.dart';
 
 import '../src/config/ld_dart_config.dart';
 import '../src/flag_manager/flag_updater.dart';
+import 'config/defaults/credential_type.dart';
 import 'config/defaults/default_config.dart';
 import 'context_modifiers/anonymous_context_modifier.dart';
 import 'context_modifiers/context_modifier.dart';
@@ -12,6 +13,7 @@ import 'data_sources/data_source_event_handler.dart';
 import 'data_sources/data_source_manager.dart';
 import 'data_sources/data_source_status.dart';
 import 'data_sources/data_source_status_manager.dart';
+import 'data_sources/null_data_source.dart';
 import 'data_sources/polling_data_source.dart';
 import 'data_sources/streaming_data_source.dart';
 import 'flag_manager/flag_manager.dart';
@@ -45,21 +47,34 @@ final class LDDartClient {
   final LDLogger _logger;
   final FlagManager _flagManager;
   final DataSourceStatusManager _dataSourceStatusManager;
+  final LDContext _initialUndecoratedContext;
+  final DiagnosticSdkData _sdkData;
+
   late final DataSourceManager _dataSourceManager;
-  late final EventProcessor _eventProcessor;
-  late final DiagnosticsManager? _diagnosticsManager;
   late final EnvironmentReporter _envReporter;
   late final AsyncSingleQueue<void> _identifyQueue = AsyncSingleQueue();
 
   // Modifications will happen in the order they are specified in this list.
   // If there are cross-dependent modifiers, then this must be considered.
   late final List<ContextModifier> _modifiers;
-  final LDContext _initialUndecoratedContext;
+
+  /// The event processor is not constructed during LDDartClient construction
+  /// because it requires the HTTP properties which must be determined
+  /// asynchronously.
+  ///
+  /// We could consider changing the http client setup to a factory that
+  /// can be set later. This would remove the conditional invocations
+  /// required by making this optional.
+  EventProcessor? _eventProcessor;
 
   // During startup the _context will be invalid until the identify process
   // is complete.
   LDContext _context = LDContextBuilder().build();
 
+  bool _eventSendingEnabled = true;
+  bool _networkAvailable = true;
+
+  Completer<IdentifyResult>? _startCompleter;
   Future<IdentifyResult>? _startFuture;
 
   Stream<DataSourceStatus> get dataSourceStatusChanges {
@@ -72,7 +87,8 @@ final class LDDartClient {
     return _flagManager.changes;
   }
 
-  LDDartClient(LDDartConfig config, LDContext context)
+  LDDartClient(
+      LDDartConfig config, LDContext context, DiagnosticSdkData sdkData)
       : _config = config,
         _persistence = config.persistence ?? InMemoryPersistence(),
         _logger = config.logger,
@@ -82,10 +98,8 @@ final class LDDartClient {
             logger: config.logger,
             persistence: config.persistence),
         _dataSourceStatusManager = DataSourceStatusManager(),
-        _initialUndecoratedContext = context {
-    // TODO: Figure out how we will construct this.
-    _diagnosticsManager = null;
-
+        _initialUndecoratedContext = context,
+        _sdkData = sdkData {
     final dataSourceEventHandler = DataSourceEventHandler(
         flagManager: _flagManager,
         statusManager: _dataSourceStatusManager,
@@ -122,7 +136,18 @@ final class LDDartClient {
       _logger.info('A valid applicationId was not provided.');
     }
 
-    return _config.httpProperties.withHeaders(appInfo.asHeaderMap());
+    final additionalHeaders = <String, String>{};
+    additionalHeaders.addAll(appInfo.asHeaderMap());
+    final userAgentString = '${_sdkData.name}/${_sdkData.version}';
+
+    switch (DefaultConfig.credentialConfig.credentialType) {
+      case CredentialType.mobileKey:
+        additionalHeaders['user-agent'] = userAgentString;
+      case CredentialType.clientSideId:
+        additionalHeaders['x-launchdarkly-user-agent'] = userAgentString;
+    }
+
+    return _config.httpProperties.withHeaders(additionalHeaders);
   }
 
   Future<void> _setAndDecorateContext(LDContext context) async {
@@ -136,17 +161,36 @@ final class LDDartClient {
   /// has been started, or after starting but before initialization is complete,
   /// will return default values.
   ///
-  /// When starting the [IdentifyResult] will not be [IdentifySuperseded].
-  Future<IdentifyResult> start() {
+  /// If the return value is true, then the SDK has initialized, if false
+  /// then the SDK has encountered an unrecoverable error.
+  Future<bool> start() {
     if (_startFuture != null) {
-      return _startFuture!;
+      return _startFuture!.then(_mapIdentifyStart);
     }
-    final completer = Completer<IdentifyResult>();
-    _startFuture = completer.future;
+    _startCompleter = Completer<IdentifyResult>();
+    _startFuture = _startCompleter!.future;
 
-    _startInternal().then((value) => completer.complete(value));
+    _startInternal().then((value) => _startCompleter!.complete(value));
 
-    return _startFuture!;
+    return _startFuture!.then(_mapIdentifyStart);
+  }
+
+  bool _mapIdentifyStart(IdentifyResult result) {
+    switch (result) {
+      case IdentifyComplete():
+        return true;
+      case IdentifySuperseded():
+        // This case does not happen because of the queue configuration. First
+        // item in the queue will always be the start identify and it will
+        // always be executed.
+        _logger.error(
+            'Identify was superseded, this represents a logic error in the SDK '
+            'implementation. Please file a bug report.');
+        continue error; // Simulate fallthrough.
+      error:
+      case IdentifyError():
+        return false;
+    }
   }
 
   Future<IdentifyResult> _startInternal() async {
@@ -165,54 +209,111 @@ final class LDDartClient {
     final httpProperties =
         await _makeHttpProperties(_config, _envReporter, _logger);
 
-    _eventProcessor = EventProcessor(
-        logger: _logger,
-        eventCapacity: _config.eventsConfig.eventCapacity,
-        flushInterval: _config.eventsConfig.flushInterval,
-        // TODO: Get from config. Use correct auth header setup.
-        client: HttpClient(
-            httpProperties: httpProperties
-                // TODO: this authorization header location is inconsistent with others
-                .withHeaders({'authorization': _config.sdkCredential})),
-        analyticsEventsPath: DefaultConfig.eventPaths
-            .getAnalyticEventsPath(_config.sdkCredential),
-        diagnosticEventsPath: DefaultConfig.eventPaths
-            .getDiagnosticEventsPath(_config.sdkCredential),
-        diagnosticsManager: _diagnosticsManager,
-        endpoints: _config.endpoints,
-        diagnosticRecordingInterval:
-            _config.eventsConfig.diagnosticRecordingInterval);
-    _eventProcessor.start();
+    if (!_config.eventsConfig.disabled && !_config.offline) {
+      final osInfo = await _envReporter.osInfo;
+      DiagnosticsManager? diagnosticsManager = _makeDiagnosticsManager(osInfo);
 
-    _dataSourceManager.setFactories({
-      ConnectionMode.streaming: (LDContext context) {
-        return StreamingDataSource(
-            credential: _config.sdkCredential,
-            context: context,
-            endpoints: _config.endpoints,
-            logger: _logger,
-            dataSourceConfig: _config.streamingConfig,
-            httpProperties: httpProperties);
-      },
-      ConnectionMode.polling: (LDContext context) {
-        return PollingDataSource(
-            credential: _config.sdkCredential,
-            context: context,
-            endpoints: _config.endpoints,
-            logger: _logger,
-            dataSourceConfig: _config.pollingConfig,
-            httpProperties: httpProperties);
-      },
-    });
+      _eventProcessor = DefaultEventProcessor(
+          logger: _logger,
+          eventCapacity: _config.eventsConfig.eventCapacity,
+          flushInterval: _config.eventsConfig.flushInterval,
+          // TODO: Get from config. Use correct auth header setup.
+          client: HttpClient(
+              httpProperties: httpProperties
+                  // TODO: this authorization header location is inconsistent with others
+                  .withHeaders({'authorization': _config.sdkCredential})),
+          analyticsEventsPath: DefaultConfig.eventPaths
+              .getAnalyticEventsPath(_config.sdkCredential),
+          diagnosticEventsPath: DefaultConfig.eventPaths
+              .getDiagnosticEventsPath(_config.sdkCredential),
+          diagnosticsManager: diagnosticsManager,
+          endpoints: _config.endpoints,
+          diagnosticRecordingInterval:
+              _config.eventsConfig.diagnosticRecordingInterval);
+    }
+
+    _updateEventSendingState();
+
+    if (!_config.offline) {
+      // TODO: When always offline use a null data source.
+      _dataSourceManager.setFactories({
+        ConnectionMode.streaming: (LDContext context) {
+          return StreamingDataSource(
+              credential: _config.sdkCredential,
+              context: context,
+              endpoints: _config.endpoints,
+              logger: _logger,
+              dataSourceConfig: _config.streamingConfig,
+              httpProperties: httpProperties);
+        },
+        ConnectionMode.polling: (LDContext context) {
+          return PollingDataSource(
+              credential: _config.sdkCredential,
+              context: context,
+              endpoints: _config.endpoints,
+              logger: _logger,
+              dataSourceConfig: _config.pollingConfig,
+              httpProperties: httpProperties);
+        },
+      });
+    } else {
+      _dataSourceManager.setFactories({
+        ConnectionMode.streaming: (LDContext context) {
+          return NullDataSource();
+        },
+        ConnectionMode.polling: (LDContext context) {
+          return NullDataSource();
+        },
+      });
+    }
 
     return await identify(_initialUndecoratedContext);
+  }
+
+  DiagnosticsManager? _makeDiagnosticsManager(OsInfo? osInfo) {
+    final diagnosticsManager = _config.eventsConfig.disableDiagnostics
+        ? null
+        : DiagnosticsManager(
+            credential: _config.sdkCredential,
+            sdkData: _sdkData,
+            platformData: DiagnosticPlatformData(
+              name: 'Dart',
+              osName: osInfo?.name,
+              osVersion: osInfo?.version,
+            ),
+            configData: DiagnosticConfigData(
+                customBaseUri: _config.endpoints.polling !=
+                    _config.endpoints.defaultPolling,
+                customStreamUri:
+                    _config.endpoints.streaming != _config.endpoints.streaming,
+                eventsCapacity: _config.eventsConfig.eventCapacity,
+                connectTimeoutMillis:
+                    _config.httpProperties.connectTimeout.inMilliseconds,
+                eventsFlushIntervalMillis:
+                    _config.eventsConfig.flushInterval.inMilliseconds,
+                pollingIntervalMillis:
+                    _config.pollingConfig.pollingInterval.inMilliseconds,
+                // TODO: If made dynamic, then needs implemented.
+                reconnectTimeoutMillis: 1000,
+                // TODO: Implement.
+                streamingDisabled: false,
+                offline: _config.offline,
+                // TODO: Implement
+                allAttributesPrivate: false,
+                diagnosticRecordingIntervalMillis: _config
+                    .eventsConfig.diagnosticRecordingInterval.inMilliseconds,
+                // TODO: Update when streaming report supported.
+                useReport: _config.pollingConfig.useReport,
+                // TODO: Update when polling/streaming reason consolidated.
+                evaluationReasonsRequested: _config.pollingConfig.withReasons));
+    return diagnosticsManager;
   }
 
   /// Triggers immediate sending of pending events to LaunchDarkly.
   ///
   /// Note that the future completes after the native SDK is requested to perform a flush, not when the said flush completes.
   Future<void> flush() async {
-    await _eventProcessor.flush();
+    await _eventProcessor?.flush();
   }
 
   /// Changes the active context.
@@ -221,8 +322,15 @@ final class LDDartClient {
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
   Future<IdentifyResult> identify(LDContext context) async {
+    if (_startFuture == null) {
+      const message =
+          'Identify called before SDK has been started. Start the SDK before '
+          'attempting to identify additional contexts.';
+      _logger.warn(message);
+      return IdentifyError(Exception(message));
+    }
     // TODO: Check for difference?
-    // TODO: Does the SDK need to have been started?
+
     await _setAndDecorateContext(context);
     return _identifyInternal();
   }
@@ -230,7 +338,7 @@ final class LDDartClient {
   Future<IdentifyResult> _identifyInternal() async {
     final res = await _identifyQueue.execute(() async {
       final completer = Completer<void>();
-      _eventProcessor.processIdentifyEvent(IdentifyEvent(context: _context));
+      _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
       final loadedFromCache = await _flagManager.loadCached(_context);
 
       _dataSourceManager.identify(_context, completer);
@@ -381,7 +489,7 @@ final class LDDartClient {
           LDEvaluationDetail(defaultValue, null, LDEvaluationReason.unknown());
     }
 
-    _eventProcessor.processEvalEvent(EvalEvent(
+    _eventProcessor?.processEvalEvent(EvalEvent(
         flagKey: flagKey,
         defaultValue: defaultValue,
         evaluationDetail: detail,
@@ -423,7 +531,50 @@ final class LDDartClient {
   }
 
   void setNetworkAvailability(bool available) {
+    if (_networkAvailable == available) {
+      _logger.debug(
+          'Network availability already in desired state. No changes made.');
+      return;
+    }
+    _networkAvailable = available;
     _dataSourceManager.setNetworkAvailable(available);
+    _updateEventSendingState();
+  }
+
+  /// Enable or disable event sending. When disabling event sending it may
+  /// be desirable to flush pending events. For instance in a mobile app
+  /// on transition to the background. This flush attempt will only be made
+  /// if the network is available.
+  void setEventSendingEnabled(bool enabled, {bool flush = true}) {
+    // The mode is not changing, so no action is required.
+    if (_eventSendingEnabled == enabled) {
+      _logger.debug('Event sending already in desired state. No changes made.');
+      return;
+    }
+
+    if (!enabled && flush && _networkAvailable) {
+      // The event processor will asynchronously start this and it will
+      // not be interrupted by stopping the processor. Stopping it will just
+      // stop all the timers, not any outstanding requests.
+      _logger.debug('Flushing events on event disable transition.');
+      _eventProcessor?.flush();
+    }
+    _eventSendingEnabled = enabled;
+    _updateEventSendingState();
+  }
+
+  void _updateEventSendingState() {
+    if (_eventProcessor == null) {
+      // The event processor has not been created for the state to be set.
+      return;
+    }
+    if (_eventSendingEnabled && _networkAvailable) {
+      _logger.debug('Enabling event sending.');
+      _eventProcessor?.start();
+    } else {
+      _logger.debug('Disabling event sending.');
+      _eventProcessor?.stop();
+    }
   }
 
   bool get offline =>
@@ -439,7 +590,7 @@ final class LDDartClient {
   /// The [eventName] is the key associated with the event or experiment. [data] is an optional parameter for additional
   /// data to include in the event for data export. [metricValue] can be used to record numeric metric for experimentation.
   void track(String eventName, {LDValue? data, num? metricValue}) async {
-    _eventProcessor.processCustomEvent(CustomEvent(
+    _eventProcessor?.processCustomEvent(CustomEvent(
         key: eventName,
         context: _context,
         metricValue: metricValue,
@@ -449,9 +600,13 @@ final class LDDartClient {
   /// Permanently shuts down the client.
   ///
   /// It's not normally necessary to explicitly shut down the client.
-  void close() {
-    _eventProcessor.stop();
+  Future<void> close() async {
+    await _eventProcessor?.flush();
+    _eventProcessor?.stop();
     _dataSourceManager.stop();
     _dataSourceStatusManager.stop();
   }
+
+  /// Check if the initialization process is complete.
+  bool get initialized => _startCompleter?.isCompleted ?? false;
 }

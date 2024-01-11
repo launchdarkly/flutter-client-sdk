@@ -72,12 +72,12 @@ final class DiagnosticConfigData {
   final int diagnosticRecordingIntervalMillis;
 
   // Client-side SDKs.
-  final int? backgroundPollingIntervalMillis;
   final bool? useReport;
-  final bool? backgroundPollingDisabled;
   final bool? evaluationReasonsRequested;
 
   // Unsupported
+  // final int? backgroundPollingIntervalMillis;
+  // final bool? backgroundPollingDisabled;
   // int socketTimeoutMillis;
   // bool usingRelayDaemon;
   // int contextKeysCapacity;
@@ -102,9 +102,7 @@ final class DiagnosticConfigData {
       required this.offline,
       required this.allAttributesPrivate,
       required this.diagnosticRecordingIntervalMillis,
-      this.backgroundPollingDisabled,
       this.useReport,
-      this.backgroundPollingIntervalMillis,
       this.evaluationReasonsRequested});
 
   @override
@@ -118,9 +116,7 @@ final class DiagnosticConfigData {
         ' streamingDisabled: $streamingDisabled, offline: $offline,'
         ' allAttributesPrivate: $allAttributesPrivate,'
         ' diagnosticRecordingIntervalMillis: '
-        '$diagnosticRecordingIntervalMillis, backgroundPollingIntervalMillis: '
-        '$backgroundPollingIntervalMillis, useReport: $useReport, '
-        'backgroundPollingDisabled: $backgroundPollingDisabled, '
+        '$diagnosticRecordingIntervalMillis, useReport: $useReport, '
         'evaluationReasonsRequested: $evaluationReasonsRequested}';
   }
 
@@ -141,10 +137,7 @@ final class DiagnosticConfigData {
           allAttributesPrivate == other.allAttributesPrivate &&
           diagnosticRecordingIntervalMillis ==
               other.diagnosticRecordingIntervalMillis &&
-          backgroundPollingIntervalMillis ==
-              other.backgroundPollingIntervalMillis &&
           useReport == other.useReport &&
-          backgroundPollingDisabled == other.backgroundPollingDisabled &&
           evaluationReasonsRequested == other.evaluationReasonsRequested;
 
   @override
@@ -160,9 +153,7 @@ final class DiagnosticConfigData {
       offline.hashCode ^
       allAttributesPrivate.hashCode ^
       diagnosticRecordingIntervalMillis.hashCode ^
-      backgroundPollingIntervalMillis.hashCode ^
       useReport.hashCode ^
-      backgroundPollingDisabled.hashCode ^
       evaluationReasonsRequested.hashCode;
 }
 

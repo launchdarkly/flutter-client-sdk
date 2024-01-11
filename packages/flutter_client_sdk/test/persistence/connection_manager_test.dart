@@ -210,35 +210,6 @@ void main() {
     connectionManager.dispose();
   });
 
-  test(
-      'if the requested to be permanently offline, then it does not take any action on state changes',
-      () async {
-    registerFallbackValue(ConnectionMode.streaming);
-
-    final destination = MockDestination();
-    final logAdapter = MockLogAdapter();
-    final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(alwaysOffline: true);
-    final mockDetector = MockStateDetector();
-
-    final connectionManager = ConnectionManager(
-        logger: logger,
-        config: config,
-        destination: destination,
-        detector: mockDetector);
-
-    mockDetector.setApplicationState(ApplicationState.foreground);
-    mockDetector.setNetworkAvailable(true);
-
-    // Wait for the state to propagate.
-    await mockDetector.applicationState.first;
-    await mockDetector.networkState.first;
-
-    verifyNever(() => destination.setMode(any()));
-    verifyNever(() => destination.setNetworkAvailability(any()));
-    connectionManager.dispose();
-  });
-
   test('when temporarily offline it ignores state changes and remains offline',
       () async {
     registerFallbackValue(ConnectionMode.streaming);
@@ -258,6 +229,7 @@ void main() {
     connectionManager.offline = true;
 
     verify(() => destination.setMode(ConnectionMode.offline));
+    verify(() => destination.setEventSendingEnabled(false, flush: false));
     reset(destination);
 
     mockDetector.setApplicationState(ApplicationState.foreground);
@@ -269,6 +241,7 @@ void main() {
 
     verify(() => destination.setMode(ConnectionMode.offline));
     verify(() => destination.setNetworkAvailability(true));
+    verify(() => destination.setEventSendingEnabled(false, flush: false));
     connectionManager.dispose();
   });
 
@@ -296,6 +269,8 @@ void main() {
     await mockDetector.applicationState.first;
 
     verifyNever(() => destination.setMode(any()));
+    verifyNever(() =>
+        destination.setEventSendingEnabled(any(), flush: any(named: 'flush')));
     connectionManager.dispose();
   });
 
@@ -323,6 +298,8 @@ void main() {
     await mockDetector.networkState.first;
 
     verifyNever(() => destination.setNetworkAvailability(any()));
+    verifyNever(() =>
+        destination.setEventSendingEnabled(any(), flush: any(named: 'flush')));
     connectionManager.dispose();
   });
 
@@ -334,14 +311,16 @@ void main() {
     ]) {
       test('it respects changes to the desired connection mode', () {
         // Get an initial mode that will be different than the requested mode.
-        final initialMode = ConnectionMode.values.firstWhere((mode) => mode != requestedMode);
+        final initialMode =
+            ConnectionMode.values.firstWhere((mode) => mode != requestedMode);
 
         registerFallbackValue(ConnectionMode.streaming);
 
         final destination = MockDestination();
         final logAdapter = MockLogAdapter();
         final logger = LDLogger(adapter: logAdapter);
-        final config = ConnectionManagerConfig(runInBackground: false, initialConnectionMode: initialMode);
+        final config = ConnectionManagerConfig(
+            runInBackground: false, initialConnectionMode: initialMode);
         final mockDetector = MockStateDetector();
 
         final connectionManager = ConnectionManager(
@@ -354,8 +333,8 @@ void main() {
         connectionManager.setMode(requestedMode);
 
         verify(() => destination.setMode(requestedMode));
+        verifyNever(() => destination.setEventSendingEnabled(true, flush: false));
         connectionManager.dispose();
-
       });
     }
   });

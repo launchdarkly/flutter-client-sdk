@@ -46,15 +46,8 @@ final class _DiagnosticConfigDataSerialization {
     json['diagnosticRecordingIntervalMillis'] =
         data.diagnosticRecordingIntervalMillis;
 
-    if (data.backgroundPollingIntervalMillis != null) {
-      json['backgroundPollingIntervalMillis'] =
-          data.backgroundPollingIntervalMillis;
-    }
     if (data.useReport != null) {
       json['useReport'] = data.useReport;
-    }
-    if (data.backgroundPollingDisabled != null) {
-      json['backgroundPollingDisabled'] = data.backgroundPollingDisabled;
     }
     if (data.evaluationReasonsRequested != null) {
       json['evaluationReasonsRequested'] = data.evaluationReasonsRequested;

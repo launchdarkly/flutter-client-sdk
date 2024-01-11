@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ffi';
 
 import 'package:launchdarkly_event_source_client/sse_client.dart';
 import 'package:openapi_base/openapi_base.dart';

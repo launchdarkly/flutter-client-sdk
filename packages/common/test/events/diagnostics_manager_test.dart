@@ -28,8 +28,6 @@ DiagnosticsManager createManager() {
           offline: true,
           allAttributesPrivate: true,
           diagnosticRecordingIntervalMillis: 500,
-          backgroundPollingDisabled: false,
-          backgroundPollingIntervalMillis: 555,
           useReport: true,
           evaluationReasonsRequested: true));
 }
@@ -61,8 +59,6 @@ void main() {
             offline: true,
             allAttributesPrivate: true,
             diagnosticRecordingIntervalMillis: 500,
-            backgroundPollingDisabled: false,
-            backgroundPollingIntervalMillis: 555,
             useReport: true,
             evaluationReasonsRequested: true),
         platform: DiagnosticPlatformData(

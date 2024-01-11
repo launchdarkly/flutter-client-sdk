@@ -11,7 +11,7 @@ import 'package:http/http.dart' as http;
 import '../config/mock_endpoints.dart';
 import '../logging_test.dart';
 
-(EventProcessor, MockAdapter) createProcessor(MockClient innerClient) {
+(DefaultEventProcessor, MockAdapter) createProcessor(MockClient innerClient) {
   final adapter = MockAdapter();
   final client = HttpClient(
       client: innerClient,
@@ -19,7 +19,7 @@ import '../logging_test.dart';
           HttpProperties(baseHeaders: {'test': 'header', 'a': 'b'}));
 
   return (
-    EventProcessor(
+    DefaultEventProcessor(
         logger: LDLogger(adapter: adapter),
         eventCapacity: 100,
         flushInterval: Duration(milliseconds: 100),
@@ -32,7 +32,7 @@ import '../logging_test.dart';
   );
 }
 
-(EventProcessor, MockAdapter) createProcessorWithDiagnostics(
+(DefaultEventProcessor, MockAdapter) createProcessorWithDiagnostics(
     MockClient innerClient) {
   final adapter = MockAdapter();
   final client = HttpClient(
@@ -41,7 +41,7 @@ import '../logging_test.dart';
           HttpProperties(baseHeaders: {'test': 'header', 'a': 'b'}));
 
   return (
-    EventProcessor(
+    DefaultEventProcessor(
         logger: LDLogger(adapter: adapter),
         eventCapacity: 100,
         flushInterval: Duration(milliseconds: 100),
@@ -74,8 +74,6 @@ import '../logging_test.dart';
                 offline: true,
                 allAttributesPrivate: true,
                 diagnosticRecordingIntervalMillis: 500,
-                backgroundPollingDisabled: false,
-                backgroundPollingIntervalMillis: 555,
                 useReport: true,
                 evaluationReasonsRequested: true)),
         diagnosticRecordingInterval: Duration(milliseconds: 100)),
@@ -281,6 +279,34 @@ void main() {
     final (processor, _) = createProcessorWithDiagnostics(innerClient);
     processor.start();
     processor.stop();
+  });
+
+  test('multiple starts do not produce multiple diagnostic init events.', () async {
+    final requestController = StreamController<http.Request>();
+    final stream = requestController.stream.asBroadcastStream();
+
+    final innerClient = MockClient((request) async {
+      requestController.sink.add(request);
+      return http.Response('', 200);
+    });
+
+    final (processor, _) = createProcessorWithDiagnostics(innerClient);
+    processor.start();
+    final initRequest = await stream.first;
+
+    final initDecodedAsJson =
+    LDValueSerialization.fromJson(jsonDecode(initRequest.body));
+    expect(initDecodedAsJson.getFor('kind').stringValue(), 'diagnostic-init');
+
+    processor.stop();
+    processor.start();
+
+    // No init event will be generated, so the next event will be a stats event.
+    final statsEventRequest = await stream.first;
+
+    final statsDecodedAsJson =
+    LDValueSerialization.fromJson(jsonDecode(statsEventRequest.body));
+    expect(statsDecodedAsJson.getFor('kind').stringValue(), 'diagnostic');
   });
 
   test('it produces diagnostic stats events', () async {
