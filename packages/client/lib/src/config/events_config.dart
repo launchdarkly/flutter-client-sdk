@@ -4,18 +4,10 @@ import 'limits.dart';
 /// Configuration for event processing and sending.
 final class EventsConfig {
   final bool disabled;
-  final bool disableDiagnostics;
+  final bool diagnosticOptOut;
   final int eventCapacity;
   final Duration flushInterval;
   final Duration diagnosticRecordingInterval;
-
-  String getAnalyticEventsPath(String credential) {
-    return DefaultConfig.eventPaths.getAnalyticEventsPath(credential);
-  }
-
-  String getDiagnosticEventsPath(String credential) {
-    return DefaultConfig.eventPaths.getDiagnosticEventsPath(credential);
-  }
 
   /// Configure the event processing/sending behavior of the SDK.
   ///
@@ -23,7 +15,7 @@ final class EventsConfig {
   ///
   /// If [disabled] is set to true, then the SDK will send no events.
   ///
-  /// Ff [disableDiagnostics] is set to true, then the SDK will not send
+  /// Ff [diagnosticOptOut] is set to true, then the SDK will not send
   /// periodic diagnostic events.
   ///
   /// The [eventCapacity] represents the number of events that will be buffered.
@@ -39,7 +31,7 @@ final class EventsConfig {
   EventsConfig(
       {
         this.disabled = false,
-        this.disableDiagnostics = false,
+        this.diagnosticOptOut = false,
         int? eventCapacity,
       Duration? flushInterval,
       Duration? diagnosticRecordingInterval})

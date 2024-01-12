@@ -1,6 +1,7 @@
 import 'package:launchdarkly_dart_client/ld_client.dart';
 
 import 'config/defaults/flutter_default_config.dart';
+import 'config/ld_config.dart';
 import 'connection_manager.dart';
 import 'flutter_state_detector.dart';
 import 'persistence/shared_preferences_persistence.dart';
@@ -26,7 +27,10 @@ import 'platform_env_reporter.dart';
 /// and provides various status configuration and monitoring utilities.
 ///
 /// See the individual class and method documentation for more details.
-class LDClient {
+///
+/// This is an interface class so that it can be mocked for testing, but it
+/// cannot be extended.
+interface class LDClient {
   late final LDDartClient _client;
   late final ConnectionManager _connectionManager;
 
@@ -53,23 +57,25 @@ class LDClient {
 
   /// TODO: Comments
   LDClient(LDConfig config, LDContext context) {
-    final dartConfig = LDDartConfig(
-        sdkCredential: config.sdkCredential,
+    final platformImplementation = CommonPlatform(
         persistence: SharedPreferencesPersistence(),
-        logger: LDLogger(level: LDLogLevel.debug),
-        applicationInfo: config.applicationInfo,
         platformEnvReporter: PlatformEnvReporter(),
-        autoEnvAttributes: config.autoEnvAttributes);
+        autoEnvAttributes:
+            config.autoEnvAttributes == AutoEnvAttributes.enabled);
     _client = LDDartClient(
-        dartConfig,
+        config,
+        platformImplementation,
         context,
         DiagnosticSdkData(
             name: 'FlutterClientSide',
             version: '0.0.1')); // x-release-please-version
     _connectionManager = ConnectionManager(
         logger: _client.logger,
-        // TODO: Configuration needs implemented.
         config: ConnectionManagerConfig(
+            disableAutomaticBackgroundHandling:
+                !config.applicationEvents.backgrounding,
+            disableAutomaticNetworkHandling:
+                !config.applicationEvents.networkAvailability,
             runInBackground:
                 FlutterDefaultConfig.connectionManagerConfig.runInBackground),
         destination: DartClientAdapter(_client),
@@ -253,12 +259,6 @@ class LDClient {
     return _client.flush();
   }
 
-  /// Set the connection mode the SDK should use.
-  /// TODO: More comments.
-  void setMode(ConnectionMode mode) {
-    _client.setMode(mode);
-  }
-
   /// Returns whether the SDK is currently configured not to make network
   /// connections.
   ///
@@ -267,6 +267,12 @@ class LDClient {
   ///
   /// For more detailed status information use [dataSourceStatus].
   bool get offline => _client.offline;
+
+  /// Set the SDK to be offline/offline. When the SDK is set offline it will
+  /// stop receiving updates and sending analytic and diagnostic events.
+  set offline(bool offline) {
+    _connectionManager.offline = offline;
+  }
 
   /// Check if the SDK has finished initialization.
   ///

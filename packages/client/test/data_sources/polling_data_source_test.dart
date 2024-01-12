@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/testing.dart';
 import 'package:launchdarkly_dart_client/ld_client.dart';
+import 'package:launchdarkly_dart_client/src/config/data_source_config.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_dart_client/src/data_sources/data_source_status.dart';

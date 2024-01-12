@@ -9,7 +9,8 @@ void main() {
         creationDate: DateTime.fromMillisecondsSinceEpoch(0),
         context: LDContextBuilder().kind('user', 'user-key').build());
 
-    final json = jsonEncode(IdentifyEventSerialization.toJson(event));
+    final json = jsonEncode(IdentifyEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -19,6 +20,62 @@ void main() {
         '"context": {'
         '"kind": "user",'
         '"key": "user-key"'
+        '}'
+        '}'));
+
+    expect(jsonAsLdValue, expectedLdValue);
+  });
+
+  test('can serialize an identify event with all attributes private', () {
+    final event = IdentifyEvent(
+        creationDate: DateTime.fromMillisecondsSinceEpoch(0),
+        context: LDContextBuilder()
+            .kind('user', 'user-key')
+            .name('the-name')
+            .set('custom', LDValue.ofString('custom'))
+            .build());
+
+    final json = jsonEncode(IdentifyEventSerialization.toJson(event,
+        allAttributesPrivate: true, globalPrivateAttributes: {}));
+
+    final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
+
+    final expectedLdValue = LDValueSerialization.fromJson(jsonDecode('{'
+        '"kind": "identify",'
+        '"creationDate": 0,'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key",'
+        '"_meta": {"redactedAttributes":["/name", "/custom"]}'
+        '}'
+        '}'));
+
+    expect(jsonAsLdValue, expectedLdValue);
+  });
+
+  test('can serialize an identify event with global private attributes', () {
+    final event = IdentifyEvent(
+        creationDate: DateTime.fromMillisecondsSinceEpoch(0),
+        context: LDContextBuilder()
+            .kind('user', 'user-key')
+            .name('the-name')
+            .set('custom', LDValue.ofString('custom'))
+            .build());
+
+    final json = jsonEncode(IdentifyEventSerialization.toJson(event,
+        allAttributesPrivate: false,
+        globalPrivateAttributes: {AttributeReference('/custom')}));
+
+    final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
+
+    final expectedLdValue = LDValueSerialization.fromJson(jsonDecode('{'
+        '"kind": "identify",'
+        '"creationDate": 0,'
+        '"context": {'
+        '"kind": "user",'
+        '"name": "the-name",'
+        '"key": "user-key",'
+        '"_meta": {"redactedAttributes":["/custom"]}'
         '}'
         '}'));
 
@@ -133,7 +190,8 @@ void main() {
         withReason: true,
         trackEvent: false);
 
-    final json = jsonEncode(EvalEventSerialization.toJson(event));
+    final json = jsonEncode(EvalEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -166,7 +224,8 @@ void main() {
         withReason: false,
         trackEvent: false);
 
-    final json = jsonEncode(EvalEventSerialization.toJson(event));
+    final json = jsonEncode(EvalEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -198,7 +257,8 @@ void main() {
         withReason: true,
         trackEvent: false);
 
-    final json = jsonEncode(EvalEventSerialization.toJson(event));
+    final json = jsonEncode(EvalEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -229,8 +289,10 @@ void main() {
         withReason: true,
         trackEvent: false);
 
-    final json =
-        jsonEncode(EvalEventSerialization.toJson(event, isDebug: true));
+    final json = jsonEncode(EvalEventSerialization.toJson(event,
+        isDebug: true,
+        allAttributesPrivate: false,
+        globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -246,6 +308,91 @@ void main() {
         '"context": {'
         '"kind": "user",'
         '"key": "user-key"'
+        '}'
+        '}'));
+
+    expect(jsonAsLdValue, expectedLdValue);
+  });
+
+  test('can serialize debug event with all attributes private', () {
+    final event = EvalEvent(
+        version: 42,
+        creationDate: DateTime.fromMillisecondsSinceEpoch(0),
+        context: LDContextBuilder()
+            .kind('user', 'user-key')
+            .name('the-name')
+            .set('custom', LDValue.ofString('custom'))
+            .build(),
+        flagKey: 'the-flag',
+        defaultValue: LDValue.ofString('default-value'),
+        evaluationDetail: LDEvaluationDetail(LDValue.ofString('the-value'), 10,
+            LDEvaluationReason.fallthrough()),
+        withReason: true,
+        trackEvent: false);
+
+    final json = jsonEncode(EvalEventSerialization.toJson(event,
+        isDebug: true,
+        allAttributesPrivate: true,
+        globalPrivateAttributes: {}));
+
+    final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
+
+    final expectedLdValue = LDValueSerialization.fromJson(jsonDecode('{'
+        '"kind": "debug",'
+        '"key": "the-flag",'
+        '"version": 42,'
+        '"creationDate": 0,'
+        '"default": "default-value",'
+        '"variation": 10,'
+        '"value": "the-value",'
+        '"reason": {"kind": "FALLTHROUGH"},'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key",'
+        '"_meta": {"redactedAttributes":["/name", "/custom"]}'
+        '}'
+        '}'));
+
+    expect(jsonAsLdValue, expectedLdValue);
+  });
+
+  test('can serialize debug event with global private attributes', () {
+    final event = EvalEvent(
+        version: 42,
+        creationDate: DateTime.fromMillisecondsSinceEpoch(0),
+        context: LDContextBuilder()
+            .kind('user', 'user-key')
+            .name('the-name')
+            .set('custom', LDValue.ofString('custom'))
+            .build(),
+        flagKey: 'the-flag',
+        defaultValue: LDValue.ofString('default-value'),
+        evaluationDetail: LDEvaluationDetail(LDValue.ofString('the-value'), 10,
+            LDEvaluationReason.fallthrough()),
+        withReason: true,
+        trackEvent: false);
+
+    final json = jsonEncode(EvalEventSerialization.toJson(event,
+        isDebug: true,
+        allAttributesPrivate: false,
+        globalPrivateAttributes: {AttributeReference('/custom')}));
+
+    final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
+
+    final expectedLdValue = LDValueSerialization.fromJson(jsonDecode('{'
+        '"kind": "debug",'
+        '"key": "the-flag",'
+        '"version": 42,'
+        '"creationDate": 0,'
+        '"default": "default-value",'
+        '"variation": 10,'
+        '"value": "the-value",'
+        '"reason": {"kind": "FALLTHROUGH"},'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key",'
+        '"name":"the-name",'
+        '"_meta": {"redactedAttributes":["/custom"]}'
         '}'
         '}'));
 

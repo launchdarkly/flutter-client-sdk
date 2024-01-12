@@ -38,11 +38,11 @@ export 'package:launchdarkly_dart_client/ld_client.dart'
         DataSourceStatus,
         DataSourceStatusErrorInfo,
         DataSourceState,
-        // TODO: Move LDConfigBuilder to flutter?
-        LDConfigBuilder,
-        AutoEnvAttributes;
+        AutoEnvAttributes,
+        DataSourceConfig,
+        PersistenceConfig,
+        ApplicationInfo,
+        ConnectionMode;
 
-// TODO: Will need to export more once the config is implemented.
-
-export 'src/ld_client.dart'
-    show LDClient;
+export 'src/ld_client.dart' show LDClient;
+export 'src/config/ld_config.dart' show LDConfig, ApplicationEvents;

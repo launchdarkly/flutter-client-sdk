@@ -1,3 +1,5 @@
+import 'config/defaults/common_default_config.dart';
+
 /// Logging levels that can be used with [LDLogger].
 /// Set the log level to one of these values when constructing a [LDLogger]
 /// to control level of log messages are enabled.
@@ -135,9 +137,9 @@ final class LDLogger {
   /// "LaunchDarkly". Additional loggers can be created using
   /// [LDLogger.subLogger] and they will have an extended log tag.
   LDLogger(
-      {adapter = const LDBasicLogPrinter(),
-      this.level = LDLogLevel.info,
-      this.logTag = 'LaunchDarkly'}) {
+      {adapter = const LDBasicLogPrinter(), LDLogLevel? level, String? logTag})
+      : level = level ?? CommonDefaultConfig.loggingConfig.defaultLogLevel,
+        logTag = logTag ?? CommonDefaultConfig.loggingConfig.defaultLogTag {
     _adapter = adapter;
   }
 

@@ -27,6 +27,8 @@ import '../logging_test.dart';
         analyticsEventsPath: '/analytics',
         diagnosticEventsPath: '/diagnostics',
         endpoints: MockEndpoints(),
+        allAttributesPrivate: false,
+        globalPrivateAttributes: {},
         diagnosticRecordingInterval: Duration(milliseconds: 100)),
     adapter
   );
@@ -49,6 +51,8 @@ import '../logging_test.dart';
         analyticsEventsPath: '/analytics',
         diagnosticEventsPath: '/diagnostics',
         endpoints: MockEndpoints(),
+        allAttributesPrivate: false,
+        globalPrivateAttributes: {},
         diagnosticsManager: DiagnosticsManager(
             credential: 'the-sdk-key',
             sdkData: DiagnosticSdkData(
@@ -281,7 +285,8 @@ void main() {
     processor.stop();
   });
 
-  test('multiple starts do not produce multiple diagnostic init events.', () async {
+  test('multiple starts do not produce multiple diagnostic init events.',
+      () async {
     final requestController = StreamController<http.Request>();
     final stream = requestController.stream.asBroadcastStream();
 
@@ -295,7 +300,7 @@ void main() {
     final initRequest = await stream.first;
 
     final initDecodedAsJson =
-    LDValueSerialization.fromJson(jsonDecode(initRequest.body));
+        LDValueSerialization.fromJson(jsonDecode(initRequest.body));
     expect(initDecodedAsJson.getFor('kind').stringValue(), 'diagnostic-init');
 
     processor.stop();
@@ -305,7 +310,7 @@ void main() {
     final statsEventRequest = await stream.first;
 
     final statsDecodedAsJson =
-    LDValueSerialization.fromJson(jsonDecode(statsEventRequest.body));
+        LDValueSerialization.fromJson(jsonDecode(statsEventRequest.body));
     expect(statsDecodedAsJson.getFor('kind').stringValue(), 'diagnostic');
   });
 

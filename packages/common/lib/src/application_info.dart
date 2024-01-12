@@ -6,19 +6,32 @@ final class ApplicationInfo {
   String? applicationVersion;
   String? applicationVersionName;
 
-  final validCharsRegex = RegExp(r'^[-a-zA-Z0-9._]+$');
+  final validCharsRegex = RegExp(r'^[-a-zA-Z0-9._]+$', unicode: false);
 
   /// Creates an [ApplicationInfo].
   ///
   /// All provided fields can be specified as
   /// any string value as long as it only uses the following characters: ASCII
-  /// letters, ASCII digits, period, hyphen, underscore. A string containing
-  /// any other characters will be ignored.
+  /// letters, ASCII digits, space, period, hyphen, underscore. Spaces will
+  /// be replaced with hyphens. A string containing any other characters will be
+  /// ignored.
   ///
-  /// [applicationId] is the identifier for your application. [applicationName]
-  /// is a friendly name for your application. [applicationVersion] the version
-  /// of your application. [applicationVersionName] is a friendly name for
-  /// your application.
+  /// [applicationId] is unique identifier representing the application where
+  /// the LaunchDarkly SDK is running.
+  ///
+  /// Example: `timer-app`
+  ///
+  /// [applicationVersion] is a unique identifier representing the version of
+  /// the application where the LaunchDarkly SDK is running.
+  ///
+  /// Example: `1.0.0` (standard version string) or `abcdef` (sha prefix)
+  ///
+  /// [applicationName] is a friendly name for your application and
+  /// [applicationVersionName] is a friendly variation of the version.
+  ///
+  /// For example your [applicationId] maybe be `com.example.myapp` and the
+  /// [applicationName] could be `MyApp`. The [applicationVersion] may be
+  /// `10.1.54345784-7` and the [applicationVersionName] could be `10`.
   ApplicationInfo(
       {required String applicationId,
       String? applicationName,

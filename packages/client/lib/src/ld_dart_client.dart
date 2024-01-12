@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:launchdarkly_dart_common/ld_common.dart';
 
-import '../src/config/ld_dart_config.dart';
+import '../src/config/common_platform.dart';
 import '../src/flag_manager/flag_updater.dart';
+import 'config/data_source_config.dart';
 import 'config/defaults/credential_type.dart';
 import 'config/defaults/default_config.dart';
 import 'context_modifiers/anonymous_context_modifier.dart';
@@ -17,7 +18,9 @@ import 'data_sources/null_data_source.dart';
 import 'data_sources/polling_data_source.dart';
 import 'data_sources/streaming_data_source.dart';
 import 'flag_manager/flag_manager.dart';
+import 'ld_common_config.dart';
 import 'persistence/persistence.dart';
+import 'persistence/validating_persistence.dart';
 
 /// Base class used for all identify results. Using a sealed class allows for
 /// exhaustive matching the the return from identify operations.
@@ -42,13 +45,14 @@ final class IdentifyError implements IdentifyResult {
 }
 
 final class LDDartClient {
-  final LDDartConfig _config;
+  final LDCommonConfig _config;
   final Persistence _persistence;
   final LDLogger _logger;
   final FlagManager _flagManager;
   final DataSourceStatusManager _dataSourceStatusManager;
   final LDContext _initialUndecoratedContext;
   final DiagnosticSdkData _sdkData;
+  final CommonPlatform _platform;
 
   late final DataSourceManager _dataSourceManager;
   late final EnvironmentReporter _envReporter;
@@ -87,16 +91,19 @@ final class LDDartClient {
     return _flagManager.changes;
   }
 
-  LDDartClient(
-      LDDartConfig config, LDContext context, DiagnosticSdkData sdkData)
-      : _config = config,
-        _persistence = config.persistence ?? InMemoryPersistence(),
-        _logger = config.logger,
+  LDDartClient(LDCommonConfig commonConfig, CommonPlatform platform,
+      LDContext context, DiagnosticSdkData sdkData)
+      : _config = commonConfig,
+        _platform = platform,
+        _persistence = ValidatingPersistence(
+            persistence: platform.persistence ?? InMemoryPersistence(),
+            logger: commonConfig.logger),
+        _logger = commonConfig.logger,
         _flagManager = FlagManager(
-            sdkKey: config.sdkCredential,
+            sdkKey: commonConfig.sdkCredential,
             maxCachedContexts: 5, // TODO: Get from config.
-            logger: config.logger,
-            persistence: config.persistence),
+            logger: commonConfig.logger,
+            persistence: platform.persistence),
         _dataSourceStatusManager = DataSourceStatusManager(),
         _initialUndecoratedContext = context,
         _sdkData = sdkData {
@@ -111,21 +118,20 @@ final class LDDartClient {
         logger: _logger);
   }
 
-  Future<EnvironmentReporter> _makeEnvReporter(LDDartConfig config) async {
+  Future<EnvironmentReporter> _makeEnvReporter() async {
     final reporterBuilder = PrioritizedEnvReporterBuilder();
     reporterBuilder.setConfigLayer(ConcreteEnvReporter(
         applicationInfo: Future.value(_config.applicationInfo),
         osInfo: Future.value(null),
         deviceInfo: Future.value(null),
         locale: Future.value(null)));
-    if (_config.autoEnvAttributes) {
-      reporterBuilder.setPlatformLayer(_config.platformEnvReporter);
+    if (_config.autoEnvAttributes == AutoEnvAttributes.enabled) {
+      reporterBuilder.setPlatformLayer(_platform.platformEnvReporter);
     }
     return await reporterBuilder.build();
   }
 
-  Future<HttpProperties> _makeHttpProperties(LDDartConfig config,
-      EnvironmentReporter reporter, LDLogger logger) async {
+  Future<HttpProperties> _makeHttpProperties() async {
     final appInfo = await _envReporter.applicationInfo;
     if (appInfo == null) {
       return _config.httpProperties;
@@ -197,26 +203,25 @@ final class LDDartClient {
     // TODO: Do we start the process when we create the client, and provide
     // a way to know when it completes? Or do we not even start it as we
     // are doing here.
-    _envReporter = await _makeEnvReporter(_config);
+    _envReporter = await _makeEnvReporter();
 
     // set up context modifiers, adding the auto env modifier if turned on
     _modifiers = [AnonymousContextModifier(_persistence)];
-    if (_config.autoEnvAttributes) {
+    if (_config.autoEnvAttributes == AutoEnvAttributes.enabled) {
       _modifiers.add(
           AutoEnvContextModifier(_envReporter, _persistence, _config.logger));
     }
 
-    final httpProperties =
-        await _makeHttpProperties(_config, _envReporter, _logger);
+    final httpProperties = await _makeHttpProperties();
 
-    if (!_config.eventsConfig.disabled && !_config.offline) {
+    if (!_config.events.disabled && !_config.offline) {
       final osInfo = await _envReporter.osInfo;
       DiagnosticsManager? diagnosticsManager = _makeDiagnosticsManager(osInfo);
 
       _eventProcessor = DefaultEventProcessor(
           logger: _logger,
-          eventCapacity: _config.eventsConfig.eventCapacity,
-          flushInterval: _config.eventsConfig.flushInterval,
+          eventCapacity: _config.events.eventCapacity,
+          flushInterval: _config.events.flushInterval,
           // TODO: Get from config. Use correct auth header setup.
           client: HttpClient(
               httpProperties: httpProperties
@@ -227,9 +232,14 @@ final class LDDartClient {
           diagnosticEventsPath: DefaultConfig.eventPaths
               .getDiagnosticEventsPath(_config.sdkCredential),
           diagnosticsManager: diagnosticsManager,
-          endpoints: _config.endpoints,
+          endpoints: _config.serviceEndpoints,
+          allAttributesPrivate: _config.allAttributesPrivate,
+          globalPrivateAttributes: _config.globalPrivateAttributes
+              .map((item) => AttributeReference(item))
+              .where((ref) => ref.valid)
+              .toSet(),
           diagnosticRecordingInterval:
-              _config.eventsConfig.diagnosticRecordingInterval);
+              _config.events.diagnosticRecordingInterval);
     }
 
     _updateEventSendingState();
@@ -241,18 +251,24 @@ final class LDDartClient {
           return StreamingDataSource(
               credential: _config.sdkCredential,
               context: context,
-              endpoints: _config.endpoints,
+              endpoints: _config.serviceEndpoints,
               logger: _logger,
-              dataSourceConfig: _config.streamingConfig,
+              dataSourceConfig: StreamingDataSourceConfig(
+                  useReport: _config.dataSourceConfig.useReport,
+                  withReasons: _config.dataSourceConfig.evaluationReasons),
               httpProperties: httpProperties);
         },
         ConnectionMode.polling: (LDContext context) {
           return PollingDataSource(
               credential: _config.sdkCredential,
               context: context,
-              endpoints: _config.endpoints,
+              endpoints: _config.serviceEndpoints,
               logger: _logger,
-              dataSourceConfig: _config.pollingConfig,
+              dataSourceConfig: PollingDataSourceConfig(
+                  useReport: _config.dataSourceConfig.useReport,
+                  withReasons: _config.dataSourceConfig.evaluationReasons,
+                  pollingInterval:
+                      _config.dataSourceConfig.polling.pollingInterval),
               httpProperties: httpProperties);
         },
       });
@@ -271,7 +287,7 @@ final class LDDartClient {
   }
 
   DiagnosticsManager? _makeDiagnosticsManager(OsInfo? osInfo) {
-    final diagnosticsManager = _config.eventsConfig.disableDiagnostics
+    final diagnosticsManager = _config.events.diagnosticOptOut
         ? null
         : DiagnosticsManager(
             credential: _config.sdkCredential,
@@ -282,17 +298,17 @@ final class LDDartClient {
               osVersion: osInfo?.version,
             ),
             configData: DiagnosticConfigData(
-                customBaseUri: _config.endpoints.polling !=
-                    _config.endpoints.defaultPolling,
-                customStreamUri:
-                    _config.endpoints.streaming != _config.endpoints.streaming,
-                eventsCapacity: _config.eventsConfig.eventCapacity,
+                customBaseUri: _config.serviceEndpoints.polling !=
+                    _config.serviceEndpoints.defaultPolling,
+                customStreamUri: _config.serviceEndpoints.streaming !=
+                    _config.serviceEndpoints.streaming,
+                eventsCapacity: _config.events.eventCapacity,
                 connectTimeoutMillis:
                     _config.httpProperties.connectTimeout.inMilliseconds,
                 eventsFlushIntervalMillis:
-                    _config.eventsConfig.flushInterval.inMilliseconds,
-                pollingIntervalMillis:
-                    _config.pollingConfig.pollingInterval.inMilliseconds,
+                    _config.events.flushInterval.inMilliseconds,
+                pollingIntervalMillis: _config
+                    .dataSourceConfig.polling.pollingInterval.inMilliseconds,
                 // TODO: If made dynamic, then needs implemented.
                 reconnectTimeoutMillis: 1000,
                 // TODO: Implement.
@@ -300,12 +316,11 @@ final class LDDartClient {
                 offline: _config.offline,
                 // TODO: Implement
                 allAttributesPrivate: false,
-                diagnosticRecordingIntervalMillis: _config
-                    .eventsConfig.diagnosticRecordingInterval.inMilliseconds,
-                // TODO: Update when streaming report supported.
-                useReport: _config.pollingConfig.useReport,
-                // TODO: Update when polling/streaming reason consolidated.
-                evaluationReasonsRequested: _config.pollingConfig.withReasons));
+                diagnosticRecordingIntervalMillis:
+                    _config.events.diagnosticRecordingInterval.inMilliseconds,
+                useReport: _config.dataSourceConfig.useReport,
+                evaluationReasonsRequested:
+                    _config.dataSourceConfig.evaluationReasons));
     return diagnosticsManager;
   }
 

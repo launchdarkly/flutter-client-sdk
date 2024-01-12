@@ -1,3 +1,4 @@
+import '../../../ld_client.dart';
 import 'stub_config.dart'
     if (dart.library.io) 'io_config.dart'
     if (dart.library.html) 'js_config.dart';
@@ -22,6 +23,11 @@ final class DefaultPollingConfiguration {
 final class DefaultDataSourceConfig {
   final defaultWithReasons = false;
   final defaultUseReport = false;
+  final defaultInitialConnectionMode = ConnectionMode.streaming;
+}
+
+final class DefaultPersistenceConfig {
+  final defaultMaxCachedContexts = 5;
 }
 
 final class DefaultConfig {
@@ -33,4 +39,7 @@ final class DefaultConfig {
   static final pollingConfig = DefaultPollingConfiguration();
   static final dataSourceConfig = DefaultDataSourceConfig();
   static final credentialConfig = CredentialConfig();
+  static final persistenceConfig = DefaultPersistenceConfig();
+  static final bool defaultOffline = false;
+  static final bool allAttributesPrivate = false;
 }

@@ -1,13 +1,17 @@
 import '../../ld_common.dart';
 
 final class IdentifyEventSerialization {
-  static Map<String, dynamic> toJson(IdentifyEvent event) {
+  static Map<String, dynamic> toJson(IdentifyEvent event,
+      {required bool allAttributesPrivate,
+      required Set<AttributeReference> globalPrivateAttributes}) {
     final json = <String, dynamic>{};
 
     json['kind'] = 'identify';
     json['creationDate'] = event.creationDate.millisecondsSinceEpoch;
-    json['context'] =
-        LDContextSerialization.toJson(event.context, isEvent: true);
+    json['context'] = LDContextSerialization.toJson(event.context,
+        isEvent: true,
+        allAttributesPrivate: allAttributesPrivate,
+        globalPrivateAttributes: globalPrivateAttributes);
 
     return json;
   }
@@ -33,7 +37,10 @@ final class CustomEventSerialization {
 }
 
 final class EvalEventSerialization {
-  static Map<String, dynamic> toJson(EvalEvent event, {bool isDebug = false}) {
+  static Map<String, dynamic> toJson(EvalEvent event,
+      {bool isDebug = false,
+      required bool allAttributesPrivate,
+      required Set<AttributeReference> globalPrivateAttributes}) {
     final json = <String, dynamic>{};
 
     json['kind'] = isDebug ? 'debug' : 'feature';
@@ -56,8 +63,10 @@ final class EvalEventSerialization {
     // TODO: This code is temporary until the back-end supports always inlined
     // contexts.
     if (isDebug) {
-      json['context'] =
-          LDContextSerialization.toJson(event.context, isEvent: true);
+      json['context'] = LDContextSerialization.toJson(event.context,
+          isEvent: true,
+          allAttributesPrivate: allAttributesPrivate,
+          globalPrivateAttributes: globalPrivateAttributes);
     } else {
       json['contextKeys'] = event.context.keys;
     }

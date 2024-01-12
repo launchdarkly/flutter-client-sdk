@@ -131,6 +131,10 @@ final class FlagPersistence {
     }
     final jsonAll =
         jsonEncode(LDEvaluationResultsSerialization.toJson(filteredFlags));
-    await _persistence?.set(_environmentKey, contextPersistenceKey, jsonAll);
+    // Only write the persistence if we allow caching of contexts. The index
+    // is always written.
+    if (maxCachedContexts > 0) {
+      await _persistence?.set(_environmentKey, contextPersistenceKey, jsonAll);
+    }
   }
 }

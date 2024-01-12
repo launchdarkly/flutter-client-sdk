@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../attribute_reference.dart';
 import '../config/service_endpoints.dart';
 import '../ld_logging.dart';
 import '../network/http_client.dart';
@@ -33,6 +34,8 @@ final class DefaultEventProcessor implements EventProcessor {
   late final Uri _eventsUri;
   late final Uri _diagnosticEventsUri;
   late final DiagnosticsManager? _diagnosticsManager;
+  final bool _allAttributesPrivate;
+  final Set<AttributeReference> _globalPrivateAttributes;
 
   int _droppedEvents = 0;
   int _eventsInLastBatch = 0;
@@ -55,11 +58,15 @@ final class DefaultEventProcessor implements EventProcessor {
       required String diagnosticEventsPath,
       required ServiceEndpoints endpoints,
       required Duration diagnosticRecordingInterval,
+      required bool allAttributesPrivate,
+      required Set<AttributeReference> globalPrivateAttributes,
       DiagnosticsManager? diagnosticsManager})
       : _logger = logger.subLogger('EventProcessor'),
         _eventCapacity = eventCapacity,
         _flushInterval = flushInterval,
         _client = client,
+        _allAttributesPrivate = allAttributesPrivate,
+        _globalPrivateAttributes = globalPrivateAttributes,
         _diagnosticsManager = diagnosticsManager,
         _diagnosticRecordingInterval = diagnosticRecordingInterval {
     _eventsUri = Uri.parse(appendPath(endpoints.events, analyticsEventsPath));
@@ -73,11 +80,16 @@ final class DefaultEventProcessor implements EventProcessor {
     _eventSummarizer.summarize(event);
 
     if (event.trackEvent) {
-      _enqueue(EvalEventSerialization.toJson(event));
+      _enqueue(EvalEventSerialization.toJson(event,
+          allAttributesPrivate: _allAttributesPrivate,
+          globalPrivateAttributes: _globalPrivateAttributes));
     }
 
     if (_shouldDebugEvent(event)) {
-      _enqueue(EvalEventSerialization.toJson(event, isDebug: true));
+      _enqueue(EvalEventSerialization.toJson(event,
+          isDebug: true,
+          allAttributesPrivate: _allAttributesPrivate,
+          globalPrivateAttributes: _globalPrivateAttributes));
     }
   }
 
@@ -88,7 +100,9 @@ final class DefaultEventProcessor implements EventProcessor {
 
   @override
   void processIdentifyEvent(IdentifyEvent event) {
-    _enqueue(IdentifyEventSerialization.toJson(event));
+    _enqueue(IdentifyEventSerialization.toJson(event,
+        allAttributesPrivate: _allAttributesPrivate,
+        globalPrivateAttributes: _globalPrivateAttributes));
   }
 
   @override
