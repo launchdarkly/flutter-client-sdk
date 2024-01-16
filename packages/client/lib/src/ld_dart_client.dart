@@ -7,6 +7,7 @@ import '../src/flag_manager/flag_updater.dart';
 import 'config/data_source_config.dart';
 import 'config/defaults/credential_type.dart';
 import 'config/defaults/default_config.dart';
+import 'connection_mode.dart';
 import 'context_modifiers/anonymous_context_modifier.dart';
 import 'context_modifiers/context_modifier.dart';
 import 'context_modifiers/env_context_modifier.dart';
@@ -385,7 +386,7 @@ final class LDDartClient {
 
   /// Returns the value of flag [flagKey] for the current context as a bool, along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<bool> boolVariationDetail(
       String flagKey, bool defaultValue) {
@@ -409,7 +410,7 @@ final class LDDartClient {
 
   /// Returns the value of flag [flagKey] for the current context as an int, along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<int> intVariationDetail(String flagKey, int defaultValue) {
     final ldValueVariation = _variationInternal(
@@ -432,7 +433,7 @@ final class LDDartClient {
 
   /// Returns the value of flag [flagKey] for the current context as a double, along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<double> doubleVariationDetail(
       String flagKey, double defaultValue) {
@@ -457,7 +458,7 @@ final class LDDartClient {
   //
   /// Returns the value of flag [flagKey] for the current context as a string, along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<String> stringVariationDetail(
       String flagKey, String defaultValue) {
@@ -478,7 +479,7 @@ final class LDDartClient {
 
   /// Returns the value of flag [flagKey] for the current context as an [LDValue], along with information about the resultant value.
   ///
-  /// See [LDEvaluationDetail] for more information on the returned value. Note that [LDConfigBuilder.evaluationReasons]
+  /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<LDValue> jsonVariationDetail(
       String flagKey, LDValue defaultValue) {
@@ -501,7 +502,7 @@ final class LDDartClient {
       }
     } else {
       detail =
-          LDEvaluationDetail(defaultValue, null, LDEvaluationReason.unknown());
+          LDEvaluationDetail(defaultValue, null, LDEvaluationReason.flagNotFound());
     }
 
     _eventProcessor?.processEvalEvent(EvalEvent(

@@ -1,4 +1,5 @@
 import '../../../ld_client.dart';
+import '../../connection_mode.dart';
 import 'stub_config.dart'
     if (dart.library.io) 'io_config.dart'
     if (dart.library.html) 'js_config.dart';

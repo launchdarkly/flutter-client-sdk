@@ -1,5 +1,7 @@
+import 'dart:math';
+import 'package:launchdarkly_dart_common/ld_common.dart';
+
 import 'defaults/default_config.dart';
-import 'limits.dart';
 
 /// Configuration for event processing and sending.
 final class EventsConfig {
@@ -29,16 +31,15 @@ final class EventsConfig {
   /// The [diagnosticRecordingInterval] controls the frequency the SDK will
   /// send periodic diagnostic information.
   EventsConfig(
-      {
-        this.disabled = false,
-        this.diagnosticOptOut = false,
-        int? eventCapacity,
+      {this.disabled = false,
+      this.diagnosticOptOut = false,
+      int? eventCapacity,
       Duration? flushInterval,
       Duration? diagnosticRecordingInterval})
-      : eventCapacity =
-            eventCapacity ?? DefaultConfig.eventConfig.defaultEventsCapacity,
-        flushInterval =
-            flushInterval ?? DefaultConfig.eventConfig.defaultFlushInterval,
+      : eventCapacity = max(0,
+            eventCapacity ?? DefaultConfig.eventConfig.defaultEventsCapacity),
+        flushInterval = durationGreaterThanZeroWithDefault(
+            flushInterval, DefaultConfig.eventConfig.defaultFlushInterval),
         diagnosticRecordingInterval = durationWithMin(
             DefaultConfig.eventConfig.defaultDiagnosticRecordingInterval,
             diagnosticRecordingInterval,

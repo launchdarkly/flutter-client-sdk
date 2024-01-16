@@ -15,9 +15,7 @@ final class ItemDescriptor {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ItemDescriptor &&
-          version == other.version &&
-          flag == other.flag;
+      other is ItemDescriptor && version == other.version && flag == other.flag;
 
   @override
   int get hashCode => version.hashCode ^ flag.hashCode;

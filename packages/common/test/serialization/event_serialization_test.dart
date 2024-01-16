@@ -253,7 +253,7 @@ void main() {
         flagKey: 'the-flag',
         defaultValue: LDValue.ofString('default-value'),
         evaluationDetail: LDEvaluationDetail(
-            LDValue.ofString('the-value'), null, LDEvaluationReason.unknown()),
+            LDValue.ofString('the-value'), null, LDEvaluationReason.flagNotFound()),
         withReason: true,
         trackEvent: false);
 
@@ -268,7 +268,7 @@ void main() {
         '"creationDate": 0,'
         '"default": "default-value",'
         '"value": "the-value",'
-        '"reason": {"kind": "UNKNOWN"},'
+        '"reason": {"kind": "FLAG_NOT_FOUND"},'
         '"contextKeys": {'
         '"user": "user-key"'
         '}'

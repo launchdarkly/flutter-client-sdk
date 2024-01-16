@@ -93,7 +93,7 @@ void main() {
         creationDate: DateTime.fromMillisecondsSinceEpoch(1000),
         defaultValue: LDValue.ofNum(333),
         evaluationDetail: LDEvaluationDetail(
-            LDValue.ofNum(333), null, LDEvaluationReason.unknown()),
+            LDValue.ofNum(333), null, LDEvaluationReason.flagNotFound()),
         context: context,
         withReason: false,
         trackEvent: false);

@@ -70,6 +70,11 @@ final class LDContextAttributes {
     }
     return pointer ?? LDValue.ofNull();
   }
+
+  @override
+  String toString() {
+    return 'LDContextAttributes{customAttributes: $customAttributes, kind: $kind, key: $key, anonymous: $anonymous, name: $name, privateAttributes: $privateAttributes}';
+  }
 }
 
 /// A builder for constructing [LDContextAttributes].
@@ -337,6 +342,11 @@ final class LDContext {
   /// be returned.
   LDValue get(String kind, AttributeReference reference) {
     return attributesByKind[kind]?._get(reference) ?? LDValue.ofNull();
+  }
+
+  @override
+  String toString() {
+    return 'LDContext{attributesByKind: $attributesByKind, valid: $valid}';
   }
 }
 

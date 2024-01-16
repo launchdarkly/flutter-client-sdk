@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 void main() {
   group('given different evaluation reasons', () {
     for (var reason in [
-      LDEvaluationReason.unknown(),
+      LDEvaluationReason.flagNotFound(),
       LDEvaluationReason.error(),
       LDEvaluationReason.error(errorKind: LDErrorKind.clientNotReady),
       LDEvaluationReason.error(errorKind: LDErrorKind.exception),

@@ -63,7 +63,7 @@ List<String> _getComponents(String value) {
 /// An attribute name or path expression identifying a value within an [LDContext].
 ///
 /// Applications are unlikely to need to use this type directly, but see below for details of the
-/// attribute reference syntax used by methods like [LDContextBuilder.privateAttributes].
+/// attribute reference syntax used by methods like [LDAttributesBuilder.privateAttributes].
 ///
 /// The string representation of an attribute reference in LaunchDarkly data uses the following
 /// syntax:

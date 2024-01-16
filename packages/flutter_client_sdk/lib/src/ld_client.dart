@@ -159,7 +159,7 @@ interface class LDClient {
   /// along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value.
-  /// Note that [LDConfigBuilder.evaluationReasons] must have been set to `true`
+  /// Note that [DataSourceConfig.evaluationReasons] must have been set to `true`
   /// to request the additional evaluation information from the backend.
   LDEvaluationDetail<bool> boolVariationDetail(
       String flagKey, bool defaultValue) {
@@ -178,7 +178,7 @@ interface class LDClient {
   /// along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value.
-  /// Note that [LDConfigBuilder.evaluationReasons] must have been set to `true`
+  /// Note that [DataSourceConfig.evaluationReasons] must have been set to `true`
   /// to request the additional evaluation information from the backend.
   LDEvaluationDetail<int> intVariationDetail(String flagKey, int defaultValue) {
     return _client.intVariationDetail(flagKey, defaultValue);
@@ -196,7 +196,7 @@ interface class LDClient {
   /// along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note
-  /// that [LDConfigBuilder.evaluationReasons] must have been set to `true` to
+  /// that [DataSourceConfig.evaluationReasons] must have been set to `true` to
   /// request the additional evaluation information from the backend.
   LDEvaluationDetail<double> doubleVariationDetail(
       String flagKey, double defaultValue) {
@@ -215,7 +215,7 @@ interface class LDClient {
   /// along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note
-  /// that [LDConfigBuilder.evaluationReasons] must have been set to `true` to
+  /// that [DataSourceConfig.evaluationReasons] must have been set to `true` to
   /// request the additional evaluation information from the backend.
   LDEvaluationDetail<String> stringVariationDetail(
       String flagKey, String defaultValue) {
@@ -234,7 +234,7 @@ interface class LDClient {
   /// [LDValue], along with information about the resultant value.
   ///
   /// See [LDEvaluationDetail] for more information on the returned value.
-  /// Note that [LDConfigBuilder.evaluationReasons] must have been set to `true`
+  /// Note that [DataSourceConfig.evaluationReasons] must have been set to `true`
   /// to request the additional evaluation information from the backend.
   LDEvaluationDetail<LDValue> jsonVariationDetail(
       String flagKey, LDValue defaultValue) {

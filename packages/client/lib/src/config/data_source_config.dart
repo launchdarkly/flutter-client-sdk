@@ -1,7 +1,8 @@
-import 'defaults/default_config.dart';
-import 'limits.dart';
+import 'package:launchdarkly_dart_common/ld_common.dart';
 
-sealed class DataSourceConfig {
+import 'defaults/default_config.dart';
+
+sealed class DataSourceConfigBase {
   /// Include evaluation reasons.
   final bool withReasons;
 
@@ -10,10 +11,10 @@ sealed class DataSourceConfig {
   /// For streaming requests on the web platform report is not supported.
   final bool useReport;
 
-  DataSourceConfig({required this.withReasons, required this.useReport});
+  DataSourceConfigBase({required this.withReasons, required this.useReport});
 }
 
-final class PollingDataSourceConfig extends DataSourceConfig {
+final class PollingDataSourceConfig extends DataSourceConfigBase {
   /// The path to use for doing GET requests.
   String pollingGetPath(String credential, String context) {
     return DefaultConfig.pollingPaths.pollingGetPath(credential, context);
@@ -40,7 +41,7 @@ final class PollingDataSourceConfig extends DataSourceConfig {
                 useReport ?? DefaultConfig.dataSourceConfig.defaultUseReport);
 }
 
-final class StreamingDataSourceConfig extends DataSourceConfig {
+final class StreamingDataSourceConfig extends DataSourceConfigBase {
   /// The path to use for doing GET requests.
   String streamingGetPath(String credential, String context) {
     return DefaultConfig.streamingPaths.streamingGetPath(credential, context);

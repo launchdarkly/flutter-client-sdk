@@ -3,15 +3,10 @@ import 'dart:async';
 import 'package:launchdarkly_dart_common/ld_common.dart'
     show LDContext, LDLogger;
 
+import '../connection_mode.dart';
 import 'data_source.dart';
 import 'data_source_event_handler.dart';
 import 'data_source_status_manager.dart';
-
-enum ConnectionMode {
-  offline,
-  streaming,
-  polling,
-}
 
 typedef DataSourceFactory = DataSource Function(LDContext context);
 

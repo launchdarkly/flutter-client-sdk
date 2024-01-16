@@ -1,5 +1,11 @@
-import '../ld_client.dart';
+import 'dart:math';
+
+import 'package:launchdarkly_dart_common/ld_common.dart';
+
 import 'config/defaults/default_config.dart';
+import 'config/events_config.dart';
+import 'connection_mode.dart';
+import 'config/service_endpoints.dart' as client_endpoints;
 
 /// Configuration which affects how the SDK uses persistence.
 final class PersistenceConfig {
@@ -14,14 +20,15 @@ final class PersistenceConfig {
   ///
   /// The default value of this configuration option is `5`.
   PersistenceConfig({int? maxCachedContexts})
-      : maxCachedContexts = maxCachedContexts ??
-            DefaultConfig.persistenceConfig.defaultMaxCachedContexts;
+      : maxCachedContexts = max(0, maxCachedContexts ??
+            DefaultConfig.persistenceConfig.defaultMaxCachedContexts);
 }
 
 final class PollingConfig {
   /// The current polling interval, if less than min, then the min will be used.
   final Duration pollingInterval;
 
+  /// [pollingInterval] controls the interval between polling requests.
   PollingConfig({Duration? pollingInterval})
       : pollingInterval = pollingInterval ??
             DefaultConfig.pollingConfig.defaultPollingInterval;
@@ -57,7 +64,7 @@ final class DataSourceConfig {
   /// The default is [ConnectionMode.streaming]. If the mode is set to
   /// [ConnectionMode.offline] then the data source will not request data from
   /// LaunchDarkly, but the sending of events will be unaffected. In order
-  /// to completely disable network activity use [offline].
+  /// to completely disable network activity use [LDConfig.offline].
   DataSourceConfig(
       {bool? useReport,
       bool? evaluationReasons,
@@ -131,10 +138,10 @@ abstract class LDCommonConfig {
     bool? allAttributesPrivate,
     List<String>? globalPrivateAttributes,
   })  : httpProperties = httpProperties ?? HttpProperties(),
-        serviceEndpoints = serviceEndpoints ?? ServiceEndpoints(),
+        serviceEndpoints = serviceEndpoints ?? client_endpoints.ServiceEndpoints(),
         events = events ?? EventsConfig(),
         persistence = persistence ?? PersistenceConfig(),
-        offline = DefaultConfig.defaultOffline,
+        offline = offline ?? DefaultConfig.defaultOffline,
         logger = logger ?? LDLogger(),
         dataSourceConfig = dataSourceConfig ?? DataSourceConfig(),
         allAttributesPrivate =

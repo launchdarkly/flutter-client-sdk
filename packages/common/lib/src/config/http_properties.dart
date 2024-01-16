@@ -1,3 +1,5 @@
+import 'validations.dart';
+
 import 'defaults/common_default_config.dart';
 
 final class HttpProperties {
@@ -21,13 +23,16 @@ final class HttpProperties {
   /// Construct an http properties instance.
   ///
   /// The [connectTimeout] is the time between initiating a connection and either
-  /// starting to receive a body or writing a body.
+  /// starting to receive a body or writing a body. If the value is not set,
+  /// or the value is <= 0, then the default value will be used.
   ///
   /// The [readTimeout] is the time after receiving headers until the body
-  /// completes being read.
+  /// completes being read. If the value is not set, or the value is <= 0, then
+  /// the default value will be used.
   ///
-  /// The [writeTimeout] is the time between starting to write the body
-  /// and finishing writing the body.
+  /// The [writeTimeout] is the time between starting to write the body and
+  /// finishing writing the body. If the value is not set, or the value is <= 0,
+  /// then the default value will be used.
   ///
   /// [baseHeaders] are headers that will be added to all requests
   /// when possible. Not all connections support including headers.
@@ -37,12 +42,12 @@ final class HttpProperties {
       Duration? writeTimeout,
       Map<String, String> baseHeaders = const {}})
       : baseHeaders = Map.unmodifiable(baseHeaders),
-        connectTimeout =
-            connectTimeout ?? CommonDefaultConfig.networkConfig.connectTimeout,
-        readTimeout =
-            readTimeout ?? CommonDefaultConfig.networkConfig.readTimeout,
-        writeTimeout =
-            writeTimeout ?? CommonDefaultConfig.networkConfig.writeTimeout;
+        connectTimeout = durationGreaterThanZeroWithDefault(
+            connectTimeout, CommonDefaultConfig.networkConfig.connectTimeout),
+        readTimeout = durationGreaterThanZeroWithDefault(
+            readTimeout, CommonDefaultConfig.networkConfig.readTimeout),
+        writeTimeout = durationGreaterThanZeroWithDefault(
+            writeTimeout, CommonDefaultConfig.networkConfig.writeTimeout);
 
   /// Create an http properties instance based on this instance with
   /// additional headers.

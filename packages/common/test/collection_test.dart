@@ -25,4 +25,14 @@ void main() {
     final mapB = {'a': 1, 'b': 2, 'c': 3};
     expect(mapA.equals(mapB), true);
   });
+
+  test('can async reduce', () async {
+    final items = [1, 2, 3, 4];
+    final res = await items.asyncReduce((current, accumulator) async {
+      await Future.delayed(Duration(milliseconds: current));
+      return accumulator + current;
+    }, 5);
+
+    expect(res, 15);
+  });
 }

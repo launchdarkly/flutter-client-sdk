@@ -20,7 +20,7 @@ final class _LDKindSerialization {
     if (json is String) {
       return LDKind.fromString(json);
     }
-    return LDKind.unknown;
+    return LDKind.flagNotFound;
   }
 
   static dynamic toJson(LDKind kind) {
@@ -63,8 +63,8 @@ final class LDEvaluationReasonSerialization {
               _LDErrorKindSerialization.fromJson(json['errorKind']);
           return LDEvaluationReason.error(errorKind: errorKind);
         }
-      case LDKind.unknown:
-        return LDEvaluationReason.unknown();
+      case LDKind.flagNotFound:
+        return LDEvaluationReason.flagNotFound();
     }
   }
 
