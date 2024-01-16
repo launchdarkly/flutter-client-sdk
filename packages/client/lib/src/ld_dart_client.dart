@@ -102,7 +102,7 @@ final class LDDartClient {
         _logger = commonConfig.logger,
         _flagManager = FlagManager(
             sdkKey: commonConfig.sdkCredential,
-            maxCachedContexts: 5, // TODO: Get from config.
+            maxCachedContexts: commonConfig.persistence.maxCachedContexts,
             logger: commonConfig.logger,
             persistence: platform.persistence),
         _dataSourceStatusManager = DataSourceStatusManager(),
@@ -121,8 +121,6 @@ final class LDDartClient {
         dataSourceEventHandler: dataSourceEventHandler,
         logger: _logger);
 
-    // TODO: Should it go from initializing to offline during start? Or just be
-    // offline.
     if (_config.offline) {
       _dataSourceStatusManager.setOffline();
     }
@@ -143,22 +141,24 @@ final class LDDartClient {
 
   Future<HttpProperties> _makeHttpProperties() async {
     final appInfo = await _envReporter.applicationInfo;
-    if (appInfo == null) {
-      return _config.httpProperties;
-    }
-
-    if (appInfo.applicationId == null) {
-      // indicates ID was dropped at some point
-      _logger.info('A valid applicationId was not provided.');
-    }
-
     final additionalHeaders = <String, String>{};
-    additionalHeaders.addAll(appInfo.asHeaderMap());
+
+    if (appInfo != null) {
+      if (appInfo.applicationId == null) {
+        // indicates ID was dropped at some point
+        _logger.info('A valid applicationId was not provided.');
+      }
+      additionalHeaders.addAll(appInfo.asHeaderMap());
+    }
+
     final userAgentString = '${_sdkData.name}/${_sdkData.version}';
 
     switch (DefaultConfig.credentialConfig.credentialType) {
       case CredentialType.mobileKey:
         additionalHeaders['user-agent'] = userAgentString;
+        // When using a mobile key the credential appears in the headers. For
+        // a client-side ID the credential is in the URL.
+        additionalHeaders['authorization'] = _config.sdkCredential;
       case CredentialType.clientSideId:
         additionalHeaders['x-launchdarkly-user-agent'] = userAgentString;
     }
@@ -240,11 +240,7 @@ final class LDDartClient {
           logger: _logger,
           eventCapacity: _config.events.eventCapacity,
           flushInterval: _config.events.flushInterval,
-          // TODO: Get from config. Use correct auth header setup.
-          client: HttpClient(
-              httpProperties: httpProperties
-                  // TODO: this authorization header location is inconsistent with others
-                  .withHeaders({'authorization': _config.sdkCredential})),
+          client: HttpClient(httpProperties: httpProperties),
           analyticsEventsPath: DefaultConfig.eventPaths
               .getAnalyticEventsPath(_config.sdkCredential),
           diagnosticEventsPath: DefaultConfig.eventPaths
@@ -263,7 +259,6 @@ final class LDDartClient {
     _updateEventSendingState();
 
     if (!_config.offline) {
-      // TODO: When always offline use a null data source.
       _dataSourceManager.setFactories({
         ConnectionMode.streaming: (LDContext context) {
           return StreamingDataSource(
@@ -330,8 +325,7 @@ final class LDDartClient {
                 // TODO: Implement.
                 streamingDisabled: false,
                 offline: _config.offline,
-                // TODO: Implement
-                allAttributesPrivate: false,
+                allAttributesPrivate: _config.allAttributesPrivate,
                 diagnosticRecordingIntervalMillis:
                     _config.events.diagnosticRecordingInterval.inMilliseconds,
                 useReport: _config.dataSourceConfig.useReport,
@@ -361,7 +355,7 @@ final class LDDartClient {
       return IdentifyError(Exception(message));
     }
     final res = await _identifyQueue.execute(() async {
-      _identifyInternal(context);
+      await _identifyInternal(context);
     });
     return _mapIdentifyResult(res);
   }
@@ -532,7 +526,7 @@ final class LDDartClient {
         evaluationDetail: detail,
         context: _context,
         // Include the reason when available if this is a detailed evaluation.
-        withReason: isDetailed,
+        withReason: isDetailed || (evalResult?.flag?.trackReason ?? false),
         trackEvent: evalResult?.flag?.trackEvents ?? false,
         debugEventsUntilDate: evalResult?.flag?.debugEventsUntilDate != null
             ? DateTime.fromMillisecondsSinceEpoch(

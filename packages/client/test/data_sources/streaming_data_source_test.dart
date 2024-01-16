@@ -103,23 +103,6 @@ void main() {
       dataSource.start();
       controller.sink.add(MessageEvent('put', '{}', null));
     });
-
-    test('it includes the authorization header', () {
-      final controller = StreamController<MessageEvent>();
-      final (dataSource, _, statusManager) =
-          makeDataSourceForTest(controller.stream, withReasons: true,
-              factoryCallback: (uri, properties, handler, errorHandler) {
-        expect(properties.baseHeaders['authorization'], 'dummy-key');
-      });
-
-      expectLater(
-          statusManager.changes,
-          emits(DataSourceStatus(
-              state: DataSourceState.valid, stateSince: DateTime(1))));
-
-      dataSource.start();
-      controller.sink.add(MessageEvent('put', '{}', null));
-    });
   });
 
   test('it cancels the subscription on stop', () {
@@ -129,7 +112,6 @@ void main() {
     final (dataSource, _, _) =
         makeDataSourceForTest(controller.stream, withReasons: true,
             factoryCallback: (uri, properties, handler, errorHandler) {
-      expect(properties.baseHeaders['authorization'], 'dummy-key');
     });
 
     dataSource.start();

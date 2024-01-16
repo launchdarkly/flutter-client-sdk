@@ -145,9 +145,6 @@ final class DataSourceManager {
         case DataEvent():
           var handled = await _dataSourceEventHandler.handleMessage(
               _activeContext!, event.type, event.data);
-          // TODO: Do we want to complete on any valid data event, or only put?
-          // Current protocol it will always be a put unless something has
-          // gone wrong.
           if (handled == MessageStatus.messageHandled &&
               _identifyCompleter != null) {
             if (_identifyCompleter!.isCompleted) {

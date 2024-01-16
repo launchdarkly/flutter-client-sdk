@@ -69,11 +69,10 @@ final class StreamingDataSource implements DataSource {
       : _endpoints = endpoints,
         _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
-        _subFactory = subFactory {
+        _subFactory = subFactory, _httpProperties = httpProperties {
     if (_dataSourceConfig.useReport) {
       _logger.warn('REPORT is currently not supported for streaming');
     }
-    _httpProperties = httpProperties.withHeaders({'authorization': credential});
 
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));

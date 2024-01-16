@@ -1,0 +1,4 @@
+analyzer:
+  exclude:
+    - bin/*.openapi.dart
+    - bin/*.openapi.g.dart

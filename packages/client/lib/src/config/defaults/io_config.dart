@@ -6,7 +6,7 @@ class DefaultPollingPaths {
   }
 
   String pollingReportPath(String credential, String context) {
-    return '/msdk/evalx/contexts';
+    return '/msdk/evalx/context';
   }
 }
 

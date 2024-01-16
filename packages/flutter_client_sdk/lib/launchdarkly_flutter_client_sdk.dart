@@ -40,6 +40,7 @@ export 'package:launchdarkly_dart_client/ld_client.dart'
         DataSourceState,
         AutoEnvAttributes,
         DataSourceConfig,
+        EventsConfig,
         PersistenceConfig,
         ApplicationInfo,
         ConnectionMode;

@@ -220,7 +220,7 @@ void main() {
     final innerClient = MockClient((request) async {
       methodCalled = true;
       expect(request.url.toString(),
-          'https://clientsdk.launchdarkly.com/msdk/evalx/contexts');
+          'https://clientsdk.launchdarkly.com/msdk/evalx/context');
       return http.Response('{}', 200);
     });
 
@@ -243,7 +243,7 @@ void main() {
     final innerClient = MockClient((request) async {
       calledCount += 1;
       expect(request.url.toString(),
-          'https://clientsdk.launchdarkly.com/msdk/evalx/contexts');
+          'https://clientsdk.launchdarkly.com/msdk/evalx/context');
       return http.Response('{}', 200);
     });
 
@@ -262,7 +262,7 @@ void main() {
     final innerClient = MockClient((request) async {
       calledCount += 1;
       expect(request.url.toString(),
-          'https://clientsdk.launchdarkly.com/msdk/evalx/contexts');
+          'https://clientsdk.launchdarkly.com/msdk/evalx/context');
       return http.Response('{}', 200);
     });
 

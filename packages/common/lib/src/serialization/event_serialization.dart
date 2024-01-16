@@ -80,6 +80,7 @@ final class _FlagCounterSerialization {
     final json = <String, dynamic>{};
 
     json['value'] = LDValueSerialization.toJson(counter.value);
+    json['count'] = counter.count;
     if (counter.version != null) {
       json['version'] = counter.version;
     }

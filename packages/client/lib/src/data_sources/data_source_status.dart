@@ -79,7 +79,10 @@ enum ErrorKind {
   /// The data source itself is working, but when it tried to put an
   /// update into the data store, the data store failed (so the SDK may
   /// not have the latest data).
-  storeError // TODO: I don't think we have this scenario, but we may want this value for API consistency.
+  storeError
+
+  // This SDK does not current have a situation where storeError can happen.
+  // It has been included for completeness.
 }
 
 /// A description of an error condition that the data source encountered.

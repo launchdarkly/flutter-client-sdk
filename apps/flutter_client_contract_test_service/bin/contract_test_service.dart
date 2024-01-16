@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart';
 import 'package:launchdarkly_dart_common/ld_common.dart' as common;
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 import 'package:openapi_base/openapi_base.dart';
@@ -26,14 +27,20 @@ class TestApiImpl extends SdkTestApi {
   var nextIdToGive = 0;
 
   @override
+  // ignore: non_constant_identifier_names
   Future<GetResponse> Get() async {
     return GetResponse.response200(GetResponseBody200(
         name: 'flutter-client-sdk', capabilities: capabilities));
   }
 
   @override
+  // ignore: non_constant_identifier_names
   Future<PostResponse> Post(PostSchema body) async {
-    final startWaitTimeMillis = body.configuration?.startWaitTimeMs?.toInt() ?? defaultWaitTimeMillis;
+    final startWaitTimeMillis =
+        body.configuration?.startWaitTimeMs?.toInt() ?? defaultWaitTimeMillis;
+
+    // TODO: determine if we need support for allAttributesPrivate
+
     final config = LDConfig(
         body.configuration?.credential ?? "", AutoEnvAttributes.disabled,
         applicationInfo: body.configuration?.tags?.applicationId != null
@@ -42,6 +49,7 @@ class TestApiImpl extends SdkTestApi {
                 applicationVersion:
                     body.configuration!.tags!.applicationVersion)
             : null,
+        persistence: PersistenceConfig(maxCachedContexts: 0),
         serviceEndpoints: ServiceEndpoints.custom(
             polling: body.configuration?.polling?.baseUri,
             streaming: body.configuration?.streaming?.baseUri,
@@ -52,25 +60,24 @@ class TestApiImpl extends SdkTestApi {
                 : ConnectionMode.polling,
             evaluationReasons:
                 body.configuration?.clientSide?.evaluationReasons,
-            useReport: body.configuration?.clientSide?.useReport));
+            useReport: body.configuration?.clientSide?.useReport),
+        events: EventsConfig(
+            eventCapacity: body.configuration?.events?.capacity?.toInt(),
+            disabled: body.configuration?.events == null,
+            diagnosticOptOut:
+                !(body.configuration?.events?.enableDiagnostics ?? true)));
 
     final configuration = body.configuration!;
-    print(configuration.toJson());
     final clientSide = configuration.clientSide!;
     final initialContext = clientSide.initialContext!;
     final context = fromJson(initialContext.toJson())!;
-    print(
-        "Context:${common.LDContextSerialization.toJson(context, isEvent: false)}");
     final client = LDClient(config, context);
     final started = client.start();
     try {
       await started.timeout(Duration(milliseconds: startWaitTimeMillis));
     } catch (error) {
-      throw Exception("Failed to initialize client: ${error}");
+      // ignore error
     }
-
-    // TODO: figure out why start future is not awaiting correctly
-    await Future.delayed(Duration(milliseconds: 10));
 
     final clientId = nextIdToGive;
     nextIdToGive++;
@@ -86,6 +93,7 @@ class TestApiImpl extends SdkTestApi {
   }
 
   @override
+  // ignore: non_constant_identifier_names
   Future<DeleteResponse> Delete() {
     exit(0);
   }
@@ -125,7 +133,6 @@ class TestApiImpl extends SdkTestApi {
         throw UnimplementedError();
     }
 
-    print("Response: ${response.toJson()}");
     return ClientIdPostResponse.response200(response);
   }
 
@@ -260,6 +267,8 @@ class TestApiImpl extends SdkTestApi {
         return null;
       }
 
+      // TODO: add _meta support including private attributes
+
       final attrsBuilder = builder.kind(kind, json['key']);
       for (final e in json.entries) {
         attrsBuilder.set(e.key, common.LDValueSerialization.fromJson(e.value));
@@ -270,8 +279,28 @@ class TestApiImpl extends SdkTestApi {
   }
 }
 
+final class WifiConnected extends ConnectivityPlatform {
+  StreamController<ConnectivityResult> _controller = StreamController();
+  Stream<ConnectivityResult>? _stream;
+
+  @override
+  Future<ConnectivityResult> checkConnectivity() async {
+    return ConnectivityResult.wifi;
+  }
+
+  @override
+  Stream<ConnectivityResult> get onConnectivityChanged {
+    if (_stream == null) {
+      _stream = _controller.stream.asBroadcastStream();
+    }
+    return _stream!;
+  }
+}
+
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();  // needed before mocking
+  ConnectivityPlatform.instance = WifiConnected();
+  WidgetsFlutterBinding.ensureInitialized(); // needed before mocking
+  // ignore: invalid_use_of_visible_for_testing_member
   SharedPreferences.setMockInitialValues({}); // required to mock persistence
   final port = 8080;
   final server = OpenApiShelfServer(

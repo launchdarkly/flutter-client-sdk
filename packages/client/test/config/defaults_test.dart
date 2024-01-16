@@ -11,7 +11,7 @@ void main() {
         paths.pollingReportPath('sdk-key', 'this-is-a-context');
     final pollingGet = paths.pollingGetPath('sdk-key', 'this-is-a-context');
 
-    expect(pollingReport, '/msdk/evalx/contexts');
+    expect(pollingReport, '/msdk/evalx/context');
     expect(pollingGet, '/msdk/evalx/contexts/this-is-a-context');
   });
 

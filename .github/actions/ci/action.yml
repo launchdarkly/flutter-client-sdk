@@ -39,16 +39,19 @@ runs:
     - name: Contract Tests
       shell: bash
       run: |
-        cd apps/flutter_client_contract_test_service
+        pushd apps/flutter_client_contract_test_service
         flutter test bin/contract_test_service.dart > test-service.log 2>&1 & disown
-        curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/master/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -stop-service-at-end -skip-from apps/flutter_client_contract_test_service/testharness-suppressions.txt" sh
+        sleep 10
+        curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/main/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -status-timeout 100 -stop-service-at-end -skip-from testharness-suppressions.txt" sh
+        popd
 
     - name: SSE Contract Tests
       shell: bash
       run: |
-        cd apps/sse_contract_test_service
+        pushd apps/sse_contract_test_service
         dart run bin/sse_contract_test_service.dart > test-service.log 2>&1 & disown
         curl -s https://raw.githubusercontent.com/launchdarkly/sse-contract-tests/v2.0.0/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -stop-service-at-end" sh
+        popd
 
     - name: Upload Test Service Logs
       uses: actions/upload-artifact@v3

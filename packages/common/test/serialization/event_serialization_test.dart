@@ -442,10 +442,10 @@ void main() {
             '"features":{'
             '"a":{"default":"default-value",'
             '"contextKinds":["user","org"],'
-            '"counters":[{"value":"the-value","version":42,"variation":2}]},'
+            '"counters":[{"value":"the-value","count":10,"version":42,"variation":2}]},'
             '"b":{"default":"default-value",'
             '"contextKinds":["potato","org"],'
-            '"counters":[{"value":"another-value","unknown":true}]}}}'));
+            '"counters":[{"value":"another-value","count":11,"unknown":true}]}}}'));
 
     expect(jsonAsLdValue, expectedLdValue);
   });

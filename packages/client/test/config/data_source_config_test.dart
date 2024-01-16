@@ -26,7 +26,7 @@ void main() {
             '/msdk/evalx/contexts/this-is-a-context');
         expect(
             config.pollingReportPath(credential, 'this-is-a-context'),
-            '/msdk/evalx/contexts');
+            '/msdk/evalx/context');
       });
     }
   });

@@ -11,6 +11,8 @@ dependencies:
   args: ^2.3.0
   openapi_base: ^1.1.0+3
   freezed_annotation: ^2.4.1
+  # Allow setting mock implementation.
+  connectivity_plus: 5.0.2
   launchdarkly_flutter_client_sdk:
     path: ../../packages/flutter_client_sdk
 

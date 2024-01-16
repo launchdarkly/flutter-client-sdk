@@ -77,10 +77,8 @@ final class PollingDataSource implements DataSource {
       _method = RequestMethod.report;
       _client = clientFactory(updatedProperties);
     } else {
-      final updatedProperties =
-          httpProperties.withHeaders({'authorization': credential});
       _method = RequestMethod.get;
-      _client = clientFactory(updatedProperties);
+      _client = clientFactory(httpProperties);
     }
 
     final plainContextString =
