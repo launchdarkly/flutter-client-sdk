@@ -252,8 +252,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         flagKey: 'the-flag',
         defaultValue: LDValue.ofString('default-value'),
-        evaluationDetail: LDEvaluationDetail(
-            LDValue.ofString('the-value'), null, LDEvaluationReason.flagNotFound()),
+        evaluationDetail: LDEvaluationDetail(LDValue.ofString('the-value'),
+            null, LDEvaluationReason.flagNotFound()),
         withReason: true,
         trackEvent: false);
 
@@ -268,7 +268,7 @@ void main() {
         '"creationDate": 0,'
         '"default": "default-value",'
         '"value": "the-value",'
-        '"reason": {"kind": "FLAG_NOT_FOUND"},'
+        '"reason": {"kind": "ERROR", "errorKind": "FLAG_NOT_FOUND"},'
         '"contextKeys": {'
         '"user": "user-key"'
         '}'

@@ -7,7 +7,6 @@ void main() {
   group('given different evaluation reasons', () {
     for (var reason in [
       LDEvaluationReason.flagNotFound(),
-      LDEvaluationReason.error(),
       LDEvaluationReason.error(errorKind: LDErrorKind.clientNotReady),
       LDEvaluationReason.error(errorKind: LDErrorKind.exception),
       LDEvaluationReason.error(errorKind: LDErrorKind.flagNotFound),

@@ -114,9 +114,18 @@ final class LDDartClient {
         logger: _logger);
 
     _dataSourceManager = DataSourceManager(
+        startingMode: _config.offline
+            ? ConnectionMode.offline
+            : _config.dataSourceConfig.initialConnectionMode,
         statusManager: _dataSourceStatusManager,
         dataSourceEventHandler: dataSourceEventHandler,
         logger: _logger);
+
+    // TODO: Should it go from initializing to offline during start? Or just be
+    // offline.
+    if (_config.offline) {
+      _dataSourceStatusManager.setOffline();
+    }
   }
 
   Future<EnvironmentReporter> _makeEnvReporter() async {
@@ -177,7 +186,15 @@ final class LDDartClient {
     _startCompleter = Completer<IdentifyResult>();
     _startFuture = _startCompleter!.future;
 
-    _startInternal().then((value) => _startCompleter!.complete(value));
+    // The setup of modifiers and other items must be done in the identify
+    // queue to ensure that identifies cannot be done without those items
+    // having been set resulting in a crash.
+    _identifyQueue.execute(() async {
+      await _startInternal();
+      await _identifyInternal(_initialUndecoratedContext);
+    }).then((res) {
+      _startCompleter!.complete(_mapIdentifyResult(res));
+    });
 
     return _startFuture!.then(_mapIdentifyStart);
   }
@@ -200,7 +217,7 @@ final class LDDartClient {
     }
   }
 
-  Future<IdentifyResult> _startInternal() async {
+  Future<void> _startInternal() async {
     // TODO: Do we start the process when we create the client, and provide
     // a way to know when it completes? Or do we not even start it as we
     // are doing here.
@@ -283,8 +300,6 @@ final class LDDartClient {
         },
       });
     }
-
-    return await identify(_initialUndecoratedContext);
   }
 
   DiagnosticsManager? _makeDiagnosticsManager(OsInfo? osInfo) {
@@ -345,25 +360,13 @@ final class LDDartClient {
       _logger.warn(message);
       return IdentifyError(Exception(message));
     }
-    // TODO: Check for difference?
-
-    await _setAndDecorateContext(context);
-    return _identifyInternal();
+    final res = await _identifyQueue.execute(() async {
+      _identifyInternal(context);
+    });
+    return _mapIdentifyResult(res);
   }
 
-  Future<IdentifyResult> _identifyInternal() async {
-    final res = await _identifyQueue.execute(() async {
-      final completer = Completer<void>();
-      _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
-      final loadedFromCache = await _flagManager.loadCached(_context);
-
-      _dataSourceManager.identify(_context, completer);
-
-      if (loadedFromCache) {
-        return;
-      }
-      return completer.future;
-    });
+  Future<IdentifyResult> _mapIdentifyResult(TaskResult<void> res) async {
     switch (res) {
       case TaskComplete<void>():
         return IdentifyComplete();
@@ -372,6 +375,24 @@ final class LDDartClient {
       case TaskError<void>(error: var error):
         return IdentifyError(error);
     }
+  }
+
+  Future<void> _identifyInternal(LDContext context) async {
+    await _setAndDecorateContext(context);
+    final completer = Completer<void>();
+    _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
+    final loadedFromCache = await _flagManager.loadCached(_context);
+
+    if (_config.offline) {
+      // TODO: Do we need to do anything different here?
+      return;
+    }
+    _dataSourceManager.identify(_context, completer);
+
+    if (loadedFromCache) {
+      return;
+    }
+    return completer.future;
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.
@@ -501,8 +522,8 @@ final class LDDartClient {
             LDEvaluationReason.error(errorKind: LDErrorKind.wrongType));
       }
     } else {
-      detail =
-          LDEvaluationDetail(defaultValue, null, LDEvaluationReason.flagNotFound());
+      detail = LDEvaluationDetail(
+          defaultValue, null, LDEvaluationReason.flagNotFound());
     }
 
     _eventProcessor?.processEvalEvent(EvalEvent(
