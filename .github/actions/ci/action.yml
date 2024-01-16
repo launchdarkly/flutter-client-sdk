@@ -18,7 +18,6 @@ runs:
         flutter-version: '3.16.3'
         channel: 'stable'
 
-
     - name: Install Melos
       shell: bash
       run: |
@@ -36,6 +35,13 @@ runs:
     - name: Test
       shell: bash
       run: melos run test
+
+    - name: Contract Tests
+      shell: bash
+      run: |
+        cd apps/flutter_client_contract_test_service
+        flutter test bin/contract_test_service.dart > test-service.log 2>&1 & disown
+        curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/master/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -stop-service-at-end -skip-from apps/flutter_client_contract_test_service/testharness-suppressions.txt" sh
 
     - name: SSE Contract Tests
       shell: bash

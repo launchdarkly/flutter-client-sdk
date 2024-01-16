@@ -1,0 +1,235 @@
+openapi: 3.0.0
+info:
+  title: SDK test service specification
+  version: 1.0.0
+  x-dart-name: SdkTestApi
+paths:
+  /:
+    get:
+      summary: Status resource
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  clientVersion:
+                    type: string
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+    delete:
+      summary: Stop test service
+      responses:
+        '200':
+          description: Service stopped
+    post:
+      summary: Create SDK client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag:
+                  type: string
+                configuration:
+                  type: object
+                  properties:
+                    credential:
+                      type: string
+                      description: The SDK key for server-side SDKs, mobile key for mobile SDKs, or environment ID for JS-based SDKs.
+                    startWaitTimeMs:
+                      type: number
+                      description: The initialization timeout in milliseconds.
+                    initCanFail:
+                      type: boolean
+                      description: If true, the test service should not return an error for client initialization failing.
+                    serviceEndpoints:
+                      type: object
+                      properties:
+                        streaming:
+                          type: string
+                        polling:
+                          type: string
+                        events:
+                          type: string
+                    streaming:
+                      type: object
+                      properties:
+                        baseUri:
+                          type: string
+                          description: The base URI for the streaming service.
+                        initialRetryDelayMs:
+                          type: number
+                          description: The initial stream retry delay in milliseconds.
+                        filter:
+                          type: string
+                          description: The key for a filtered environment.
+                    polling:
+                      type: object
+                      properties:
+                        baseUri:
+                          type: string
+                          description: The base URI for the polling service.
+                        pollIntervalMs:
+                          type: number
+                          description: The polling interval in milliseconds.
+                        filter:
+                          type: string
+                          description: The key for a filtered environment.
+                    events:
+                      type: object
+                      properties:
+                        baseUri:
+                          type: string
+                        capacity:
+                          type: number
+                        enableDiagnostics:
+                          type: boolean
+                        allAttributesPrivate:
+                          type: boolean
+                        globalPrivateAttributes:
+                          type: array
+                          items:
+                            type: string
+                        flushIntervalMs:
+                          type: number
+                    bigSegments:
+                      type: object
+                      properties:
+                        callbackUri:
+                          type: string
+                        userCacheSize:
+                          type: number
+                        userCacheTimeMs:
+                          type: number
+                        statusPollIntervalMS:
+                          type: number
+                        staleAfterMs:
+                          type: number
+                    tags:
+                      type: object
+                      properties:
+                        applicationId:
+                          type: string
+                        applicationVersion:
+                          type: string
+                    clientSide:
+                      type: object
+                      properties:
+                        initialContext:
+                          type: object
+                          additionalProperties: true
+                        initialUser:
+                          type: object
+                          additionalProperties: true
+                        evaluationReasons:
+                          type: boolean
+                        useReport:
+                          type: boolean
+      responses:
+        '201':
+          description: Successful creation
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+                format: url
+        '400':
+          description: Invalid parameters
+  /client/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: Not found
+    delete:
+      summary: Delete client
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Client not found
+components:
+  schemas:
+    Request:
+      type: object
+      properties:
+        command:
+          type: string
+        identifyEvent:
+          type: object
+          properties:
+            context:
+              type: object
+              additionalProperties: true
+        evaluate:
+          type: object
+          additionalProperties: true
+#           defaultValue is in additional properties since it has a dynamic type
+          properties:
+            flagKey:
+              type: string
+            context:
+              type: object
+              additionalProperties: true
+            user:
+              type: object
+              additionalProperties: true
+            valueType:
+              type: string
+            detail:
+              type: boolean
+        evaluateAll:
+          type: object
+          properties:
+            context:
+              type: object
+              additionalProperties: true
+            user:
+              type: object
+              additionalProperties: true
+            withReasons:
+              type: boolean
+            clientSideOnly:
+              type: boolean
+            detailsOnlyForTrackedFlags:
+              type: boolean
+        customEvent:
+          type: object
+          additionalProperties: true
+          properties:
+            eventKey:
+              type: string
+            omitNullData:
+              type: boolean
+            metricValue:
+              type: number
+    Response:
+      type: object
+      additionalProperties: true

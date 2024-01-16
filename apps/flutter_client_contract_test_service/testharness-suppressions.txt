@@ -1,0 +1,103 @@
+removeable-when-polling-vs-streaming-control-supported
+evaluation/parameterized
+events/
+streaming/
+
+events/summary events/basic counter behavior
+events/summary events/reset after each flush
+events/requests/method and headers
+events/requests/new payload ID for each post
+events/experimentation/FALLTHROUGH
+events/experimentation/RULE_MATCH
+events/custom events/basic properties/single kind default
+events/custom events/basic properties/single kind non-default
+events/custom events/basic properties/multi-kind
+events/context properties/single-kind minimal
+events/context properties/multi-kind minimal
+events/context properties/single-kind with attributes, nothing private
+events/context properties/single-kind, allAttributesPrivate
+events/context properties/single-kind, specific private attributes
+events/context properties/single-kind, private attribute nested property
+events/event capacity/capacity is enforced
+events/event capacity/buffer is reset after flush
+events/event capacity/summary event is still included even if buffer was full
+events/disabling/evaluation
+streaming/requests/method and headers/REPORT
+streaming/requests/URL path is computed correctly/no environment filter/base URI has no trailing slash/REPORT
+streaming/requests/URL path is computed correctly/no environment filter/base URI has a trailing slash/REPORT
+streaming/requests/context properties/single kind minimal/REPORT
+streaming/requests/context properties/single kind with all attributes/GET
+streaming/requests/context properties/single kind with all attributes/REPORT
+streaming/requests/context properties/multi-kind/GET
+streaming/requests/context properties/multi-kind/REPORT
+streaming/updates/flag delete for previously nonexistent flag is applied
+polling/requests/method and headers/GET
+polling/requests/method and headers/REPORT
+polling/requests/URL path is computed correctly/no environment filter/base URI has no trailing slash/GET
+polling/requests/URL path is computed correctly/no environment filter/base URI has no trailing slash/REPORT
+polling/requests/URL path is computed correctly/no environment filter/base URI has a trailing slash/GET
+polling/requests/URL path is computed correctly/no environment filter/base URI has a trailing slash/REPORT
+polling/requests/query parameters/evaluationReasons set to [none]/GET
+polling/requests/query parameters/evaluationReasons set to [none]/REPORT
+polling/requests/query parameters/evaluationReasons set to false/GET
+polling/requests/query parameters/evaluationReasons set to false/REPORT
+polling/requests/query parameters/evaluationReasons set to true/GET
+polling/requests/query parameters/evaluationReasons set to true/REPORT
+polling/requests/context properties/single kind minimal/GET
+polling/requests/context properties/single kind minimal/REPORT
+polling/requests/context properties/single kind with all attributes/GET
+polling/requests/context properties/single kind with all attributes/REPORT
+polling/requests/context properties/multi-kind/GET
+polling/requests/context properties/multi-kind/REPORT
+tags/stream requests/{"applicationId":null,"applicationVersion":null}
+tags/stream requests/{"applicationId":null,"applicationVersion":""}
+tags/stream requests/{"applicationId":null,"applicationVersion":""}
+tags/stream requests/{"applicationId":null,"applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":null}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":null}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":null}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/stream requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":null,"applicationVersion":null}
+tags/poll requests/{"applicationId":null,"applicationVersion":""}
+tags/poll requests/{"applicationId":null,"applicationVersion":""}
+tags/poll requests/{"applicationId":null,"applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":null}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":null}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":null}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/poll requests/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":null,"applicationVersion":null}
+tags/event posts/{"applicationId":null,"applicationVersion":""}
+tags/event posts/{"applicationId":null,"applicationVersion":""}
+tags/event posts/{"applicationId":null,"applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":null}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":null}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":null}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/event posts/{"applicationId":"","applicationVersion":""}
+tags/length limit
+tags/disallowed characters
+context type/build
+context type/convert
