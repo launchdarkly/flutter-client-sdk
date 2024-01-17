@@ -208,7 +208,7 @@ final class LDAttributesBuilder {
         return true;
       default:
         if (value.type == LDValueType.nullType) {
-          _attributes.remove(value.stringValue());
+          _attributes.remove(attrName);
         } else {
           _attributes[attrName] = value;
         }

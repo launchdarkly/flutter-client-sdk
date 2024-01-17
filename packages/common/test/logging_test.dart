@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:test/test.dart';
 import 'package:launchdarkly_dart_common/ld_common.dart';
 import 'package:mocktail/mocktail.dart';
@@ -94,64 +96,89 @@ void main() {
     expect(errorMessage.logTag, 'LaunchDarkly');
   });
 
-    test('can set a custom log tag', () {
-      final adapter = MockAdapter();
-      final logger = LDLogger(
-          adapter: adapter, level: LDLogLevel.debug, logTag: 'POTATO');
+  test('can set a custom log tag', () {
+    final adapter = MockAdapter();
+    final logger =
+        LDLogger(adapter: adapter, level: LDLogLevel.debug, logTag: 'POTATO');
 
-      logger.debug('debug message');
-      final debugMessage =
-      (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
-      expect(debugMessage.logTag, 'POTATO');
+    logger.debug('debug message');
+    final debugMessage =
+        (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
+    expect(debugMessage.logTag, 'POTATO');
 
-      logger.info('info message');
-      final infoMessage =
-      (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
-      expect(infoMessage.logTag, 'POTATO');
+    logger.info('info message');
+    final infoMessage =
+        (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
+    expect(infoMessage.logTag, 'POTATO');
 
-      logger.warn('warn message');
-      final warnMessage =
-      (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
-      expect(warnMessage.logTag, 'POTATO');
+    logger.warn('warn message');
+    final warnMessage =
+        (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
+    expect(warnMessage.logTag, 'POTATO');
 
-      logger.error('error message');
-      final errorMessage =
-      (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
-      expect(errorMessage.logTag, 'POTATO');
+    logger.error('error message');
+    final errorMessage =
+        (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
+    expect(errorMessage.logTag, 'POTATO');
+  });
+
+  test('can make a sub-logger with tag', () {
+    final adapter = MockAdapter();
+    final baseLogger =
+        LDLogger(adapter: adapter, level: LDLogLevel.debug, logTag: 'POTATO');
+    final logger = baseLogger.subLogger('CHEESE');
+
+    logger.debug('debug message');
+    final debugMessage =
+        (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
+    expect(debugMessage.level, LDLogLevel.debug);
+    expect(debugMessage.message, 'debug message');
+    expect(debugMessage.logTag, 'POTATO.CHEESE');
+
+    logger.info('info message');
+    final infoMessage =
+        (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
+    expect(infoMessage.level, LDLogLevel.info);
+    expect(infoMessage.message, 'info message');
+    expect(infoMessage.logTag, 'POTATO.CHEESE');
+
+    logger.warn('warn message');
+    final warnMessage =
+        (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
+    expect(warnMessage.level, LDLogLevel.warn);
+    expect(warnMessage.message, 'warn message');
+    expect(warnMessage.logTag, 'POTATO.CHEESE');
+
+    logger.error('error message');
+    final errorMessage =
+        (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
+    expect(errorMessage.level, LDLogLevel.error);
+    expect(errorMessage.message, 'error message');
+    expect(errorMessage.logTag, 'POTATO.CHEESE');
+  });
+
+  test('log level comparisons', () {
+    expect(LDLogLevel.error, greaterThan(LDLogLevel.info));
+    expect(LDLogLevel.debug, lessThan(LDLogLevel.info));
+
+    // lessThanOrEqualTo does not use `<=`.
+    expect(LDLogLevel.debug <= LDLogLevel.info, isTrue);
+    expect(LDLogLevel.debug <= LDLogLevel.debug, isTrue);
+  });
+
+  test('override print', () {
+    final logs = [];
+    var spec = ZoneSpecification(print: (_, __, ___, String msg) {
+      // Add to log instead of printing to stdout
+      logs.add(msg);
     });
-
-    test('can make a sub-logger with tag', () {
-      final adapter = MockAdapter();
-      final baseLogger = LDLogger(
-          adapter: adapter, level: LDLogLevel.debug, logTag: 'POTATO');
-      final logger = baseLogger.subLogger('CHEESE');
-
-      logger.debug('debug message');
-      final debugMessage =
-      (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
-      expect(debugMessage.level, LDLogLevel.debug);
-      expect(debugMessage.message, 'debug message');
-      expect(debugMessage.logTag, 'POTATO.CHEESE');
-
-      logger.info('info message');
-      final infoMessage =
-      (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
-      expect(infoMessage.level, LDLogLevel.info);
-      expect(infoMessage.message, 'info message');
-      expect(infoMessage.logTag, 'POTATO.CHEESE');
-
-      logger.warn('warn message');
-      final warnMessage =
-      (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
-      expect(warnMessage.level, LDLogLevel.warn);
-      expect(warnMessage.message, 'warn message');
-      expect(warnMessage.logTag, 'POTATO.CHEESE');
-
-      logger.error('error message');
-      final errorMessage =
-      (verify(() => adapter.log(captureAny())).captured[0] as LDLogRecord);
-      expect(errorMessage.level, LDLogLevel.error);
-      expect(errorMessage.message, 'error message');
-      expect(errorMessage.logTag, 'POTATO.CHEESE');
+    return Zone.current.fork(specification: spec).run<void>(() {
+      final logger = LDLogger();
+      logger.error('This is the message');
+      expect(
+          logs,
+          contains(matches(
+              r'\[LaunchDarkly error [0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+.[0-9]+\] This is the message')));
     });
+  });
 }

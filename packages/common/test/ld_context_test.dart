@@ -9,20 +9,16 @@ void main() {
   });
 
   test('can get a canonical key for a single kind context', () {
-    expect(
-        LDContextBuilder()
-            .kind('organization', 'org-key%:')
-            .build()
-            .canonicalKey,
-        'organization:org-key%25%3A');
+    final context =
+        LDContextBuilder().kind('organization', 'org-key%:').build();
+    expect(context.canonicalKey, 'organization:org-key%25%3A');
+
+    // Checking it twice to hit the cache.
+    expect(context.canonicalKey, 'organization:org-key%25%3A');
   });
 
   test('can get keys for a single kind context', () {
-    expect(
-        LDContextBuilder()
-            .kind('organization', 'org-key%:')
-            .build()
-            .keys,
+    expect(LDContextBuilder().kind('organization', 'org-key%:').build().keys,
         <String, String>{'organization': 'org-key%:'});
   });
 
@@ -37,14 +33,21 @@ void main() {
         'organization:org-key%25%3A:zoo:zoo-key%3A%25');
   });
 
+  test('can get keys for invalid context', () {
+    expect(LDContextBuilder().build().keys, {});
+  });
+
   test('can get a keys for a multi-kind context', () {
+    final context = LDContextBuilder()
+        .kind('zoo', 'zoo-key:%')
+        .kind('organization', 'org-key%:')
+        .build();
     // Should be sorted by kind and also the keys should be encoded.
-    expect(
-        LDContextBuilder()
-            .kind('zoo', 'zoo-key:%')
-            .kind('organization', 'org-key%:')
-            .build()
-            .keys,
+    expect(context.keys,
+        <String, String>{'zoo': 'zoo-key:%', 'organization': 'org-key%:'});
+
+    // Second time to hit cache.
+    expect(context.keys,
         <String, String>{'zoo': 'zoo-key:%', 'organization': 'org-key%:'});
   });
 
@@ -100,6 +103,14 @@ void main() {
         LDValue.ofNull());
   });
 
+  test('get LDValue.ofNull() addressing an attribute with an invalid reference',
+      () {
+    final context = LDContextBuilder().kind('org', 'org-key').build();
+
+    expect(context.get('org', AttributeReference('//myJson/myBool')),
+        LDValue.ofNull());
+  });
+
   test('get LDValue.ofNull() addressing a nested attribute that does not exist',
       () {
     final context = LDContextBuilder()
@@ -143,6 +154,50 @@ void main() {
     // are at the context level, and check if the context contains the
     // specified kind.
     expect(context.get('org', AttributeReference('kind')).stringValue(), 'org');
+  });
+
+  test('can set name using set', () {
+    expect(
+        LDContextBuilder()
+            .kind('user', 'user-key')
+            .set('name', LDValue.ofString('bob'))
+            .build()
+            .attributesByKind['user']!
+            .name,
+        'bob');
+  });
+
+  test('can not name using set with an invalid type', () {
+    expect(
+        LDContextBuilder()
+            .kind('user', 'user-key')
+            .set('name', LDValue.ofBool(false))
+            .build()
+            .attributesByKind['user']!
+            .name,
+        isNull);
+  });
+
+  test('can set anonymous using set', () {
+    expect(
+        LDContextBuilder()
+            .kind('user', 'user-key')
+            .set('anonymous', LDValue.ofBool(true))
+            .build()
+            .attributesByKind['user']!
+            .anonymous,
+        isTrue);
+  });
+
+  test('cannot set anonymous using set with wrong type', () {
+    expect(
+        LDContextBuilder()
+            .kind('user', 'user-key')
+            .set('anonymous', LDValue.ofString('true'))
+            .build()
+            .attributesByKind['user']!
+            .anonymous,
+        isFalse);
   });
 
   test('can set private attributes using setPrivate', () {
@@ -196,6 +251,18 @@ void main() {
         42);
   });
 
+  test('can unset attribute using set with null', () {
+    expect(
+        LDContextBuilder()
+            .kind('user', 'bob')
+            .set('test', LDValue.ofString('test'))
+            .set('test', LDValue.ofNull())
+            .build()
+            .attributesByKind['user']!
+            .customAttributes['test'],
+        isNull);
+  });
+
   test('can make a builder from an existing context', () {
     final context = LDContextBuilder()
         .kind('user', 'bob')
@@ -206,13 +273,14 @@ void main() {
         .set('a', LDValue.ofString('b'))
         .kind('organization', 'org-key%:')
         .set('a', LDValue.ofNum(42))
-        .addPrivateAttributes(['a'])
-        .build();
+        .addPrivateAttributes(['a']).build();
 
     final context2 = LDContextBuilder.fromContext(context).build();
 
-    final ldValue1 = LDValueSerialization.fromJson(LDContextSerialization.toJson(context, isEvent: false));
-    final ldValue2 = LDValueSerialization.fromJson(LDContextSerialization.toJson(context2, isEvent: false));
+    final ldValue1 = LDValueSerialization.fromJson(
+        LDContextSerialization.toJson(context, isEvent: false));
+    final ldValue2 = LDValueSerialization.fromJson(
+        LDContextSerialization.toJson(context2, isEvent: false));
     expect(ldValue1, ldValue2);
   });
 }
