@@ -336,6 +336,111 @@ class RequestCustomEvent implements OpenApiContent {
 
 @JsonSerializable()
 @ApiUuidJsonConverter()
+class BuildContext implements OpenApiContent {
+  BuildContext();
+
+  factory BuildContext.fromJson(Map<String, dynamic> jsonMap) =>
+      _$BuildContextFromJson(jsonMap)
+        .._additionalProperties.addEntries(
+            jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
+
+  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+
+  Map<String, dynamic> toJson() =>
+      Map.from(_additionalProperties)..addAll(_$BuildContextToJson(this));
+
+  @override
+  String toString() => toJson().toString();
+
+  void operator []=(
+    String key,
+    Object value,
+  ) =>
+      _additionalProperties[key] = value;
+
+  dynamic operator [](String key) => _additionalProperties[key];
+}
+
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class SingleOrMultiBuildContext implements OpenApiContent {
+  SingleOrMultiBuildContext({
+    this.single,
+    this.multi,
+  });
+
+  factory SingleOrMultiBuildContext.fromJson(Map<String, dynamic> jsonMap) =>
+      _$SingleOrMultiBuildContextFromJson(jsonMap);
+
+  @JsonKey(
+    name: 'single',
+    includeIfNull: false,
+  )
+  final BuildContext? single;
+
+  @JsonKey(
+    name: 'multi',
+    includeIfNull: false,
+  )
+  final List<BuildContext>? multi;
+
+  Map<String, dynamic> toJson() => _$SingleOrMultiBuildContextToJson(this);
+
+  @override
+  String toString() => toJson().toString();
+}
+
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class RequestContextConvert implements OpenApiContent {
+  RequestContextConvert({this.input});
+
+  factory RequestContextConvert.fromJson(Map<String, dynamic> jsonMap) =>
+      _$RequestContextConvertFromJson(jsonMap);
+
+  @JsonKey(
+    name: 'input',
+    includeIfNull: false,
+  )
+  final String? input;
+
+  Map<String, dynamic> toJson() => _$RequestContextConvertToJson(this);
+
+  @override
+  String toString() => toJson().toString();
+}
+
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class RequestContextComparison implements OpenApiContent {
+  RequestContextComparison({
+    this.context1,
+    this.context2,
+  });
+
+  factory RequestContextComparison.fromJson(Map<String, dynamic> jsonMap) =>
+      _$RequestContextComparisonFromJson(jsonMap);
+
+  @JsonKey(
+    name: 'context1',
+    includeIfNull: false,
+  )
+  final SingleOrMultiBuildContext? context1;
+
+  @JsonKey(
+    name: 'context2',
+    includeIfNull: false,
+  )
+  final SingleOrMultiBuildContext? context2;
+
+  Map<String, dynamic> toJson() => _$RequestContextComparisonToJson(this);
+
+  @override
+  String toString() => toJson().toString();
+}
+
+@JsonSerializable()
+@ApiUuidJsonConverter()
 class Request implements OpenApiContent {
   Request({
     this.command,
@@ -343,6 +448,9 @@ class Request implements OpenApiContent {
     this.evaluate,
     this.evaluateAll,
     this.customEvent,
+    this.contextBuild,
+    this.contextConvert,
+    this.contextComparison,
   });
 
   factory Request.fromJson(Map<String, dynamic> jsonMap) =>
@@ -377,6 +485,24 @@ class Request implements OpenApiContent {
     includeIfNull: false,
   )
   final RequestCustomEvent? customEvent;
+
+  @JsonKey(
+    name: 'contextBuild',
+    includeIfNull: false,
+  )
+  final SingleOrMultiBuildContext? contextBuild;
+
+  @JsonKey(
+    name: 'contextConvert',
+    includeIfNull: false,
+  )
+  final RequestContextConvert? contextConvert;
+
+  @JsonKey(
+    name: 'contextComparison',
+    includeIfNull: false,
+  )
+  final RequestContextComparison? contextComparison;
 
   Map<String, dynamic> toJson() => _$RequestToJson(this);
 
