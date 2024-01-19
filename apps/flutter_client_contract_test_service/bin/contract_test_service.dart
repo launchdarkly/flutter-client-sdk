@@ -9,6 +9,8 @@ import 'package:openapi_base/openapi_base.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'service_api.openapi.dart';
 
+// Change to code file to trigger CI.
+
 class TestApiImpl extends SdkTestApi {
   static const capabilities = [
     "client-side",
