@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart' as widgets;
 import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart';
 import 'package:launchdarkly_dart_common/ld_common.dart' as common;
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
@@ -38,39 +39,41 @@ class TestApiImpl extends SdkTestApi {
   Future<PostResponse> Post(PostSchema body) async {
     final startWaitTimeMillis =
         body.configuration?.startWaitTimeMs?.toInt() ?? defaultWaitTimeMillis;
-
-    // TODO: determine if we need support for allAttributesPrivate
-
     final config = LDConfig(
-        body.configuration?.credential ?? "", AutoEnvAttributes.disabled,
-        applicationInfo: body.configuration?.tags?.applicationId != null
-            ? ApplicationInfo(
-                applicationId: body.configuration!.tags!.applicationId!,
-                applicationVersion:
-                    body.configuration!.tags!.applicationVersion)
-            : null,
-        persistence: PersistenceConfig(maxCachedContexts: 0),
-        serviceEndpoints: ServiceEndpoints.custom(
-            polling: body.configuration?.polling?.baseUri,
-            streaming: body.configuration?.streaming?.baseUri,
-            events: body.configuration?.events?.baseUri),
-        dataSourceConfig: DataSourceConfig(
-            initialConnectionMode: body.configuration?.streaming != null
-                ? ConnectionMode.streaming
-                : ConnectionMode.polling,
-            evaluationReasons:
-                body.configuration?.clientSide?.evaluationReasons,
-            useReport: body.configuration?.clientSide?.useReport),
-        events: EventsConfig(
-            eventCapacity: body.configuration?.events?.capacity?.toInt(),
-            disabled: body.configuration?.events == null,
-            diagnosticOptOut:
-                !(body.configuration?.events?.enableDiagnostics ?? true)));
+      body.configuration?.credential ?? "",
+      AutoEnvAttributes.disabled,
+      applicationInfo: body.configuration?.tags?.applicationId != null
+          ? ApplicationInfo(
+              applicationId: body.configuration!.tags!.applicationId!,
+              applicationVersion: body.configuration!.tags!.applicationVersion)
+          : null,
+      persistence: PersistenceConfig(maxCachedContexts: 0),
+      serviceEndpoints: ServiceEndpoints.custom(
+          polling: body.configuration?.polling?.baseUri,
+          streaming: body.configuration?.streaming?.baseUri,
+          events: body.configuration?.events?.baseUri),
+      dataSourceConfig: DataSourceConfig(
+          initialConnectionMode: body.configuration?.streaming != null
+              ? ConnectionMode.streaming
+              : ConnectionMode.polling,
+          evaluationReasons: body.configuration?.clientSide?.evaluationReasons,
+          useReport: body.configuration?.clientSide?.useReport),
+      events: EventsConfig(
+          eventCapacity: body.configuration?.events?.capacity?.toInt(),
+          disabled: body.configuration?.events == null,
+          diagnosticOptOut:
+              !(body.configuration?.events?.enableDiagnostics ?? true)),
+      allAttributesPrivate:
+          body.configuration?.events?.allAttributesPrivate ?? false,
+      globalPrivateAttributes:
+          body.configuration?.events?.globalPrivateAttributes,
+    );
 
     final configuration = body.configuration!;
     final clientSide = configuration.clientSide!;
     final initialContext = clientSide.initialContext!;
-    final context = fromJson(initialContext.toJson())!;
+    final context = _flattenedListToContext(
+        _serializedContextToFlattenedList(initialContext.toJson()));
     final client = LDClient(config, context);
     final started = client.start();
     try {
@@ -129,6 +132,12 @@ class TestApiImpl extends SdkTestApi {
         response = _handleCustomEvent(client, body);
       case 'flushEvents':
         response = _handleFlushEvents(client);
+      case 'contextBuild':
+        response = _handleContextBuild(body);
+      case 'contextConvert':
+        response = _handleContextConvert(body);
+      case 'contextComparison':
+        response = _handleContextComparison(body);
       default:
         throw UnimplementedError();
     }
@@ -137,7 +146,8 @@ class TestApiImpl extends SdkTestApi {
   }
 
   Future<Response> _handleIdentifyEvent(LDClient client, Request body) async {
-    final context = fromJson(body.identifyEvent!.context!.toJson())!;
+    final context = _flattenedListToContext(_serializedContextToFlattenedList(
+        body.identifyEvent!.context!.toJson()));
     await client.identify(context);
     return Response();
   }
@@ -229,6 +239,60 @@ class TestApiImpl extends SdkTestApi {
     return Response();
   }
 
+  Response _handleContextBuild(Request body) {
+    LDContext context = _contextFromSingleOrMulti(body.contextBuild!);
+    final response = Response();
+    response['output'] = jsonEncode(
+        common.LDContextSerialization.toJson(context, isEvent: false));
+    return response;
+  }
+
+  Response _handleContextConvert(Request body) {
+    final response = Response();
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(body.contextConvert!.input!);
+      final context =
+          _flattenedListToContext(_serializedContextToFlattenedList(decoded));
+      if (context.valid) {
+        response['output'] = jsonEncode(
+            common.LDContextSerialization.toJson(context, isEvent: false));
+      } else {
+        response['error'] = 'Context was invalid.';
+      }
+    } catch (error) {
+      response['error'] = error.toString();
+    }
+    return response;
+  }
+
+  Response _handleContextComparison(Request body) {
+    // ignore: unused_local_variable
+    final context1 =
+        _contextFromSingleOrMulti(body.contextComparison!.context1!);
+    // ignore: unused_local_variable
+    final context2 =
+        _contextFromSingleOrMulti(body.contextComparison!.context2!);
+    final response = Response();
+    // TODO: when context comparision support is added, replace 'false' with invocation
+    response['equals'] = false;
+    return response;
+  }
+
+  LDContext _contextFromSingleOrMulti(SingleOrMultiBuildContext input) {
+    if (input.single != null) {
+      return _flattenedListToContext(
+          [_buildContextToFlattenedMap(input.single!)]);
+    } else if (input.multi != null) {
+      return _flattenedListToContext(input.multi!
+          .map((it) => _buildContextToFlattenedMap(it))
+          .toList());
+    } else {
+      throw UnsupportedError(
+          'Expected a single or multi context, but neither were provided.');
+    }
+  }
+
   Response _responseFromEvaluationDetail(LDEvaluationDetail<LDValue> detail) {
     return Response.fromJson(
         common.LDEvaluationDetailSerialization.toJson(detail));
@@ -247,39 +311,65 @@ class TestApiImpl extends SdkTestApi {
     return response;
   }
 
-  // Creates a context from its serialized representation
-  LDContext? fromJson(Map<String, dynamic> json) {
-    final builder = LDContextBuilder();
+  // Creates a map representing a single context from the ContextBuild command structure
+  Map<String, dynamic> _buildContextToFlattenedMap(BuildContext input) {
+    Map<String, dynamic> retMap = {};
+    retMap['kind'] = input['kind'];
+    retMap['key'] = input['key'];
+    retMap['name'] = input['name'];
+    retMap['anonymous'] = input['anonymous'];
+    if (input['private'] != null) {
+      retMap['_meta'] = {'privateAttributes': input['private']};
+    }
+    retMap.addAll(input['custom'] ?? {});
+    return retMap;
+  }
+
+  // Creates a flat list of context map representations from the serialized JSON
+  List<Map<String, dynamic>> _serializedContextToFlattenedList(
+      Map<String, dynamic> json) {
+    final retList = <Map<String, dynamic>>[];
     if (json['kind'] == 'multi') {
       for (final entry in json.entries) {
-        if (entry.key == 'kind') continue;
+        if (entry.key == 'kind')
+          continue; // ignore kind since it was multi and no longer useful
 
-        final attributes = entry.value as Map<String, dynamic>;
-        final attrsBuilder = builder.kind(entry.key, attributes['key']);
-        for (final a in attributes.entries) {
-          attrsBuilder.set(
-              a.key, common.LDValueSerialization.fromJson(a.value));
-        }
+        final single = Map.of(entry.value as Map<String, dynamic>);
+        single['kind'] = entry.key;
+        retList.add(single);
       }
     } else {
-      final kind = json['kind'];
-      if (kind == null) {
-        return null;
-      }
+      final single = Map.of(json);
+      retList.add(single);
+    }
 
-      // TODO: add _meta support including private attributes
+    return retList;
+  }
 
-      final attrsBuilder = builder.kind(kind, json['key']);
-      for (final e in json.entries) {
-        attrsBuilder.set(e.key, common.LDValueSerialization.fromJson(e.value));
+  // Creates a context from a flat list of single context maps.
+  LDContext _flattenedListToContext(List<Map<String, dynamic>> flattened) {
+    final builder = LDContextBuilder();
+
+    for (final attributes in flattened) {
+      final attrsBuilder =
+          builder.kind(attributes['kind'] ?? 'user', attributes['key']);
+      for (final a in attributes.entries) {
+        if (a.key == 'kind' || a.key == 'key') continue;
+        attrsBuilder.set(a.key, common.LDValueSerialization.fromJson(a.value));
       }
+      final Map<String, dynamic> meta = attributes['_meta'] ?? {};
+      final List<String> privateAttrs =
+          ((meta['privateAttributes'] ?? []) as List<dynamic>)
+              .map((e) => e as String)
+              .toList();
+      attrsBuilder.addPrivateAttributes(privateAttrs);
     }
 
     return builder.build();
   }
 }
 
-final class WifiConnected extends ConnectivityPlatform {
+final class _WifiConnected extends ConnectivityPlatform {
   StreamController<ConnectivityResult> _controller = StreamController();
   Stream<ConnectivityResult>? _stream;
 
@@ -298,8 +388,8 @@ final class WifiConnected extends ConnectivityPlatform {
 }
 
 void main() async {
-  ConnectivityPlatform.instance = WifiConnected();
-  WidgetsFlutterBinding.ensureInitialized(); // needed before mocking
+  ConnectivityPlatform.instance = _WifiConnected();
+  widgets.WidgetsFlutterBinding.ensureInitialized(); // needed before mocking
   // ignore: invalid_use_of_visible_for_testing_member
   SharedPreferences.setMockInitialValues({}); // required to mock persistence
   final port = 8080;

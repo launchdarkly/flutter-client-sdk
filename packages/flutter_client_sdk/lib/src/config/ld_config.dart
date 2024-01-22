@@ -67,6 +67,12 @@ final class LDConfig extends LDCommonConfig {
   ///
   /// [applicationEvents] controls how the SDK responds to events which
   /// affect the application like network connectivity and foreground state.
+  ///
+  /// [allAttributesPrivate] specifies that all attributes are to be marked
+  /// private.
+  ///
+  /// [globalPrivateAttributes] is a list of attribute references that will
+  /// be marked private.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
@@ -76,6 +82,8 @@ final class LDConfig extends LDCommonConfig {
       super.offline,
       super.logger,
       super.dataSourceConfig,
+      super.allAttributesPrivate,
+      super.globalPrivateAttributes,
       ApplicationEvents? applicationEvents})
       : applicationEvents = applicationEvents ?? ApplicationEvents();
 }
