@@ -1,4 +1,3 @@
-events/disabling/evaluation
 polling/requests/context properties/single kind with all attributes/REPORT
 polling/requests/context properties/multi-kind/REPORT
 streaming/requests/method and headers/REPORT
