@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/testing.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
-import '../../ld_common.dart';
+import '../../launchdarkly_dart_common.dart';
 
 /// Filter a set of headers to remove any headers that are not allowed.
 ///

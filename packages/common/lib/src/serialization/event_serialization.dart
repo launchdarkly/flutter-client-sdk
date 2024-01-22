@@ -1,4 +1,4 @@
-import '../../ld_common.dart';
+import '../../launchdarkly_dart_common.dart';
 
 final class IdentifyEventSerialization {
   static Map<String, dynamic> toJson(IdentifyEvent event,

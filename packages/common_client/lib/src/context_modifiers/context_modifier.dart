@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 /// Context modifiers are intended to take an initial context and modifiers
 /// it with additional, or modified, data.

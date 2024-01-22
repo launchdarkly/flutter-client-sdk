@@ -3,7 +3,7 @@ import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
-import '../sse_client.dart';
+import '../launchdarkly_event_source_client.dart';
 import 'state_idle.dart';
 import 'state_value_object.dart';
 

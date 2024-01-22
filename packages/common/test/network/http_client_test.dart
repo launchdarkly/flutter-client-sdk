@@ -1,5 +1,5 @@
 import 'package:http/testing.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 import 'package:http/http.dart' as http;
 

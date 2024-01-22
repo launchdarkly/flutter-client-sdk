@@ -1,4 +1,4 @@
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';

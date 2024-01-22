@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:html' as html;
 
-import '../sse_client.dart';
+import '../launchdarkly_event_source_client.dart';
 
 import 'message_event.dart' as ld_message_event;
 

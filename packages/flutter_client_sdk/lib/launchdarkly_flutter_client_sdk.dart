@@ -9,7 +9,7 @@ library launchdarkly_flutter_client_sdk;
 
 // Re-export the client package, which includes the common dependencies as well.
 // Only export types which are intended to be part of the public API.
-export 'package:launchdarkly_common_client/ld_common_client.dart'
+export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
     show
         LDContext,
         LDContextBuilder,

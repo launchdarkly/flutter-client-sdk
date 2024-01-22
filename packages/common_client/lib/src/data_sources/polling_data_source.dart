@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'dart:math';
 
 import '../config/data_source_config.dart';

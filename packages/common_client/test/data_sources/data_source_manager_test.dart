@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_manager.dart';

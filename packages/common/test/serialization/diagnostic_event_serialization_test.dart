@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_dart_common/src/events/diagnostic_events.dart';
 import 'package:launchdarkly_dart_common/src/serialization/diagnostic_event_serialization.dart';
 import 'package:test/test.dart';

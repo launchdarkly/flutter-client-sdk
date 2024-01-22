@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAdapter extends Mock implements LDLogAdapter {}

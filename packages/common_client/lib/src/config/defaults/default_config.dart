@@ -1,4 +1,4 @@
-import '../../../ld_common_client.dart';
+import '../../../launchdarkly_common_client.dart';
 import '../../connection_mode.dart';
 import 'stub_config.dart'
     if (dart.library.io) 'io_config.dart'

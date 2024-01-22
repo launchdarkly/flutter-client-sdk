@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:launchdarkly_event_source_client/sse_client.dart';
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:openapi_base/openapi_base.dart';
 import 'callback_api.openapi.dart';
 import 'service_api.openapi.dart';
