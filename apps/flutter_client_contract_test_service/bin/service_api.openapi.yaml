@@ -230,6 +230,32 @@ components:
               type: boolean
             metricValue:
               type: number
+        contextBuild:
+          $ref: '#/components/schemas/SingleOrMultiBuildContext'
+        contextConvert:
+          type: object
+          properties:
+            input:
+              type: string
+        contextComparison:
+          type: object
+          properties:
+            context1:
+              $ref: '#/components/schemas/SingleOrMultiBuildContext'
+            context2:
+              $ref: '#/components/schemas/SingleOrMultiBuildContext'
     Response:
+      type: object
+      additionalProperties: true
+    SingleOrMultiBuildContext:
+      type: object
+      properties:
+        single:
+          $ref: '#/components/schemas/BuildContext'
+        multi:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildContext'
+    BuildContext:
       type: object
       additionalProperties: true

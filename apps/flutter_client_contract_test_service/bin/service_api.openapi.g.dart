@@ -154,6 +154,86 @@ Map<String, dynamic> _$RequestCustomEventToJson(RequestCustomEvent instance) {
   return val;
 }
 
+BuildContext _$BuildContextFromJson(Map<String, dynamic> json) =>
+    BuildContext();
+
+Map<String, dynamic> _$BuildContextToJson(BuildContext instance) =>
+    <String, dynamic>{};
+
+SingleOrMultiBuildContext _$SingleOrMultiBuildContextFromJson(
+        Map<String, dynamic> json) =>
+    SingleOrMultiBuildContext(
+      single: json['single'] == null
+          ? null
+          : BuildContext.fromJson(json['single'] as Map<String, dynamic>),
+      multi: (json['multi'] as List<dynamic>?)
+          ?.map((e) => BuildContext.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$SingleOrMultiBuildContextToJson(
+    SingleOrMultiBuildContext instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('single', instance.single);
+  writeNotNull('multi', instance.multi);
+  return val;
+}
+
+RequestContextConvert _$RequestContextConvertFromJson(
+        Map<String, dynamic> json) =>
+    RequestContextConvert(
+      input: json['input'] as String?,
+    );
+
+Map<String, dynamic> _$RequestContextConvertToJson(
+    RequestContextConvert instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('input', instance.input);
+  return val;
+}
+
+RequestContextComparison _$RequestContextComparisonFromJson(
+        Map<String, dynamic> json) =>
+    RequestContextComparison(
+      context1: json['context1'] == null
+          ? null
+          : SingleOrMultiBuildContext.fromJson(
+              json['context1'] as Map<String, dynamic>),
+      context2: json['context2'] == null
+          ? null
+          : SingleOrMultiBuildContext.fromJson(
+              json['context2'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$RequestContextComparisonToJson(
+    RequestContextComparison instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('context1', instance.context1);
+  writeNotNull('context2', instance.context2);
+  return val;
+}
+
 Request _$RequestFromJson(Map<String, dynamic> json) => Request(
       command: json['command'] as String?,
       identifyEvent: json['identifyEvent'] == null
@@ -171,6 +251,18 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
           ? null
           : RequestCustomEvent.fromJson(
               json['customEvent'] as Map<String, dynamic>),
+      contextBuild: json['contextBuild'] == null
+          ? null
+          : SingleOrMultiBuildContext.fromJson(
+              json['contextBuild'] as Map<String, dynamic>),
+      contextConvert: json['contextConvert'] == null
+          ? null
+          : RequestContextConvert.fromJson(
+              json['contextConvert'] as Map<String, dynamic>),
+      contextComparison: json['contextComparison'] == null
+          ? null
+          : RequestContextComparison.fromJson(
+              json['contextComparison'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$RequestToJson(Request instance) {
@@ -187,6 +279,9 @@ Map<String, dynamic> _$RequestToJson(Request instance) {
   writeNotNull('evaluate', instance.evaluate);
   writeNotNull('evaluateAll', instance.evaluateAll);
   writeNotNull('customEvent', instance.customEvent);
+  writeNotNull('contextBuild', instance.contextBuild);
+  writeNotNull('contextConvert', instance.contextConvert);
+  writeNotNull('contextComparison', instance.contextComparison);
   return val;
 }
 
