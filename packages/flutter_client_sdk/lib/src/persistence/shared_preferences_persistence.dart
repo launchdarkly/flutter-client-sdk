@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_client/ld_client.dart';
+import 'package:launchdarkly_common_client/ld_common_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// An implementation of persistence which uses the shared_preferences plugin.

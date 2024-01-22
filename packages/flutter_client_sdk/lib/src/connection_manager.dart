@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:launchdarkly_dart_client/ld_client.dart';
+import 'package:launchdarkly_common_client/ld_common_client.dart';
 
 enum ApplicationState {
   /// The application is in the foreground.
@@ -32,7 +32,7 @@ abstract interface class StateDetector {
 }
 
 /// Connection destination allows for the connection manager to easily
-/// be tested. The LDDartClient doesn't implement this, so there is a small
+/// be tested. The LDCommonClient doesn't implement this, so there is a small
 /// private adapter.
 abstract interface class ConnectionDestination {
   void setMode(ConnectionMode mode);
@@ -42,9 +42,9 @@ abstract interface class ConnectionDestination {
   void setEventSendingEnabled(bool enabled, {bool flush = true});
 }
 
-/// Basic adapter that turns an LDDartClient into a ConnectionDestination.
+/// Basic adapter that turns an LDCommonClient into a ConnectionDestination.
 final class DartClientAdapter implements ConnectionDestination {
-  final LDDartClient _client;
+  final LDCommonClient _client;
 
   DartClientAdapter(this._client);
 

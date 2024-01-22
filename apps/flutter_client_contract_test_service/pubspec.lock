@@ -371,10 +371,10 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.7.1"
-  launchdarkly_dart_client:
+  launchdarkly_common_client:
     dependency: "direct overridden"
     description:
-      path: "../../packages/client"
+      path: "../../packages/common_client"
       relative: true
     source: path
     version: "0.0.1"
