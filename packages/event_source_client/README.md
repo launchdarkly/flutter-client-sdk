@@ -1,5 +1,7 @@
 # LaunchDarkly Event Source Client
 
+*This package is a **beta** version and should not be considered ready for production use while this message is visible.*
+
 ## Overview
 
 This package allows Dart developers to consume Server-Sent-Events (SSE) from a remote API. The SSE specification is defined here: [https://html.spec.whatwg.org/multipage/server-sent-events.html](https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events)
