@@ -73,7 +73,7 @@ class TestApiImpl extends SdkTestApi {
     final clientSide = configuration.clientSide!;
     final initialContext = clientSide.initialContext!;
     final context = _flattenedListToContext(
-        _serializedContextToFlattenedList(initialContext.toJson()))!;
+        _serializedContextToFlattenedList(initialContext.toJson()));
     final client = LDClient(config, context);
     final started = client.start();
     try {
@@ -147,7 +147,7 @@ class TestApiImpl extends SdkTestApi {
 
   Future<Response> _handleIdentifyEvent(LDClient client, Request body) async {
     final context = _flattenedListToContext(_serializedContextToFlattenedList(
-        body.identifyEvent!.context!.toJson()))!;
+        body.identifyEvent!.context!.toJson()));
     await client.identify(context);
     return Response();
   }
@@ -253,7 +253,7 @@ class TestApiImpl extends SdkTestApi {
     try {
       decoded = jsonDecode(body.contextConvert!.input!);
       final context =
-          _flattenedListToContext(_serializedContextToFlattenedList(decoded))!;
+          _flattenedListToContext(_serializedContextToFlattenedList(decoded));
       if (context.valid) {
         response['output'] = jsonEncode(
             common.LDContextSerialization.toJson(context, isEvent: false));
@@ -267,8 +267,10 @@ class TestApiImpl extends SdkTestApi {
   }
 
   Response _handleContextComparison(Request body) {
+    // ignore: unused_local_variable
     final context1 =
         _contextFromSingleOrMulti(body.contextComparison!.context1!);
+    // ignore: unused_local_variable
     final context2 =
         _contextFromSingleOrMulti(body.contextComparison!.context2!);
     final response = Response();
@@ -284,7 +286,7 @@ class TestApiImpl extends SdkTestApi {
     } else if (input.multi != null) {
       return _flattenedListToContext(input.multi!
           .map((it) => _buildContextToFlattenedMap(it))
-          .toList())!;
+          .toList());
     } else {
       throw UnsupportedError(
           'Expected a single or multi context, but neither were provided.');

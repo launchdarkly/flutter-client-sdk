@@ -20,12 +20,4 @@ If you need to add or modify the OpenAPI yaml files to add or modify functionali
 dart run build_runner build -v
 ```
 
-You will also need to patch service_api.openapi.dart to deal with a `Object` vs `dynamic` typing bug.
-
-```
-replace...
-final Map<String, Object> _additionalProperties = <String, Object>{};
-
-with...
-final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
-```
+You will also need to patch service_api.openapi.dart by replacing all instances of `Object` vs `dynamic`.  This is due to a bug in the generator implementation.

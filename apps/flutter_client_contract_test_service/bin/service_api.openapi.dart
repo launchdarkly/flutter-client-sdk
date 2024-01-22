@@ -27,11 +27,11 @@ class RequestIdentifyEventContext implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -74,11 +74,11 @@ class RequestEvaluateContext implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -101,11 +101,11 @@ class RequestEvaluateUser implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -170,11 +170,11 @@ class RequestEvaluate implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -197,11 +197,11 @@ class RequestEvaluateAllContext implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -224,11 +224,11 @@ class RequestEvaluateAllUser implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -327,11 +327,11 @@ class RequestCustomEvent implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -354,7 +354,7 @@ class BuildContext implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
@@ -530,11 +530,11 @@ class Response implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -592,7 +592,7 @@ class _GetResponse200 extends GetResponse implements OpenApiResponseBodyJson {
       OpenApiContentType.parse('application/json');
 
   @override
-  Map<String, Object?> propertiesToString() => {
+  Map<String, dynamic?> propertiesToString() => {
         'status': status,
         'body': body,
         'bodyJson': bodyJson,
@@ -638,7 +638,7 @@ class _PostResponse201 extends PostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, Object?> propertiesToString() => {
+  Map<String, dynamic?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -655,7 +655,7 @@ class _PostResponse400 extends PostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, Object?> propertiesToString() => {
+  Map<String, dynamic?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -975,11 +975,11 @@ class PostSchemaConfigurationClientSideInitialContext
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -1003,11 +1003,11 @@ class PostSchemaConfigurationClientSideInitialUser implements OpenApiContent {
 
   void operator []=(
     String key,
-    Object value,
+    dynamic value,
   ) =>
       _additionalProperties[key] = value;
 
-  Object operator [](String key) => _additionalProperties[key];
+  dynamic operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -1183,7 +1183,7 @@ class _DeleteResponse200 extends DeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, Object?> propertiesToString() => {
+  Map<String, dynamic?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -1235,7 +1235,7 @@ class _ClientIdPostResponse200 extends ClientIdPostResponse
       OpenApiContentType.parse('application/json');
 
   @override
-  Map<String, Object?> propertiesToString() => {
+  Map<String, dynamic?> propertiesToString() => {
         'status': status,
         'body': body,
         'bodyJson': bodyJson,
@@ -1254,7 +1254,7 @@ class _ClientIdPostResponse404 extends ClientIdPostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, Object?> propertiesToString() => {
+  Map<String, dynamic?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -1307,7 +1307,7 @@ class _ClientIdDeleteResponse200 extends ClientIdDeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, Object?> propertiesToString() => {
+  Map<String, dynamic?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -1324,7 +1324,7 @@ class _ClientIdDeleteResponse404 extends ClientIdDeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, Object?> propertiesToString() => {
+  Map<String, dynamic?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
