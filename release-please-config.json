@@ -1,0 +1,29 @@
+{
+  "separate-pull-requests": true,
+  "packages": {
+    "packages/common": {
+      "release-type": "dart",
+      "bump-minor-pre-major": true,
+      "prerelease": true
+    },
+    "packages/common_client": {
+      "release-type": "dart",
+      "bump-minor-pre-major": true,
+      "prerelease": true
+    },
+    "packages/event_source_client": {
+      "release-type": "dart",
+      "bump-minor-pre-major": true,
+      "prerelease": true
+    },
+    "packages/flutter_client_sdk": {
+      "release-type": "dart",
+      "bump-minor-pre-major": true,
+      "prerelease": true,
+      "extra-files": [
+        "lib/src/ld_client.dart"
+      ]
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}
