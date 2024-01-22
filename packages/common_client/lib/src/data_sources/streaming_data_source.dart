@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
-import 'package:launchdarkly_event_source_client/sse_client.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
 import '../config/data_source_config.dart';
 import 'data_source.dart';

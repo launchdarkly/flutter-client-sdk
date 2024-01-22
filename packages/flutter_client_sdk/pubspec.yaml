@@ -1,6 +1,6 @@
 name: launchdarkly_flutter_client_sdk
-description: Official Flutter client-side SDK for LaunchDarkly. Supports Android and iOS.
-version: 2.1.0
+description: Official Flutter client-side SDK for LaunchDarkly.
+version: 4.0.0-alpha.0
 homepage: https://github.com/launchdarkly/flutter-client-sdk
 
 environment:
@@ -14,8 +14,8 @@ dependencies:
   device_info_plus: ^9.1.1
   launchdarkly_common_client: 0.0.1
   launchdarkly_dart_common: 0.0.1
-  shared_preferences: 2.2.2
-  connectivity_plus: 5.0.2
+  shared_preferences: ^2.2.2
+  connectivity_plus: ^5.0.2
 
 dev_dependencies:
   flutter_test:

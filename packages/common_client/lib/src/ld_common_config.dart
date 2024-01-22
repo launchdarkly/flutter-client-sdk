@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import 'config/defaults/default_config.dart';
 import 'config/events_config.dart';

@@ -1,7 +1,7 @@
 export 'src/ld_common_config.dart'
     show LDCommonConfig, PersistenceConfig, DataSourceConfig, AutoEnvAttributes;
 
-export 'package:launchdarkly_dart_common/ld_common.dart'
+export 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     show
         LDContext,
         LDContextBuilder,

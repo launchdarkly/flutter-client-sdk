@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_common/ld_common.dart' as common;
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart' as common;
 
 import 'defaults/default_config.dart';
 

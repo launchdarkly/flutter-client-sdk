@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 /// An item descriptor is an abstraction that allows for Flag data to be
 /// handled using the same type in both a put or a patch.
