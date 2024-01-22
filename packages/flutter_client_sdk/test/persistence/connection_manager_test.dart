@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:launchdarkly_dart_client/ld_client.dart';
+import 'package:launchdarkly_common_client/ld_common_client.dart';
 import 'package:launchdarkly_flutter_client_sdk/src/connection_manager.dart';
 import 'package:test/test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -333,7 +333,8 @@ void main() {
         connectionManager.setMode(requestedMode);
 
         verify(() => destination.setMode(requestedMode));
-        verifyNever(() => destination.setEventSendingEnabled(true, flush: false));
+        verifyNever(
+            () => destination.setEventSendingEnabled(true, flush: false));
         connectionManager.dispose();
       });
     }

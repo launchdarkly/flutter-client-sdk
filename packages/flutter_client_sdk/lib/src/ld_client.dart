@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_client/ld_client.dart';
+import 'package:launchdarkly_common_client/ld_common_client.dart';
 
 import 'config/defaults/flutter_default_config.dart';
 import 'config/ld_config.dart';
@@ -31,7 +31,7 @@ import 'platform_env_reporter.dart';
 /// This is an interface class so that it can be mocked for testing, but it
 /// cannot be extended.
 interface class LDClient {
-  late final LDDartClient _client;
+  late final LDCommonClient _client;
   late final ConnectionManager _connectionManager;
 
   /// Stream which emits data source status changes.
@@ -62,7 +62,7 @@ interface class LDClient {
         platformEnvReporter: PlatformEnvReporter(),
         autoEnvAttributes:
             config.autoEnvAttributes == AutoEnvAttributes.enabled);
-    _client = LDDartClient(
+    _client = LDCommonClient(
         config,
         platformImplementation,
         context,
