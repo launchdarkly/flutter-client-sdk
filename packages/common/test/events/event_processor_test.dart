@@ -1,3 +1,5 @@
+// ignore_for_file: close_sinks
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -312,6 +314,7 @@ void main() {
     final statsDecodedAsJson =
         LDValueSerialization.fromJson(jsonDecode(statsEventRequest.body));
     expect(statsDecodedAsJson.getFor('kind').stringValue(), 'diagnostic');
+
   });
 
   test('it produces diagnostic stats events', () async {

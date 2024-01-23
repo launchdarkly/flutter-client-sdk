@@ -27,6 +27,7 @@ final class MockDataSource implements DataSource {
   @override
   void stop() {
     stopCalled = true;
+    controller.close();
   }
 }
 
