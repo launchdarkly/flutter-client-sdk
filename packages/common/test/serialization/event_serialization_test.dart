@@ -204,8 +204,9 @@ void main() {
         '"variation": 10,'
         '"value": "the-value",'
         '"reason": {"kind": "FALLTHROUGH"},'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
@@ -237,8 +238,9 @@ void main() {
         '"default": "default-value",'
         '"variation": 10,'
         '"value": "the-value",'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
@@ -269,8 +271,9 @@ void main() {
         '"default": "default-value",'
         '"value": "the-value",'
         '"reason": {"kind": "ERROR", "errorKind": "FLAG_NOT_FOUND"},'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
