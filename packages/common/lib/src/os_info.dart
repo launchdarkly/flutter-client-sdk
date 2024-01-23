@@ -3,10 +3,7 @@ final class OsInfo {
   final String? name;
   final String? version;
 
-  const OsInfo(
-      {this.family,
-      this.name,
-      this.version});
+  const OsInfo({this.family, this.name, this.version});
 
   @override
   String toString() {
@@ -23,8 +20,5 @@ final class OsInfo {
           version == other.version;
 
   @override
-  int get hashCode =>
-      family.hashCode ^
-      name.hashCode ^
-      version.hashCode;
+  int get hashCode => family.hashCode ^ name.hashCode ^ version.hashCode;
 }

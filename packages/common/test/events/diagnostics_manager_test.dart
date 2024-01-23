@@ -126,8 +126,7 @@ void main() {
         dataSinceDate: eventB.dataSinceDate,
         droppedEvents: 40,
         eventsInLastBatch: 50,
-        streamInits: [
-        ]);
+        streamInits: []);
 
     expect(eventB, expectedEvent);
   });

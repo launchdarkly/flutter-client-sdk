@@ -19,7 +19,7 @@ final class TaskError<TTaskReturn> implements TaskResult<TTaskReturn> {
 /// Represents a pending task. This encapsulates the async function that needs
 /// to be executed as well as a completer to indicate when that task
 /// has been finished.
-/// 
+///
 /// All tasks should have either [execute] or the [shed] method eventually
 /// called.
 ///

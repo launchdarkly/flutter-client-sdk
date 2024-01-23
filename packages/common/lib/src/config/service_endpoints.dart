@@ -25,7 +25,8 @@ abstract class ServiceEndpoints {
   ///
   /// For debugging purposes a single endpoint may be set, such as using ngrok
   /// to inspect generated events.
-  ServiceEndpoints.custom({String? polling, String? streaming, String? events}) {
+  ServiceEndpoints.custom(
+      {String? polling, String? streaming, String? events}) {
     this.polling = polling ?? defaultPolling;
     this.streaming = streaming ?? defaultStreaming;
     this.events = events ?? defaultEvents;

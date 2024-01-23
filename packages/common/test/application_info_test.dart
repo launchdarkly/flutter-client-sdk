@@ -95,7 +95,6 @@ void main() {
         applicationVersion: '',
         applicationVersionName: '');
 
-
     expect(a.applicationId, isNull);
     expect(a.applicationName, isNull);
     expect(a.applicationVersion, isNull);

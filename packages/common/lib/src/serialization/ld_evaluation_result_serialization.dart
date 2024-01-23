@@ -38,7 +38,8 @@ final class LDEvaluationResultSerialization {
     if (evaluationResult.debugEventsUntilDate != null) {
       result['debugEventsUntilDate'] = evaluationResult.debugEventsUntilDate;
     }
-    result['value'] = LDValueSerialization.toJson(evaluationResult.detail.value);
+    result['value'] =
+        LDValueSerialization.toJson(evaluationResult.detail.value);
     if (evaluationResult.detail.variationIndex != null) {
       result['variation'] = evaluationResult.detail.variationIndex;
     }

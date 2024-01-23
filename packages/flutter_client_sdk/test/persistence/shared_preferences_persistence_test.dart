@@ -11,14 +11,16 @@ void main() {
   });
 
   test('it can read a value', () async {
-    SharedPreferences.setMockInitialValues({'LaunchDarkly_test.test-key': 'data'});
+    SharedPreferences.setMockInitialValues(
+        {'LaunchDarkly_test.test-key': 'data'});
     final persistence = SharedPreferencesPersistence();
     final read = await persistence.read('LaunchDarkly_test', 'test-key');
     expect(read, 'data');
   });
 
   test('it can remove a value', () async {
-    SharedPreferences.setMockInitialValues({'LaunchDarkly_test.test-key': 'data'});
+    SharedPreferences.setMockInitialValues(
+        {'LaunchDarkly_test.test-key': 'data'});
     final persistence = SharedPreferencesPersistence();
     await persistence.remove('LaunchDarkly_test', 'test-key');
     final read = await persistence.read('LaunchDarkly_test', 'test-key');
