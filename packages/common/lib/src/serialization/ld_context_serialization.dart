@@ -176,10 +176,6 @@ final class LDContextSerialization {
     }
     if (context.attributesByKind.length == 1) {
       final attributes = context.attributesByKind.values.first;
-      _LDContextAttributesSerialization.toJson(attributes,
-          isEvent: isEvent,
-          allAttributesPrivate: allAttributesPrivate,
-          globalPrivateAttributes: globalPrivateAttributes);
       Map<String, dynamic> result = {
         ..._LDContextAttributesSerialization.toJson(attributes,
             isEvent: isEvent,
