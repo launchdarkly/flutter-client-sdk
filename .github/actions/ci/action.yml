@@ -32,6 +32,11 @@ runs:
       shell: bash
       run: melos run analyze
 
+    - name: Style
+      shell: bash
+      # This will have a non-zero exit code if any files changed.
+      run: dart format --output=none --set-exit-if-changed .
+
     - name: Test
       shell: bash
       run: melos run test
