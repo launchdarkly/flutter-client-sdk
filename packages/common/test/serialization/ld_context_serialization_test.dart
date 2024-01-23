@@ -85,6 +85,23 @@ void main() {
         .addString('dizzle', 'hgi')
         .build();
 
+    final expectedAnonymousContextWithFullRedaction = LDValueObjectBuilder()
+        .addString('kind', 'organization')
+        .addString('key', 'abc')
+        .addBool('anonymous', true)
+        .addValue(
+            '_meta',
+            LDValueObjectBuilder()
+                .addValue(
+                    'redactedAttributes',
+                    LDValueArrayBuilder()
+                        .addString('/firstName')
+                        .addString('/bizzle')
+                        .addString('/dizzle')
+                        .build())
+                .build())
+        .build();
+
     group('when it is serializing as a context', () {
       final isEvent = false;
       test('it includes all the attributes and the non-redacted meta data form',
@@ -145,6 +162,22 @@ void main() {
             LDContextSerialization.toJson(anonymousContext, isEvent: isEvent);
         expect(LDValueSerialization.fromJson(anonymousEncoded),
             expectedAnonymousContext);
+      });
+
+      test('redactAnonymous only affects anonymous contexts', () {
+        final encoded = LDContextSerialization.toJson(basicContext,
+            isEvent: isEvent, redactAnonymous: true);
+        expect(LDValueSerialization.fromJson(encoded), expectedBasicContext);
+
+        final encodedWithName = LDContextSerialization.toJson(contextWithName,
+            isEvent: isEvent, redactAnonymous: true);
+        expect(LDValueSerialization.fromJson(encodedWithName),
+            expectedContextWithName);
+
+        final anonymousEncoded = LDContextSerialization.toJson(anonymousContext,
+            isEvent: isEvent, redactAnonymous: true);
+        expect(LDValueSerialization.fromJson(anonymousEncoded),
+            expectedAnonymousContextWithFullRedaction);
       });
 
       test(
@@ -277,6 +310,7 @@ void main() {
   group('given a multi-kind context', () {
     final orgAndUserContext = LDContextBuilder()
         .kind('organization', 'LD')
+        .anonymous(true)
         .set('rocks', LDValue.ofBool(true))
         .name('name')
         .set('department',
@@ -316,6 +350,7 @@ void main() {
                     'organization',
                     LDValueObjectBuilder()
                         .addString('key', 'LD')
+                        .addBool('anonymous', true)
                         .addValue(
                             '_meta',
                             LDValueObjectBuilder()
@@ -362,11 +397,60 @@ void main() {
                     LDValueObjectBuilder()
                         .addString('key', 'LD')
                         .addBool('rocks', true)
+                        .addBool('anonymous', true)
                         .addString('name', 'name')
                         .addValue(
                             'department',
                             LDValueObjectBuilder()
                                 .addString('name', 'sdk')
+                                .build())
+                        .build())
+                .addValue(
+                    'user',
+                    LDValueObjectBuilder()
+                        .addString('key', 'abc')
+                        .addValue('object',
+                            LDValueObjectBuilder().addString('a', 'a').build())
+                        .addNum('order', 3.0)
+                        .addString('name', 'alphabet')
+                        .addValue(
+                            '_meta',
+                            LDValueObjectBuilder()
+                                .addValue(
+                                    'redactedAttributes',
+                                    LDValueArrayBuilder()
+                                        .addString('letters')
+                                        .addString('/object/b')
+                                        .build())
+                                .build())
+                        .build())
+                .build());
+      });
+
+      test('it should only redact anonymous attributes from anonymous contexts',
+          () {
+        final encoded = LDContextSerialization.toJson(orgAndUserContext,
+            isEvent: isEvent, redactAnonymous: true);
+
+        expect(
+            LDValueSerialization.fromJson(encoded),
+            LDValueObjectBuilder()
+                .addString('kind', 'multi')
+                .addValue(
+                    'organization',
+                    LDValueObjectBuilder()
+                        .addString('key', 'LD')
+                        .addBool('anonymous', true)
+                        .addValue(
+                            '_meta',
+                            LDValueObjectBuilder()
+                                .addValue(
+                                    'redactedAttributes',
+                                    LDValueArrayBuilder()
+                                        .addString('/name')
+                                        .addString('/rocks')
+                                        .addString('/department')
+                                        .build())
                                 .build())
                         .build())
                 .addValue(
@@ -405,6 +489,7 @@ void main() {
                     LDValueObjectBuilder()
                         .addString('key', 'LD')
                         .addBool('rocks', true)
+                        .addBool('anonymous', true)
                         .addValue(
                             'department',
                             LDValueObjectBuilder()

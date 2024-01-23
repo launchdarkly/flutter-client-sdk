@@ -163,7 +163,11 @@ void main() {
     final (processor, _) = createProcessor(innerClient);
 
     final inputEvalEvent = EvalEvent(
-        context: LDContextBuilder().kind('user', 'user-key').build(),
+        context: LDContextBuilder()
+            .kind('user', 'user-key')
+            .set('name', LDValue.ofString('Example Name'))
+            .anonymous(true)
+            .build(),
         flagKey: 'the-flag',
         defaultValue: LDValue.ofNum(10),
         evaluationDetail: LDEvaluationDetail(
@@ -186,6 +190,12 @@ void main() {
     expect(ldValueEvalEvent.getFor('kind').stringValue(), 'feature');
     expect(ldValueEvalEvent.getFor('creationDate').intValue(),
         inputEvalEvent.creationDate.millisecondsSinceEpoch);
+    expect(
+        ldValueEvalEvent
+            .getFor('context')
+            .getFor('_meta')
+            .getFor('redactedAttributes'),
+        LDValue.buildArray().addString('/name').build());
 
     final ldValueSummaryEvent = decodedAsLdValue.get(1);
     // Not validating each field, as the serialization tests handle that.

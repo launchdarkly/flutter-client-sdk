@@ -165,11 +165,16 @@ final class LDContextSerialization {
   /// references, then those attributes will be redacted in all context
   /// kinds.
   ///
+  /// if [isEvent] is true, and [redactAnonymous] is true, then for any
+  /// anonymous context provided, all attributes will be redacted regardless of
+  /// the [allAttributesPrivate] or [globalPrivateAttributes] settings.
+  ///
   /// Attempting to serialize an invalid context will return null.
   static Map<String, dynamic>? toJson(LDContext context,
       {required bool isEvent,
       bool allAttributesPrivate = false,
-      Set<AttributeReference>? globalPrivateAttributes}) {
+      Set<AttributeReference>? globalPrivateAttributes,
+      bool redactAnonymous = false}) {
     if (!context.valid) {
       // Cannot serialize an invalid context.
       return null;
@@ -183,7 +188,8 @@ final class LDContextSerialization {
       Map<String, dynamic> result = {
         ..._LDContextAttributesSerialization.toJson(attributes,
             isEvent: isEvent,
-            allAttributesPrivate: allAttributesPrivate,
+            allAttributesPrivate: allAttributesPrivate ||
+                (redactAnonymous && attributes.anonymous),
             globalPrivateAttributes: globalPrivateAttributes)
       };
       result['kind'] = attributes.kind;
@@ -195,7 +201,8 @@ final class LDContextSerialization {
         result[attributes.kind] = _LDContextAttributesSerialization.toJson(
             attributes,
             isEvent: isEvent,
-            allAttributesPrivate: allAttributesPrivate,
+            allAttributesPrivate: allAttributesPrivate ||
+                (redactAnonymous && attributes.anonymous),
             globalPrivateAttributes: globalPrivateAttributes);
       }
       return result;
