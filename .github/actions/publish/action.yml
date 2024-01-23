@@ -28,5 +28,4 @@ runs:
     - name: Publish Package
       shell: bash
       working-directory: ${{ inputs.package_path }}
-      run: flutter pub publish --dry-run
-#      run: flutter pub publish --force
+      run: flutter pub publish --force
