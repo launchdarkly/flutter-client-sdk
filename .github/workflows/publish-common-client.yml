@@ -3,7 +3,7 @@ name: Publish common client to pub.dev
 on:
   push:
     tags:
-      - 'launchdarkly_common_client\-v[0-9]+.[0-9]+.[0-9]+.*'
+      - 'launchdarkly_common_client-v[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   publish:

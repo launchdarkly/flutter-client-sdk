@@ -3,7 +3,7 @@ name: Publish common to pub.dev
 on:
   push:
     tags:
-      - 'launchdarkly_dart_common\-v[0-9]+.[0-9]+.[0-9]+.*'
+      - 'launchdarkly_dart_common-v[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   publish:
