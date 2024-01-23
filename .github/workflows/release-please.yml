@@ -1,7 +1,6 @@
 on:
   push:
     branches:
-      - main
       - rlamb/implement-release-process
 name: release-please
 
@@ -21,4 +20,4 @@ jobs:
         with:
           command: manifest
           token: ${{secrets.GITHUB_TOKEN}}
-          default-branch: main
+          default-branch: rlamb/implement-release-process
