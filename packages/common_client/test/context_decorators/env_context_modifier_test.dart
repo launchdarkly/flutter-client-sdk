@@ -1,6 +1,6 @@
 import 'package:launchdarkly_common_client/src/context_modifiers/env_context_modifier.dart';
 import 'package:launchdarkly_common_client/src/persistence/persistence.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
 void main() {

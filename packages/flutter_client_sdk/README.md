@@ -11,6 +11,12 @@
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/launchdarkly.svg?style=social&label=Follow&maxAge=2592000)](https://twitter.com/intent/follow?screen_name=launchdarkly)
 
+## Platform Support
+
+| Android | iOS | MacOS | Web | Linux | Windows |
+|:-------:|:---:|:-----:|:---:|:-----:|:-------:|
+|    ✅    |  ✅  |   ✅   |  ✅  |   ✅   |    ✅    |
+
 ## Getting started
 
 Refer to the [SDK documentation](https://docs.launchdarkly.com/sdk/client-side/flutter#getting-started) for instructions on getting started with using the SDK.

@@ -2,9 +2,7 @@ final class DeviceInfo {
   final String? model;
   final String? manufacturer;
 
-  const DeviceInfo(
-      {this.model,
-      this.manufacturer});
+  const DeviceInfo({this.model, this.manufacturer});
 
   @override
   String toString() {
@@ -19,7 +17,5 @@ final class DeviceInfo {
           manufacturer == other.manufacturer;
 
   @override
-  int get hashCode =>
-      model.hashCode ^
-      manufacturer.hashCode;
+  int get hashCode => model.hashCode ^ manufacturer.hashCode;
 }

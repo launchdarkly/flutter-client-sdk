@@ -32,13 +32,11 @@ class PrioritizedEnvReporterBuilder {
 
   Future<EnvironmentReporter> build() async {
     // order of this list impacts behavior
-    List<EnvironmentReporter> reporters = [
-      _configLayer,
-      _platformLayer
-    ];
+    List<EnvironmentReporter> reporters = [_configLayer, _platformLayer];
 
     return ConcreteEnvReporter(
-        applicationInfo: _firstNonNull(reporters.map((layer) => layer.applicationInfo)),
+        applicationInfo:
+            _firstNonNull(reporters.map((layer) => layer.applicationInfo)),
         osInfo: _firstNonNull(reporters.map((layer) => layer.osInfo)),
         deviceInfo: _firstNonNull(reporters.map((layer) => layer.deviceInfo)),
         locale: _firstNonNull(reporters.map((layer) => layer.locale)));

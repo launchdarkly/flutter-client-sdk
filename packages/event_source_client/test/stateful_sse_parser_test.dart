@@ -61,7 +61,9 @@ void main() {
       // premature termination of field is ignored
       'ignored\n\ndata:test\n\n': [MessageEvent('message', 'test', '')],
       // extra leading space
-      'event:  greeting\ndata:  Hello\n\n': [MessageEvent(' greeting', ' Hello', '')],
+      'event:  greeting\ndata:  Hello\n\n': [
+        MessageEvent(' greeting', ' Hello', '')
+      ],
     };
     cases.forEach(testCase);
   });

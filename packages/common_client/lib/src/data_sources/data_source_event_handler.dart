@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import '../flag_manager/flag_manager.dart';
 import '../item_descriptor.dart';

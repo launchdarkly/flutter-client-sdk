@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 void main() {
   group('given invalid attribute references', () {
@@ -95,8 +95,10 @@ void main() {
     };
 
     for (final vector in testVectors.entries) {
-      test('it produces the expected redaction string for "${vector.value}"', () {
-        expect(AttributeReference.fromComponents(vector.value).redactionName, vector.key);
+      test('it produces the expected redaction string for "${vector.value}"',
+          () {
+        expect(AttributeReference.fromComponents(vector.value).redactionName,
+            vector.key);
       });
     }
   });

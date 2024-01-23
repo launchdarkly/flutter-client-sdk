@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:launchdarkly_event_source_client/sse_client.dart';
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:openapi_base/openapi_base.dart';
 import 'callback_api.openapi.dart';
 import 'service_api.openapi.dart';
@@ -30,8 +30,14 @@ class TestApiImpl extends TestApi {
 
     // TODO: it would be nice if we didn't have to specify all the event types, but because the web
     // event source must specify them, we are doomed to this purgatory.
-    final subscription =
-        SSEClient(streamUri, {'put', 'patch', 'delete', 'message', 'greeting', ' greeting'}).stream.listen((event) {
+    final subscription = SSEClient(streamUri, {
+      'put',
+      'patch',
+      'delete',
+      'message',
+      'greeting',
+      ' greeting'
+    }).stream.listen((event) {
       callbackClient.callbackNumberPost(
           PostCallback(
               kind: 'event',

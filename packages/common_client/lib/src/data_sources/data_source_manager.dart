@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:launchdarkly_dart_common/ld_common.dart'
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     show LDContext, LDLogger;
 
 import '../connection_mode.dart';

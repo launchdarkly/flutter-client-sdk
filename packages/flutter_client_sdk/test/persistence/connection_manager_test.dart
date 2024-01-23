@@ -1,6 +1,8 @@
+// ignore_for_file: close_sinks
+
 import 'dart:async';
 
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_flutter_client_sdk/src/connection_manager.dart';
 import 'package:test/test.dart';
 import 'package:mocktail/mocktail.dart';

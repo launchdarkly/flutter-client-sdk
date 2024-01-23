@@ -83,15 +83,15 @@ void _redactInValue(
     String key) {
   _executeIfNotRedacted(isEvent, allAttributesPrivate, result, components,
       privateAttributes, redactions, () {
-        if (value.type == LDValueType.object) {
-          final Map<String, dynamic> nested = {};
-          _redactInLDValueObject(nested, components, value, isEvent,
-              allAttributesPrivate, privateAttributes, redactions);
-          container[key] = nested;
-          return;
-        }
-        container[key] = LDValueSerialization.toJson(value);
-      });
+    if (value.type == LDValueType.object) {
+      final Map<String, dynamic> nested = {};
+      _redactInLDValueObject(nested, components, value, isEvent,
+          allAttributesPrivate, privateAttributes, redactions);
+      container[key] = nested;
+      return;
+    }
+    container[key] = LDValueSerialization.toJson(value);
+  });
 }
 
 final class _LDContextAttributesSerialization {

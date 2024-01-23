@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_dart_common/src/events/diagnostic_events.dart';
 import 'package:launchdarkly_dart_common/src/serialization/diagnostic_event_serialization.dart';
 import 'package:test/test.dart';
@@ -28,8 +28,7 @@ void main() {
     final serializedEvent =
         jsonEncode(DiagnosticInitEventSerialization.toJson(event));
 
-    final expectedSerializedEvent =
-        '{"kind":"diagnostic-init",'
+    final expectedSerializedEvent = '{"kind":"diagnostic-init",'
         '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"sdk":{"name":"sdk-name","version":"sdk-version"},'
@@ -84,8 +83,7 @@ void main() {
     final serializedEvent =
         jsonEncode(DiagnosticInitEventSerialization.toJson(event));
 
-    final expectedSerializedEvent =
-        '{"kind":"diagnostic-init",'
+    final expectedSerializedEvent = '{"kind":"diagnostic-init",'
         '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"sdk":{"name":"sdk-name","version":"sdk-version", '
@@ -133,8 +131,7 @@ void main() {
     final serializedEvent =
         jsonEncode(DiagnosticStatsEventSerialization.toJson(event));
 
-    final expectedSerializedEvent =
-        '{"kind":"diagnostic",'
+    final expectedSerializedEvent = '{"kind":"diagnostic",'
         '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"dataSinceDate":2000,'

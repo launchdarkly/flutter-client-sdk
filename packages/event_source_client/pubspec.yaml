@@ -1,11 +1,10 @@
 name: launchdarkly_event_source_client
 description: LaunchDarkly Event Source Client
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/launchdarkly/flutter-client-sdk
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=2.0.0"
 
 dependencies:
   http: ^1.1.0

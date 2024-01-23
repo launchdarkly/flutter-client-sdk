@@ -1,4 +1,4 @@
-import '../../ld_common.dart';
+import '../../launchdarkly_dart_common.dart';
 
 final class LDEvaluationResultSerialization {
   static LDEvaluationResult fromJson(Map<String, dynamic> json) {
@@ -38,7 +38,8 @@ final class LDEvaluationResultSerialization {
     if (evaluationResult.debugEventsUntilDate != null) {
       result['debugEventsUntilDate'] = evaluationResult.debugEventsUntilDate;
     }
-    result['value'] = LDValueSerialization.toJson(evaluationResult.detail.value);
+    result['value'] =
+        LDValueSerialization.toJson(evaluationResult.detail.value);
     if (evaluationResult.detail.variationIndex != null) {
       result['variation'] = evaluationResult.detail.variationIndex;
     }

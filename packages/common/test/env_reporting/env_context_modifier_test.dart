@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -17,9 +17,11 @@ void main() {
             applicationVersion: 'configVersion',
             applicationVersionName: 'configVersionName')),
         osInfo: Future.value(OsInfo(
-            family: 'configFamily', name: 'configOsName', version: 'configOsVersion')),
-        deviceInfo: Future.value(
-            DeviceInfo(model: 'configModel', manufacturer: 'configManufacturer')),
+            family: 'configFamily',
+            name: 'configOsName',
+            version: 'configOsVersion')),
+        deviceInfo: Future.value(DeviceInfo(
+            model: 'configModel', manufacturer: 'configManufacturer')),
         locale: Future.value('configLocale'));
 
     final platformLayer = ConcreteEnvReporter(
@@ -45,8 +47,7 @@ void main() {
     expect((await envUnderTest.applicationInfo)!.applicationVersion,
         'configVersion');
     expect((await envUnderTest.deviceInfo)!.model, 'configModel');
-    expect(
-        (await envUnderTest.deviceInfo)!.manufacturer, 'configManufacturer');
+    expect((await envUnderTest.deviceInfo)!.manufacturer, 'configManufacturer');
     expect((await envUnderTest.osInfo)!.name, 'configOsName');
     expect((await envUnderTest.osInfo)!.family, 'configFamily');
   });
@@ -59,7 +60,9 @@ void main() {
             applicationVersion: 'configVersion',
             applicationVersionName: 'configVersionName')),
         osInfo: Future.value(OsInfo(
-            family: 'configFamily', name: 'configOsName', version: 'configOsVersion')),
+            family: 'configFamily',
+            name: 'configOsName',
+            version: 'configOsVersion')),
         deviceInfo: Future.value(null), // intentionally missing for this test
         locale: Future.value('configLocale'));
 
@@ -86,7 +89,8 @@ void main() {
     expect((await envUnderTest.applicationInfo)!.applicationVersion,
         'configVersion');
     expect((await envUnderTest.deviceInfo)!.model, 'platformModel');
-    expect((await envUnderTest.deviceInfo)!.manufacturer, 'platformManufacturer');
+    expect(
+        (await envUnderTest.deviceInfo)!.manufacturer, 'platformManufacturer');
     expect((await envUnderTest.osInfo)!.name, 'configOsName');
     expect((await envUnderTest.osInfo)!.family, 'configFamily');
   });

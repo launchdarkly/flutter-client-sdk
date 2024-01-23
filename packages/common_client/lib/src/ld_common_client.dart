@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import '../src/config/common_platform.dart';
 import '../src/flag_manager/flag_updater.dart';

@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import '../item_descriptor.dart';
 import 'flag_store.dart';
@@ -47,7 +47,8 @@ final class FlagManager {
 
   /// Attempt to update a flag. If the flag is for the wrong context, or
   /// it is of an older version, then an update will not be performed.
-  Future<bool> upsert(LDContext context, String key, ItemDescriptor item) async =>
+  Future<bool> upsert(
+          LDContext context, String key, ItemDescriptor item) async =>
       _flagPersistence.upsert(context, key, item);
 
   /// Asynchronously load cached values from persistence.

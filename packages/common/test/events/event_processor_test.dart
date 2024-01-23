@@ -1,8 +1,10 @@
+// ignore_for_file: close_sinks
+
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/testing.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -312,6 +314,7 @@ void main() {
     final statsDecodedAsJson =
         LDValueSerialization.fromJson(jsonDecode(statsEventRequest.body));
     expect(statsDecodedAsJson.getFor('kind').stringValue(), 'diagnostic');
+
   });
 
   test('it produces diagnostic stats events', () async {

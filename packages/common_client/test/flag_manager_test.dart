@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_common_client/src/item_descriptor.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
 import 'mock_persistence.dart';

@@ -1,4 +1,4 @@
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/context_modifiers/anonymous_context_modifier.dart';
 import 'package:launchdarkly_common_client/src/persistence/persistence.dart';
 import 'package:test/test.dart';

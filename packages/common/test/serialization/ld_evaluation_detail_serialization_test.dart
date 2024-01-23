@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -25,13 +25,13 @@ void main() {
     ]) {
       test(
           'it can serialize/deserialize the evaluation detail: '
-              '$reason', () {
-        final detail = LDEvaluationDetail(
-            LDValue.ofString('test'), null, reason);
-        var serialized = jsonEncode(LDEvaluationDetailSerialization.toJson(
-            detail));
+          '$reason', () {
+        final detail =
+            LDEvaluationDetail(LDValue.ofString('test'), null, reason);
+        var serialized =
+            jsonEncode(LDEvaluationDetailSerialization.toJson(detail));
         var deserialized =
-        LDEvaluationDetailSerialization.fromJson(jsonDecode(serialized));
+            LDEvaluationDetailSerialization.fromJson(jsonDecode(serialized));
 
         expect(deserialized, detail);
       });
@@ -56,7 +56,7 @@ void main() {
         var serialized = jsonEncode(LDEvaluationDetailSerialization.toJson(
             LDEvaluationDetail(value, null, LDEvaluationReason.off())));
         var deserialized =
-        LDEvaluationDetailSerialization.fromJson(jsonDecode(serialized));
+            LDEvaluationDetailSerialization.fromJson(jsonDecode(serialized));
 
         expect(deserialized.value, value);
       });
@@ -65,18 +65,16 @@ void main() {
 
   group('given different variation indexes', () {
     for (var variationIndex in [42, 10, 0, null]) {
-      test(
-          'it serializes and deserializes the variationIndex: $variationIndex',
-              () {
-            var serialized = jsonEncode(LDEvaluationDetailSerialization.toJson(
-                LDEvaluationDetail(
-                    LDValue.ofNull(), variationIndex,
-                    LDEvaluationReason.off())));
-            var deserialized =
+      test('it serializes and deserializes the variationIndex: $variationIndex',
+          () {
+        var serialized = jsonEncode(LDEvaluationDetailSerialization.toJson(
+            LDEvaluationDetail(
+                LDValue.ofNull(), variationIndex, LDEvaluationReason.off())));
+        var deserialized =
             LDEvaluationDetailSerialization.fromJson(jsonDecode(serialized));
 
-            expect(deserialized.variationIndex, variationIndex);
-          });
+        expect(deserialized.variationIndex, variationIndex);
+      });
     }
   });
 }

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
-import 'package:launchdarkly_event_source_client/sse_client.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
 import '../config/data_source_config.dart';
 import 'data_source.dart';
@@ -69,7 +69,8 @@ final class StreamingDataSource implements DataSource {
       : _endpoints = endpoints,
         _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
-        _subFactory = subFactory, _httpProperties = httpProperties {
+        _subFactory = subFactory,
+        _httpProperties = httpProperties {
     if (_dataSourceConfig.useReport) {
       _logger.warn('REPORT is currently not supported for streaming');
     }
@@ -90,7 +91,7 @@ final class StreamingDataSource implements DataSource {
 
   @override
   void start() {
-    if (_subscription != null || _permanentShutdown) {
+    if (_subscription != null || _permanentShutdown || _stopped) {
       return;
     }
     _stopped = false;
@@ -123,5 +124,6 @@ final class StreamingDataSource implements DataSource {
     _subscription?.cancel();
     _subscription = null;
     _stopped = true;
+    _dataController.close();
   }
 }

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/testing.dart';
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/config/data_source_config.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_event_handler.dart';
@@ -9,7 +9,8 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source_status.d
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/polling_data_source.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart' as ld_common;
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    as ld_common;
 import 'package:http/http.dart' as http;
 
 import 'package:test/test.dart';

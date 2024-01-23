@@ -1,4 +1,4 @@
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 
 import 'config/defaults/flutter_default_config.dart';
 import 'config/ld_config.dart';
@@ -68,7 +68,7 @@ interface class LDClient {
         context,
         DiagnosticSdkData(
             name: 'FlutterClientSide',
-            version: '0.0.1')); // x-release-please-version
+            version: '4.0.0-alpha.0')); // x-release-please-version
     _connectionManager = ConnectionManager(
         logger: _client.logger,
         config: ConnectionManagerConfig(

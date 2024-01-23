@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 
 enum ApplicationState {
   /// The application is in the foreground.

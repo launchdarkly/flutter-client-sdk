@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:test/test.dart';
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 void main() {
   group('null values', () {

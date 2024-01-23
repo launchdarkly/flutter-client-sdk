@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import 'package:test/test.dart';
 
@@ -32,8 +32,10 @@ void main() {
           debugEventsUntilDate: DateTime.now().millisecondsSinceEpoch)
     };
 
-    final serialized = jsonEncode(LDEvaluationResultsSerialization.toJson(results));
-    final deserialized = LDEvaluationResultsSerialization.fromJson(jsonDecode(serialized));
+    final serialized =
+        jsonEncode(LDEvaluationResultsSerialization.toJson(results));
+    final deserialized =
+        LDEvaluationResultsSerialization.fromJson(jsonDecode(serialized));
 
     deserialized.equals(results);
   });

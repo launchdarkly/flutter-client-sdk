@@ -1,3 +1,5 @@
+// ignore_for_file: close_sinks
+
 import 'dart:async';
 
 import 'package:launchdarkly_event_source_client/src/http_consts.dart';

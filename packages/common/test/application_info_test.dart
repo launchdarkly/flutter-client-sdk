@@ -1,4 +1,4 @@
-import 'package:launchdarkly_dart_common/ld_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -94,7 +94,6 @@ void main() {
         applicationName: '',
         applicationVersion: '',
         applicationVersionName: '');
-
 
     expect(a.applicationId, isNull);
     expect(a.applicationName, isNull);

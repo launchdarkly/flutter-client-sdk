@@ -1,13 +1,15 @@
+// ignore_for_file: close_sinks
+
 import 'dart:async';
 
-import 'package:launchdarkly_common_client/ld_common_client.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/config/data_source_config.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/streaming_data_source.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
-import 'package:launchdarkly_event_source_client/sse_client.dart';
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
 (StreamingDataSource, FlagManager, DataSourceStatusManager)
