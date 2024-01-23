@@ -1,0 +1,32 @@
+{
+  "bootstrap-sha": "ab20b99351a7e9f83db98cccbf5b5e63c82f1753",
+  "separate-pull-requests": true,
+  "packages": {
+    "packages/common": {
+      "release-type": "dart",
+      "bump-minor-pre-major": true,
+      "prerelease": true
+    },
+    "packages/common_client": {
+      "release-type": "dart",
+      "bump-minor-pre-major": true,
+      "prerelease": true
+    },
+    "packages/event_source_client": {
+      "release-type": "dart",
+      "bump-minor-pre-major": true,
+      "prerelease": true
+    },
+    "packages/flutter_client_sdk": {
+      "release-type": "dart",
+      "release-as": "4.0.0-alpha.1",
+      "include-v-in-tag": false,
+      "include-component-in-tag": false,
+      "prerelease": true,
+      "extra-files": [
+        "lib/src/ld_client.dart"
+      ]
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}
