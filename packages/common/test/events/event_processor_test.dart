@@ -314,6 +314,7 @@ void main() {
     final statsDecodedAsJson =
         LDValueSerialization.fromJson(jsonDecode(statsEventRequest.body));
     expect(statsDecodedAsJson.getFor('kind').stringValue(), 'diagnostic');
+
   });
 
   test('it produces diagnostic stats events', () async {
