@@ -1,7 +1,8 @@
 name: launchdarkly_common_client
 description: Client-side SDK code for dart.
 version: 0.0.2
-homepage: https://github.com/launchdarkly/flutter-client-sdk
+homepage: https://github.com/launchdarkly/flutter-client-sdk/tree/main/packages/common_client
+repository: https://github.com/launchdarkly/flutter-client-sdk
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
