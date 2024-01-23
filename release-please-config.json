@@ -8,11 +8,11 @@
     },
     "packages/common_client": {
       "release-type": "dart",
-      "bump-minor-pre-major": true,
+      "bump-minor-pre-major": true
     },
     "packages/event_source_client": {
       "release-type": "dart",
-      "bump-minor-pre-major": true,
+      "bump-minor-pre-major": true
     },
     "packages/flutter_client_sdk": {
       "release-type": "dart",
