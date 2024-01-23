@@ -11,7 +11,7 @@ dependencies:
   launchdarkly_dart_common: 0.0.1
   launchdarkly_event_source_client: 0.0.2
   crypto: ^3.0.3
-  uuid: ^3.0.7
+  uuid: ">= 3.0.7 <5.0.0"
 
 dev_dependencies:
   test: ^1.24.3
