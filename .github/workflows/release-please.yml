@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - rlamb/implement-release-process
+      - main
 name: release-please
 
 # Unlike our other release-please workflows this one does not publish the packages directly.
@@ -20,4 +20,4 @@ jobs:
         with:
           command: manifest
           token: ${{secrets.GITHUB_TOKEN}}
-          default-branch: rlamb/implement-release-process
+          default-branch: main
