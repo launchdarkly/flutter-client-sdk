@@ -7,3 +7,4 @@ linter:
     - prefer_relative_imports
     - prefer_single_quotes
     - always_declare_return_types
+    - close_sinks

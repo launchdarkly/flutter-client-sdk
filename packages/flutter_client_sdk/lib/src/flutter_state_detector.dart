@@ -87,6 +87,8 @@ final class FlutterStateDetector implements StateDetector {
   @override
   void dispose() {
     _lifecycleListener.dispose();
+    _applicationStateController.close();
+    _networkStateController.close();
     _connectivitySubscription.cancel();
   }
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: close_sinks
+
 import 'dart:async';
 
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';

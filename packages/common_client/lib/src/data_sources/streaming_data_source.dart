@@ -90,7 +90,7 @@ final class StreamingDataSource implements DataSource {
 
   @override
   void start() {
-    if (_subscription != null || _permanentShutdown) {
+    if (_subscription != null || _permanentShutdown || _stopped) {
       return;
     }
     _stopped = false;
@@ -123,5 +123,6 @@ final class StreamingDataSource implements DataSource {
     _subscription?.cancel();
     _subscription = null;
     _stopped = true;
+    _dataController.close();
   }
 }
