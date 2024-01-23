@@ -19,7 +19,7 @@
     },
     "packages/flutter_client_sdk": {
       "release-type": "dart",
-      "prerelease-type": "alpha",
+      "release-as": "4.0.0-alpha.1",
       "prerelease": true,
       "extra-files": [
         "lib/src/ld_client.dart"
