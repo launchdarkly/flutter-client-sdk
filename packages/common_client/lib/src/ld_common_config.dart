@@ -20,8 +20,10 @@ final class PersistenceConfig {
   ///
   /// The default value of this configuration option is `5`.
   PersistenceConfig({int? maxCachedContexts})
-      : maxCachedContexts = max(0, maxCachedContexts ??
-            DefaultConfig.persistenceConfig.defaultMaxCachedContexts);
+      : maxCachedContexts = max(
+            0,
+            maxCachedContexts ??
+                DefaultConfig.persistenceConfig.defaultMaxCachedContexts);
 }
 
 final class PollingConfig {
@@ -138,7 +140,8 @@ abstract class LDCommonConfig {
     bool? allAttributesPrivate,
     List<String>? globalPrivateAttributes,
   })  : httpProperties = httpProperties ?? HttpProperties(),
-        serviceEndpoints = serviceEndpoints ?? client_endpoints.ServiceEndpoints(),
+        serviceEndpoints =
+            serviceEndpoints ?? client_endpoints.ServiceEndpoints(),
         events = events ?? EventsConfig(),
         persistence = persistence ?? PersistenceConfig(),
         offline = offline ?? DefaultConfig.defaultOffline,

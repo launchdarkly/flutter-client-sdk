@@ -8,8 +8,8 @@ import '../../launchdarkly_dart_common.dart';
 /// This is primarily for web where a number of headers are forbidden from
 /// modification by JavaScript.
 ///
-Map<String, String> filterHeaders(Set<String> forbidden,
-    Map<String, String> headers) {
+Map<String, String> filterHeaders(
+    Set<String> forbidden, Map<String, String> headers) {
   Map<String, String> filteredHeaders = {};
 
   for (var entry in headers.entries) {
@@ -81,9 +81,7 @@ bool isHttpLocallyRecoverable(num status) {
 
 /// Hashes the input, base64 encodes result, then sanitizes it for URL usage.
 String urlSafeSha256Hash(String input) {
-  return _encodeAndSanitize(sha256
-      .convert(utf8.encode(input))
-      .bytes);
+  return _encodeAndSanitize(sha256.convert(utf8.encode(input)).bytes);
 }
 
 /// Base64 encodes input and then sanitizes it for URL usage.

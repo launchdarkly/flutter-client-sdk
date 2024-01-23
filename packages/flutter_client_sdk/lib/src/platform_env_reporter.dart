@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 /// [EnvironmentReporter] that can retrieve info from various platforms.  Makes
 /// best effort to be performant, but performance may vary by platform.
 class PlatformEnvReporter implements EnvironmentReporter {
-
   @override
   Future<ApplicationInfo?> get applicationInfo async {
     final info = await PackageInfo.fromPlatform();
@@ -29,8 +28,10 @@ class PlatformEnvReporter implements EnvironmentReporter {
         final info = await DeviceInfoPlugin().androidInfo;
         return OsInfo(
           family: 'Android',
-          name: 'Android',  // excluding API version int here to be consistent with MAUI
-          version: info.version.release, // This is the 9 in 'Android 9 (SDK 28)' and agrees with our Android and MAUI SDKs
+          name:
+              'Android', // excluding API version int here to be consistent with MAUI
+          version: info.version
+              .release, // This is the 9 in 'Android 9 (SDK 28)' and agrees with our Android and MAUI SDKs
         );
       } else if (Platform.isIOS) {
         final info = await DeviceInfoPlugin().iosInfo;
@@ -44,7 +45,8 @@ class PlatformEnvReporter implements EnvironmentReporter {
         return OsInfo(
           family: 'Apple',
           name: 'macOS',
-          version: '${info.majorVersion}.${info.minorVersion}.${info.patchVersion}',
+          version:
+              '${info.majorVersion}.${info.minorVersion}.${info.patchVersion}',
         );
       } else if (Platform.isWindows) {
         final info = await DeviceInfoPlugin().windowsInfo;
@@ -96,16 +98,10 @@ class PlatformEnvReporter implements EnvironmentReporter {
         );
       } else if (Platform.isIOS) {
         final info = await DeviceInfoPlugin().iosInfo;
-        return DeviceInfo(
-            model: info.model,
-            manufacturer: 'Apple'
-        );
+        return DeviceInfo(model: info.model, manufacturer: 'Apple');
       } else if (Platform.isMacOS) {
         final info = await DeviceInfoPlugin().macOsInfo;
-        return DeviceInfo(
-            model: info.model,
-            manufacturer: 'Apple'
-        );
+        return DeviceInfo(model: info.model, manufacturer: 'Apple');
       } else {
         // There is no reliable way to get device info for these platforms.
         // At the time of writing this, Windows, Linux, and Fuchsia fall into

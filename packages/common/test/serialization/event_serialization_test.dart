@@ -435,17 +435,17 @@ void main() {
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
-    final expectedLdValue =
-        LDValueSerialization.fromJson(jsonDecode('{"kind":"summary",'
-            '"startDate":0,'
-            '"endDate":100,'
-            '"features":{'
-            '"a":{"default":"default-value",'
-            '"contextKinds":["user","org"],'
-            '"counters":[{"value":"the-value","count":10,"version":42,"variation":2}]},'
-            '"b":{"default":"default-value",'
-            '"contextKinds":["potato","org"],'
-            '"counters":[{"value":"another-value","count":11,"unknown":true}]}}}'));
+    final expectedLdValue = LDValueSerialization.fromJson(jsonDecode(
+        '{"kind":"summary",'
+        '"startDate":0,'
+        '"endDate":100,'
+        '"features":{'
+        '"a":{"default":"default-value",'
+        '"contextKinds":["user","org"],'
+        '"counters":[{"value":"the-value","count":10,"version":42,"variation":2}]},'
+        '"b":{"default":"default-value",'
+        '"contextKinds":["potato","org"],'
+        '"counters":[{"value":"another-value","count":11,"unknown":true}]}}}'));
 
     expect(jsonAsLdValue, expectedLdValue);
   });

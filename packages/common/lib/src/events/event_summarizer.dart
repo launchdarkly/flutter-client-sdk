@@ -103,8 +103,6 @@ final class EventSummarizer {
     _clear();
 
     return SummaryEvent(
-        startDate: startDate,
-        endDate: endDate,
-        features: features);
+        startDate: startDate, endDate: endDate, features: features);
   }
 }

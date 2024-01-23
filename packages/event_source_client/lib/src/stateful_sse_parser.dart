@@ -20,7 +20,6 @@ enum _LastParsed {
 /// lifetime.  In other words, if the connection is interrupted, this parser should be discarded
 /// and a new one used in its place.
 class StatefulSSEParser {
-  
   // Special runes for parsing
   static const _colon = 0x3A;
   static const _cr = 0x0D;

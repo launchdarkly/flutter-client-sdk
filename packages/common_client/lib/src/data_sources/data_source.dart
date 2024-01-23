@@ -15,7 +15,8 @@ final class StatusEvent implements DataSourceEvent {
   String message;
   bool shutdown;
 
-  StatusEvent(this.kind, this.statusCode, this.message, {this.shutdown = false});
+  StatusEvent(this.kind, this.statusCode, this.message,
+      {this.shutdown = false});
 }
 
 abstract interface class DataSource {

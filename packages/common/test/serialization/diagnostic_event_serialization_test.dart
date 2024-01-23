@@ -28,8 +28,7 @@ void main() {
     final serializedEvent =
         jsonEncode(DiagnosticInitEventSerialization.toJson(event));
 
-    final expectedSerializedEvent =
-        '{"kind":"diagnostic-init",'
+    final expectedSerializedEvent = '{"kind":"diagnostic-init",'
         '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"sdk":{"name":"sdk-name","version":"sdk-version"},'
@@ -84,8 +83,7 @@ void main() {
     final serializedEvent =
         jsonEncode(DiagnosticInitEventSerialization.toJson(event));
 
-    final expectedSerializedEvent =
-        '{"kind":"diagnostic-init",'
+    final expectedSerializedEvent = '{"kind":"diagnostic-init",'
         '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"sdk":{"name":"sdk-name","version":"sdk-version", '
@@ -133,8 +131,7 @@ void main() {
     final serializedEvent =
         jsonEncode(DiagnosticStatsEventSerialization.toJson(event));
 
-    final expectedSerializedEvent =
-        '{"kind":"diagnostic",'
+    final expectedSerializedEvent = '{"kind":"diagnostic",'
         '"id":{"diagnosticId":"the-sdk","sdkKeySuffix":"suffix"},'
         '"creationDate":1000,'
         '"dataSinceDate":2000,'

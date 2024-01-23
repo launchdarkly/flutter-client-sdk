@@ -378,7 +378,7 @@ final class LDContextBuilder {
   /// multicontext.
   LDContextBuilder mergeContext(LDContext context) {
     for (var MapEntry(key: kind, value: attributes)
-    in context.attributesByKind.entries) {
+        in context.attributesByKind.entries) {
       final attributesBuilder = this.kind(kind, attributes.key);
       attributesBuilder.anonymous(attributes.anonymous);
       if (attributes.name != null) {
@@ -386,7 +386,7 @@ final class LDContextBuilder {
       }
       attributesBuilder._privateAttributes.addAll(attributes.privateAttributes);
       for (var MapEntry(key: name, value: attributeValue)
-      in attributes.customAttributes.entries) {
+          in attributes.customAttributes.entries) {
         attributesBuilder.set(name, attributeValue);
       }
     }

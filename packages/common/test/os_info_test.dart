@@ -2,7 +2,7 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('equivalent os info objects are equal', (){
+  test('equivalent os info objects are equal', () {
     final a = OsInfo(family: 'Adams', name: 'Name', version: '42');
     final b = OsInfo(family: 'Adams', name: 'Name', version: '42');
 
@@ -14,7 +14,7 @@ void main() {
     expect(c, d);
   });
 
-  test('non-equivalent os info objects are not equal', (){
+  test('non-equivalent os info objects are not equal', () {
     final a = OsInfo(family: 'Adams', name: 'Name', version: '42');
     final b = OsInfo(family: 'Adams', name: 'Name', version: '43');
 
@@ -28,7 +28,7 @@ void main() {
     expect(a.hashCode, b.hashCode);
   });
 
-  test('non-equivalent os info objects do not have equal hash codes', (){
+  test('non-equivalent os info objects do not have equal hash codes', () {
     final a = OsInfo(family: 'Adams', name: 'Name', version: '42');
     final b = OsInfo(family: 'Adam', name: 'Name', version: '42');
 

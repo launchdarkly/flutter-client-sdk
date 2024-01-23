@@ -32,8 +32,10 @@ void main() {
           debugEventsUntilDate: DateTime.now().millisecondsSinceEpoch)
     };
 
-    final serialized = jsonEncode(LDEvaluationResultsSerialization.toJson(results));
-    final deserialized = LDEvaluationResultsSerialization.fromJson(jsonDecode(serialized));
+    final serialized =
+        jsonEncode(LDEvaluationResultsSerialization.toJson(results));
+    final deserialized =
+        LDEvaluationResultsSerialization.fromJson(jsonDecode(serialized));
 
     deserialized.equals(results);
   });

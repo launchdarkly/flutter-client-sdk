@@ -117,7 +117,8 @@ class _ContextRecipe {
 
   Future<void> tryWrite(LDContextBuilder builder) async {
     final singleContextBuilder = LDContextBuilder();
-    final attributesBuilder = singleContextBuilder.kind(kind, await getKeyFunc());
+    final attributesBuilder =
+        singleContextBuilder.kind(kind, await getKeyFunc());
 
     // adapter is used to make builder look like a writeable map for the nodes
     // to write themselves into it.

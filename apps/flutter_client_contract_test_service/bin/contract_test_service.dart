@@ -4,7 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart';
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart' as common;
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    as common;
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 import 'package:openapi_base/openapi_base.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -284,9 +285,8 @@ class TestApiImpl extends SdkTestApi {
       return _flattenedListToContext(
           [_buildContextToFlattenedMap(input.single!)]);
     } else if (input.multi != null) {
-      return _flattenedListToContext(input.multi!
-          .map((it) => _buildContextToFlattenedMap(it))
-          .toList());
+      return _flattenedListToContext(
+          input.multi!.map((it) => _buildContextToFlattenedMap(it)).toList());
     } else {
       throw UnsupportedError(
           'Expected a single or multi context, but neither were provided.');
