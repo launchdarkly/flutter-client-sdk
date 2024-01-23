@@ -11,7 +11,7 @@ dependencies:
   http: ^1.1.0
   # http uses http_parser, so the versions should be kept compatible.
   http_parser: ^4.0.0
-  uuid: ^3.0.7
+  uuid: ">= 3.0.7 <5.0.0"
   crypto: ^3.0.3
 
 dev_dependencies:
