@@ -20,6 +20,8 @@
     "packages/flutter_client_sdk": {
       "release-type": "dart",
       "release-as": "4.0.0-alpha.1",
+      "include-v-in-tag": false,
+      "include-component-in-tag": false,
       "prerelease": true,
       "extra-files": [
         "lib/src/ld_client.dart"
