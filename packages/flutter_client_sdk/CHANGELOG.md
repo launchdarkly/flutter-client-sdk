@@ -2,6 +2,20 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.0.0-alpha.1](https://github.com/launchdarkly/flutter-client-sdk/compare/v4.0.0-alpha.0...4.0.0-alpha.1) (2024-01-24)
+
+
+### Features
+
+* Update common client dependenct to 0.1.0 ([#89](https://github.com/launchdarkly/flutter-client-sdk/issues/89)) ([7dcb687](https://github.com/launchdarkly/flutter-client-sdk/commit/7dcb6876f42c76a6f27df606e281de164d306745))
+* Update common/client/event source dependencies. ([#87](https://github.com/launchdarkly/flutter-client-sdk/issues/87)) ([9acbab3](https://github.com/launchdarkly/flutter-client-sdk/commit/9acbab3bbe3ca9a1c63923ea4c95f0eb0dd1177b))
+
+
+### Bug Fixes
+
+* Fix sink not closed lint. ([#66](https://github.com/launchdarkly/flutter-client-sdk/issues/66)) ([051fd9c](https://github.com/launchdarkly/flutter-client-sdk/commit/051fd9cfc405f23e0bac64da90b9277ccdf5e188))
+* Remove flutter dependency from event source. ([#65](https://github.com/launchdarkly/flutter-client-sdk/issues/65)) ([d557692](https://github.com/launchdarkly/flutter-client-sdk/commit/d557692ef7d146a5c691d3b8f64f10726f12add3))
+
 ## [4.0.0-alpha.0] - 2024-01-22
 
 Initial 4.0.0 alpha release. 4.0.0 is a re-write of the SDK using Dart instead of native plugins.
