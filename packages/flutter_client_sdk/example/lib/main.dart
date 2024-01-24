@@ -125,21 +125,18 @@ class _MyHomePageState extends State<MyHomePage> {
                                             context,
                                             listen: false);
 
-                                        final controller =
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                          const SnackBar(
-                                              content:
-                                                  Text('Identifying user')),
-                                        );
-
                                         client
                                             .identify(LDContextBuilder()
                                                 .kind('user',
                                                     _userKeyController.text)
                                                 .build())
                                             .then((value) {
-                                          controller.close();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content:
+                                                    Text('Identify complete')),
+                                          );
                                         });
                                       }
                                     },
