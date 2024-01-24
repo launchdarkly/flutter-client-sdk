@@ -3,7 +3,7 @@ name: Publish event source client to pub.dev
 on:
   push:
     tags:
-      - 'launchdarkly_event_source_client\-v[0-9]+.[0-9]+.[0-9]+.*'
+      - 'launchdarkly_event_source_client-v[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   publish:
