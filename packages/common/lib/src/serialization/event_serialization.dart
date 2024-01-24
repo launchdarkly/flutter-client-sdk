@@ -48,6 +48,11 @@ final class EvalEventSerialization {
     json['default'] = LDValueSerialization.toJson(event.defaultValue);
     json['key'] = event.flagKey;
     json['value'] = LDValueSerialization.toJson(event.evaluationDetail.value);
+    json['context'] = LDContextSerialization.toJson(event.context,
+        isEvent: true,
+        allAttributesPrivate: allAttributesPrivate,
+        globalPrivateAttributes: globalPrivateAttributes);
+
     if (event.version != null) {
       json['version'] = event.version;
     }
@@ -58,17 +63,6 @@ final class EvalEventSerialization {
     if (event.withReason && event.evaluationDetail.reason != null) {
       json['reason'] = LDEvaluationReasonSerialization.toJson(
           event.evaluationDetail.reason!);
-    }
-
-    // TODO: This code is temporary until the back-end supports always inlined
-    // contexts.
-    if (isDebug) {
-      json['context'] = LDContextSerialization.toJson(event.context,
-          isEvent: true,
-          allAttributesPrivate: allAttributesPrivate,
-          globalPrivateAttributes: globalPrivateAttributes);
-    } else {
-      json['contextKeys'] = event.context.keys;
     }
 
     return json;
