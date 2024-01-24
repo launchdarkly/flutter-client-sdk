@@ -1,4 +1,4 @@
-name: Publish event source client to pub.dev
+name: Publish flutter client to pub.dev
 
 on:
   push:
