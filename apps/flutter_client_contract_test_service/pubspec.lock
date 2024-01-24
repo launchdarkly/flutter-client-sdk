@@ -377,28 +377,28 @@ packages:
       path: "../../packages/common_client"
       relative: true
     source: path
-    version: "0.0.2"
+    version: "0.1.0"
   launchdarkly_dart_common:
     dependency: "direct overridden"
     description:
       path: "../../packages/common"
       relative: true
     source: path
-    version: "0.0.1"
+    version: "0.0.2"
   launchdarkly_event_source_client:
     dependency: "direct overridden"
     description:
       path: "../../packages/event_source_client"
       relative: true
     source: path
-    version: "0.0.2"
+    version: "0.0.3"
   launchdarkly_flutter_client_sdk:
     dependency: "direct main"
     description:
       path: "../../packages/flutter_client_sdk"
       relative: true
     source: path
-    version: "4.0.0-alpha.0"
+    version: "4.0.0-alpha.1"
   lints:
     dependency: "direct dev"
     description:
@@ -435,18 +435,18 @@ packages:
     dependency: transitive
     description:
       name: material_color_utilities
-      sha256: "9528f2f296073ff54cb9fee677df673ace1218163c3bc7628093e7eed5203d41"
+      sha256: "0e0a020085b65b6083975e499759762399b4475f766c21668c4ecca34ea74e5a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.0"
+    version: "0.8.0"
   meta:
     dependency: transitive
     description:
       name: meta
-      sha256: a6e590c838b18133bb482a2745ad77c5bb7715fb0451209e1a7567d416678b8e
+      sha256: d584fa6707a52763a52446f02cc621b077888fb63b93bbcb1143a7be5a0c0c04
       url: "https://pub.dev"
     source: hosted
-    version: "1.10.0"
+    version: "1.11.0"
   mime:
     dependency: transitive
     description:
