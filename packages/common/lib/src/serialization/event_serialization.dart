@@ -51,7 +51,8 @@ final class EvalEventSerialization {
     json['context'] = LDContextSerialization.toJson(event.context,
         isEvent: true,
         allAttributesPrivate: allAttributesPrivate,
-        globalPrivateAttributes: globalPrivateAttributes);
+        globalPrivateAttributes: globalPrivateAttributes,
+        redactAnonymous: !isDebug);
 
     if (event.version != null) {
       json['version'] = event.version;
