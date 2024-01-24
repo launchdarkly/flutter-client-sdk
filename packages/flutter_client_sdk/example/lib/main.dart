@@ -17,14 +17,15 @@ class MyApp extends StatelessWidget {
     return Provider<LDClient>(
         create: (_) => LDClient(
             LDConfig(
-              // The credentials come from the environment, you can set them
-              // using --dart-define.
-              // Examples:
-              // flutter run --dart-define LAUNCHDARKLY_CLIENT_SIDE_ID=<my-client-side-id> -d Chrome
-              // flutter run --dart-define LAUNCHDARKLY_MOBILE_KEY=<my-mobile-key> -d ios
-              //
-              // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
-                CredentialSource.fromEnvironment(), AutoEnvAttributes.enabled),
+                // The credentials come from the environment, you can set them
+                // using --dart-define.
+                // Examples:
+                // flutter run --dart-define LAUNCHDARKLY_CLIENT_SIDE_ID=<my-client-side-id> -d Chrome
+                // flutter run --dart-define LAUNCHDARKLY_MOBILE_KEY=<my-mobile-key> -d ios
+                //
+                // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
+                CredentialSource.fromEnvironment(),
+                AutoEnvAttributes.enabled),
             // Here we are using a default user with 'user-key'.
             LDContextBuilder().kind('user', 'user-key').build()),
         dispose: (_, client) => client.close(),
@@ -56,15 +57,6 @@ class MyHomePage extends StatefulWidget {
 /// `variation` methods. This ensures that the SDK generates the expected
 /// events.
 class FlagProviderString extends StreamProvider<String> {
-  static Stream<String> _flagValues(
-      LDClient client, String flagKey, String defaultValue) async* {
-    while (true) {
-      await client.flagChanges
-          .firstWhere((element) => element.keys.contains(flagKey));
-      yield client.stringVariation(flagKey, defaultValue);
-    }
-  }
-
   FlagProviderString(
       {super.key,
       required LDClient client,
@@ -72,10 +64,9 @@ class FlagProviderString extends StreamProvider<String> {
       required String defaultValue,
       required Widget child})
       : super(
-            create: (context) {
-              // This stream will emit changes for the specific flag key.
-              return _flagValues(client, flagKey, defaultValue);
-            },
+            create: (context) => client.flagChanges
+                .where((element) => element.keys.contains(flagKey))
+                .map((event) => client.stringVariation(flagKey, defaultValue)),
             // Here we get the initial value of the flag. If the SDK is not
             // initialized, then the default value will be returned.
             initialData: client.stringVariation(flagKey, defaultValue),
