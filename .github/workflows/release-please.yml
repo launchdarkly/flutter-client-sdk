@@ -19,7 +19,7 @@ jobs:
       # tag that will trigger another workflow. Github determines that something is created by
       # a workflow/bot based on the token. So to allow the tag creation to trigger a workflow
       # we must use a personal access token.
-      - uses: ./actions/release-secrets
+      - uses: launchdarkly/gh-actions/actions/release-secrets@release-secrets-v1.0.1
         name: "Get PAT"
         with:
           aws_assume_role: ${{ vars.AWS_ROLE_ARN }}
