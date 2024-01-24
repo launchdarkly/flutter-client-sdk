@@ -13,6 +13,10 @@ name: release-please
 
 jobs:
   release-please:
+    # Needed to get tokens during publishing.
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
     steps:
       # Normally a workflow cannot trigger another workflow. For this workflow we need to create a
