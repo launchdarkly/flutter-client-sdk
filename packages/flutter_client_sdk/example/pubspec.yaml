@@ -30,12 +30,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-    # This defaults to a published package. To use the local SDK comment the following line out,
-    # and then uncomment the two lines after. This default is to make it easier to run the example
-    # without needing to build the SDK locally.
-    launchdarkly_flutter_client_sdk: 4.0.0-alpha.1
-#  launchdarkly_flutter_client_sdk:
-#    path: ../
+  # This defaults to a published package. To use the local SDK comment the following line out,
+  # and then uncomment the two lines after. This default is to make it easier to run the example
+  # without needing to build the SDK locally.
+  launchdarkly_flutter_client_sdk: 4.0.0-alpha.1
+  #  launchdarkly_flutter_client_sdk:
+  #    path: ../
 
 
   # The following adds the Cupertino Icons font to your application.
