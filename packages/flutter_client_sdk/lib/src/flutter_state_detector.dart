@@ -74,6 +74,21 @@ final class FlutterStateDetector implements StateDetector {
       case AppLifecycleState.detached:
         break;
       case AppLifecycleState.resumed:
+        // From connectivity_plus:
+        //
+        // "Connectivity changes are no longer communicated to Android apps in
+        // the background starting with Android O (8.0). You should always check
+        // for connectivity status when your app is resumed. The broadcast is
+        // only useful when your application is in the foreground."
+        // https://github.com/fluttercommunity/plus_plugins/tree/main/packages/connectivity_plus/connectivity_plus
+        //
+        // So, when we detect an that we have been resumed, we query the current
+        // connectivity state and emit an event.
+        // There is some excess checking here, especially during app load, but
+        // our reaction to the state depends on it being different, so reporting
+        // the same state, in excess, has minimal impact and is better than
+        // missing an active state transition.
+        Connectivity().checkConnectivity().then(_setConnectivity);
         _applicationStateController.sink.add(ApplicationState.foreground);
       case AppLifecycleState.inactive:
         break;
