@@ -2,6 +2,16 @@ import '../application_info.dart';
 import '../os_info.dart';
 import '../device_info.dart';
 
+final class EnvironmentReport {
+  ApplicationInfo? applicationInfo;
+  OsInfo? osInfo;
+  DeviceInfo? deviceInfo;
+  String? locale;
+
+  EnvironmentReport(
+      {this.applicationInfo, this.osInfo, this.deviceInfo, this.locale});
+}
+
 /// An [EnvironmentReporter] is able to report various attributes
 /// of the environment in which the application is running. If a property is null,
 /// it means the reporter was unable to determine the value.

@@ -3,10 +3,10 @@ import 'package:test/test.dart';
 
 void main() {
   test('no layers leads to nulls', () async {
-    final envUnderTest = await PrioritizedEnvReporterBuilder().build();
-    expect((await envUnderTest.applicationInfo), null);
-    expect((await envUnderTest.deviceInfo), null);
-    expect((await envUnderTest.osInfo), null);
+    final envUnderTest = await PrioritizedEnvReportBuilder().build();
+    expect((envUnderTest.applicationInfo), null);
+    expect((envUnderTest.deviceInfo), null);
+    expect((envUnderTest.osInfo), null);
   });
 
   test('config layer supersedes platform layer', () async {
@@ -38,18 +38,17 @@ void main() {
             model: 'platformModel', manufacturer: 'platformManufacturer')),
         locale: Future.value('platformLocale'));
 
-    final envUnderTest = await PrioritizedEnvReporterBuilder()
+    final envUnderTest = await PrioritizedEnvReportBuilder()
         .setConfigLayer(configLayer)
         .setPlatformLayer(platformLayer)
         .build();
 
-    expect((await envUnderTest.applicationInfo)!.applicationId, 'configID');
-    expect((await envUnderTest.applicationInfo)!.applicationVersion,
-        'configVersion');
-    expect((await envUnderTest.deviceInfo)!.model, 'configModel');
-    expect((await envUnderTest.deviceInfo)!.manufacturer, 'configManufacturer');
-    expect((await envUnderTest.osInfo)!.name, 'configOsName');
-    expect((await envUnderTest.osInfo)!.family, 'configFamily');
+    expect(envUnderTest.applicationInfo!.applicationId, 'configID');
+    expect(envUnderTest.applicationInfo!.applicationVersion, 'configVersion');
+    expect(envUnderTest.deviceInfo!.model, 'configModel');
+    expect(envUnderTest.deviceInfo!.manufacturer, 'configManufacturer');
+    expect(envUnderTest.osInfo!.name, 'configOsName');
+    expect(envUnderTest.osInfo!.family, 'configFamily');
   });
 
   test('missing device info in config falls through to platform', () async {
@@ -80,18 +79,16 @@ void main() {
             model: 'platformModel', manufacturer: 'platformManufacturer')),
         locale: Future.value('platformLocale'));
 
-    final envUnderTest = await PrioritizedEnvReporterBuilder()
+    final envUnderTest = await PrioritizedEnvReportBuilder()
         .setConfigLayer(configLayer)
         .setPlatformLayer(platformLayer)
         .build();
 
-    expect((await envUnderTest.applicationInfo)!.applicationId, 'configID');
-    expect((await envUnderTest.applicationInfo)!.applicationVersion,
-        'configVersion');
-    expect((await envUnderTest.deviceInfo)!.model, 'platformModel');
-    expect(
-        (await envUnderTest.deviceInfo)!.manufacturer, 'platformManufacturer');
-    expect((await envUnderTest.osInfo)!.name, 'configOsName');
-    expect((await envUnderTest.osInfo)!.family, 'configFamily');
+    expect(envUnderTest.applicationInfo!.applicationId, 'configID');
+    expect(envUnderTest.applicationInfo!.applicationVersion, 'configVersion');
+    expect(envUnderTest.deviceInfo!.model, 'platformModel');
+    expect(envUnderTest.deviceInfo!.manufacturer, 'platformManufacturer');
+    expect(envUnderTest.osInfo!.name, 'configOsName');
+    expect(envUnderTest.osInfo!.family, 'configFamily');
   });
 }

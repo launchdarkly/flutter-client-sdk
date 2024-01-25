@@ -26,12 +26,12 @@ final class AutoEnvConsts {
 /// [Persistence].
 final class AutoEnvContextModifier implements ContextModifier {
   final Persistence _persistence;
-  final EnvironmentReporter _envReporter;
+  final EnvironmentReport _envReport;
   final LDLogger _logger;
 
-  AutoEnvContextModifier(EnvironmentReporter environmentReporter,
+  AutoEnvContextModifier(EnvironmentReport environmentReporter,
       Persistence persistence, LDLogger logger)
-      : _envReporter = environmentReporter,
+      : _envReport = environmentReporter,
         _persistence = persistence,
         _logger = logger;
 
@@ -63,15 +63,10 @@ final class AutoEnvContextModifier implements ContextModifier {
   }
 
   Future<Iterable<_ContextRecipe>> _makeRecipeList() async {
-    // TODO: in some platforms, APIs are called twice, optimize performance since
-    // the environment reporter is likely to be invoked in the startup phase of
-    // client applications.  Current tests: 3ms on Chrome, 11ms on physical Android,
-    // 400-500ms on physical iPad, 200ms on iPhone emulator, 160ms on macOS
-
-    final appInfo = await _envReporter.applicationInfo;
-    final deviceInfo = await _envReporter.deviceInfo;
-    final osInfo = await _envReporter.osInfo;
-    final locale = await _envReporter.locale;
+    final appInfo = _envReport.applicationInfo;
+    final deviceInfo = _envReport.deviceInfo;
+    final osInfo = _envReport.osInfo;
+    final locale = _envReport.locale;
 
     final applicationNodes = [
       _Node(AutoEnvConsts.attrId, _asLDValue(appInfo?.applicationId)),
