@@ -28,19 +28,21 @@ final class AutoEnvContextModifier implements ContextModifier {
   final Persistence _persistence;
   final EnvironmentReport _envReport;
   final LDLogger _logger;
+  late final Iterable<_ContextRecipe> _recipes;
 
   AutoEnvContextModifier(EnvironmentReport environmentReporter,
       Persistence persistence, LDLogger logger)
       : _envReport = environmentReporter,
         _persistence = persistence,
-        _logger = logger;
+        _logger = logger {
+    _recipes = _makeRecipeList();
+  }
 
   @override
   Future<LDContext> decorate(LDContext context) async {
     final builder = LDContextBuilder.fromContext(context);
 
-    final recipes = await _makeRecipeList();
-    for (final recipe in recipes) {
+    for (final recipe in _recipes) {
       // test if the recipe kind already is in the context.
       // 'keys' map is keyed by kinds
       if (!context.keys.containsKey(recipe.kind)) {
@@ -62,7 +64,7 @@ final class AutoEnvContextModifier implements ContextModifier {
     }
   }
 
-  Future<Iterable<_ContextRecipe>> _makeRecipeList() async {
+  Iterable<_ContextRecipe> _makeRecipeList() {
     final appInfo = _envReport.applicationInfo;
     final deviceInfo = _envReport.deviceInfo;
     final osInfo = _envReport.osInfo;
