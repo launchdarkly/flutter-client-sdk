@@ -54,8 +54,6 @@ final class DataSourceConfig {
   /// REPORT http method if possible. For streaming requests on the web
   /// platform report is not supported. The default value is `false`.
   ///
-  /// TODO: Make sure report is supported for streaming generally.
-  ///
   /// [evaluationReasons] determines if the evaluation reasons should be
   /// included for flag evaluations. Flags which require reasons, such as
   /// those which are part of an experiment, are not affected by this option.
