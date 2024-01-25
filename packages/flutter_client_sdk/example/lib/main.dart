@@ -92,7 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
           FutureBuilder(
               future: Provider.of<LDClient>(context, listen: false)
                   .start()
-                  .timeout(const Duration(seconds: 5))
+                  // In this case we do not have special handling for a failed
+                  // initialization or timeout.
+                  .timeout(const Duration(seconds: 5), onTimeout: () => true)
                   .then((value) => true),
               builder: (context, loaded) => loaded.data ?? false
                   ? Center(

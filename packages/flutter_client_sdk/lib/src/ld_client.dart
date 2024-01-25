@@ -9,17 +9,19 @@ import 'platform_env_reporter.dart';
 
 /// The main interface for the LaunchDarkly Flutter SDK.
 ///
-/// To setup the SDK before use, build an [LDConfig] with [LDConfigBuilder] and
+/// To setup the SDK before use, construct an [LDConfig] and
 /// an initial [LDContext] with [LDContextBuilder].
 /// These should be passed to [LDClient(config, context)] and then [start]
 /// should be called. A basic example:
 /// ```dart
+/// final config = LDConfig(CredentialSource.fromEnvironment(),
+///   AutoEnvAttributes.enabled);
 /// final context = LDContextBuilder()
 ///   .kind("user", <USER_KEY>)
 ///   .kind("company", <COMP_KEY>)
 ///   .build();
 /// final client = LDClient(config, context);
-/// await client.start();
+/// await client.start().timeout(const Duration(seconds: 5), onTimeout: () => false);
 /// ```
 ///
 /// After initialization, the SDK can evaluate feature flags from the
@@ -55,7 +57,9 @@ interface class LDClient {
     return _client.flagChanges;
   }
 
-  /// TODO: Comments
+  /// Construct the client instance.
+  ///
+  /// For detailed instructions please refer to the class [LDClient] documentation.
   LDClient(LDConfig config, LDContext context) {
     final platformImplementation = CommonPlatform(
         persistence: SharedPreferencesPersistence(),
