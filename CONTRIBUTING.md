@@ -37,6 +37,10 @@ The `melos` command line tool can be used to build and run the example applicati
 
 To run the unit tests for the SDK, run `melos run test` in the SDK repo. These tests only cover the pure Dart behavior of the SDK, not the native plugin code that wraps the native SDKs.
 
+To run the SSE contract tests, run `melos run sse-contract-tests` in the SDK repo.
+
+To run the client-side contract tests, run `melos run client-contract-tests` in the SDK repo.
+
 ### Code Coverage
 
 Coverage reports are generated during testing and `coverde` is used to merge the test reports.
