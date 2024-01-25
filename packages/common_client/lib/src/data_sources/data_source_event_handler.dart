@@ -104,7 +104,6 @@ final class DataSourceEventHandler {
       _statusManager.setValid();
       return MessageStatus.messageHandled;
     } catch (err) {
-      // TODO sc-215195: fix contract test that is failing here due to empty flag content
       _logger.error('put message contained an invalid payload: $err');
       _statusManager.setErrorByKind(
           ErrorKind.invalidData, 'PUT message contained invalid data');
