@@ -46,7 +46,6 @@ class TestApiImpl extends TestApi {
     if (body.headers != null) {
       headers.addAll(body.headers!.toJson().map(
           (key, value) => MapEntry<String, String>(key, value.toString())));
-      print("THE HEADERS $headers");
     }
 
     // TODO: it would be nice if we didn't have to specify all the event types, but because the web
