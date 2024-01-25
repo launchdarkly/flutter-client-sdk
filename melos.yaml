@@ -5,8 +5,8 @@ environment:
 
 packages:
   - packages/*
+  - packages/flutter_client_sdk/example
   - apps/*
-  - examples/*
 
 scripts:
   analyze:
