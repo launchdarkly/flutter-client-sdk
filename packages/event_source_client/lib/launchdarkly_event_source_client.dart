@@ -11,10 +11,6 @@ import 'src/sse_client_stub.dart'
 
 export 'src/message_event.dart' show MessageEvent;
 
-// TODO: sc-157779 - add general logging
-// TODO: around alpha phase - need the backoff jitter around web client to prevent
-// flooding cloud servers on service interruption
-
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
   get('GET'),
