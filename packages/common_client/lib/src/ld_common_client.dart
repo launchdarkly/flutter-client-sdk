@@ -322,8 +322,9 @@ final class LDCommonClient {
                     .dataSourceConfig.polling.pollingInterval.inMilliseconds,
                 // TODO: If made dynamic, then needs implemented.
                 reconnectTimeoutMillis: 1000,
-                // For now disabled means polling is enabled. When dynamic switching is added, then this
-                // can potentially just return `false`.
+                // For now disabled means polling is enabled. When dynamic
+                // switching is added, then this can potentially just return
+                // `false`.
                 streamingDisabled:
                     _config.dataSourceConfig.initialConnectionMode ==
                         ConnectionMode.polling,
