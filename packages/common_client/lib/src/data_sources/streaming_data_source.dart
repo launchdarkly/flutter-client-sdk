@@ -83,6 +83,12 @@ final class StreamingDataSource implements DataSource {
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
 
+    if (_dataSourceConfig.useReport &&
+        !DefaultConfig.dataSourceConfig.streamingReportSupported) {
+      _logger.warn(
+          'REPORT is currently not supported for streaming on web targets');
+    }
+
     _useReport = _dataSourceConfig.useReport &&
         DefaultConfig.dataSourceConfig.streamingReportSupported;
 
