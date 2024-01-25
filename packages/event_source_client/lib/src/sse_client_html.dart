@@ -56,6 +56,8 @@ SSEClient getSSEClient(
         Set<String> eventTypes,
         Map<String, String> headers,
         Duration connectTimeout,
-        Duration readTimeout) =>
+        Duration readTimeout,
+        String? body,
+        String method) =>
     // dropping unsupported configuration options
     HtmlSseClient(uri, eventTypes);

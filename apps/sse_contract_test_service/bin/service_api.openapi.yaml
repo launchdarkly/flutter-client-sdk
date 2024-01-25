@@ -75,8 +75,7 @@ components:
           type: string
         headers:
           type: object
-          additionalProperties:
-            type: string
+          additionalProperties: true
         method:
           type: string
         body:

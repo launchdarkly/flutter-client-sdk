@@ -53,8 +53,6 @@ final class StreamingDataSourceConfig extends DataSourceConfigBase {
         .streamingReportPath(credential, context);
   }
 
-  // TODO: Streaming report path support.
-
   StreamingDataSourceConfig({bool? withReasons, bool? useReport})
       : super(
             withReasons: withReasons ??

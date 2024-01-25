@@ -21,6 +21,8 @@ class StateValues {
   final Map<String, String> headers;
   final Duration connectTimeout;
   final Duration readTimeout;
+  final String? body;
+  final String httpMethod;
 
   // Non-transient internally provided
   final Stream<bool> connectionDesired;
@@ -49,5 +51,7 @@ class StateValues {
       this.eventSink,
       this.transitionSink,
       this.clientFactory,
-      this.random);
+      this.random,
+      this.body,
+      this.httpMethod);
 }

@@ -14,7 +14,22 @@ export 'src/message_event.dart' show MessageEvent;
 // TODO: sc-157779 - add general logging
 // TODO: around alpha phase - need the backoff jitter around web client to prevent
 // flooding cloud servers on service interruption
-// TODO: sc-217248 - add REPORT functionality
+
+/// HTTP methods supported by the event source client.
+enum SseHttpMethod {
+  get('GET'),
+  report('REPORT'),
+  post('POST');
+
+  final String _value;
+
+  const SseHttpMethod(this._value);
+
+  @override
+  String toString() {
+    return _value;
+  }
+}
 
 /// An [SSEClient] that works to maintain a SSE connection to a server.
 ///
@@ -52,15 +67,26 @@ abstract class SSEClient {
   /// customize the HTTP headers of the connection request.  The [connectTimeout]
   /// is how long to try establishing the connection and the [readTimeout] is how
   /// long the connection can be silent before it is torn down.
+  ///
+  /// An optional [body]. It is recommended only to use the body with `REPORT`
+  /// or `POST` methods. A `GET` accompanied by a body is non-standard. On `html`
+  /// platforms the body will be ignored, as the `html` implementation uses
+  /// the standard `EventSource` which does not support a body.
+  ///
+  /// An optional [httpMethod], if not included then the `GET` method will be
+  /// used. On `html` platforms the httpMethod will be ignored, as the `html`
+  /// implementation uses the standard `EventSource` which only uses `GET`.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,
-      Duration readTimeout = defaultReadTimeout}) {
+      Duration readTimeout = defaultReadTimeout,
+      String? body,
+      SseHttpMethod httpMethod = SseHttpMethod.get}) {
     // merge headers so consumer gets reasonable defaults
     var mergedHeaders = <String, String>{};
     mergedHeaders.addAll(defaultHeaders);
     mergedHeaders.addAll(headers);
-    return getSSEClient(
-        uri, eventTypes, mergedHeaders, connectTimeout, readTimeout);
+    return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
+        readTimeout, body, httpMethod.toString());
   }
 }

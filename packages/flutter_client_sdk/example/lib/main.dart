@@ -25,7 +25,8 @@ class MyApp extends StatelessWidget {
                 //
                 // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
                 CredentialSource.fromEnvironment(),
-                AutoEnvAttributes.enabled),
+                AutoEnvAttributes.enabled,
+                logger: LDLogger(level: LDLogLevel.debug)),
             // Here we are using a default user with 'user-key'.
             LDContextBuilder().kind('user', 'user-key').build()),
         dispose: (_, client) => client.close(),

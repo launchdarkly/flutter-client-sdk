@@ -6,6 +6,8 @@ SSEClient getSSEClient(
         Set<String> eventTypes,
         Map<String, String> headers,
         Duration connectTimeout,
-        Duration readTimeout) =>
+        Duration readTimeout,
+        String? body,
+        String method) =>
     throw UnsupportedError(
         'LaunchDarkly SSE Client is not supported on this platform.');

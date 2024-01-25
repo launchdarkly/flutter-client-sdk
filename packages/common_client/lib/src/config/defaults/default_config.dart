@@ -1,5 +1,3 @@
-import '../../../launchdarkly_common_client.dart';
-import '../../connection_mode.dart';
 import 'stub_config.dart'
     if (dart.library.io) 'io_config.dart'
     if (dart.library.html) 'js_config.dart';
@@ -19,12 +17,6 @@ final class DefaultEventConfiguration {
 final class DefaultPollingConfiguration {
   final defaultPollingInterval = Duration(minutes: 5);
   final minPollingInterval = Duration(minutes: 5);
-}
-
-final class DefaultDataSourceConfig {
-  final defaultWithReasons = false;
-  final defaultUseReport = false;
-  final defaultInitialConnectionMode = ConnectionMode.streaming;
 }
 
 final class DefaultPersistenceConfig {

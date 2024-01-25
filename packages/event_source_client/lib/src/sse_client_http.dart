@@ -26,10 +26,16 @@ class HttpSseClient implements SSEClient {
 
   /// Creates an instance of an SSEClient that will connect in the future
   /// to the [uri].
-  HttpSseClient(Uri uri, Set<String> eventTypes, Map<String, String> headers,
-      Duration connectTimeout, Duration readTimeout)
+  HttpSseClient(
+      Uri uri,
+      Set<String> eventTypes,
+      Map<String, String> headers,
+      Duration connectTimeout,
+      Duration readTimeout,
+      String? body,
+      String httpMethod)
       : this.internal(uri, eventTypes, headers, connectTimeout, readTimeout,
-            _NoOpSink(), () => http.Client(), math.Random());
+            _NoOpSink(), () => http.Client(), math.Random(), body, httpMethod);
 
   /// An internal constructor for injecting necessary dependencies for testing.
   HttpSseClient.internal(
@@ -40,7 +46,9 @@ class HttpSseClient implements SSEClient {
       Duration readTimeout,
       Sink<dynamic> transitionSink,
       ClientFactory clientFactory,
-      math.Random random) {
+      math.Random random,
+      String? body,
+      String httpMethod) {
     _messageEventsController = StreamController<MessageEvent>.broadcast(
       // this is triggered when first listener subscribes
       onListen: () => _connectionDesiredStateController.add(true),
@@ -61,7 +69,9 @@ class HttpSseClient implements SSEClient {
         _messageEventsController,
         transitionSink,
         clientFactory,
-        random));
+        random,
+        body,
+        httpMethod));
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
@@ -90,5 +100,8 @@ SSEClient getSSEClient(
         Set<String> eventTypes,
         Map<String, String> headers,
         Duration connectTimeout,
-        Duration readTimeout) =>
-    HttpSseClient(uri, eventTypes, headers, connectTimeout, readTimeout);
+        Duration readTimeout,
+        String? body,
+        String method) =>
+    HttpSseClient(
+        uri, eventTypes, headers, connectTimeout, readTimeout, body, method);

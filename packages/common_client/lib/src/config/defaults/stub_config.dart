@@ -1,3 +1,4 @@
+import '../../connection_mode.dart';
 import 'credential_type.dart';
 
 class DefaultPollingPaths {
@@ -46,4 +47,15 @@ final class DefaultEndpoints {
 
 final class CredentialConfig {
   CredentialType get credentialType => throw Exception('Stub implementation');
+}
+
+final class DefaultDataSourceConfig {
+  bool get defaultWithReasons => throw Exception('Stub implementation');
+
+  bool get defaultUseReport => throw Exception('Stub implementation');
+
+  ConnectionMode get defaultInitialConnectionMode =>
+      throw Exception('Stub implementation');
+
+  bool get streamingReportSupported => throw Exception('Stub implementation');
 }
