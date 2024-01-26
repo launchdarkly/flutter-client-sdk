@@ -90,7 +90,7 @@ class HttpSseClient implements SSEClient {
 
   @override
   void restart() {
-    if(_resetRequest.hasListener) {
+    if (_resetRequest.hasListener) {
       _resetRequest.sink.add(null);
     }
   }

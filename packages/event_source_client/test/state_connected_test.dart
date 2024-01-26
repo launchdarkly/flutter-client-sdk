@@ -66,14 +66,14 @@ void main() {
 
     // blocking client to stop us from going to connected state
     final svo = TestUtils.makeMockStateValues(
-        connectionDesired: connectionController.stream,
-        transitionSink: transitionController,
-        resetStream: resetController.stream.asBroadcastStream(),
-        clientFactory: () => mockClient, );
+      connectionDesired: connectionController.stream,
+      transitionSink: transitionController,
+      resetStream: resetController.stream.asBroadcastStream(),
+      clientFactory: () => mockClient,
+    );
 
-
-    expectLater(
-        transitionController.stream, emitsInOrder([StateConnected, StateBackoff]));
+    expectLater(transitionController.stream,
+        emitsInOrder([StateConnected, StateBackoff]));
 
     resetController.sink.add(null);
     await StateConnected.run(svo, mockClient, dataController.stream);

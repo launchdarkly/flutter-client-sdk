@@ -50,9 +50,9 @@ class CreateStreamRequestHeaders implements OpenApiContent {
   String toString() => toJson().toString();
 
   void operator []=(
-      String key,
-      String value,
-      ) =>
+    String key,
+    String value,
+  ) =>
       _additionalProperties[key] = value;
 
   String? operator [](String key) => _additionalProperties[key];
