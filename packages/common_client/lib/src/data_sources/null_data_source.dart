@@ -20,6 +20,6 @@ final class NullDataSource implements DataSource {
 
   @override
   void restart() {
-    // TODO: implement restart
+    // No implementation needed for null data source.
   }
 }
