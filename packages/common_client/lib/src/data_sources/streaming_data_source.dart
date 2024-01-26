@@ -111,14 +111,14 @@ final class StreamingDataSource implements DataSource {
         _useReport ? _contextString : null,
         _useReport ? SseHttpMethod.report : SseHttpMethod.get);
 
-    _client!.stream.listen((event) async {
+    _subscription = _client!.stream.listen((event) async {
       if (_stopped) {
         return;
       }
 
       _logger.debug('Received event, data: ${event.data}');
       _dataController.sink.add(DataEvent(event.type, event.data));
-    }).onError((err) {
+    })..onError((err) {
       if (_permanentShutdown) {
         return;
       }

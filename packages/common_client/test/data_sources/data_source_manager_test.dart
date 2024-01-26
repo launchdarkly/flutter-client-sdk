@@ -14,6 +14,7 @@ final class MockDataSource implements DataSource {
 
   bool startCalled = false;
   bool stopCalled = false;
+  bool restartCalled = false;
 
   @override
   Stream<DataSourceEvent> get events => controller.stream;
@@ -31,7 +32,11 @@ final class MockDataSource implements DataSource {
   }
 
   @override
-  void restart() {}
+  void restart() {
+    restartCalled = true;
+    Future.delayed(Duration(milliseconds: 10))
+        .then((_) => controller.sink.add(DataEvent('put', '{}')));
+  }
 }
 
 Map<ConnectionMode, DataSourceFactory> defaultFactories(
@@ -207,15 +212,7 @@ void main() {
                 message: 'Could not parse PATCH message',
                 time: DateTime(1))));
 
-    expect(createdDataSource.controller.hasListener, isFalse);
-    expect(createdDataSource.startCalled, isTrue);
-    expect(createdDataSource.stopCalled, isTrue);
-
-    final createdDataSource2 = dataSources[ConnectionMode.streaming];
-
-    expect(createdDataSource2, isNotNull);
-    expect(createdDataSource2!.controller.hasListener, isTrue);
-    expect(createdDataSource2.startCalled, isTrue);
-    expect(createdDataSource2.stopCalled, isFalse);
+    expect(createdDataSource.controller.hasListener, isTrue);
+    expect(createdDataSource.restartCalled, isTrue);
   });
 }

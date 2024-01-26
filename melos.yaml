@@ -19,7 +19,7 @@ scripts:
     # Add more packages as more of them have tests.
     # Tests are ran with flutter as it supports coverage. Some packages may also include flutter
     # dependencies.
-    run: MELOS_PACKAGES="launchdarkly_dart_common,launchdarkly_dart_client,launchdarkly_flutter_client_sdk" melos exec -- flutter test . --coverage
+    run: MELOS_PACKAGES="launchdarkly_dart_common,launchdarkly_common_client,launchdarkly_flutter_client_sdk" melos exec -- flutter test . --coverage
 
   merge-trace-files:
     description: Merge all packages coverage trace files ignoring data related to generated files.
