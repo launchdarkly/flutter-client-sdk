@@ -29,6 +29,9 @@ final class MockDataSource implements DataSource {
     stopCalled = true;
     controller.close();
   }
+
+  @override
+  void restart() {}
 }
 
 Map<ConnectionMode, DataSourceFactory> defaultFactories(

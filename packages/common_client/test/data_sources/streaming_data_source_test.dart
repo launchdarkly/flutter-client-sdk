@@ -12,16 +12,32 @@ import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
-(StreamingDataSource, FlagManager, DataSourceStatusManager)
-    makeDataSourceForTest(Stream<MessageEvent> mockStream,
-        {LDContext? inContext,
-        HttpProperties? inProperties,
-        bool useReport = false,
-        bool withReasons = false,
-        Duration? testingInterval,
-        Function(Uri, HttpProperties, String?, SseHttpMethod?, MessageHandler,
-                ErrorHandler)?
-            factoryCallback}) {
+class MockSseClient implements SSEClient {
+  final Stream<MessageEvent> mockStream;
+
+  MockSseClient(this.mockStream);
+
+  @override
+  Future close() async {}
+
+  @override
+  void restart() {}
+
+  @override
+  Stream<MessageEvent> get stream => mockStream;
+}
+
+(
+  StreamingDataSource,
+  FlagManager,
+  DataSourceStatusManager
+) makeDataSourceForTest(Stream<MessageEvent> mockStream,
+    {LDContext? inContext,
+    HttpProperties? inProperties,
+    bool useReport = false,
+    bool withReasons = false,
+    Duration? testingInterval,
+    Function(Uri, HttpProperties, String?, SseHttpMethod?)? factoryCallback}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
   // We are not testing the data source status manager here, so we just want a
   // fixed time to make events easy to get.
@@ -29,6 +45,7 @@ import 'package:test/test.dart';
 
   final logger = LDLogger();
   final httpProperties = inProperties ?? HttpProperties();
+  final client = MockSseClient(mockStream);
   const sdkKey = 'dummy-key';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
@@ -42,16 +59,10 @@ import 'package:test/test.dart';
       dataSourceConfig: StreamingDataSourceConfig(
           withReasons: withReasons, useReport: useReport),
       httpProperties: httpProperties,
-      subFactory: (Uri uri,
-          HttpProperties properties,
-          String? body,
-          SseHttpMethod? method,
-          MessageHandler handler,
-          ErrorHandler errorHandler) {
-        factoryCallback?.call(
-            uri, properties, body, method, handler, errorHandler);
-        mockStream.handleError(errorHandler);
-        return mockStream.listen(handler);
+      clientFactory: (Uri uri, HttpProperties properties, String? body,
+          SseHttpMethod? method) {
+        factoryCallback?.call(uri, properties, body, method);
+        return client;
       });
 
   streaming.events.asyncMap((event) async {
@@ -76,9 +87,8 @@ void main() {
   group('parameters are correctly calculated for the stream subscription', () {
     test('it uses the correct URL without reasons', () {
       final controller = StreamController<MessageEvent>();
-      final (dataSource, _, statusManager) =
-          makeDataSourceForTest(controller.stream, factoryCallback:
-              (uri, properties, body, method, handler, errorHandler) {
+      final (dataSource, _, statusManager) = makeDataSourceForTest(
+          controller.stream, factoryCallback: (uri, properties, body, method) {
         expect(uri.toString(),
             'https://clientstream.launchdarkly.com/meval/eyJrZXkiOiJ0ZXN0Iiwia2luZCI6InVzZXIifQ==');
       });
@@ -94,9 +104,8 @@ void main() {
 
     test('is includes no body when not using REPORT', () {
       final controller = StreamController<MessageEvent>();
-      final (dataSource, _, statusManager) =
-          makeDataSourceForTest(controller.stream, factoryCallback:
-              (uri, properties, body, method, handler, errorHandler) {
+      final (dataSource, _, statusManager) = makeDataSourceForTest(
+          controller.stream, factoryCallback: (uri, properties, body, method) {
         expect(method, SseHttpMethod.get);
         expect(body, isNull);
       });
@@ -112,9 +121,8 @@ void main() {
 
     test('is includes a body when using REPORT', () {
       final controller = StreamController<MessageEvent>();
-      final (dataSource, _, statusManager) =
-          makeDataSourceForTest(controller.stream, factoryCallback:
-              (uri, properties, body, method, handler, errorHandler) {
+      final (dataSource, _, statusManager) = makeDataSourceForTest(
+          controller.stream, factoryCallback: (uri, properties, body, method) {
         expect(body, '{"key":"test","kind":"user"}');
         expect(method, SseHttpMethod.report);
       }, useReport: true);
@@ -130,9 +138,8 @@ void main() {
 
     test('it uses the correct URL without reasons with REPORT', () {
       final controller = StreamController<MessageEvent>();
-      final (dataSource, _, statusManager) =
-          makeDataSourceForTest(controller.stream, factoryCallback:
-              (uri, properties, body, method, handler, errorHandler) {
+      final (dataSource, _, statusManager) = makeDataSourceForTest(
+          controller.stream, factoryCallback: (uri, properties, body, method) {
         expect(uri.toString(), 'https://clientstream.launchdarkly.com/meval');
       }, useReport: true);
 
@@ -149,8 +156,7 @@ void main() {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) =
           makeDataSourceForTest(controller.stream, withReasons: true,
-              factoryCallback:
-                  (uri, properties, body, method, handler, errorHandler) {
+              factoryCallback: (uri, properties, body, method) {
         expect(uri.toString(),
             'https://clientstream.launchdarkly.com/meval/eyJrZXkiOiJ0ZXN0Iiwia2luZCI6InVzZXIifQ==?withReasons=true');
       });
@@ -168,8 +174,7 @@ void main() {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) =
           makeDataSourceForTest(controller.stream, withReasons: true,
-              factoryCallback:
-                  (uri, properties, body, method, handler, errorHandler) {
+              factoryCallback: (uri, properties, body, method) {
         expect(uri.toString(),
             'https://clientstream.launchdarkly.com/meval?withReasons=true');
       }, useReport: true);
@@ -189,9 +194,7 @@ void main() {
     final controller =
         StreamController<MessageEvent>(onCancel: () => cancelled = true);
     final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
-        withReasons: true,
-        factoryCallback:
-            (uri, properties, body, method, handler, errorHandler) {});
+        withReasons: true, factoryCallback: (uri, properties, body, method) {});
 
     dataSource.start();
     dataSource.stop();

@@ -28,4 +28,8 @@ abstract interface class DataSource {
 
   /// Stop the data source. Any active connection is dropped.
   void stop();
+
+  /// If the data source maintains a persistent connection, then drop that
+  /// connection and re-establish it with any appropriate delays/backoff.
+  void restart();
 }

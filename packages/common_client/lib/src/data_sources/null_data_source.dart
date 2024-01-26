@@ -17,4 +17,9 @@ final class NullDataSource implements DataSource {
   void stop() {
     _controller.close();
   }
+
+  @override
+  void restart() {
+    // TODO: implement restart
+  }
 }

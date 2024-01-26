@@ -195,6 +195,12 @@ final class PollingDataSource implements DataSource {
   }
 
   @override
+  void restart() {
+    // For polling there is no persistent connection, so this function
+    // has no effect.
+  }
+
+  @override
   void stop() {
     _stopped = true;
     _pollTimer?.cancel();
