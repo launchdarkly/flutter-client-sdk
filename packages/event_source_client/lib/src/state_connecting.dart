@@ -34,11 +34,14 @@ class StateConnecting {
   /// to connect.  The returned function will run the next state.
   static Future<Function> _tryGetConnected(
       StateValues svo, http.Client client) async {
-    final request = http.Request('GET', svo.uri);
+    final request = http.Request(svo.httpMethod, svo.uri);
     request.headers.addAll(svo.headers);
+    if (svo.body != null) {
+      request.body = svo.body!;
+    }
 
     // special behavior of the SSE spec is to connect with an Id if we have one
-    // to facillitate session resumption.
+    // to facilitate session resumption.
     if (svo.lastId.isNotEmpty) {
       request.headers.addAll({
         lastEventIdHeader: svo.lastId,

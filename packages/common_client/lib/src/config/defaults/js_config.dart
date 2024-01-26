@@ -1,3 +1,4 @@
+import '../../connection_mode.dart';
 import 'credential_type.dart';
 
 class DefaultPollingPaths {
@@ -42,4 +43,14 @@ final class DefaultEndpoints {
 
 final class CredentialConfig {
   CredentialType get credentialType => CredentialType.clientSideId;
+}
+
+final class DefaultDataSourceConfig {
+  bool get defaultWithReasons => false;
+
+  bool get defaultUseReport => false;
+
+  ConnectionMode get defaultInitialConnectionMode => ConnectionMode.streaming;
+
+  bool get streamingReportSupported => false;
 }

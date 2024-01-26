@@ -30,13 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # This defaults to a published package. To use the local SDK comment the following line out,
-  # and then uncomment the two lines after. This default is to make it easier to run the example
-  # without needing to build the SDK locally.
+  # This defaults to a published package. Using `flutter pub get` will get the package from pub.dev
+  # If you run `melos bs` in the root of the repository, then it will be linked to the local version
+  # instead.
   launchdarkly_flutter_client_sdk: 4.0.0-alpha.1
-  #  launchdarkly_flutter_client_sdk:
-  #    path: ../
-
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

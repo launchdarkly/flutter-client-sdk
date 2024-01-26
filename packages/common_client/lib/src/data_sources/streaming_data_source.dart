@@ -5,6 +5,7 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
 import '../config/data_source_config.dart';
+import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
 
@@ -13,16 +14,22 @@ typedef ErrorHandler = void Function(dynamic);
 typedef MessageSubscriptionFactory = StreamSubscription<MessageEvent> Function(
     Uri uri,
     HttpProperties httpProperties,
+    String? body,
+    SseHttpMethod? method,
     MessageHandler handler,
     ErrorHandler errorHandler);
 
 StreamSubscription<MessageEvent> _defaultSubscriptionFactory(
     Uri uri,
     HttpProperties httpProperties,
+    String? body,
+    SseHttpMethod? method,
     MessageHandler handler,
     ErrorHandler errorHandler) {
   final stream = SSEClient(uri, {'put', 'patch', 'delete'},
-          headers: httpProperties.baseHeaders)
+          headers: httpProperties.baseHeaders,
+          body: body,
+          httpMethod: method ?? SseHttpMethod.get)
       .stream;
   stream.handleError(errorHandler);
   return stream.listen(handler);
@@ -48,6 +55,8 @@ final class StreamingDataSource implements DataSource {
 
   final StreamController<DataSourceEvent> _dataController = StreamController();
 
+  late final bool _useReport;
+
   @override
   Stream<DataSourceEvent> get events => _dataController.stream;
 
@@ -71,16 +80,27 @@ final class StreamingDataSource implements DataSource {
         _dataSourceConfig = dataSourceConfig,
         _subFactory = subFactory,
         _httpProperties = httpProperties {
-    if (_dataSourceConfig.useReport) {
-      _logger.warn('REPORT is currently not supported for streaming');
-    }
-
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
-    _contextString = base64UrlEncode(utf8.encode(plainContextString));
 
-    String completeUrl = appendPath(_endpoints.streaming,
-        _dataSourceConfig.streamingGetPath(credential, _contextString));
+    if (_dataSourceConfig.useReport &&
+        !DefaultConfig.dataSourceConfig.streamingReportSupported) {
+      _logger.warn(
+          'REPORT is currently not supported for streaming on web targets');
+    }
+
+    _useReport = _dataSourceConfig.useReport &&
+        DefaultConfig.dataSourceConfig.streamingReportSupported;
+
+    _contextString = _useReport
+        ? plainContextString
+        : base64UrlEncode(utf8.encode(plainContextString));
+
+    final path = _useReport
+        ? _dataSourceConfig.streamingReportPath(credential, _contextString)
+        : _dataSourceConfig.streamingGetPath(credential, _contextString);
+
+    String completeUrl = appendPath(_endpoints.streaming, path);
 
     if (_dataSourceConfig.withReasons) {
       completeUrl = '$completeUrl?withReasons=true';
@@ -96,7 +116,11 @@ final class StreamingDataSource implements DataSource {
     }
     _stopped = false;
     _logger.debug('Establishing new streaming connection, uri: $_uri');
-    _subscription = _subFactory(_uri, _httpProperties, (event) async {
+    _subscription = _subFactory(
+        _uri,
+        _httpProperties,
+        _useReport ? _contextString : null,
+        _useReport ? SseHttpMethod.report : SseHttpMethod.get, (event) async {
       if (_stopped) {
         return;
       }

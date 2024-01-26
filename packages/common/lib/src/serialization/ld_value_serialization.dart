@@ -30,9 +30,6 @@ final class LDValueSerialization {
       return LDValue.ofNull();
     }
 
-    // TODO: We may want to consider an error. If we do, then we would basically
-    // need to handle and log. The problem is the error would likely be a couple
-    // levels deep in serialization.
     return LDValue.ofNull();
   }
 

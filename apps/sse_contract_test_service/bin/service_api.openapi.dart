@@ -5,6 +5,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:openapi_base/openapi_base.dart';
+
 part 'service_api.openapi.g.dart';
 
 @JsonSerializable()
@@ -22,6 +23,7 @@ class ServiceStatusResponse implements OpenApiContent {
   final List<String>? capabilities;
 
   Map<String, dynamic> toJson() => _$ServiceStatusResponseToJson(this);
+
   @override
   String toString() => toJson().toString();
 }
@@ -31,12 +33,30 @@ class ServiceStatusResponse implements OpenApiContent {
 class CreateStreamRequestHeaders implements OpenApiContent {
   CreateStreamRequestHeaders();
 
+  // This type has been manually edited to be a correct string to string map.
+  // The generator either omitted all properties with a correctly formed
+  // schema, or generated incorrect code with an untyped map.
   factory CreateStreamRequestHeaders.fromJson(Map<String, dynamic> jsonMap) =>
-      _$CreateStreamRequestHeadersFromJson(jsonMap);
+      _$CreateStreamRequestHeadersFromJson(jsonMap)
+        .._additionalProperties.addEntries(jsonMap.entries
+            .where((e) => !const <String>{}.contains(e.key))
+            .map((e) => MapEntry(e.key, e.value.toString())));
 
-  Map<String, dynamic> toJson() => _$CreateStreamRequestHeadersToJson(this);
+  final Map<String, String> _additionalProperties = <String, String>{};
+
+  Map<String, dynamic> toJson() => Map.from(_additionalProperties)
+    ..addAll(_$CreateStreamRequestHeadersToJson(this));
+
   @override
   String toString() => toJson().toString();
+
+  void operator []=(
+    String key,
+    String value,
+  ) =>
+      _additionalProperties[key] = value;
+
+  String? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -112,6 +132,7 @@ class CreateStreamRequest implements OpenApiContent {
   final String? body;
 
   Map<String, dynamic> toJson() => _$CreateStreamRequestToJson(this);
+
   @override
   String toString() => toJson().toString();
 }

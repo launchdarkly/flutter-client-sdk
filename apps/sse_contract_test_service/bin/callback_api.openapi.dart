@@ -38,6 +38,7 @@ class PostCallbackEvent implements OpenApiContent {
   final String? id;
 
   Map<String, dynamic> toJson() => _$PostCallbackEventToJson(this);
+
   @override
   String toString() => toJson().toString();
 }
@@ -73,6 +74,7 @@ class PostCallback implements OpenApiContent {
   final PostCallbackEvent? event;
 
   Map<String, dynamic> toJson() => _$PostCallbackToJson(this);
+
   @override
   String toString() => toJson().toString();
 }

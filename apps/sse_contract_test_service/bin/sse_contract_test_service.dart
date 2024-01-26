@@ -14,7 +14,9 @@ class TestApiImpl extends TestApi {
 
   @override
   Future<GetResponse> Get() async {
-    return GetResponse.response200(ServiceStatusResponse());
+    const capabilities = <String>['report', 'post', 'headers'];
+    return GetResponse.response200(
+        ServiceStatusResponse(capabilities: capabilities));
   }
 
   @override
@@ -28,16 +30,41 @@ class TestApiImpl extends TestApi {
     // create a new streaming client
     final streamUri = Uri.parse(body.streamUrl!);
 
+    SseHttpMethod method;
+
+    switch (body.method) {
+      case 'REPORT':
+        method = SseHttpMethod.report;
+      case 'POST':
+        method = SseHttpMethod.post;
+      default:
+        method = SseHttpMethod.get;
+    }
+
+    final headers = <String, String>{};
+
+    if (body.headers != null) {
+      headers.addAll(body.headers!.toJson().map(
+          (key, value) => MapEntry<String, String>(key, value.toString())));
+    }
+
     // TODO: it would be nice if we didn't have to specify all the event types, but because the web
     // event source must specify them, we are doomed to this purgatory.
-    final subscription = SSEClient(streamUri, {
-      'put',
-      'patch',
-      'delete',
-      'message',
-      'greeting',
-      ' greeting'
-    }).stream.listen((event) {
+    final subscription = SSEClient(
+            streamUri,
+            {
+              'put',
+              'patch',
+              'delete',
+              'message',
+              'greeting',
+              ' greeting',
+            },
+            body: body.body,
+            httpMethod: method,
+            headers: headers)
+        .stream
+        .listen((event) {
       callbackClient.callbackNumberPost(
           PostCallback(
               kind: 'event',
@@ -57,12 +84,12 @@ class TestApiImpl extends TestApi {
     clientSubMap[clientId] = subscription;
     nextIdToGive++;
 
-    final Map<String, List<String>> headers = {};
-    headers[HttpHeaders.locationHeader] = [
+    final Map<String, List<String>> responseHeaders = {};
+    responseHeaders[HttpHeaders.locationHeader] = [
       clientUrlPrefix + clientId.toString()
     ];
     var response = PostResponse.response201();
-    response.headers.addAll(headers);
+    response.headers.addAll(responseHeaders);
     return response;
   }
 

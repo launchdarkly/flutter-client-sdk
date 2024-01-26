@@ -38,7 +38,9 @@ class TestUtils {
         eventSink ?? StreamController<MessageEvent>.broadcast(),
         transitionSink ?? StreamController<dynamic>.broadcast(),
         clientFactory ?? makeMockHttpClient,
-        math.Random());
+        math.Random(),
+        null,
+        'GET');
   }
 
   static MockClient makeMockHttpClient(

@@ -17,15 +17,16 @@ class MyApp extends StatelessWidget {
     return Provider<LDClient>(
         create: (_) => LDClient(
             LDConfig(
-                // The credentials come from the environment, you can set them
-                // using --dart-define.
-                // Examples:
-                // flutter run --dart-define LAUNCHDARKLY_CLIENT_SIDE_ID=<my-client-side-id> -d Chrome
-                // flutter run --dart-define LAUNCHDARKLY_MOBILE_KEY=<my-mobile-key> -d ios
-                //
-                // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
-                CredentialSource.fromEnvironment(),
-                AutoEnvAttributes.enabled),
+              // The credentials come from the environment, you can set them
+              // using --dart-define.
+              // Examples:
+              // flutter run --dart-define LAUNCHDARKLY_CLIENT_SIDE_ID=<my-client-side-id> -d Chrome
+              // flutter run --dart-define LAUNCHDARKLY_MOBILE_KEY=<my-mobile-key> -d ios
+              //
+              // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
+              CredentialSource.fromEnvironment(),
+              AutoEnvAttributes.enabled,
+            ),
             // Here we are using a default user with 'user-key'.
             LDContextBuilder().kind('user', 'user-key').build()),
         dispose: (_, client) => client.close(),

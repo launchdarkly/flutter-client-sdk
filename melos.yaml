@@ -5,8 +5,8 @@ environment:
 
 packages:
   - packages/*
+  - packages/flutter_client_sdk/example
   - apps/*
-  - examples/*
 
 scripts:
   analyze:
@@ -36,3 +36,13 @@ scripts:
     run: >
       melos run merge-trace-files &&
       coverde report -i coverage/filtered.lcov.info -o coverage/html/
+
+  sse-contract-tests:
+    run: >
+      dart run apps/sse_contract_test_service/bin/sse_contract_test_service.dart &
+      curl -s https://raw.githubusercontent.com/launchdarkly/sse-contract-tests/v2.0.0/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -stop-service-at-end" sh
+
+  client-contract-tests:
+    run: >
+      flutter test apps/flutter_client_contract_test_service/bin/sse_contract_test_service.dart &
+      curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/main/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -status-timeout 100 -stop-service-at-end -skip-from apps/flutter_client_contract_test_service/testharness-suppressions.txt" sh

@@ -19,7 +19,8 @@ import 'package:test/test.dart';
         bool useReport = false,
         bool withReasons = false,
         Duration? testingInterval,
-        Function(Uri, HttpProperties, MessageHandler, ErrorHandler)?
+        Function(Uri, HttpProperties, String?, SseHttpMethod?, MessageHandler,
+                ErrorHandler)?
             factoryCallback}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
   // We are not testing the data source status manager here, so we just want a
@@ -41,9 +42,14 @@ import 'package:test/test.dart';
       dataSourceConfig: StreamingDataSourceConfig(
           withReasons: withReasons, useReport: useReport),
       httpProperties: httpProperties,
-      subFactory: (Uri uri, HttpProperties properties, MessageHandler handler,
+      subFactory: (Uri uri,
+          HttpProperties properties,
+          String? body,
+          SseHttpMethod? method,
+          MessageHandler handler,
           ErrorHandler errorHandler) {
-        factoryCallback?.call(uri, properties, handler, errorHandler);
+        factoryCallback?.call(
+            uri, properties, body, method, handler, errorHandler);
         mockStream.handleError(errorHandler);
         return mockStream.listen(handler);
       });
@@ -71,11 +77,64 @@ void main() {
     test('it uses the correct URL without reasons', () {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) =
-          makeDataSourceForTest(controller.stream,
-              factoryCallback: (uri, properties, handler, errorHandler) {
+          makeDataSourceForTest(controller.stream, factoryCallback:
+              (uri, properties, body, method, handler, errorHandler) {
         expect(uri.toString(),
             'https://clientstream.launchdarkly.com/meval/eyJrZXkiOiJ0ZXN0Iiwia2luZCI6InVzZXIifQ==');
       });
+
+      expectLater(
+          statusManager.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.valid, stateSince: DateTime(1))));
+
+      dataSource.start();
+      controller.sink.add(MessageEvent('put', '{}', null));
+    });
+
+    test('is includes no body when not using REPORT', () {
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, statusManager) =
+          makeDataSourceForTest(controller.stream, factoryCallback:
+              (uri, properties, body, method, handler, errorHandler) {
+        expect(method, SseHttpMethod.get);
+        expect(body, isNull);
+      });
+
+      expectLater(
+          statusManager.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.valid, stateSince: DateTime(1))));
+
+      dataSource.start();
+      controller.sink.add(MessageEvent('put', '{}', null));
+    });
+
+    test('is includes a body when using REPORT', () {
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, statusManager) =
+          makeDataSourceForTest(controller.stream, factoryCallback:
+              (uri, properties, body, method, handler, errorHandler) {
+        expect(body, '{"key":"test","kind":"user"}');
+        expect(method, SseHttpMethod.report);
+      }, useReport: true);
+
+      expectLater(
+          statusManager.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.valid, stateSince: DateTime(1))));
+
+      dataSource.start();
+      controller.sink.add(MessageEvent('put', '{}', null));
+    });
+
+    test('it uses the correct URL without reasons with REPORT', () {
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, statusManager) =
+          makeDataSourceForTest(controller.stream, factoryCallback:
+              (uri, properties, body, method, handler, errorHandler) {
+        expect(uri.toString(), 'https://clientstream.launchdarkly.com/meval');
+      }, useReport: true);
 
       expectLater(
           statusManager.changes,
@@ -90,10 +149,30 @@ void main() {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) =
           makeDataSourceForTest(controller.stream, withReasons: true,
-              factoryCallback: (uri, properties, handler, errorHandler) {
+              factoryCallback:
+                  (uri, properties, body, method, handler, errorHandler) {
         expect(uri.toString(),
             'https://clientstream.launchdarkly.com/meval/eyJrZXkiOiJ0ZXN0Iiwia2luZCI6InVzZXIifQ==?withReasons=true');
       });
+
+      expectLater(
+          statusManager.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.valid, stateSince: DateTime(1))));
+
+      dataSource.start();
+      controller.sink.add(MessageEvent('put', '{}', null));
+    });
+
+    test('it uses the correct URL with reasons and REPORT', () {
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, statusManager) =
+          makeDataSourceForTest(controller.stream, withReasons: true,
+              factoryCallback:
+                  (uri, properties, body, method, handler, errorHandler) {
+        expect(uri.toString(),
+            'https://clientstream.launchdarkly.com/meval?withReasons=true');
+      }, useReport: true);
 
       expectLater(
           statusManager.changes,
@@ -111,7 +190,8 @@ void main() {
         StreamController<MessageEvent>(onCancel: () => cancelled = true);
     final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
         withReasons: true,
-        factoryCallback: (uri, properties, handler, errorHandler) {});
+        factoryCallback:
+            (uri, properties, body, method, handler, errorHandler) {});
 
     dataSource.start();
     dataSource.stop();

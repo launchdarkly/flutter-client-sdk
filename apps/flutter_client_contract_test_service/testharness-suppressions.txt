@@ -1,10 +1,2 @@
-polling/requests/context properties/single kind with all attributes/REPORT
-polling/requests/context properties/multi-kind/REPORT
-streaming/requests/method and headers/REPORT
-streaming/requests/URL path is computed correctly/no environment filter/base URI has no trailing slash/REPORT
-streaming/requests/URL path is computed correctly/no environment filter/base URI has a trailing slash/REPORT
-streaming/requests/context properties/single kind minimal/REPORT
-streaming/requests/context properties/single kind with all attributes/REPORT
-streaming/requests/context properties/multi-kind/REPORT
 context type/convert/invalid context/{"kind": null, "key": "x"}
 context type/compare
