@@ -31,7 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   # This defaults to a published package. Using `flutter pub get` will get the package from pub.dev
-  #If you run `melos bs` in the root of the repository, then it will be linked to the local version
+  # If you run `melos bs` in the root of the repository, then it will be linked to the local version
   # instead.
   launchdarkly_flutter_client_sdk: 4.0.0-alpha.1
 
