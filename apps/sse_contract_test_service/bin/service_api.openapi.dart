@@ -5,7 +5,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:openapi_base/openapi_base.dart';
-
 part 'service_api.openapi.g.dart';
 
 @JsonSerializable()
@@ -51,9 +50,9 @@ class CreateStreamRequestHeaders implements OpenApiContent {
   String toString() => toJson().toString();
 
   void operator []=(
-    String key,
-    String value,
-  ) =>
+      String key,
+      String value,
+      ) =>
       _additionalProperties[key] = value;
 
   String? operator [](String key) => _additionalProperties[key];
@@ -132,6 +131,55 @@ class CreateStreamRequest implements OpenApiContent {
   final String? body;
 
   Map<String, dynamic> toJson() => _$CreateStreamRequestToJson(this);
+
+  @override
+  String toString() => toJson().toString();
+}
+
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class CommandRequestListen implements OpenApiContent {
+  CommandRequestListen({this.type});
+
+  factory CommandRequestListen.fromJson(Map<String, dynamic> jsonMap) =>
+      _$CommandRequestListenFromJson(jsonMap);
+
+  @JsonKey(
+    name: 'type',
+    includeIfNull: false,
+  )
+  final String? type;
+
+  Map<String, dynamic> toJson() => _$CommandRequestListenToJson(this);
+
+  @override
+  String toString() => toJson().toString();
+}
+
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class CommandRequest implements OpenApiContent {
+  CommandRequest({
+    this.command,
+    this.listen,
+  });
+
+  factory CommandRequest.fromJson(Map<String, dynamic> jsonMap) =>
+      _$CommandRequestFromJson(jsonMap);
+
+  @JsonKey(
+    name: 'command',
+    includeIfNull: false,
+  )
+  final String? command;
+
+  @JsonKey(
+    name: 'listen',
+    includeIfNull: false,
+  )
+  final CommandRequestListen? listen;
+
+  Map<String, dynamic> toJson() => _$CommandRequestToJson(this);
 
   @override
   String toString() => toJson().toString();
@@ -277,6 +325,100 @@ abstract class DeleteResponse extends OpenApiResponse
   }
 }
 
+class _ClientIdPostResponse200 extends ClientIdPostResponse {
+  /// OK
+  _ClientIdPostResponse200.response200() : status = 200;
+
+  @override
+  final int status;
+
+  @override
+  final OpenApiContentType? contentType = null;
+
+  @override
+  Map<String, Object?> propertiesToString() => {
+        'status': status,
+        'contentType': contentType,
+      };
+}
+
+class _ClientIdPostResponse400 extends ClientIdPostResponse {
+  /// Unrecognized command
+  _ClientIdPostResponse400.response400() : status = 400;
+
+  @override
+  final int status;
+
+  @override
+  final OpenApiContentType? contentType = null;
+
+  @override
+  Map<String, Object?> propertiesToString() => {
+        'status': status,
+        'contentType': contentType,
+      };
+}
+
+class _ClientIdPostResponse404 extends ClientIdPostResponse {
+  /// Client not found
+  _ClientIdPostResponse404.response404() : status = 404;
+
+  @override
+  final int status;
+
+  @override
+  final OpenApiContentType? contentType = null;
+
+  @override
+  Map<String, Object?> propertiesToString() => {
+        'status': status,
+        'contentType': contentType,
+      };
+}
+
+abstract class ClientIdPostResponse extends OpenApiResponse
+    implements HasSuccessResponse<void> {
+  ClientIdPostResponse();
+
+  /// OK
+  factory ClientIdPostResponse.response200() =>
+      _ClientIdPostResponse200.response200();
+
+  /// Unrecognized command
+  factory ClientIdPostResponse.response400() =>
+      _ClientIdPostResponse400.response400();
+
+  /// Client not found
+  factory ClientIdPostResponse.response404() =>
+      _ClientIdPostResponse404.response404();
+
+  void map({
+    required ResponseMap<_ClientIdPostResponse200> on200,
+    required ResponseMap<_ClientIdPostResponse400> on400,
+    required ResponseMap<_ClientIdPostResponse404> on404,
+  }) {
+    if (this is _ClientIdPostResponse200) {
+      on200((this as _ClientIdPostResponse200));
+    } else if (this is _ClientIdPostResponse400) {
+      on400((this as _ClientIdPostResponse400));
+    } else if (this is _ClientIdPostResponse404) {
+      on404((this as _ClientIdPostResponse404));
+    } else {
+      throw StateError('Invalid instance type $this');
+    }
+  }
+
+  /// status 200:  OK
+  @override
+  void requireSuccess() {
+    if (this is _ClientIdPostResponse200) {
+      return;
+    } else {
+      throw StateError('Expected success response, but got $this');
+    }
+  }
+}
+
 class _ClientIdDeleteResponse200 extends ClientIdDeleteResponse {
   /// OK
   _ClientIdDeleteResponse200.response200() : status = 200;
@@ -360,6 +502,13 @@ abstract class TestApi implements ApiEndpoint {
   /// delete: /
   Future<DeleteResponse> Delete();
 
+  /// Send commands to the client.
+  /// post: /client/{id}
+  Future<ClientIdPostResponse> clientIdPost(
+    CommandRequest body, {
+    required int id,
+  });
+
   /// Delete client and close connection
   /// delete: /client/{id}
   Future<ClientIdDeleteResponse> clientIdDelete({required int id});
@@ -389,6 +538,14 @@ abstract class TestApiClient implements OpenApiClient {
   /// delete: /
   ///
   Future<DeleteResponse> Delete();
+
+  /// Send commands to the client.
+  /// post: /client/{id}
+  ///
+  Future<ClientIdPostResponse> clientIdPost(
+    CommandRequest body, {
+    required int id,
+  });
 
   /// Delete client and close connection
   /// delete: /client/{id}
@@ -471,6 +628,41 @@ class _TestApiClientImpl extends OpenApiClientBase implements TestApiClient {
     );
   }
 
+  /// Send commands to the client.
+  /// post: /client/{id}
+  ///
+  @override
+  Future<ClientIdPostResponse> clientIdPost(
+    CommandRequest body, {
+    required int id,
+  }) async {
+    final request = OpenApiClientRequest(
+      'post',
+      '/client/{id}',
+      [],
+    );
+    request.addPathParameter(
+      'id',
+      encodeInt(id),
+    );
+    request.setHeader(
+      'content-type',
+      'application/json',
+    );
+    request.setBody(OpenApiClientRequestBodyJson(body.toJson()));
+    return await sendRequest(
+      request,
+      {
+        '200': (OpenApiClientResponse response) async =>
+            _ClientIdPostResponse200.response200(),
+        '400': (OpenApiClientResponse response) async =>
+            _ClientIdPostResponse400.response400(),
+        '404': (OpenApiClientResponse response) async =>
+            _ClientIdPostResponse404.response404(),
+      },
+    );
+  }
+
   /// Delete client and close connection
   /// delete: /client/{id}
   ///
@@ -534,6 +726,22 @@ class TestApiUrlResolve with OpenApiUrlEncodeMixin {
     return request;
   }
 
+  /// Send commands to the client.
+  /// post: /client/{id}
+  ///
+  OpenApiClientRequest clientIdPost({required int id}) {
+    final request = OpenApiClientRequest(
+      'post',
+      '/client/{id}',
+      [],
+    );
+    request.addPathParameter(
+      'id',
+      encodeInt(id),
+    );
+    return request;
+  }
+
   /// Delete client and close connection
   /// delete: /client/{id}
   ///
@@ -588,6 +796,24 @@ class TestApiRouter extends OpenApiServerRouterBase {
         return await impl.invoke(
           request,
           (TestApi impl) async => impl.Delete(),
+        );
+      },
+      security: [],
+    );
+    addRoute(
+      '/client/{id}',
+      'post',
+      (OpenApiRequest request) async {
+        return await impl.invoke(
+          request,
+          (TestApi impl) async => impl.clientIdPost(
+            CommandRequest.fromJson(await request.readJsonBody()),
+            id: paramRequired(
+              name: 'id',
+              value: request.pathParameter('id'),
+              decode: (value) => paramToInt(value),
+            ),
+          ),
         );
       },
       security: [],

@@ -15,7 +15,7 @@ typedef ClientFactory = http.Client Function();
 /// includes values that are altered while the state machine operates
 /// to carry out its duties.
 class StateValues {
-  // Non-transient configruation data
+  // Non-transient configuration data
   final Uri uri;
   final Set<String> eventTypes;
   final Map<String, String> headers;
@@ -26,6 +26,10 @@ class StateValues {
 
   // Non-transient internally provided
   final Stream<bool> connectionDesired;
+
+  // This is a broadcast stream, and the request is only posted if there are
+  // listeners, so it is an ephemeral trigger.
+  final Stream<void> resetRequest;
   final EventSink<MessageEvent> eventSink;
   final Sink<dynamic> transitionSink; // for testing transitions
   final ClientFactory clientFactory;
@@ -53,5 +57,6 @@ class StateValues {
       this.clientFactory,
       this.random,
       this.body,
-      this.httpMethod);
+      this.httpMethod,
+      this.resetRequest);
 }
