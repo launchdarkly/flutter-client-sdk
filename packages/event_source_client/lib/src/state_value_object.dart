@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:math' as math;
 
+import 'backoff.dart';
 import 'message_event.dart';
 
 typedef ClientFactory = http.Client Function();
@@ -35,9 +36,9 @@ class StateValues {
   final ClientFactory clientFactory;
   final math.Random random;
 
+  final Backoff backoff;
+
   // Transient data
-  /// Tracks which attempt to connect the client is at.
-  int connectionAttemptCount = 0;
 
   /// The timestamp when the last active connection was established.
   int? activeSince; // millis since epoch
@@ -58,5 +59,6 @@ class StateValues {
       this.random,
       this.body,
       this.httpMethod,
-      this.resetRequest);
+      this.resetRequest)
+      : backoff = Backoff(random);
 }
