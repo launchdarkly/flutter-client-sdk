@@ -72,3 +72,46 @@ Map<String, dynamic> _$CreateStreamRequestToJson(CreateStreamRequest instance) {
   writeNotNull('body', instance.body);
   return val;
 }
+
+CommandRequestListen _$CommandRequestListenFromJson(
+        Map<String, dynamic> json) =>
+    CommandRequestListen(
+      type: json['type'] as String?,
+    );
+
+Map<String, dynamic> _$CommandRequestListenToJson(
+    CommandRequestListen instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('type', instance.type);
+  return val;
+}
+
+CommandRequest _$CommandRequestFromJson(Map<String, dynamic> json) =>
+    CommandRequest(
+      command: json['command'] as String?,
+      listen: json['listen'] == null
+          ? null
+          : CommandRequestListen.fromJson(
+              json['listen'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$CommandRequestToJson(CommandRequest instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('command', instance.command);
+  writeNotNull('listen', instance.listen);
+  return val;
+}

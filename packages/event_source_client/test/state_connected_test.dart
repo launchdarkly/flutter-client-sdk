@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart';
 import 'package:launchdarkly_event_source_client/src/message_event.dart';
+import 'package:launchdarkly_event_source_client/src/state_backoff.dart';
 import 'package:launchdarkly_event_source_client/src/state_connected.dart';
 import 'package:launchdarkly_event_source_client/src/state_idle.dart';
 import 'package:mocktail/mocktail.dart';
@@ -54,5 +55,27 @@ void main() {
         transitionController.stream, emitsInOrder([StateConnected, StateIdle]));
     await StateConnected.run(svo, mockClient, dataController.stream);
     verify(() => mockClient.close()).called(1);
+  });
+
+  test('it transitions to backoff when a reset is requested', () async {
+    final transitionController = StreamController<dynamic>.broadcast();
+    final connectionController = StreamController<bool>.broadcast();
+    final resetController = StreamController<void>();
+    final dataController = StreamController<List<int>>.broadcast();
+    final mockClient = MockClient(); // exists to verify close is called
+
+    // blocking client to stop us from going to connected state
+    final svo = TestUtils.makeMockStateValues(
+      connectionDesired: connectionController.stream,
+      transitionSink: transitionController,
+      resetStream: resetController.stream.asBroadcastStream(),
+      clientFactory: () => mockClient,
+    );
+
+    expectLater(transitionController.stream,
+        emitsInOrder([StateConnected, StateBackoff]));
+
+    resetController.sink.add(null);
+    await StateConnected.run(svo, mockClient, dataController.stream);
   });
 }

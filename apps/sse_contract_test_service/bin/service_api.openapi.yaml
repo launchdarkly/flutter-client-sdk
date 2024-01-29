@@ -51,6 +51,21 @@ paths:
           description: OK
         '404':
           description: Client not found
+    post:
+      summary: Send commands to the client.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandRequest'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Unrecognized command
+        '404':
+          description: Client not found
 components:
   schemas:
     ServiceStatusResponse:
@@ -80,3 +95,12 @@ components:
           type: string
         body:
           type: string
+    CommandRequest:
+      properties:
+        command:
+          type: string
+        listen:
+          type: object
+          properties:
+            type:
+              type: string

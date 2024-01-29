@@ -27,7 +27,8 @@ class TestUtils {
       EventSink<MessageEvent>? eventSink,
       Sink<dynamic>? transitionSink,
       ClientFactory? clientFactory,
-      math.Random? random}) {
+      math.Random? random,
+      Stream<void>? resetStream}) {
     return StateValues(
         uri ?? Uri.parse(defaultUri),
         eventTypes ?? defaultEventTypes,
@@ -40,7 +41,8 @@ class TestUtils {
         clientFactory ?? makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        resetStream ?? StreamController<void>.broadcast().stream);
   }
 
   static MockClient makeMockHttpClient(

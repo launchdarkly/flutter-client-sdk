@@ -49,6 +49,11 @@ class HtmlSseClient implements SSEClient {
 
   @override
   Future close() => _messageEventsController.close();
+
+  @override
+  void restart() {
+    // TODO: implement restart
+  }
 }
 
 SSEClient getSSEClient(

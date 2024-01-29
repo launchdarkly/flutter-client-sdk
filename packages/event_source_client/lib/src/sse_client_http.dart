@@ -22,7 +22,11 @@ class HttpSseClient implements SSEClient {
 
   /// This controller is for controlling the internal state machine when subscribers
   /// subscribe / unsubscribe.
-  late final StreamController<bool> _connectionDesiredStateController;
+  final StreamController<bool> _connectionDesiredStateController =
+      StreamController<bool>.broadcast();
+
+  final StreamController<void> _resetRequest =
+      StreamController<void>.broadcast();
 
   /// Creates an instance of an SSEClient that will connect in the future
   /// to the [uri].
@@ -56,9 +60,6 @@ class HttpSseClient implements SSEClient {
       onCancel: () => _connectionDesiredStateController.add(false),
     );
 
-    // create a broadcast stream for communicating desired connection
-    // state to the state machine
-    _connectionDesiredStateController = StreamController<bool>.broadcast();
     StateIdle.run(StateValues(
         uri,
         eventTypes,
@@ -71,7 +72,8 @@ class HttpSseClient implements SSEClient {
         clientFactory,
         random,
         body,
-        httpMethod));
+        httpMethod,
+        _resetRequest.stream));
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
@@ -83,6 +85,14 @@ class HttpSseClient implements SSEClient {
   Future close() async {
     _messageEventsController.close();
     _connectionDesiredStateController.close();
+    _resetRequest.close();
+  }
+
+  @override
+  void restart() {
+    if (_resetRequest.hasListener) {
+      _resetRequest.sink.add(null);
+    }
   }
 }
 

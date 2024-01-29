@@ -52,6 +52,11 @@ abstract class SSEClient {
   /// SSEClient after close is called, behavior is undefined at that point.
   Future close();
 
+  /// Request that the SSEClient drops the current connection and then
+  /// establishes a new connection respecting delay/backoff as if this was
+  /// an error condition with the connection.
+  void restart();
+
   /// Factory constructor to return the platform implementation.
   ///
   /// On all platforms, the [uri] and [eventTypes] arguments are required.

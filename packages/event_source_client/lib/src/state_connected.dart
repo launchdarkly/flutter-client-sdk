@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
 import 'state_backoff.dart';
@@ -20,7 +19,8 @@ class StateConnected {
     // wait for either the stream to terminate or desired connection change to transition
     final transition = await Future.any([
       _processStream(svo, stream),
-      _monitorConnectionNoLongerDesired(svo, client)
+      _monitorConnectionNoLongerDesired(svo, client),
+      _monitorReset(svo, client),
     ]);
     transition();
   }
@@ -76,6 +76,19 @@ class StateConnected {
     return () {
       client.close();
       StateIdle.run(svo);
+    };
+  }
+
+  static Future<Function> _monitorReset(
+      StateValues svo, http.Client client) async {
+    try {
+      await svo.resetRequest.first;
+    } catch (err) {
+      // error indicates control stream has terminated, so we want to cleanup
+    }
+    return () {
+      client.close();
+      StateBackoff.run(svo);
     };
   }
 }
