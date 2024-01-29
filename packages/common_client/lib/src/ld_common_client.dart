@@ -56,7 +56,7 @@ final class LDCommonClient {
   final CommonPlatform _platform;
 
   late final DataSourceManager _dataSourceManager;
-  late final EnvironmentReporter _envReporter;
+  late final EnvironmentReport _envReport;
   late final AsyncSingleQueue<void> _identifyQueue = AsyncSingleQueue();
 
   // Modifications will happen in the order they are specified in this list.
@@ -126,8 +126,8 @@ final class LDCommonClient {
     }
   }
 
-  Future<EnvironmentReporter> _makeEnvReporter() async {
-    final reporterBuilder = PrioritizedEnvReporterBuilder();
+  Future<EnvironmentReport> _makeEnvironmentReport() async {
+    final reporterBuilder = PrioritizedEnvReportBuilder();
     reporterBuilder.setConfigLayer(ConcreteEnvReporter(
         applicationInfo: Future.value(_config.applicationInfo),
         osInfo: Future.value(null),
@@ -140,7 +140,7 @@ final class LDCommonClient {
   }
 
   Future<HttpProperties> _makeHttpProperties() async {
-    final appInfo = await _envReporter.applicationInfo;
+    final appInfo = _envReport.applicationInfo;
     final additionalHeaders = <String, String>{};
 
     if (appInfo != null) {
@@ -221,19 +221,19 @@ final class LDCommonClient {
     // TODO: Do we start the process when we create the client, and provide
     // a way to know when it completes? Or do we not even start it as we
     // are doing here.
-    _envReporter = await _makeEnvReporter();
+    _envReport = await _makeEnvironmentReport();
 
     // set up context modifiers, adding the auto env modifier if turned on
     _modifiers = [AnonymousContextModifier(_persistence)];
     if (_config.autoEnvAttributes == AutoEnvAttributes.enabled) {
       _modifiers.add(
-          AutoEnvContextModifier(_envReporter, _persistence, _config.logger));
+          AutoEnvContextModifier(_envReport, _persistence, _config.logger));
     }
 
     final httpProperties = await _makeHttpProperties();
 
     if (!_config.events.disabled && !_config.offline) {
-      final osInfo = await _envReporter.osInfo;
+      final osInfo = _envReport.osInfo;
       DiagnosticsManager? diagnosticsManager = _makeDiagnosticsManager(osInfo);
 
       _eventProcessor = DefaultEventProcessor(

@@ -14,9 +14,9 @@ export 'src/application_info.dart' show ApplicationInfo;
 export 'src/os_info.dart' show OsInfo;
 export 'src/device_info.dart' show DeviceInfo;
 export 'src/env_reporting/environment_reporter.dart'
-    show EnvironmentReporter, ConcreteEnvReporter;
+    show EnvironmentReporter, ConcreteEnvReporter, EnvironmentReport;
 export 'src/env_reporting/environment_reporter_builder.dart'
-    show PrioritizedEnvReporterBuilder;
+    show PrioritizedEnvReportBuilder;
 
 export 'src/serialization/ld_value_serialization.dart'
     show LDValueSerialization;

@@ -1,19 +1,19 @@
 import 'environment_reporter.dart';
 
-/// Creates an [EnvironmentReporter] that returns data from the provided
+/// Creates an [EnvironmentReport] that returns data from the provided
 /// config layer if available, otherwise falling back to the platform layer.
 /// Note is is possible to get data for, say, application info from one layer
 /// and then get device info from another layer.
-class PrioritizedEnvReporterBuilder {
+class PrioritizedEnvReportBuilder {
   EnvironmentReporter _configLayer = ConcreteEnvReporter.ofNulls();
   EnvironmentReporter _platformLayer = ConcreteEnvReporter.ofNulls();
 
-  PrioritizedEnvReporterBuilder setConfigLayer(EnvironmentReporter config) {
+  PrioritizedEnvReportBuilder setConfigLayer(EnvironmentReporter config) {
     _configLayer = config;
     return this;
   }
 
-  PrioritizedEnvReporterBuilder setPlatformLayer(EnvironmentReporter platform) {
+  PrioritizedEnvReportBuilder setPlatformLayer(EnvironmentReporter platform) {
     _platformLayer = platform;
     return this;
   }
@@ -30,15 +30,17 @@ class PrioritizedEnvReporterBuilder {
     return Future.value(null);
   }
 
-  Future<EnvironmentReporter> build() async {
+  /// Build a complete environment report.
+  Future<EnvironmentReport> build() async {
     // order of this list impacts behavior
     List<EnvironmentReporter> reporters = [_configLayer, _platformLayer];
 
-    return ConcreteEnvReporter(
-        applicationInfo:
-            _firstNonNull(reporters.map((layer) => layer.applicationInfo)),
-        osInfo: _firstNonNull(reporters.map((layer) => layer.osInfo)),
-        deviceInfo: _firstNonNull(reporters.map((layer) => layer.deviceInfo)),
-        locale: _firstNonNull(reporters.map((layer) => layer.locale)));
+    return EnvironmentReport(
+        applicationInfo: await _firstNonNull(
+            reporters.map((layer) => layer.applicationInfo)),
+        osInfo: await _firstNonNull(reporters.map((layer) => layer.osInfo)),
+        deviceInfo:
+            await _firstNonNull(reporters.map((layer) => layer.deviceInfo)),
+        locale: await _firstNonNull(reporters.map((layer) => layer.locale)));
   }
 }

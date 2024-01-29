@@ -22,10 +22,13 @@ void main() {
               DeviceInfo(model: 'mockModel', manufacturer: 'mockManufacturer')),
           locale: Future.value('mockLocale'));
 
+      final report = await PrioritizedEnvReportBuilder()
+          .setConfigLayer(envReporter)
+          .build();
+
       final context =
           LDContextBuilder().kind('user').name('Bob').anonymous(true).build();
-      final decorator =
-          AutoEnvContextModifier(envReporter, mockPersistence, logger);
+      final decorator = AutoEnvContextModifier(report, mockPersistence, logger);
       final decoratedContext = await decorator.decorate(context);
 
       expect(
@@ -115,10 +118,13 @@ void main() {
           deviceInfo: Future.value(null),
           locale: Future.value('locale'));
 
+      final report = await PrioritizedEnvReportBuilder()
+          .setConfigLayer(envReporter)
+          .build();
+
       final context =
           LDContextBuilder().kind('user').name('Bob').anonymous(true).build();
-      final decorator =
-          AutoEnvContextModifier(envReporter, mockPersistence, logger);
+      final decorator = AutoEnvContextModifier(report, mockPersistence, logger);
       final decoratedContext = await decorator.decorate(context);
 
       expect(
@@ -195,10 +201,13 @@ void main() {
           deviceInfo: Future.value(null),
           locale: Future.value('locale'));
 
+      final report = await PrioritizedEnvReportBuilder()
+          .setConfigLayer(envReporter)
+          .build();
+
       final context =
           LDContextBuilder().kind('user').name('Bob').anonymous(true).build();
-      final decorator =
-          AutoEnvContextModifier(envReporter, mockPersistence, logger);
+      final decorator = AutoEnvContextModifier(report, mockPersistence, logger);
       final decoratedContext = await decorator.decorate(context);
 
       expect(
@@ -271,10 +280,13 @@ void main() {
       final logger = LDLogger();
       final envReporter = ConcreteEnvReporter.ofNulls();
 
+      final report = await PrioritizedEnvReportBuilder()
+          .setConfigLayer(envReporter)
+          .build();
+
       final context =
           LDContextBuilder().kind('user').name('Bob').anonymous(true).build();
-      final decorator =
-          AutoEnvContextModifier(envReporter, mockPersistence, logger);
+      final decorator = AutoEnvContextModifier(report, mockPersistence, logger);
       final decoratedContext = await decorator.decorate(context);
 
       expect(
@@ -311,14 +323,17 @@ void main() {
               DeviceInfo(model: 'mockModel', manufacturer: 'mockManufacturer')),
           locale: Future.value('mockLocale'));
 
+      final report = await PrioritizedEnvReportBuilder()
+          .setConfigLayer(envReporter)
+          .build();
+
       final contextBuilder = LDContextBuilder();
       contextBuilder.kind('user').name('Bob').anonymous(true);
       contextBuilder
           .kind('ld_application', 'fakeKey')
           .set('myCoolAttribute', LDValue.ofString('myCoolValue'));
       final context = contextBuilder.build();
-      final decorator =
-          AutoEnvContextModifier(envReporter, mockPersistence, logger);
+      final decorator = AutoEnvContextModifier(report, mockPersistence, logger);
       final decoratedContext = await decorator.decorate(context);
 
       expect(
@@ -409,15 +424,19 @@ void main() {
               DeviceInfo(model: 'mockModel', manufacturer: 'mockManufacturer')),
           locale: Future.value('mockLocale'));
 
+      final report = await PrioritizedEnvReportBuilder()
+          .setConfigLayer(envReporter)
+          .build();
+
       final contextBuilder = LDContextBuilder();
       contextBuilder.kind('user').name('Bob').anonymous(true);
       final context = contextBuilder.build();
       final decorator1 =
-          AutoEnvContextModifier(envReporter, mockPersistence, logger);
+          AutoEnvContextModifier(report, mockPersistence, logger);
       final decoratedContext1 = await decorator1.decorate(context);
 
       final decorator2 =
-          AutoEnvContextModifier(envReporter, mockPersistence, logger);
+          AutoEnvContextModifier(report, mockPersistence, logger);
       final decoratedContext2 = await decorator2.decorate(context);
 
       final key1 = decoratedContext1
