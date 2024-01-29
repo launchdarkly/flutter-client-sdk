@@ -4,6 +4,8 @@ import '../persistence/persistence.dart';
 import 'context_modifier.dart';
 import 'utils.dart';
 
+const _autoEnvContextKeyNamespace = 'LaunchDarkly_AutoEnvContextKey';
+
 final class AutoEnvConsts {
   static const String ldApplicationKind = 'ld_application';
   static const String ldDeviceKind = 'ld_device';
@@ -98,7 +100,8 @@ final class AutoEnvContextModifier implements ContextModifier {
       ),
       _ContextRecipe(
         AutoEnvConsts.ldDeviceKind,
-        () => getOrGenerateKey(_persistence, AutoEnvConsts.ldDeviceKind),
+        () => getOrGenerateKey(_persistence, _autoEnvContextKeyNamespace,
+            AutoEnvConsts.ldDeviceKind),
         deviceNodes,
       ),
     ];

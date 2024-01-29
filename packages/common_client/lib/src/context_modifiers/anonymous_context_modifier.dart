@@ -4,6 +4,8 @@ import '../persistence/persistence.dart';
 import 'context_modifier.dart';
 import 'utils.dart';
 
+const _anonContextKeyNamespace = 'LaunchDarkly_AnonContextKey';
+
 final class AnonymousContextModifier implements ContextModifier {
   final Persistence _persistence;
 
@@ -27,7 +29,10 @@ final class AnonymousContextModifier implements ContextModifier {
       for (var MapEntry(key: kind, value: attributes)
           in context.attributesByKind.entries) {
         if (attributes.anonymous && attributes.key == '') {
-          newBuilder.kind(kind, await getOrGenerateKey(_persistence, kind));
+          newBuilder.kind(
+              kind,
+              await getOrGenerateKey(
+                  _persistence, _anonContextKeyNamespace, kind));
         }
       }
       return newBuilder.build();

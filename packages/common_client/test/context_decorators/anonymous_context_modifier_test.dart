@@ -70,7 +70,7 @@ void main() {
           .build();
 
       final mockPersistence = MockPersistence();
-      mockPersistence.storage['LaunchDarkly_GeneratedContextKeys'] = {
+      mockPersistence.storage['LaunchDarkly_AnonContextKey'] = {
         encodePersistenceKey('user'): 'the-user-key',
         encodePersistenceKey('company'): 'the-company-key',
       };
@@ -98,11 +98,11 @@ void main() {
 
       expect(
           decoratedContext.attributesByKind['user']!.key,
-          mockPersistence.storage['LaunchDarkly_GeneratedContextKeys']![
+          mockPersistence.storage['LaunchDarkly_AnonContextKey']![
               encodePersistenceKey('user')]);
       expect(
           decoratedContext.attributesByKind['company']!.key,
-          mockPersistence.storage['LaunchDarkly_GeneratedContextKeys']![
+          mockPersistence.storage['LaunchDarkly_AnonContextKey']![
               encodePersistenceKey('company')]);
     });
   });
