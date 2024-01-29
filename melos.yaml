@@ -44,5 +44,6 @@ scripts:
 
   client-contract-tests:
     run: >
-      flutter test apps/flutter_client_contract_test_service/bin/sse_contract_test_service.dart &
-      curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/main/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -status-timeout 100 -stop-service-at-end -skip-from apps/flutter_client_contract_test_service/testharness-suppressions.txt" sh
+      cd apps/flutter_client_contract_test_service &&
+      flutter test bin/contract_test_service.dart &
+      cd apps/flutter_client_contract_test_service && curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/main/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -status-timeout 100 -stop-service-at-end -skip-from testharness-suppressions.txt" sh
