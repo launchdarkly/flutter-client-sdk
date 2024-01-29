@@ -68,6 +68,7 @@ class HtmlSseClient implements SSEClient {
   }
 
   void _handleMessageEvent(html.Event event) {
+    _activeSince = DateTime.now().millisecondsSinceEpoch;
     final messageEvent = event as html.MessageEvent;
     final ldMessageEvent = ld_message_event.MessageEvent(
         messageEvent.type, messageEvent.data, messageEvent.lastEventId);
