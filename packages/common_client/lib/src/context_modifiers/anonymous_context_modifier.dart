@@ -29,7 +29,10 @@ final class AnonymousContextModifier implements ContextModifier {
       for (var MapEntry(key: kind, value: attributes)
           in context.attributesByKind.entries) {
         if (attributes.anonymous && attributes.key == '') {
-          newBuilder.kind(kind, await getOrGenerateKey(_persistence, _anonContextKeyNamespace, kind));
+          newBuilder.kind(
+              kind,
+              await getOrGenerateKey(
+                  _persistence, _anonContextKeyNamespace, kind));
         }
       }
       return newBuilder.build();

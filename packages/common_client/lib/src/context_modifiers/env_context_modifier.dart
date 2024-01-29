@@ -100,7 +100,8 @@ final class AutoEnvContextModifier implements ContextModifier {
       ),
       _ContextRecipe(
         AutoEnvConsts.ldDeviceKind,
-        () => getOrGenerateKey(_persistence, _autoEnvContextKeyNamespace, AutoEnvConsts.ldDeviceKind),
+        () => getOrGenerateKey(_persistence, _autoEnvContextKeyNamespace,
+            AutoEnvConsts.ldDeviceKind),
         deviceNodes,
       ),
     ];
