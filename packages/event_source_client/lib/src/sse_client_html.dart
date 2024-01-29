@@ -33,6 +33,10 @@ class HtmlSseClient implements SSEClient {
         StreamController<ld_message_event.MessageEvent>.broadcast(
       onListen: () {
         // this is triggered when first listener subscribes
+
+        // Reset the backoff data whenever the client consumer
+        // a new connection.
+        _backoff = Backoff(math.Random());
         _setupConnection();
       },
       onCancel: () {
@@ -49,11 +53,8 @@ class HtmlSseClient implements SSEClient {
   }
 
   void _setupConnection() {
-    // this is triggered when first listener subscribes
     _eventSource = html.EventSource(_uri.toString());
-    // Reset the backoff data whenever the client consumer
-    // a new connection.
-    _backoff = Backoff(math.Random());
+
     for (var eventType in _eventTypes) {
       _eventSource?.addEventListener(eventType, _handleMessageEvent);
     }
