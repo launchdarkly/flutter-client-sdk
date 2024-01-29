@@ -13,16 +13,17 @@ import 'service_api.openapi.dart';
 
 class TestApiImpl extends SdkTestApi {
   static const capabilities = [
-    "client-side",
-    "mobile",
-    "strongly-typed",
-    "context-type",
-    "context-comparison",
-    "service-endpoints",
-    "tags",
+    'client-side',
+    'mobile',
+    'strongly-typed',
+    'context-type',
+    'context-comparison',
+    'service-endpoints',
+    'tags',
+    'client-independence',
   ];
 
-  static const clientUrlPrefix = "/client/";
+  static const clientUrlPrefix = '/client/';
   static const defaultWaitTimeMillis = 5000;
 
   final Map<int, LDClient> clientMap = {};
@@ -41,7 +42,7 @@ class TestApiImpl extends SdkTestApi {
     final startWaitTimeMillis =
         body.configuration?.startWaitTimeMs?.toInt() ?? defaultWaitTimeMillis;
     final config = LDConfig(
-      body.configuration?.credential ?? "",
+      body.configuration?.credential ?? '',
       AutoEnvAttributes.disabled,
       applicationInfo: body.configuration?.tags?.applicationId != null
           ? ApplicationInfo(
@@ -396,7 +397,7 @@ void main() async {
   final server = OpenApiShelfServer(
     SdkTestApiRouter(ApiEndpointProvider.static(TestApiImpl())),
   );
-  print("Server listening on port $port");
+  print('Server listening on port $port');
   final process = await server.startServer(port: port);
   await process.exitCode;
 }
