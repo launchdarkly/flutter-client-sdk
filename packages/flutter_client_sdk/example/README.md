@@ -18,3 +18,6 @@ mobile key or client-side ID.
 
 When running from an IDE you can edit the build configuration to include the `--dart-define` commands.
 In Android studio these can be placed in the "Additional Run Args" when you edit the run configuration.
+
+In order to run the example on a physical iOS device you will need to configure a development team and provisioning profile.
+
