@@ -77,7 +77,7 @@ void main() {
   test('can set custom attributes', () {
     final context = LDContextBuilder()
         .kind('user', 'user-key')
-        .set('customA', LDValue.ofNum(42))
+        .setNum('customA', 42)
         .build();
 
     expect(context.get('user', AttributeReference('customA')).intValue(), 42);
@@ -86,7 +86,8 @@ void main() {
   test('can get a nested attribute', () {
     final context = LDContextBuilder()
         .kind('org', 'org-key')
-        .set('myJson', LDValue.buildObject().addBool('myBool', true).build())
+        .setValue(
+            'myJson', LDValue.buildObject().addBool('myBool', true).build())
         .build();
 
     expect(
@@ -115,7 +116,7 @@ void main() {
       () {
     final context = LDContextBuilder()
         .kind('org', 'org-key')
-        .set('myJson',
+        .setValue('myJson',
             LDValue.buildObject().addString('myString', 'true').build())
         .build();
 
@@ -127,7 +128,8 @@ void main() {
       () {
     final context = LDContextBuilder()
         .kind('org', 'org-key')
-        .set('myJson', LDValue.buildObject().addBool('myBool', true).build())
+        .setValue(
+            'myJson', LDValue.buildObject().addBool('myBool', true).build())
         .build();
 
     expect(context.get('user', AttributeReference('/myJson/myBool')),
@@ -160,7 +162,7 @@ void main() {
     expect(
         LDContextBuilder()
             .kind('user', 'user-key')
-            .set('name', LDValue.ofString('bob'))
+            .setString('name', 'bob')
             .build()
             .attributesByKind['user']!
             .name,
@@ -171,7 +173,7 @@ void main() {
     expect(
         LDContextBuilder()
             .kind('user', 'user-key')
-            .set('name', LDValue.ofBool(false))
+            .setBool('name', false)
             .build()
             .attributesByKind['user']!
             .name,
@@ -182,7 +184,7 @@ void main() {
     expect(
         LDContextBuilder()
             .kind('user', 'user-key')
-            .set('anonymous', LDValue.ofBool(true))
+            .setBool('anonymous', true)
             .build()
             .attributesByKind['user']!
             .anonymous,
@@ -193,7 +195,7 @@ void main() {
     expect(
         LDContextBuilder()
             .kind('user', 'user-key')
-            .set('anonymous', LDValue.ofString('true'))
+            .setString('anonymous', 'true')
             .build()
             .attributesByKind['user']!
             .anonymous,
@@ -203,8 +205,8 @@ void main() {
   test('can set private attributes using setPrivate', () {
     final context = LDContextBuilder()
         .kind('org', 'org-key')
-        .setPrivate('custom1', LDValue.ofString('test'))
-        .setPrivate('/cus~tom/', LDValue.ofString('test'))
+        .setString('custom1', 'test', private: true)
+        .setString('/cus~tom/', 'test', private: true)
         .build();
 
     final attributes = context.attributesByKind['org'];
@@ -237,9 +239,11 @@ void main() {
   test('can get attributes by kind', () {
     final context = LDContextBuilder()
         .kind('zoo', 'zoo-key:%')
-        .set('a', LDValue.ofString('b'))
+        .setString('a', 'b')
         .kind('organization', 'org-key%:')
-        .set('a', LDValue.ofNum(42))
+        .setNum('a', 42)
+        .setValue(
+            'custom', LDValue.buildObject().addBool('poweruser', true).build())
         .build();
 
     expect(
@@ -255,8 +259,8 @@ void main() {
     expect(
         LDContextBuilder()
             .kind('user', 'bob')
-            .set('test', LDValue.ofString('test'))
-            .set('test', LDValue.ofNull())
+            .setString('test', 'test')
+            .setValue('test', LDValue.ofNull())
             .build()
             .attributesByKind['user']!
             .customAttributes['test'],
@@ -267,12 +271,12 @@ void main() {
     final context = LDContextBuilder()
         .kind('user', 'bob')
         .name('Bobby Person')
-        .setPrivate('email', LDValue.ofString('example@example.example'))
+        .setString('email', 'example@example.example', private: true)
         .anonymous(true)
         .kind('zoo', 'zoo-key:%')
-        .set('a', LDValue.ofString('b'))
+        .setString('a', 'b')
         .kind('organization', 'org-key%:')
-        .set('a', LDValue.ofNum(42))
+        .setNum('a', 42)
         .addPrivateAttributes(['a']).build();
 
     final context2 = LDContextBuilder.fromContext(context).build();

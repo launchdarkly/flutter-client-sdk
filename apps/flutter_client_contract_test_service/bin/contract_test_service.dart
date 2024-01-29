@@ -356,7 +356,8 @@ class TestApiImpl extends SdkTestApi {
           builder.kind(attributes['kind'] ?? 'user', attributes['key']);
       for (final a in attributes.entries) {
         if (a.key == 'kind' || a.key == 'key') continue;
-        attrsBuilder.set(a.key, common.LDValueSerialization.fromJson(a.value));
+        attrsBuilder.setValue(
+            a.key, common.LDValueSerialization.fromJson(a.value));
       }
       final Map<String, dynamic> meta = attributes['_meta'] ?? {};
       final List<String> privateAttrs =

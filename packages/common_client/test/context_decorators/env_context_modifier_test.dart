@@ -331,7 +331,7 @@ void main() {
       contextBuilder.kind('user').name('Bob').anonymous(true);
       contextBuilder
           .kind('ld_application', 'fakeKey')
-          .set('myCoolAttribute', LDValue.ofString('myCoolValue'));
+          .setString('myCoolAttribute', 'myCoolValue');
       final context = contextBuilder.build();
       final decorator = AutoEnvContextModifier(report, mockPersistence, logger);
       final decoratedContext = await decorator.decorate(context);

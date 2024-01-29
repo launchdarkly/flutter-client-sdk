@@ -101,6 +101,12 @@ final class LDAttributesBuilder {
   LDAttributesBuilder kind(String kind, [String? key]) =>
       _parent.kind(kind, key);
 
+  /// Set the name of the context.
+  LDAttributesBuilder name(String name) {
+    _name = name;
+    return this;
+  }
+
   /// Sets whether the LDContext is only intended for flag evaluations and
   /// should not be indexed by LaunchDarkly.
   ///
@@ -117,7 +123,8 @@ final class LDAttributesBuilder {
     return this;
   }
 
-  /// Sets the value of any attribute for the Context.
+  /// Sets the attribute with [name] to the [value] provided.  Also marks the
+  /// attribute as private accordingly if [private] is provided.
   ///
   /// This method uses the [LDValue] type to represent a value of any JSON
   /// type: null, boolean, number, string, array, or object. For all attribute
@@ -143,20 +150,14 @@ final class LDAttributesBuilder {
   /// in the LaunchDarkly model; any expressions in feature flags that reference
   /// an attribute with a null value will behave as if the attribute did not
   /// exist.
-  LDAttributesBuilder set(String name, LDValue value) {
-    _trySet(name, value);
-
+  LDAttributesBuilder setValue(String name, LDValue value,
+      {bool private = false}) {
+    _trySet(name, value, private);
     return this;
   }
 
-  /// Sets the value of any attribute for the Context and mark it as private.
-  ///
-  /// This method uses the [LDValue] type to represent a value of any JSON
-  /// type: null, boolean, number, string, array, or object. For all attribute
-  /// names that do not have special meaning to LaunchDarkly, you may use any
-  /// of those types. Values of different JSON types are always treated as
-  /// different values: for instance, null, false, and the empty string "" are
-  /// not the same, and the number 1 is not the same as the string "1".
+  /// Sets the attribute with [name] to the [bool] provided.  Also marks the
+  /// attribute as private accordingly if [private] is provided.
   ///
   /// You cannot use this method to set the following attributes.
   ///
@@ -166,23 +167,45 @@ final class LDAttributesBuilder {
   /// - "_meta"
   ///
   /// Attempts to set these attributes will be ignored.
-  ///
-  /// Values that are JSON arrays or objects have special behavior when
-  /// referenced in flag/segment rules.
-  ///
-  /// A value of [LDValue.ofNull] is equivalent to removing any current
-  /// non-default value of the attribute. Null is not a valid attribute value
-  /// in the LaunchDarkly model; any expressions in feature flags that reference
-  /// an attribute with a null value will behave as if the attribute did not
-  /// exist.
-  LDAttributesBuilder setPrivate(String name, LDValue value) {
-    if (_trySet(name, value)) {
-      _privateAttributes.add(AttributeReference.fromLiteral(name));
-    }
+  LDAttributesBuilder setBool(String name, bool bool, {bool private = false}) {
+    _trySet(name, LDValue.ofBool(bool), private);
     return this;
   }
 
-  bool _trySet(String attrName, LDValue value) {
+  /// Sets the attribute with [name] to the [num] provided.  Also marks the
+  /// attribute as private accordingly if [private] is provided.
+  ///
+  /// You cannot use this method to set the following attributes.
+  ///
+  /// - "" - A name with an empty string.
+  /// - "kind"
+  /// - "key"
+  /// - "_meta"
+  ///
+  /// Attempts to set these attributes will be ignored.
+  LDAttributesBuilder setNum(String name, num num, {bool private = false}) {
+    _trySet(name, LDValue.ofNum(num), private);
+    return this;
+  }
+
+  /// Sets the attribute with [name] to the [string] provided.  Also marks the
+  /// attribute as private accordingly if [private] is provided.
+  ///
+  /// You cannot use this method to set the following attributes.
+  ///
+  /// - "" - A name with an empty string.
+  /// - "kind"
+  /// - "key"
+  /// - "_meta"
+  ///
+  /// Attempts to set these attributes will be ignored.
+  LDAttributesBuilder setString(String name, String string,
+      {bool private = false}) {
+    _trySet(name, LDValue.ofString(string), private);
+    return this;
+  }
+
+  bool _trySet(String attrName, LDValue value, bool private) {
     if (attrName.isEmpty) {
       return false;
     }
@@ -198,28 +221,29 @@ final class LDAttributesBuilder {
         }
 
         name(value.stringValue());
-        return true;
       case _anonymousAttr:
         if (value.type != LDValueType.boolean) {
           return false;
         }
 
         anonymous(value.booleanValue());
-        return true;
       default:
         if (value.type == LDValueType.nullType) {
           _attributes.remove(attrName);
         } else {
           _attributes[attrName] = value;
         }
-
-        return true;
     }
+
+    if (private) {
+      _privateAttributes.add(AttributeReference.fromLiteral(attrName));
+    }
+    return true;
   }
 
   /// Mark additional attributes as private. This will add additional
   /// private attributes, it will not replace existing attributes that have
-  /// been added using [addPrivateAttributes] or [setPrivate]. Each string
+  /// been added using [addPrivateAttributes]. Each string
   /// should be in attribute reference format, not literal names.
   ///
   /// The attributes 'key', 'kind', '_meta', and 'anonymous' cannot be
@@ -229,12 +253,6 @@ final class LDAttributesBuilder {
         .map((refStr) => AttributeReference(refStr))
         .where((ref) => ref.valid)
         .forEach(_privateAttributes.add);
-    return this;
-  }
-
-  /// Set the name of the context.
-  LDAttributesBuilder name(String name) {
-    _name = name;
     return this;
   }
 
@@ -356,8 +374,9 @@ final class LDContext {
 ///
 /// ```dart
 /// LDContextBuilder builder = LDContextBuilder();
-/// builder.kind('user', 'user-key-123abc').name('Sandy Smith').set('employeeID', LDValue.ofString('ID-1234'));
+/// builder.kind('user', 'user-key-123abc').name('Sandy Smith').setString('employeeID', 'ID-1234');
 /// builder.kind('company', 'company-key-123abc').name('Microsoft');
+/// builder.kind('options', 'options-key-123abc').setValue('advanced', LDValue.buildObject().addBool('poweruser', true).build())
 /// LDContext context = builder.build();
 /// ```
 final class LDContextBuilder {
@@ -387,7 +406,7 @@ final class LDContextBuilder {
       attributesBuilder._privateAttributes.addAll(attributes.privateAttributes);
       for (var MapEntry(key: name, value: attributeValue)
           in attributes.customAttributes.entries) {
-        attributesBuilder.set(name, attributeValue);
+        attributesBuilder.setValue(name, attributeValue);
       }
     }
     return this;

@@ -32,7 +32,7 @@ void main() {
         context: LDContextBuilder()
             .kind('user', 'user-key')
             .name('the-name')
-            .set('custom', LDValue.ofString('custom'))
+            .setString('custom', 'custom')
             .build());
 
     final json = jsonEncode(IdentifyEventSerialization.toJson(event,
@@ -59,7 +59,7 @@ void main() {
         context: LDContextBuilder()
             .kind('user', 'user-key')
             .name('the-name')
-            .set('custom', LDValue.ofString('custom'))
+            .setString('custom', 'custom')
             .build());
 
     final json = jsonEncode(IdentifyEventSerialization.toJson(event,
@@ -321,7 +321,7 @@ void main() {
         context: LDContextBuilder()
             .kind('user', 'user-key')
             .name('the-name')
-            .set('custom', LDValue.ofString('custom'))
+            .setString('custom', 'custom')
             .build(),
         flagKey: 'the-flag',
         defaultValue: LDValue.ofString('default-value'),
@@ -363,7 +363,7 @@ void main() {
         context: LDContextBuilder()
             .kind('user', 'user-key')
             .name('the-name')
-            .set('custom', LDValue.ofString('custom'))
+            .setString('custom', 'custom')
             .build(),
         flagKey: 'the-flag',
         defaultValue: LDValue.ofString('default-value'),

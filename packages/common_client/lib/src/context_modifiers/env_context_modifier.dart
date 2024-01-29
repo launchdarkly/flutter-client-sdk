@@ -128,8 +128,8 @@ class _ContextRecipe {
     // if any of the nodes are able to write themselves, include the version
     // and add the context
     if (wroteANode) {
-      attributesBuilder.set(AutoEnvConsts.envAttributesVersion,
-          LDValue.ofString(AutoEnvConsts.specVersion));
+      attributesBuilder.setString(
+          AutoEnvConsts.envAttributesVersion, AutoEnvConsts.specVersion);
       builder.mergeContext(singleContextBuilder.build());
     }
   }
@@ -192,6 +192,6 @@ class _LDAttributesBuilderAdapter implements _ISettableMap {
 
   @override
   void set(String attributeName, LDValue value) {
-    _underlyingBuilder.set(attributeName, value);
+    _underlyingBuilder.setValue(attributeName, value);
   }
 }
