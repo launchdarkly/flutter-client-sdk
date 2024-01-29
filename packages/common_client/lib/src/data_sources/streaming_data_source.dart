@@ -11,28 +11,15 @@ import 'data_source_status.dart';
 
 typedef MessageHandler = void Function(MessageEvent);
 typedef ErrorHandler = void Function(dynamic);
-typedef MessageSubscriptionFactory = StreamSubscription<MessageEvent> Function(
-    Uri uri,
-    HttpProperties httpProperties,
-    String? body,
-    SseHttpMethod? method,
-    MessageHandler handler,
-    ErrorHandler errorHandler);
+typedef SseClientFactory = SSEClient Function(Uri uri,
+    HttpProperties httpProperties, String? body, SseHttpMethod? method);
 
-StreamSubscription<MessageEvent> _defaultSubscriptionFactory(
-    Uri uri,
-    HttpProperties httpProperties,
-    String? body,
-    SseHttpMethod? method,
-    MessageHandler handler,
-    ErrorHandler errorHandler) {
-  final stream = SSEClient(uri, {'put', 'patch', 'delete'},
-          headers: httpProperties.baseHeaders,
-          body: body,
-          httpMethod: method ?? SseHttpMethod.get)
-      .stream;
-  stream.handleError(errorHandler);
-  return stream.listen(handler);
+SSEClient _defaultClientFactory(Uri uri, HttpProperties httpProperties,
+    String? body, SseHttpMethod? method) {
+  return SSEClient(uri, {'put', 'patch', 'delete'},
+      headers: httpProperties.baseHeaders,
+      body: body,
+      httpMethod: method ?? SseHttpMethod.get);
 }
 
 final class StreamingDataSource implements DataSource {
@@ -42,7 +29,7 @@ final class StreamingDataSource implements DataSource {
 
   final StreamingDataSourceConfig _dataSourceConfig;
 
-  final MessageSubscriptionFactory _subFactory;
+  final SseClientFactory _clientFactory;
 
   late final Uri _uri;
 
@@ -57,13 +44,15 @@ final class StreamingDataSource implements DataSource {
 
   late final bool _useReport;
 
+  SSEClient? _client;
+
   @override
   Stream<DataSourceEvent> get events => _dataController.stream;
 
   /// Used to track if there has been an unrecoverable error.
   bool _permanentShutdown = false;
 
-  /// The [subFactory] parameter is primarily intended for testing, but it also
+  /// The [clientFactory] parameter is primarily intended for testing, but it also
   /// could be used for customized SSE clients which support functionality
   /// our default client support does not, or for alternative implementations
   /// which are not based on SSE.
@@ -74,11 +63,11 @@ final class StreamingDataSource implements DataSource {
       required LDLogger logger,
       required StreamingDataSourceConfig dataSourceConfig,
       required HttpProperties httpProperties,
-      MessageSubscriptionFactory subFactory = _defaultSubscriptionFactory})
+      SseClientFactory clientFactory = _defaultClientFactory})
       : _endpoints = endpoints,
         _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
-        _subFactory = subFactory,
+        _clientFactory = clientFactory,
         _httpProperties = httpProperties {
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
@@ -116,29 +105,36 @@ final class StreamingDataSource implements DataSource {
     }
     _stopped = false;
     _logger.debug('Establishing new streaming connection, uri: $_uri');
-    _subscription = _subFactory(
+    _client = _clientFactory(
         _uri,
         _httpProperties,
         _useReport ? _contextString : null,
-        _useReport ? SseHttpMethod.report : SseHttpMethod.get, (event) async {
+        _useReport ? SseHttpMethod.report : SseHttpMethod.get);
+
+    _subscription = _client!.stream.listen((event) async {
       if (_stopped) {
         return;
       }
 
       _logger.debug('Received event, data: ${event.data}');
       _dataController.sink.add(DataEvent(event.type, event.data));
-      // TODO: NEED TO RE-THINK restart.
-    }, (err) {
-      if (_permanentShutdown) {
-        return;
-      }
-      _permanentShutdown = true;
-      _logger
-          .error('Encountered an unrecoverable error: "$err", Shutting down.');
-      stop();
-      _dataController.sink.add(StatusEvent(ErrorKind.unknown, null,
-          'Encountered unrecoverable error streaming'));
-    });
+    })
+      ..onError((err) {
+        if (_permanentShutdown) {
+          return;
+        }
+        _permanentShutdown = true;
+        _logger.error(
+            'Encountered an unrecoverable error: "$err", Shutting down.');
+        stop();
+        _dataController.sink.add(StatusEvent(ErrorKind.unknown, null,
+            'Encountered unrecoverable error streaming'));
+      });
+  }
+
+  @override
+  void restart() {
+    _client?.restart();
   }
 
   @override

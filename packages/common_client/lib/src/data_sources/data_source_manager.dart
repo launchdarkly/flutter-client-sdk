@@ -173,7 +173,7 @@ final class DataSourceManager {
       }
     }).listen((status) {
       if (status is MessageStatus && status == MessageStatus.invalidMessage) {
-        _setupConnection();
+        _activeDataSource?.restart();
       }
     });
     _activeDataSource?.start();
