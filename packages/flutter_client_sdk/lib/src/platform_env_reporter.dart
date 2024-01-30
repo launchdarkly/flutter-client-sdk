@@ -1,6 +1,6 @@
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
