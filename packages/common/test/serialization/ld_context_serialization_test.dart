@@ -11,43 +11,43 @@ void main() {
   group('given single kind contexts', () {
     final basicContext = LDContextBuilder()
         .kind('organization', 'abc')
-        .set('firstName', LDValue.ofString('Sue'))
-        .set('bizzle', LDValue.ofString('def'))
-        .set('dizzle', LDValue.ofString('hgi'))
+        .setString('firstName', 'Sue')
+        .setString('bizzle', 'def')
+        .setString('dizzle', 'hgi')
         .build();
 
     final contextWithName = LDContextBuilder()
         .kind('organization', 'abc')
         .name('Name')
-        .set('firstName', LDValue.ofString('Sue'))
-        .set('bizzle', LDValue.ofString('def'))
-        .set('dizzle', LDValue.ofString('hgi'))
+        .setString('firstName', 'Sue')
+        .setString('bizzle', 'def')
+        .setString('dizzle', 'hgi')
         .build();
 
     final contextSpecifyingOwnPrivateAttr = LDContextBuilder()
         .kind('organization', 'abc')
-        .set('firstName', LDValue.ofString('Sue'))
-        .set('bizzle', LDValue.ofString('def'))
-        .set('dizzle', LDValue.ofString('hgi'))
+        .setString('firstName', 'Sue')
+        .setString('bizzle', 'def')
+        .setString('dizzle', 'hgi')
         .addPrivateAttributes(['dizzle', 'unused']).build();
 
     final anonymousContext = LDContextBuilder()
         .kind('organization', 'abc')
         .anonymous(true)
-        .set('firstName', LDValue.ofString('Sue'))
-        .set('bizzle', LDValue.ofString('def'))
-        .set('dizzle', LDValue.ofString('hgi'))
+        .setString('firstName', 'Sue')
+        .setString('bizzle', 'def')
+        .setString('dizzle', 'hgi')
         .build();
 
     final contextWithJsonAttribute = LDContextBuilder()
         .kind('organization', 'abc')
-        .set(
+        .setValue(
             'address',
             LDValueObjectBuilder()
                 .addString('city', 'FakeCity')
                 .addString('street', '123 Fake St.')
                 .build())
-        .set(
+        .setValue(
             'l1',
             LDValueObjectBuilder()
                 .addValue(
@@ -277,21 +277,22 @@ void main() {
   group('given a multi-kind context', () {
     final orgAndUserContext = LDContextBuilder()
         .kind('organization', 'LD')
-        .set('rocks', LDValue.ofBool(true))
+        .setBool('rocks', true)
         .name('name')
-        .set('department',
+        .setValue('department',
             LDValueObjectBuilder().addString('name', 'sdk').build())
         .kind('user', 'abc')
         .name('alphabet')
-        .setPrivate(
+        .setValue(
             'letters',
             LDValueArrayBuilder()
                 .addString('a')
                 .addString('b')
                 .addString('c')
-                .build())
-        .set('order', LDValue.ofNum(3))
-        .set(
+                .build(),
+            private: true)
+        .setNum('order', 3)
+        .setValue(
             'object',
             LDValueObjectBuilder()
                 .addString('a', 'a')
