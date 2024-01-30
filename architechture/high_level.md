@@ -2,37 +2,32 @@
 
 ```mermaid
 classDiagram
-direction TB
+direction
 
-class LDClientDart {
-  +jsonVariation(string flag, Context context, default LDValue) LDValue
-  +jsonVariationDetail(string flag, Context context, default LDValue) EvaluationResult~LDValue~
+class LDClientCommon {
++jsonVariation(string flag, Context context, default LDValue) LDValue
++jsonVariationDetail(string flag, Context context, default LDValue) EvaluationResult~LDValue~
 }
 
-class IDataSourceUpdateSink {
-  <<interface>>
-}
-
-class IDataSource {
-  <<interface>>
-}
-
-class IEventProcessor {
-  <<interface>>
-}
-
-class IDataSourceSwitcher {
-  <<interface>>
-}
-
-class IPersistence {
-  <<interface>>
+class DataSource {
+<<interface>>
 }
 
 
-class ConnectionManager
+class StateDetector {
+<<interface>>
+}
+
+class EventProcessor {
+<<interface>>
+}
+
+class Persistence {
+<<interface>>
+}
+
+
 class DataSourceManager
-
 
 class StreamingDataSource
 
@@ -40,59 +35,49 @@ class PollingDataSource
 
 class FlagManager
 
-
 class FlagStore
 
 class FlagUpdater
 
 class FlagPersistence
 
-class LDLogger
+class DataSourceEventHandler
 
-class EventProcessor
-
-class NullEventProcessor
-
-note for LDClientFlutter "Flutter for clarity, this may just be LDClient"
-class LDClientFlutter
-
-EventProcessor ..|> IEventProcessor
-NullEventProcessor ..|> IEventProcessor
-
-%% LDClientDart *-- LDLogger
-%% EventProcessor o-- LDLogger
-%% FlagManager o-- LDLogger
-%% PollingDataSource o-- LDLogger
-%% StreamingDataSource o-- LDLogger
+class ConnectionManager
 
 
+note for LDClient "This is the flutter-specific client."
+class LDClient
 
+class FlutterPersistence
 
-FlagPersistence o-- IPersistence
+ConnectionManager *-- StateDetector
 
-FlagUpdater ..|> IDataSourceUpdateSink
-LDClientDart *-- IConnectionManager
-DataSourceManager --> IDataSourceUpdateSink
-DataSourceManager ..|> IDataSourceSwitcher
-FlagPersistence ..|> IDataSourceUpdateSink
-IConnectionManager o-- IDataSourceSwitcher
+LDClient *-- ConnectionManager
 
+DefaultEventProcessor ..|> EventProcessor
+FlutterStateDetector ..|> StateDetector
 
-LDClientDart *-- FlagManager
-LDClientDart *-- IEventProcessor
+FlagPersistence o-- Persistence
+FlutterPersistence --|> Persistence
+LDClient *-- FlutterPersistence
+
+LDClientCommon *-- EventProcessor
+LDClientCommon *-- DataSourceManager
+LDClientCommon *-- FlagManager
 
 FlagManager *-- FlagPersistence
 FlagManager *-- FlagUpdater
 FlagManager *-- FlagStore
 
-StreamingDataSource ..|> IDataSource
-PollingDataSource ..|> IDataSource
+StreamingDataSource ..|> DataSource
+PollingDataSource ..|> DataSource
 DataSourceManager *-- PollingDataSource
 DataSourceManager *-- StreamingDataSource
+DataSourceManager *-- DataSourceEventHandler
+DataSourceEventHandler --> FlagManager
 
 
-
-LDClientFlutter --|> LDClientDart
-
+LDClient --|> LDClientCommon
 
 ```
