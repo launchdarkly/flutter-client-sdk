@@ -3,16 +3,13 @@
   "separate-pull-requests": true,
   "packages": {
     "packages/common": {
-      "release-type": "dart",
-      "release-as": "1.0.0"
+      "release-type": "dart"
     },
     "packages/common_client": {
-      "release-type": "dart",
-      "release-as": "1.0.0"
+      "release-type": "dart"
     },
     "packages/event_source_client": {
-      "release-type": "dart",
-      "release-as": "1.0.0"
+      "release-type": "dart"
     },
     "packages/flutter_client_sdk": {
       "release-type": "dart",

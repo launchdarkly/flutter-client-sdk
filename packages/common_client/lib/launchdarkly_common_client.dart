@@ -21,7 +21,10 @@ export 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
         LDErrorKind,
         LDValueType,
         DiagnosticSdkData,
-        ApplicationInfo;
+        ApplicationInfo,
+        EnvironmentReporter,
+        OsInfo,
+        DeviceInfo;
 
 export 'src/flag_manager/flag_updater.dart' show FlagsChangedEvent;
 export 'src/config/service_endpoints.dart' show ServiceEndpoints;
