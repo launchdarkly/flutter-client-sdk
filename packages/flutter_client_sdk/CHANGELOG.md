@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.0.2](https://github.com/launchdarkly/flutter-client-sdk/compare/4.0.1...4.0.2) (2024-01-31)
+
+
+### Bug Fixes
+
+* Change LDAttributesBuilder visibility. ([#123](https://github.com/launchdarkly/flutter-client-sdk/issues/123)) ([e25803a](https://github.com/launchdarkly/flutter-client-sdk/commit/e25803a8dc15a7256cd1c896511bdaac51ebf67d))
+* Correct API docs link. ([#121](https://github.com/launchdarkly/flutter-client-sdk/issues/121)) ([2c02520](https://github.com/launchdarkly/flutter-client-sdk/commit/2c025204ce3d5cade011f668c37d76f79bef0456))
+
 ## [4.0.1](https://github.com/launchdarkly/flutter-client-sdk/compare/4.0.0...4.0.1) (2024-01-31)
 
 
