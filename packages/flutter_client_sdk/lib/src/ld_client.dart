@@ -71,7 +71,7 @@ interface class LDClient {
         platformImplementation,
         context,
         DiagnosticSdkData(
-            name: 'FlutterClientSide',
+            name: 'FlutterClientSdk',
             version: '4.0.0')); // x-release-please-version
     _connectionManager = ConnectionManager(
         logger: _client.logger,
