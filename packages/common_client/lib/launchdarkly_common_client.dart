@@ -5,6 +5,7 @@ export 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     show
         LDContext,
         LDContextBuilder,
+        LDAttributesBuilder,
         HttpProperties,
         AttributeReference,
         LDValue,
