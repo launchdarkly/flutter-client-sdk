@@ -15,6 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        # We override the example dependencies so the version number can be a version which has
+        # not been released.
+      - name: Override example dependencies
+        run: |
+          echo "dependency_overrides:\r\n  launchdarkly_flutter_client_sdk:\r\n    path: .." > example/pubspec_overrides.yaml
       - name: Publish Flutter Client SDK Package
         uses: ./.github/actions/publish
         with:

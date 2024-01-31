@@ -1,7 +1,5 @@
 # LaunchDarkly Client-side SDK for Flutter
 
-*This version of the SDK is a **beta** version and should not be considered ready for production use while this message is visible.*
-
 [![Action Status](https://github.com/launchdarkly/flutter-client-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/launchdarkly/flutter-client-sdk/actions/workflows/ci.yml)
 [![Pub](https://img.shields.io/pub/v/launchdarkly_flutter_client_sdk.svg)](https://pub.dev/packages/launchdarkly_flutter_client_sdk)
 

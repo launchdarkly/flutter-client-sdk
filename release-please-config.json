@@ -13,7 +13,6 @@
     },
     "packages/flutter_client_sdk": {
       "release-type": "dart",
-      "release-as": "4.0.0",
       "include-v-in-tag": false,
       "include-component-in-tag": false,
       "extra-files": [
