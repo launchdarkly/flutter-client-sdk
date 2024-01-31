@@ -21,7 +21,7 @@ Refer to the [SDK documentation](https://docs.launchdarkly.com/sdk/client-side/f
 
 ## Learn more
 
-Read our [documentation](https://docs.launchdarkly.com) for in-depth instructions on configuring and using LaunchDarkly. You can also head straight to the [complete reference guide for this SDK](https://docs.launchdarkly.com/sdk/client-side/flutter) or our [code-generated API documentation](https://launchdarkly.github.io/flutter-client-sdk/).
+Read our [documentation](https://docs.launchdarkly.com) for in-depth instructions on configuring and using LaunchDarkly. You can also head straight to the [complete reference guide for this SDK](https://docs.launchdarkly.com/sdk/client-side/flutter) or our [code-generated API documentation](https://pub.dev/documentation/launchdarkly_flutter_client_sdk/latest/).
 
 ## Testing
 
