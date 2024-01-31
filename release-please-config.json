@@ -18,11 +18,7 @@
       "include-component-in-tag": false,
       "extra-files": [
         "lib/src/ld_client.dart",
-        {
-          "type": "yaml",
-          "path": "example/pubspec.yaml",
-          "jsonpath": "$.dependencies.launchdarkly_flutter_client_sdk"
-        }
+        "example/pubspec.yaml"
       ]
     }
   },
