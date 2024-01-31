@@ -19,7 +19,7 @@ jobs:
         # not been released.
       - name: Override example dependencies
         run: |
-          echo "dependency_overrides:\r\n  launchdarkly_flutter_client_sdk:\r\n    path: .." > packages/flutter_client_sdk/example/pubspec_overrides.yaml
+          echo -e "dependency_overrides:\r\n  launchdarkly_flutter_client_sdk:\r\n    path: .." > packages/flutter_client_sdk/example/pubspec_overrides.yaml
       - name: Publish Flutter Client SDK Package
         uses: ./.github/actions/publish
         with:
