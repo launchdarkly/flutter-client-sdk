@@ -2,6 +2,23 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.0.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.0.0-alpha.1...4.0.0) (2024-01-31)
+
+
+### Features
+
+* Add example project. ([#93](https://github.com/launchdarkly/flutter-client-sdk/issues/93)) ([588ae01](https://github.com/launchdarkly/flutter-client-sdk/commit/588ae0179871c470442ab9ec2d6c03a1754f103e))
+* Implement support for REPORT for streaming. ([#96](https://github.com/launchdarkly/flutter-client-sdk/issues/96)) ([1de6079](https://github.com/launchdarkly/flutter-client-sdk/commit/1de60797e2edaac2fdf38f829ee4e3f15260f963))
+* Use version 1.0.1 of common client. ([#115](https://github.com/launchdarkly/flutter-client-sdk/issues/115)) ([cd85c65](https://github.com/launchdarkly/flutter-client-sdk/commit/cd85c653e59c686c2529d840aef83d76183e37c2))
+
+
+### Bug Fixes
+
+* Check for network state on resume. ([#95](https://github.com/launchdarkly/flutter-client-sdk/issues/95)) ([c1cb489](https://github.com/launchdarkly/flutter-client-sdk/commit/c1cb489eebc212d2021cb6247c91955b77dcc7d0))
+* Correct timeout handling in example. ([#97](https://github.com/launchdarkly/flutter-client-sdk/issues/97)) ([dc18529](https://github.com/launchdarkly/flutter-client-sdk/commit/dc18529fb43ae405fb4cf36c7ff3185d105906f3))
+* Flutter client should depend only on common client. ([#113](https://github.com/launchdarkly/flutter-client-sdk/issues/113)) ([edfd06d](https://github.com/launchdarkly/flutter-client-sdk/commit/edfd06d24e30915c0608766e5abcc9290aaf6244))
+* Mac entitlements. Clarifications. ([#107](https://github.com/launchdarkly/flutter-client-sdk/issues/107)) ([077e9aa](https://github.com/launchdarkly/flutter-client-sdk/commit/077e9aa205731b6166bb78788a9a98f1f238fc2d))
+
 ## [4.0.0-alpha.1](https://github.com/launchdarkly/flutter-client-sdk/compare/v4.0.0-alpha.0...4.0.0-alpha.1) (2024-01-24)
 
 
