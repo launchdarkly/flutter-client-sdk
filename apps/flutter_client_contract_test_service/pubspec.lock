@@ -377,28 +377,28 @@ packages:
       path: "../../packages/common_client"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "1.0.2"
   launchdarkly_dart_common:
     dependency: "direct overridden"
     description:
       path: "../../packages/common"
       relative: true
     source: path
-    version: "0.0.2"
+    version: "1.0.0"
   launchdarkly_event_source_client:
     dependency: "direct overridden"
     description:
       path: "../../packages/event_source_client"
       relative: true
     source: path
-    version: "0.0.3"
+    version: "1.0.0"
   launchdarkly_flutter_client_sdk:
     dependency: "direct main"
     description:
       path: "../../packages/flutter_client_sdk"
       relative: true
     source: path
-    version: "4.0.0-alpha.1"
+    version: "4.0.2"
   lints:
     dependency: "direct dev"
     description:
@@ -507,10 +507,10 @@ packages:
     dependency: transitive
     description:
       name: package_info_plus
-      sha256: "88bc797f44a94814f2213db1c9bd5badebafdfb8290ca9f78d4b9ee2a3db4d79"
+      sha256: "7e76fad405b3e4016cd39d08f455a4eb5199723cf594cd1b8916d47140d93017"
       url: "https://pub.dev"
     source: hosted
-    version: "5.0.1"
+    version: "4.2.0"
   package_info_plus_platform_interface:
     dependency: transitive
     description:

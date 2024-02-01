@@ -15,7 +15,7 @@ dependencies:
     path: ../../packages/event_source_client
 
 dev_dependencies:
-  http: ^1.1.0
+  http: ">=0.13.5 <2.0.0"
   lints: ^3.0.0
   test: ^1.21.0
   openapi_code_builder: ^1.1.4+4
