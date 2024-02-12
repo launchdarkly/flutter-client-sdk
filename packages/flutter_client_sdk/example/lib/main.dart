@@ -74,6 +74,23 @@ class FlagProviderString extends StreamProvider<String> {
             child: child);
 }
 
+class FlagProviderBoolean extends StreamProvider<bool> {
+  FlagProviderBoolean(
+      {super.key,
+      required LDClient client,
+      required String flagKey,
+      required bool defaultValue,
+      required Widget child})
+      : super(
+            create: (context) => client.flagChanges
+                .where((element) => element.keys.contains(flagKey))
+                .map((event) => client.boolVariation(flagKey, defaultValue)),
+            // Here we get the initial value of the flag. If the SDK is not
+            // initialized, then the default value will be returned.
+            initialData: client.boolVariation(flagKey, defaultValue),
+            child: child);
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   final _userKeyController = TextEditingController(text: 'user-key');
 
@@ -102,63 +119,24 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextFormField(
-                                  // The validator receives the text that the user has entered.
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter a user key';
-                                    }
-                                    return null;
-                                  },
-                                  controller: _userKeyController,
-                                ),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      // Validate returns true if the form is valid, or false otherwise.
-                                      if (_formKey.currentState!.validate()) {
-                                        final client = Provider.of<LDClient>(
-                                            context,
-                                            listen: false);
-
-                                        client
-                                            .identify(LDContextBuilder()
-                                                .kind('user',
-                                                    _userKeyController.text)
-                                                .build())
-                                            .then((value) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content:
-                                                    Text('Identify complete')),
-                                          );
-                                        });
-                                      }
-                                    },
-                                    child: const Text('Identify'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          FlagProviderString(
+                          FlagProviderBoolean(
                               // The client will not be changing, so we don't need to
                               // listen for client changes.
                               client:
                                   Provider.of<LDClient>(context, listen: false),
-                              flagKey: 'string-flag',
-                              defaultValue: 'default-value',
-                              child: Consumer<String>(
-                                  builder: (context, flagValue, _) =>
-                                      Text('flag value: $flagValue'))),
+                              flagKey: 'cat',
+                              defaultValue: false,
+                              child: Consumer<bool>(
+                                  builder: (context, flagValue, _) => flagValue
+                                      ? Image(
+                                          image: const AssetImage(
+                                              'assets/cat.jpg'),
+                                          fit: BoxFit.fitHeight,
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height -
+                                              100)
+                                      : const Spacer())),
                         ],
                       ),
                     )
