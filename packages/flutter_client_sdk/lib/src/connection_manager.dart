@@ -179,7 +179,6 @@ final class ConnectionManager {
     /// If connections in the background are allowed, then use the same mode
     /// as is configured for the foreground.
     _setForegroundAvailableMode();
-    _destination.setEventSendingEnabled(true);
   }
 
   void _handleState() {
