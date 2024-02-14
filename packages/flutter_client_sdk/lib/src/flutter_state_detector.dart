@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/widgets.dart';
 
 import 'connection_manager.dart';
+import 'lifecycle/stub_lifecycle_listener.dart'
+    if (dart.library.io) 'lifecycle/io_lifecycle_listener.dart'
+    if (dart.library.html) 'lifecycle/js_lifecycle_listener.dart';
 
 /// This class detects the application and network state for flutter.
 final class FlutterStateDetector implements StateDetector {
@@ -20,7 +22,7 @@ final class FlutterStateDetector implements StateDetector {
   @override
   Stream<NetworkState> get networkState => _networkStateController.stream;
 
-  late final AppLifecycleListener _lifecycleListener;
+  late final LDAppLifecycleListener _lifecycleListener;
   late final StreamSubscription<ConnectivityResult> _connectivitySubscription;
 
   FlutterStateDetector() {
@@ -29,9 +31,8 @@ final class FlutterStateDetector implements StateDetector {
       _handleApplicationLifecycle(initialState);
     }
 
-    _lifecycleListener = AppLifecycleListener(
-      onStateChange: (state) => _handleApplicationLifecycle(state),
-    );
+    _lifecycleListener = LDAppLifecycleListener();
+    _lifecycleListener.stream.listen(_handleApplicationLifecycle);
 
     Connectivity().checkConnectivity().then(_setConnectivity);
 
@@ -100,7 +101,7 @@ final class FlutterStateDetector implements StateDetector {
 
   @override
   void dispose() {
-    _lifecycleListener.dispose();
+    _lifecycleListener.close();
     _applicationStateController.close();
     _networkStateController.close();
     _connectivitySubscription.cancel();
