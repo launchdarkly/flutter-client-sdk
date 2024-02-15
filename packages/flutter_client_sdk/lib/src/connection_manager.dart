@@ -40,6 +40,8 @@ abstract interface class ConnectionDestination {
   void setNetworkAvailability(bool available);
 
   void setEventSendingEnabled(bool enabled, {bool flush = true});
+
+  void flush();
 }
 
 /// Basic adapter that turns an LDCommonClient into a ConnectionDestination.
@@ -61,6 +63,11 @@ final class DartClientAdapter implements ConnectionDestination {
   @override
   void setEventSendingEnabled(bool enabled, {bool flush = true}) {
     _client.setEventSendingEnabled(enabled, flush: flush);
+  }
+
+  @override
+  void flush() {
+    _client.flush();
   }
 }
 
@@ -160,24 +167,29 @@ final class ConnectionManager {
       return;
     }
 
-    /// Currently the foreground mode will always be whatever the last active
-    /// connection mode was.
+    // Currently the foreground mode will always be whatever the last active
+    // connection mode was.
     _destination.setMode(_currentConnectionMode);
     _destination.setEventSendingEnabled(true);
   }
 
   void _setBackgroundAvailableMode() {
+    // flush on backgrounding as application may be killed and we don't want to lose events.
+    _destination.flush();
+
     if (!_config.runInBackground) {
       // TODO: Can we support the backgroundDisabled data source status?
       // TODO: Is it acceptable for the data source status and `offline` to
       // report an `offline` status?
       _destination.setMode(ConnectionMode.offline);
-      _destination.setEventSendingEnabled(false);
+
+      // no need to flush here, we just did up above
+      _destination.setEventSendingEnabled(false, flush: false);
       return;
     }
 
-    /// If connections in the background are allowed, then use the same mode
-    /// as is configured for the foreground.
+    // If connections in the background are allowed, then use the same mode
+    // as is configured for the foreground.
     _setForegroundAvailableMode();
   }
 

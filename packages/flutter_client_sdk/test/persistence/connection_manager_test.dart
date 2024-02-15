@@ -148,6 +148,7 @@ void main() {
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
 
+    verify(() => destination.flush());
     verify(() => destination.setMode(ConnectionMode.streaming));
     connectionManager.dispose();
   });
