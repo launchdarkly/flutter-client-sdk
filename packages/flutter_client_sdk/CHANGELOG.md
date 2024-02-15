@@ -2,6 +2,18 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.0.3...4.1.0) (2024-02-15)
+
+
+### Features
+
+* web based applications will now flush events before closing to ensure events are sent ([#129](https://github.com/launchdarkly/flutter-client-sdk/issues/129)) ([c1e2828](https://github.com/launchdarkly/flutter-client-sdk/commit/c1e2828be64277957760bed08d10a8809dd9e275))
+
+
+### Bug Fixes
+
+* backgrounded and offline apps no longer attempt to send events ([#130](https://github.com/launchdarkly/flutter-client-sdk/issues/130)) ([f8244ab](https://github.com/launchdarkly/flutter-client-sdk/commit/f8244ab3edefd1951ff07f7c26838faced44fe9a))
+
 ## [4.0.3](https://github.com/launchdarkly/flutter-client-sdk/compare/4.0.2...4.0.3) (2024-01-31)
 
 
