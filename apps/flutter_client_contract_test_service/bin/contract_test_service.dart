@@ -9,6 +9,7 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 import 'package:openapi_base/openapi_base.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test/scaffolding.dart';
 import 'service_api.openapi.dart';
 
 class TestApiImpl extends SdkTestApi {
@@ -28,6 +29,8 @@ class TestApiImpl extends SdkTestApi {
 
   final Map<int, LDClient> clientMap = {};
   var nextIdToGive = 0;
+
+  StoppableProcessBase? process;
 
   @override
   // ignore: non_constant_identifier_names
@@ -99,8 +102,9 @@ class TestApiImpl extends SdkTestApi {
 
   @override
   // ignore: non_constant_identifier_names
-  Future<DeleteResponse> Delete() {
-    exit(0);
+  Future<DeleteResponse> Delete() async {
+    process?.stop(0);
+    return DeleteResponse.response200();
   }
 
   @override
@@ -390,15 +394,20 @@ final class _WifiConnected extends ConnectivityPlatform {
 }
 
 void main() async {
-  ConnectivityPlatform.instance = _WifiConnected();
-  widgets.WidgetsFlutterBinding.ensureInitialized(); // needed before mocking
-  // ignore: invalid_use_of_visible_for_testing_member
-  SharedPreferences.setMockInitialValues({}); // required to mock persistence
-  final port = 8080;
-  final server = OpenApiShelfServer(
-    SdkTestApiRouter(ApiEndpointProvider.static(TestApiImpl())),
-  );
-  print('Server listening on port $port');
-  final process = await server.startServer(port: port);
-  await process.exitCode;
+  test('Run contract tests', () async {
+    ConnectivityPlatform.instance = _WifiConnected();
+    widgets.WidgetsFlutterBinding.ensureInitialized(); // needed before mocking
+    // ignore: invalid_use_of_visible_for_testing_member
+    SharedPreferences.setMockInitialValues({}); // required to mock persistence
+    final port = 8080;
+    final api = TestApiImpl();
+    final server = OpenApiShelfServer(
+      SdkTestApiRouter(ApiEndpointProvider.static(api)),
+    );
+    print('Server listening on port $port');
+    final process = await server.startServer(port: port);
+    api.process = process;
+
+    await process.exitCode;
+  });
 }
