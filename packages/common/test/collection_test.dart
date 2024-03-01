@@ -35,4 +35,16 @@ void main() {
 
     expect(res, 15);
   });
+
+  test('equal sets are equal', () {
+    final setA = {'one', 'two', 'three'};
+    final setB = {'two', 'one', 'three'};
+    expect(setA, setB);
+  });
+
+  test('non-equal sets are not equal', () {
+    final setA = {'one', 'two', 'three'};
+    final setB = {'two', 'one', 'potato'};
+    expect(setA, isNot(setB));
+  });
 }

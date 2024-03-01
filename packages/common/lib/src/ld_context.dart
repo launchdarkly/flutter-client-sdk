@@ -1,3 +1,4 @@
+import 'collections.dart';
 import 'ld_value.dart';
 import 'attribute_reference.dart';
 
@@ -75,6 +76,27 @@ final class LDContextAttributes {
   String toString() {
     return 'LDContextAttributes{customAttributes: $customAttributes, kind: $kind, key: $key, anonymous: $anonymous, name: $name, privateAttributes: $privateAttributes}';
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LDContextAttributes &&
+          customAttributes.equals(other.customAttributes) &&
+          kind == other.kind &&
+          key == other.key &&
+          anonymous == other.anonymous &&
+          name == other.name &&
+          privateAttributes.equals(other.privateAttributes);
+
+  @override
+  int get hashCode =>
+      Object.hashAllUnordered(customAttributes.keys) ^
+      Object.hashAllUnordered(customAttributes.values) ^
+      kind.hashCode ^
+      key.hashCode ^
+      anonymous.hashCode ^
+      name.hashCode ^
+      Object.hashAllUnordered(privateAttributes);
 }
 
 /// A builder for constructing [LDContextAttributes].
@@ -366,6 +388,25 @@ final class LDContext {
   String toString() {
     return 'LDContext{attributesByKind: $attributesByKind, valid: $valid}';
   }
+
+  /// Determine if two contexts are equal.
+  ///
+  /// Note that all invalid contexts are equal. If a context cannot be built,
+  /// because it contains invalid data, then it does not contain data which
+  /// differentiates it from other invalid contexts. It is not generally
+  /// meaningful to compare invalid contexts.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LDContext &&
+          attributesByKind.equals(other.attributesByKind) &&
+          valid == other.valid;
+
+  @override
+  int get hashCode =>
+      Object.hashAllUnordered(attributesByKind.keys) ^
+      Object.hashAllUnordered(attributesByKind.values) ^
+      valid.hashCode;
 }
 
 /// A builder to facilitate the creation of [LDContext]s.  Note that the return
@@ -374,9 +415,13 @@ final class LDContext {
 ///
 /// ```dart
 /// LDContextBuilder builder = LDContextBuilder();
-/// builder.kind('user', 'user-key-123abc').name('Sandy Smith').setString('employeeID', 'ID-1234');
-/// builder.kind('company', 'company-key-123abc').name('Microsoft');
-/// builder.kind('options', 'options-key-123abc').setValue('advanced', LDValue.buildObject().addBool('poweruser', true).build())
+/// builder.kind('user', 'user-key-123abc')
+///   .name('Sandy Smith')
+///   .setString('employeeID', 'ID-1234');
+/// builder.kind('company', 'company-key-123abc')
+///   .name('ExampleCompany');
+/// builder.kind('options', 'options-key-123abc')
+///   .setValue('advanced', LDValue.buildObject().addBool('poweruser', true).build())
 /// LDContext context = builder.build();
 /// ```
 final class LDContextBuilder {
@@ -394,7 +439,7 @@ final class LDContextBuilder {
   /// Adds a context to the context builder combining the provided context
   /// kinds with the existing kinds in the builder.  This function is not
   /// normally needed as the [kind] method can be used for making a
-  /// multicontext.
+  /// multi-context.
   LDContextBuilder mergeContext(LDContext context) {
     for (var MapEntry(key: kind, value: attributes)
         in context.attributesByKind.entries) {
