@@ -53,7 +53,121 @@ final class LDValue {
   /// Returns an instance for a string value.
   static LDValue ofString(String value) => LDValue._const(value);
 
-  // Returns this value as a `bool` if the type matches, otherwise returns `false`.
+  /// Given a dynamic produce an LDValue.
+  ///
+  /// For maximum type safety use the specifically typed methods and builders.
+  ///
+  /// The types that can be stored in an LDValue are limited to those
+  /// that can be represented by JSON. User-specified types cannot be converted
+  /// to an LDValue using this function.
+  ///
+  /// The dynamic value should be a `num`, `bool`, `string`, `List<dynamic>` or
+  /// `Map<String, dynamic>`. For lists and maps the inner dynamics have the
+  /// same constraints.
+  ///
+  /// This method makes a best effort at converting the value into an LDValue.
+  /// If the dynamic is a list or map and a specific element cannot
+  /// be converted, then that item will be replaced with [ofNull]. If the
+  /// entire object cannot be converted, then [ofNull] will be returned
+  /// from this function. The keys of a map must be strings, if they are not
+  /// then the map cannot be converted and will instead be replaced by [ofNull].
+  ///
+  /// ```dart
+  ///     final converted = LDValue.ofDynamic(
+  ///         {'string': 'test', 'bool': true, 17: 'dummy', 'int': 42});
+  /// //In this case `converted` will be a null LDValue (LDValue.ofNull()).
+  /// ```
+  ///
+  /// An integer type can be converted, but if accessed using [toDynamic],
+  /// either as a single value or as a part of an object/array, then it will
+  /// be converted to a double.
+  static LDValue ofDynamic(dynamic json) {
+    if (json is bool) {
+      return LDValue.ofBool(json);
+    }
+    if (json is num) {
+      return LDValue.ofNum(json);
+    }
+    if (json is String) {
+      return LDValue.ofString(json);
+    }
+    if (json is List<dynamic>) {
+      final arrayBuilder = LDValueArrayBuilder();
+      for (var item in json) {
+        arrayBuilder.addValue(LDValue.ofDynamic(item));
+      }
+      return arrayBuilder.build();
+    }
+    if (json is Map<String, dynamic>) {
+      final objectBuilder = LDValueObjectBuilder();
+      for (var entry in json.entries) {
+        final value = LDValue.ofDynamic(entry.value);
+        objectBuilder.addValue(entry.key, value);
+      }
+      return objectBuilder.build();
+    }
+    if (json == null) {
+      return LDValue.ofNull();
+    }
+
+    return LDValue.ofNull();
+  }
+
+  /// Convert this LDValue into a dynamic.
+  ///
+  /// The dynamic value will be a `num`, `bool`, `string`, `List<dynamic>` or
+  /// `Map<String, dynamic>`. For lists and maps the inner dynamics have the
+  /// same constraints.
+  ///
+  /// The numeric types in a converted LDValue will always be doubles.
+  ///
+  /// When converting a dynamic, for instance using a `fromJson` method, always
+  /// be sure to use the `toDouble` or `toInt` methods to get integer
+  /// or double types from the value. If you cast the number to an int, but
+  /// the representation is a double, then that can throw an exception.
+  /// (On the web platform such casting may not throw, but it currently does
+  /// on IO platforms.)
+  ///
+  /// ```dart
+  /// // Both an integer and a double can be cast to a `num`.
+  /// final myInt = (value as num).toInt();
+  ///
+  /// // Not Safe, if value is a double, then this can throw.
+  /// final myInt = value as int;
+  /// ```
+  ///
+  /// For maximum type safety use the typed methods to get specific
+  /// types.
+  dynamic toDynamic() {
+    switch (type) {
+      case LDValueType.nullType:
+        return null;
+      case LDValueType.boolean:
+        return booleanValue();
+      case LDValueType.number:
+        return doubleValue();
+      case LDValueType.string:
+        return stringValue();
+      case LDValueType.array:
+        List<dynamic> items = [];
+        for (var index = 0; index < length; index++) {
+          var jsonValue = get(index).toDynamic();
+          items.add(jsonValue);
+        }
+        return items;
+      case LDValueType.object:
+        Map<String, dynamic> items = {};
+        final objectKeys = keys.toList(growable: false);
+        for (var index = 0; index < length; index++) {
+          var jsonKey = objectKeys[index];
+          var jsonValue = getFor(jsonKey).toDynamic();
+          items[jsonKey] = jsonValue;
+        }
+        return items;
+    }
+  }
+
+  /// Returns this value as a `bool` if the type matches, otherwise returns `false`.
   bool booleanValue() => _value is bool ? _value : false;
 
   /// Returns this value as an `int` if the value is numeric, otherwise returns `0`.
