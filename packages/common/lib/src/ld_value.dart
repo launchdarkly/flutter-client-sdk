@@ -72,6 +72,7 @@ final class LDValue {
   /// from this function. The keys of a map must be strings, if they are not
   /// then the map cannot be converted and will instead be replaced by [ofNull].
   ///
+  /// Example:
   /// ```dart
   ///     final converted = LDValue.ofDynamic(
   ///         {'string': 'test', 'bool': true, 17: 'dummy', 'int': 42});
@@ -81,7 +82,47 @@ final class LDValue {
   /// An integer type can be converted, but if accessed using [toDynamic],
   /// either as a single value or as a part of an object/array, then it will
   /// be converted to a double.
+  ///
+  /// If a cycle is detected attempting to convert the object, then the value
+  /// at the point in which the cycle is detected will be replaced with [ofNull].
+  /// Avoid cycles in objects that will need to be converted to LDValue objects.
+  ///
+  /// Example of a cycle in an array.
+  /// ```dart
+  /// final a = <dynamic>[];
+  ///  final b = [a];
+  ///  a.add(b);
+  ///  final converter = LDValue.ofDynamic(a);
+  /// ```
+  /// The converted LDValue will be equivalent to:
+  /// ```json
+  /// [[null]]
+  /// ```
+  ///
+  /// ```dart Example of a cycle in an object.
+  /// final a = <String, dynamic>{};
+  /// final b = {'a': a};
+  /// a['b'] = b;
+  ///
+  /// final converter = LDValue.ofDynamic(a);
+  /// ```
+  /// The converted LDValue will be equivalent to:
+  /// ```
+  /// {"b": {"a": null}}
+  /// ```
+  ///
+  /// The implementation may be recursive, so it is possible for there to be
+  /// a sack overflow if the object to be converted contains an extreme amount
+  /// of nesting.
   static LDValue ofDynamic(dynamic json) {
+    return _ofDynamic(json, []);
+  }
+
+  static bool _wasVisited(dynamic toCheck, List<dynamic> visited) {
+    return visited.firstWhereOrNull((item) => identical(item, toCheck)) != null;
+  }
+
+  static LDValue _ofDynamic(dynamic json, List<dynamic> visited) {
     if (json is bool) {
       return LDValue.ofBool(json);
     }
@@ -91,17 +132,24 @@ final class LDValue {
     if (json is String) {
       return LDValue.ofString(json);
     }
+
+    if (json is Object) {
+      if (_wasVisited(json, visited)) {
+        return LDValue.ofNull();
+      }
+      visited.add(json);
+    }
     if (json is List<dynamic>) {
       final arrayBuilder = LDValueArrayBuilder();
       for (var item in json) {
-        arrayBuilder.addValue(LDValue.ofDynamic(item));
+        arrayBuilder.addValue(LDValue._ofDynamic(item, [...visited]));
       }
       return arrayBuilder.build();
     }
     if (json is Map<String, dynamic>) {
       final objectBuilder = LDValueObjectBuilder();
       for (var entry in json.entries) {
-        final value = LDValue.ofDynamic(entry.value);
+        final value = LDValue._ofDynamic(entry.value, [...visited]);
         objectBuilder.addValue(entry.key, value);
       }
       return objectBuilder.build();

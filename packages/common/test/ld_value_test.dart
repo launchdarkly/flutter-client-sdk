@@ -44,6 +44,31 @@ void main() {
 
       expect(converted, LDValue.ofNull());
     });
+
+    test('Recursive map does not throw an exception', () {
+      final a = <String, dynamic>{};
+      final b = {'a': a};
+      a['b'] = b;
+
+      final converter = LDValue.ofDynamic(a);
+      expect(
+          converter,
+          LDValue.buildObject()
+              .addValue('b',
+                  LDValue.buildObject().addValue('a', LDValue.ofNull()).build())
+              .build());
+    });
+
+    test('Recursive list does not throw an exception', () {
+      final a = <dynamic>[];
+      final b = [a];
+      a.add(b);
+      final converter = LDValue.ofDynamic(a);
+      expect(
+          converter,
+          LDValue.buildArray().addValue(
+              LDValue.buildArray().addValue(LDValue.ofNull()).build()).build());
+    });
   });
 
   group('LDValues can be converted to dynamics', () {
