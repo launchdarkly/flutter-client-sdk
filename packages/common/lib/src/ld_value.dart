@@ -112,7 +112,7 @@ final class LDValue {
   /// ```
   ///
   /// The implementation may be recursive, so it is possible for there to be
-  /// a sack overflow if the object to be converted contains an extreme amount
+  /// a stack overflow if the object to be converted contains an extreme amount
   /// of nesting.
   static LDValue ofDynamic(dynamic json) {
     return _ofDynamic(json, []);
