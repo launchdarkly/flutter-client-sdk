@@ -50,9 +50,9 @@ void main() {
       final b = {'a': a};
       a['b'] = b;
 
-      final converter = LDValue.ofDynamic(a);
+      final converted = LDValue.ofDynamic(a);
       expect(
-          converter,
+          converted,
           LDValue.buildObject()
               .addValue('b',
                   LDValue.buildObject().addValue('a', LDValue.ofNull()).build())
@@ -63,11 +63,32 @@ void main() {
       final a = <dynamic>[];
       final b = [a];
       a.add(b);
-      final converter = LDValue.ofDynamic(a);
+      final converted = LDValue.ofDynamic(a);
       expect(
-          converter,
-          LDValue.buildArray().addValue(
-              LDValue.buildArray().addValue(LDValue.ofNull()).build()).build());
+          converted,
+          LDValue.buildArray()
+              .addValue(LDValue.buildArray().addValue(LDValue.ofNull()).build())
+              .build());
+    });
+
+    test('Can include the same references in different parent objects', () {
+      final a = <String, dynamic>{};
+      final b = <String, dynamic>{};
+      final c = <String, dynamic>{};
+      final d = <String, String>{'e': 'value'};
+      a['b'] = b;
+      a['c'] = c;
+      b['d'] = d;
+      c['d'] = d;
+
+      final converted = LDValue.ofDynamic(a);
+      final conD = LDValueObjectBuilder().addString('e', 'value').build();
+      final conBC = LDValueObjectBuilder().addValue('d', conD).build();
+      final conA = LDValueObjectBuilder()
+          .addValue('b', conBC)
+          .addValue('c', conBC)
+          .build();
+      expect(converted, conA);
     });
   });
 
