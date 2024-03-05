@@ -22,6 +22,7 @@ class TestApiImpl extends SdkTestApi {
     'service-endpoints',
     'tags',
     'client-independence',
+    'context-comparison',
   ];
 
   static const clientUrlPrefix = '/client/';
@@ -273,15 +274,13 @@ class TestApiImpl extends SdkTestApi {
   }
 
   Response _handleContextComparison(Request body) {
-    // ignore: unused_local_variable
     final context1 =
-        _contextFromSingleOrMulti(body.contextComparison!.context1!);
-    // ignore: unused_local_variable
+        _buildContextForComparison(body.contextComparison!.context1!);
     final context2 =
-        _contextFromSingleOrMulti(body.contextComparison!.context2!);
+        _buildContextForComparison(body.contextComparison!.context2!);
     final response = Response();
-    // TODO: when context comparision support is added, replace 'false' with invocation
-    response['equals'] = false;
+
+    response['equals'] = context1 == context2;
     return response;
   }
 
@@ -295,6 +294,61 @@ class TestApiImpl extends SdkTestApi {
     } else {
       throw UnsupportedError(
           'Expected a single or multi context, but neither were provided.');
+    }
+  }
+
+  LDContext _buildContextForComparison(SingleOrMultiBuildContext input) {
+    if (input.single != null) {
+      final single = input.single!.toJson();
+      final kind = single['kind'];
+      final key = single['key'];
+      final builder = common.LDContextBuilder();
+      final singleAttributesBuilder = builder.kind(kind, key);
+      _buildSingleAttributes(singleAttributesBuilder, single);
+      return builder.build();
+    } else if (input.multi != null) {
+      final multi = input.multi!.toList();
+      final builder = common.LDContextBuilder();
+      for (var single in multi) {
+        final kind = single['kind'];
+        final key = single['key'];
+
+        final singleAttributesBuilder = builder.kind(kind, key);
+        _buildSingleAttributes(singleAttributesBuilder, single.toJson());
+      }
+      return builder.build();
+    } else {
+      throw UnsupportedError(
+          'Expected a single or multi context, but neither were provided.');
+    }
+  }
+
+  void _buildSingleAttributes(
+      common.LDAttributesBuilder singleAttributesBuilder,
+      Map<String, dynamic> single) {
+    final attributes = single['attributes'] as List<dynamic>?;
+    final privateAttributes = single['privateAttributes'] as List<dynamic>?;
+    if (attributes != null) {
+      for (var item in attributes) {
+        singleAttributesBuilder.setValue(
+            item['name'], LDValue.ofDynamic(item['value']));
+      }
+    }
+    if (privateAttributes != null) {
+      for (var item in privateAttributes) {
+        // We don't directly accept literals, so we use a song and dance here
+        // to get something that should be a valid reference.
+        if (item['literal']) {
+          singleAttributesBuilder.addPrivateAttributes([
+            AttributeReference.fromComponents(
+                    common.AttributeReference.fromLiteral(item['value'])
+                        .components)
+                .redactionName
+          ]);
+        } else {
+          singleAttributesBuilder.addPrivateAttributes([item['value']]);
+        }
+      }
     }
   }
 
