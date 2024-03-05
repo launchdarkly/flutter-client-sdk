@@ -371,7 +371,6 @@ class TestApiImpl extends SdkTestApi {
   }
 
   // Creates a map representing a single context from the ContextBuild command structure
-  // Creates a map representing a single context from the ContextBuild command structure
   Map<String, dynamic> _buildContextToFlattenedMap(BuildContext input) {
     Map<String, dynamic> retMap = {};
     retMap['kind'] = input['kind'];
