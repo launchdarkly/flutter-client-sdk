@@ -22,6 +22,7 @@ class TestApiImpl extends SdkTestApi {
     'service-endpoints',
     'tags',
     'client-independence',
+    'context-comparison',
   ];
 
   static const clientUrlPrefix = '/client/';
@@ -273,15 +274,13 @@ class TestApiImpl extends SdkTestApi {
   }
 
   Response _handleContextComparison(Request body) {
-    // ignore: unused_local_variable
     final context1 =
         _contextFromSingleOrMulti(body.contextComparison!.context1!);
-    // ignore: unused_local_variable
     final context2 =
         _contextFromSingleOrMulti(body.contextComparison!.context2!);
     final response = Response();
-    // TODO: when context comparision support is added, replace 'false' with invocation
-    response['equals'] = false;
+
+    response['equals'] = context1 == context2;
     return response;
   }
 
