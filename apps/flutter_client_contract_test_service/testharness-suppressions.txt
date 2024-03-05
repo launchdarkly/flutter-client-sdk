@@ -1,2 +1,1 @@
 context type/convert/invalid context/{"kind": null, "key": "x"}
-context type/compare
