@@ -287,4 +287,117 @@ void main() {
         LDContextSerialization.toJson(context2, isEvent: false));
     expect(ldValue1, ldValue2);
   });
+
+  group('context comparison', () {
+    test('contexts containing the same private attributes are equal', () {
+      final contextA = LDContextBuilder()
+          .kind('org', 'org-key')
+          .addPrivateAttributes(['/a', '/b']).build();
+      final contextB = LDContextBuilder()
+          .kind('org', 'org-key')
+          .addPrivateAttributes(['/b', '/a']).build();
+
+      expect(contextA, contextB);
+      expect(contextA.hashCode, contextB.hashCode);
+    });
+
+    test('contexts containing different private attributes are not equal', () {
+      final contextA = LDContextBuilder()
+          .kind('org', 'org-key')
+          .addPrivateAttributes(['/a', '/c']).build();
+      final contextB = LDContextBuilder()
+          .kind('org', 'org-key')
+          .addPrivateAttributes(['/b', '/a']).build();
+
+      expect(contextA, isNot(contextB));
+      expect(contextA.hashCode, isNot(contextB.hashCode));
+    });
+
+    test('contexts with different names are not equal', () {
+      final contextA =
+          LDContextBuilder().kind('org', 'org-key').name('CompanyA').build();
+      final contextB =
+          LDContextBuilder().kind('org', 'org-key').name('CompanyB').build();
+
+      expect(contextA, isNot(contextB));
+      expect(contextA.hashCode, isNot(contextB.hashCode));
+    });
+
+    test('complex single-kind contexts are equal', () {
+      final contextA = LDContextBuilder()
+          .kind('org', 'org-key')
+          .anonymous(true)
+          .name('anonymous user')
+          .addPrivateAttributes(['/a', 'b'])
+          .setBool('bool', true)
+          .setString('string', 'string')
+          .setNum('number', 42)
+          .setValue(
+              'value',
+              LDValueObjectBuilder()
+                  .addBool('bool', false)
+                  .addString('string', 'another')
+                  .addValue(
+                      'array',
+                      LDValueArrayBuilder()
+                          .addBool(true)
+                          .addBool(false)
+                          .build())
+                  .build())
+          .build();
+
+      final contextB = LDContextBuilder()
+          .kind('org', 'org-key')
+          .name('anonymous user')
+          .anonymous(true)
+          .setBool('bool', true)
+          .addPrivateAttributes(['/a', 'b'])
+          .setString('string', 'string')
+          .setNum('number', 42)
+          .setValue(
+              'value',
+              LDValueObjectBuilder()
+                  .addString('string', 'another')
+                  .addBool('bool', false)
+                  .addValue(
+                      'array',
+                      LDValueArrayBuilder()
+                          .addBool(true)
+                          .addBool(false)
+                          .build())
+                  .build())
+          .build();
+
+      expect(contextA, contextB);
+      expect(contextA.hashCode, contextB.hashCode);
+    });
+
+    test('equal multi-contexts are equal', () {
+      final contextA = LDContextBuilder()
+          .kind('zoo', 'zoo-key:%')
+          .kind('organization', 'org-key%:')
+          .build();
+      final contextB = LDContextBuilder()
+          .kind('organization', 'org-key%:')
+          .kind('zoo', 'zoo-key:%')
+          .build();
+
+      expect(contextA, contextB);
+      expect(contextA.hashCode, contextB.hashCode);
+    });
+
+    test('multi-contexts with different context kinds are not equal', () {
+      final contextA = LDContextBuilder()
+          .kind('zoo', 'zoo-key:%')
+          .kind('organization', 'org-key%:')
+          .build();
+      final contextB = LDContextBuilder()
+          .kind('organization', 'org-key%:')
+          .kind('park', 'zoo-key:%')
+          .build();
+
+      expect(contextA, isNot(contextB));
+      expect(contextA.hashCode, isNot(contextB.hashCode));
+    });
+  });
 }

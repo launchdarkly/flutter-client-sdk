@@ -14,6 +14,16 @@ extension ListComparisons<T> on List<T> {
   }
 }
 
+extension SetComparisons<T> on Set<T> {
+  /// Compare the contents of two sets. The sets must be the same size and
+  /// contain all the same objects.
+  bool equals(Set<T> other) {
+    if (length != other.length) return false;
+
+    return containsAll(other);
+  }
+}
+
 extension IterableWhere<T> on Iterable<T> {
   /// Find the first item matching a prerequisite or null.
   ///
