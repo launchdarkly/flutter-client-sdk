@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.0.0...launchdarkly_dart_common-v1.1.0) (2024-03-05)
+
+
+### Features
+
+* Add LDContext equality comparison. ([#135](https://github.com/launchdarkly/flutter-client-sdk/issues/135)) ([3591ddc](https://github.com/launchdarkly/flutter-client-sdk/commit/3591ddce335c756518ac792f219b41f496b300ac))
+* Support converting LDValue to/from dynamic. ([#134](https://github.com/launchdarkly/flutter-client-sdk/issues/134)) ([2a7ebf9](https://github.com/launchdarkly/flutter-client-sdk/commit/2a7ebf97382bc6141ac3d70fc600ae185d0c5e84))
+
 ## [1.0.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v0.0.2...launchdarkly_dart_common-v1.0.0) (2024-01-30)
 
 
