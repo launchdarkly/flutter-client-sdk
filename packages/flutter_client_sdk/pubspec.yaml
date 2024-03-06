@@ -14,7 +14,7 @@ dependencies:
     sdk: flutter
   package_info_plus: ">=4.2.0 <6.0.0"
   device_info_plus: ^9.1.1
-  launchdarkly_common_client: 1.0.2
+  launchdarkly_common_client: 1.1.0
   shared_preferences: ^2.2.2
   connectivity_plus: ^5.0.2
 
