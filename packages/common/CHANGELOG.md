@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.2.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.1.0...launchdarkly_dart_common-v1.2.0) (2024-03-14)
+
+
+### Features
+
+* Always inline contexts for feature events ([#76](https://github.com/launchdarkly/flutter-client-sdk/issues/76)) ([b2ebcbf](https://github.com/launchdarkly/flutter-client-sdk/commit/b2ebcbfd8c3c817595821f91ffb7ac02687bb41f))
+* Redact anonymous attributes within feature events ([#77](https://github.com/launchdarkly/flutter-client-sdk/issues/77)) ([4387375](https://github.com/launchdarkly/flutter-client-sdk/commit/4387375f65c544f92cb65ce9882bb436ae95631b))
+
 ## [1.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.0.0...launchdarkly_dart_common-v1.1.0) (2024-03-05)
 
 
