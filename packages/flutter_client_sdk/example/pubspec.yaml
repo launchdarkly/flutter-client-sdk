@@ -33,7 +33,7 @@ dependencies:
   # This defaults to a published package. Using `flutter pub get` will get the package from pub.dev
   # If you run `melos bs` in the root of the repository, then it will be linked to the local version
   # instead.
-  launchdarkly_flutter_client_sdk: 4.2.0 # x-release-please-version
+  launchdarkly_flutter_client_sdk: 4.3.0 # x-release-please-version
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
