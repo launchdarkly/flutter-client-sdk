@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.2.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.1.0...launchdarkly_common_client-v1.2.0) (2024-03-18)
+
+
+### Features
+
+* Update common-client to use common 1.2.0 ([#144](https://github.com/launchdarkly/flutter-client-sdk/issues/144)) ([cd704ec](https://github.com/launchdarkly/flutter-client-sdk/commit/cd704ec0f6814652fc8bd2afa9fef78474608079))
+
 ## [1.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.0.2...launchdarkly_common_client-v1.1.0) (2024-03-06)
 
 
