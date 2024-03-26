@@ -42,8 +42,9 @@ final class FlutterStateDetector implements StateDetector {
         Connectivity().onConnectivityChanged.listen(_setConnectivity);
   }
 
-  void _setConnectivity(List<ConnectivityResult> connectivityResult) {
-    if (connectivityResult.any((result) => result == ConnectivityResult.none)) {
+  void _setConnectivity(List<ConnectivityResult> connectivityResults) {
+    if (connectivityResults
+        .any((result) => result == ConnectivityResult.none)) {
       _networkStateController.sink.add(NetworkState.unavailable);
     } else {
       _networkStateController.sink.add(NetworkState.available);
