@@ -23,7 +23,8 @@ final class FlutterStateDetector implements StateDetector {
   Stream<NetworkState> get networkState => _networkStateController.stream;
 
   late final LDAppLifecycleListener _lifecycleListener;
-  late final StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  late final StreamSubscription<List<ConnectivityResult>>
+      _connectivitySubscription;
 
   FlutterStateDetector() {
     final initialState = SchedulerBinding.instance.lifecycleState;
@@ -41,8 +42,8 @@ final class FlutterStateDetector implements StateDetector {
         Connectivity().onConnectivityChanged.listen(_setConnectivity);
   }
 
-  void _setConnectivity(ConnectivityResult connectivityResult) {
-    if (connectivityResult == ConnectivityResult.none) {
+  void _setConnectivity(List<ConnectivityResult> connectivityResult) {
+    if (connectivityResult.any((result) => result == ConnectivityResult.none)) {
       _networkStateController.sink.add(NetworkState.unavailable);
     } else {
       _networkStateController.sink.add(NetworkState.available);
