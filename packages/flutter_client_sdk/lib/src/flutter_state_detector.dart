@@ -44,16 +44,10 @@ final class FlutterStateDetector implements StateDetector {
   void _setConnectivity(dynamic connectivityResult) {
     // TODO: This is a temporary fix to handle the breaking change in
     // connectivity_plus v6
-    bool isUnavailable;
-    // For connectivity_plus v6
-    if (connectivityResult is List) {
-      isUnavailable =
-          connectivityResult.any((result) => result == ConnectivityResult.none);
-    }
-    // For connectivity_plus v5
-    else {
-      isUnavailable = connectivityResult == ConnectivityResult.none;
-    }
+    final resultsList =
+        connectivityResult is List ? connectivityResult : [connectivityResult];
+    final isUnavailable =
+        resultsList.any((result) => result == ConnectivityResult.none);
 
     if (isUnavailable) {
       _networkStateController.sink.add(NetworkState.unavailable);
