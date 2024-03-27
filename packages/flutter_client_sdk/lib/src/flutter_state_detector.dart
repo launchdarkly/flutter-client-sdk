@@ -23,7 +23,7 @@ final class FlutterStateDetector implements StateDetector {
   Stream<NetworkState> get networkState => _networkStateController.stream;
 
   late final LDAppLifecycleListener _lifecycleListener;
-  late final StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  late final StreamSubscription<dynamic> _connectivitySubscription;
 
   FlutterStateDetector() {
     final initialState = SchedulerBinding.instance.lifecycleState;
@@ -41,8 +41,15 @@ final class FlutterStateDetector implements StateDetector {
         Connectivity().onConnectivityChanged.listen(_setConnectivity);
   }
 
-  void _setConnectivity(ConnectivityResult connectivityResult) {
-    if (connectivityResult == ConnectivityResult.none) {
+  void _setConnectivity(dynamic connectivityResult) {
+    // TODO: This is a temporary fix to handle the breaking change in
+    // connectivity_plus v6
+    final resultsList =
+        connectivityResult is List ? connectivityResult : [connectivityResult];
+    final isUnavailable =
+        resultsList.any((result) => result == ConnectivityResult.none);
+
+    if (isUnavailable) {
       _networkStateController.sink.add(NetworkState.unavailable);
     } else {
       _networkStateController.sink.add(NetworkState.available);
