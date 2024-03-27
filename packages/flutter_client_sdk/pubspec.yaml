@@ -16,7 +16,7 @@ dependencies:
   device_info_plus: ">=9.1.1 <11.0.0"
   launchdarkly_common_client: 1.2.0
   shared_preferences: ^2.2.2
-  connectivity_plus: ^6.0.1
+  connectivity_plus: ">=5.0.2 <7.0.0"
 
 dev_dependencies:
   flutter_test:
