@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "sdks": {
+    "flutter-client-sdk": {
+      "name": "Flutter Client SDK",
+      "type": "client-side",
+      "path": "packages/flutter_client_sdk",
+      "languages": [
+        "Dart"
+      ]
+    }
+  }
+}
