@@ -20,6 +20,9 @@ jobs:
       ANDROID_SDK_HOME: "/tmp/Android"
       ANDROID_SDK_ROOT: "/tmp/Android"
 
+branches:
+  - name: v3
+
 documentation:
   gitHubPages: true
 
