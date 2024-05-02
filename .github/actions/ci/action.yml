@@ -3,6 +3,11 @@
 # additional workflow specific steps. This workflow is used for both CI and release process.
 name: Shared CI Workflow
 
+inputs:
+  github_token:
+    description: "Github token used to access contract test harness."
+    required: true
+
 description: Shared build and test for CI and release.
 runs:
   using: composite
@@ -46,9 +51,11 @@ runs:
       run: |
         pushd apps/flutter_client_contract_test_service
         flutter test bin/contract_test_service.dart > test-service.log 2>&1 & disown
-        sleep 10
-        curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/main/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -status-timeout 100 -stop-service-at-end -skip-from testharness-suppressions.txt" sh
-        popd
+    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1.0.1
+      with:
+        test_service_port: 8080
+        token: ${{ inputs.github_token }}
+        extra_params: '-status-timeout 100 --skip-from=./apps/flutter_client_contract_test_service/testharness-suppressions.txt'
 
     - name: SSE Contract Tests
       shell: bash
