@@ -25,8 +25,17 @@ void main() {
           DiagnosticSdkData(name: '', version: ''));
     });
 
+    test('client can start successfully with a timeout', () async {
+      expect(await client.startWithTimeout(const Duration(seconds: 90)), true);
+    });
+
     test('client can start successfully', () async {
       expect(await client.start(), true);
+    });
+
+    test('client reports initialized after startWithTimeout', () async {
+      await client.startWithTimeout(const Duration(seconds: 90));
+      expect(client.initialized, isTrue);
     });
 
     test('client reports initialized after start', () async {
