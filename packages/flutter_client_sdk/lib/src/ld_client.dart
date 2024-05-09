@@ -89,6 +89,10 @@ interface class LDClient {
         detector: FlutterStateDetector());
   }
 
+  Future<bool> startWithTimeout(Duration timeout) async {
+    return _client.startWithTimeout(timeout);
+  }
+
   /// Initialize the SDK.
   ///
   /// This should be called before using the SDK to evaluate flags. Note that

@@ -172,6 +172,20 @@ final class LDCommonClient {
         context);
   }
 
+  /// This is the new method that will enforce a timeout is passed to the future.
+  ///
+  /// If the return value is true, then the SDK has initialized, if false
+  /// then the SDK has encountered an unrecoverable error. If
+  Future<bool> startWithTimeout(Duration timeout) {
+    if (timeout > Duration(seconds: 15)) {
+      _logger.warn(
+          'The method startWithTimeout was called with a timeout greater than 15 seconds. '
+          'We recommend a timeout of less than 15 seconds.');
+    }
+
+    return start().timeout(timeout);
+  }
+
   /// This instructs the SDK to start connecting to LaunchDarkly. Ideally
   /// this is called before any other methods. Variation calls before the SDK
   /// has been started, or after starting but before initialization is complete,
