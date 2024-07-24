@@ -107,15 +107,19 @@ interface class LDClient {
   /// ```dart
   /// await client.start().timeout(const Duration(seconds: 30));
   /// ```
-  /// The [waitForNonCachedValues] parameters, when true, indicates that the SDK
+  /// The [waitForNetworkResults] parameters, when true, indicates that the SDK
   /// will attempt to wait for values from LaunchDarkly instead of depending
   /// on cached values. The cached values will still be loaded, but the future
-  /// returned by this function will not resolve. Generally this
-  /// option should NOT be used and instead flag changes should be listened to.
-  /// If [waitForNonCachedValues] is true, and an error is encountered, then
+  /// returned by this function will not resolve as a result of those cached
+  /// values being loaded. Generally this option should NOT be used and instead
+  /// flag changes should be listened to. It the client is set to offline mode,
+  /// then this option is ignored.
+  ///
+  /// If [waitForNetworkResults] is true, and an error is encountered, then
   /// false may be returned even if cached values were loaded.
-  Future<bool> start({bool waitForNonCachedValues = false}) async {
-    return _client.start(waitForNonCachedValues: waitForNonCachedValues);
+  /// false may be returned even if cached values were loaded.
+  Future<bool> start({bool waitForNetworkResults = false}) async {
+    return _client.start(waitForNetworkResults: waitForNetworkResults);
   }
 
   /// Changes the active context.
@@ -133,12 +137,15 @@ interface class LDClient {
   /// be complete. As with [start] this can take an extended period if there
   /// is not network availability, so a timeout is recommended.
   ///
-  /// The [waitForNonCachedValues] parameters, when true, indicates that the SDK
+  /// The [waitForNetworkResults] parameters, when true, indicates that the SDK
   /// will attempt to wait for values from LaunchDarkly instead of depending
   /// on cached values. The cached values will still be loaded, but the future
-  /// returned by this function will not resolve. Generally this
-  /// option should NOT be used and instead flag changes should be listened to.
-  /// If [waitForNonCachedValues] is true, and an error is encountered, then
+  /// returned by this function will not resolve as a result of those cached
+  /// values being loaded. Generally this option should NOT be used and instead
+  /// flag changes should be listened to. It the client is set to offline mode,
+  /// then this option is ignored.
+  ///
+  /// If [waitForNetworkResults] is true, and an error is encountered, then
   /// [IdentifyError] may be returned even if cached values were loaded.
   ///
   /// The identify will complete with 1 of three possible values:
@@ -158,9 +165,9 @@ interface class LDClient {
   /// [IdentifyError] this means that the identify has permanently failed. For
   /// instance the SDK key is no longer valid.
   Future<IdentifyResult> identify(LDContext context,
-      {bool waitForNonCachedValues = false}) async {
+      {bool waitForNetworkResults = false}) async {
     return _client.identify(context,
-        waitForNonCachedValues: waitForNonCachedValues);
+        waitForNetworkResults: waitForNetworkResults);
   }
 
   /// Track custom events associated with the current context for data export or

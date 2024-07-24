@@ -215,15 +215,7 @@ final class LDCommonClient {
   ///
   /// If the return value is true, then the SDK has initialized, if false
   /// then the SDK has encountered an unrecoverable error.
-  ///
-  /// The [waitForNonCachedValues] parameters, when true, indicates that the SDK
-  /// will attempt to wait for values from LaunchDarkly instead of depending
-  /// on cached values. The cached values will still be loaded, but the future
-  /// returned by this function will not resolve. Generally this
-  /// option should NOT be used and instead flag changes should be listened to.
-  /// If [waitForNonCachedValues] is true, and an error is encountered, then
-  /// false may be returned even if cached values were loaded.
-  Future<bool> start({bool waitForNonCachedValues = false}) {
+  Future<bool> start({bool waitForNetworkResults = false}) {
     if (_startFuture != null) {
       return _startFuture!.then(_mapIdentifyStart);
     }
@@ -236,7 +228,7 @@ final class LDCommonClient {
     _identifyQueue.execute(() async {
       await _startInternal();
       await _identifyInternal(_initialUndecoratedContext,
-          waitForNonCachedValues: waitForNonCachedValues);
+          waitForNetworkResults: waitForNetworkResults);
     }).then((res) {
       _startCompleter!.complete(_mapIdentifyResult(res));
     });
@@ -372,7 +364,7 @@ final class LDCommonClient {
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
   Future<IdentifyResult> identify(LDContext context,
-      {bool waitForNonCachedValues = false}) async {
+      {bool waitForNetworkResults = false}) async {
     if (_startFuture == null) {
       const message =
           'Identify called before SDK has been started. Start the SDK before '
@@ -382,7 +374,7 @@ final class LDCommonClient {
     }
     final res = await _identifyQueue.execute(() async {
       await _identifyInternal(context,
-          waitForNonCachedValues: waitForNonCachedValues);
+          waitForNetworkResults: waitForNetworkResults);
     });
     return _mapIdentifyResult(res);
   }
@@ -399,7 +391,7 @@ final class LDCommonClient {
   }
 
   Future<void> _identifyInternal(LDContext context,
-      {bool waitForNonCachedValues = false}) async {
+      {bool waitForNetworkResults = false}) async {
     await _setAndDecorateContext(context);
     final completer = Completer<void>();
     _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
@@ -410,7 +402,7 @@ final class LDCommonClient {
     }
     _dataSourceManager.identify(_context, completer);
 
-    if (loadedFromCache && !waitForNonCachedValues) {
+    if (loadedFromCache && !waitForNetworkResults) {
       return;
     }
     return completer.future;

@@ -244,7 +244,7 @@ void main() {
       await client.start();
 
       await client.identify(LDContextBuilder().kind('user', 'joe').build(),
-          waitForNonCachedValues: true);
+          waitForNetworkResults: true);
       final res = client.stringVariation('flagA', 'default');
       expect(res, 'datasource');
     });
@@ -278,7 +278,7 @@ void main() {
             '}}'
       };
 
-      await client.start(waitForNonCachedValues: true);
+      await client.start(waitForNetworkResults: true);
       final res = client.stringVariation('flagA', 'default');
       expect(res, 'datasource');
     });
