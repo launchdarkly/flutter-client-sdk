@@ -203,7 +203,7 @@ final class LDCommonClient {
 
   Future<void> _setAndDecorateContext(LDContext context) async {
     _context = await _modifiers.asyncReduce(
-            (reducer, accumulator) async => await reducer.decorate(accumulator),
+        (reducer, accumulator) async => await reducer.decorate(accumulator),
         context);
   }
 
@@ -247,12 +247,12 @@ final class LDCommonClient {
       case IdentifyComplete():
         return true;
       case IdentifySuperseded():
-      // This case does not happen because of the queue configuration. First
-      // item in the queue will always be the start identify and it will
-      // always be executed.
+        // This case does not happen because of the queue configuration. First
+        // item in the queue will always be the start identify and it will
+        // always be executed.
         _logger.error(
             'Identify was superseded, this represents a logic error in the SDK '
-                'implementation. Please file a bug report.');
+            'implementation. Please file a bug report.');
         continue error; // Simulate fallthrough.
       error:
       case IdentifyError():
@@ -296,7 +296,7 @@ final class LDCommonClient {
               .where((ref) => ref.valid)
               .toSet(),
           diagnosticRecordingInterval:
-          _config.events.diagnosticRecordingInterval);
+              _config.events.diagnosticRecordingInterval);
     }
 
     _updateEventSendingState();
@@ -320,40 +320,40 @@ final class LDCommonClient {
     final diagnosticsManager = _config.events.diagnosticOptOut
         ? null
         : DiagnosticsManager(
-        credential: _config.sdkCredential,
-        sdkData: _sdkData,
-        platformData: DiagnosticPlatformData(
-          name: 'Dart',
-          osName: osInfo?.name,
-          osVersion: osInfo?.version,
-        ),
-        configData: DiagnosticConfigData(
-            customBaseUri: _config.serviceEndpoints.polling !=
-                _config.serviceEndpoints.defaultPolling,
-            customStreamUri: _config.serviceEndpoints.streaming !=
-                _config.serviceEndpoints.streaming,
-            eventsCapacity: _config.events.eventCapacity,
-            connectTimeoutMillis:
-            _config.httpProperties.connectTimeout.inMilliseconds,
-            eventsFlushIntervalMillis:
-            _config.events.flushInterval.inMilliseconds,
-            pollingIntervalMillis: _config
-                .dataSourceConfig.polling.pollingInterval.inMilliseconds,
-            // TODO: If made dynamic, then needs implemented.
-            reconnectTimeoutMillis: 1000,
-            // For now disabled means polling is enabled. When dynamic
-            // switching is added, then this can potentially just return
-            // `false`.
-            streamingDisabled:
-            _config.dataSourceConfig.initialConnectionMode ==
-                ConnectionMode.polling,
-            offline: _config.offline,
-            allAttributesPrivate: _config.allAttributesPrivate,
-            diagnosticRecordingIntervalMillis:
-            _config.events.diagnosticRecordingInterval.inMilliseconds,
-            useReport: _config.dataSourceConfig.useReport,
-            evaluationReasonsRequested:
-            _config.dataSourceConfig.evaluationReasons));
+            credential: _config.sdkCredential,
+            sdkData: _sdkData,
+            platformData: DiagnosticPlatformData(
+              name: 'Dart',
+              osName: osInfo?.name,
+              osVersion: osInfo?.version,
+            ),
+            configData: DiagnosticConfigData(
+                customBaseUri: _config.serviceEndpoints.polling !=
+                    _config.serviceEndpoints.defaultPolling,
+                customStreamUri: _config.serviceEndpoints.streaming !=
+                    _config.serviceEndpoints.streaming,
+                eventsCapacity: _config.events.eventCapacity,
+                connectTimeoutMillis:
+                    _config.httpProperties.connectTimeout.inMilliseconds,
+                eventsFlushIntervalMillis:
+                    _config.events.flushInterval.inMilliseconds,
+                pollingIntervalMillis: _config
+                    .dataSourceConfig.polling.pollingInterval.inMilliseconds,
+                // TODO: If made dynamic, then needs implemented.
+                reconnectTimeoutMillis: 1000,
+                // For now disabled means polling is enabled. When dynamic
+                // switching is added, then this can potentially just return
+                // `false`.
+                streamingDisabled:
+                    _config.dataSourceConfig.initialConnectionMode ==
+                        ConnectionMode.polling,
+                offline: _config.offline,
+                allAttributesPrivate: _config.allAttributesPrivate,
+                diagnosticRecordingIntervalMillis:
+                    _config.events.diagnosticRecordingInterval.inMilliseconds,
+                useReport: _config.dataSourceConfig.useReport,
+                evaluationReasonsRequested:
+                    _config.dataSourceConfig.evaluationReasons));
     return diagnosticsManager;
   }
 
@@ -419,7 +419,7 @@ final class LDCommonClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
   bool boolVariation(String flagKey, bool defaultValue) {
     return _variationInternal(flagKey, LDValue.ofBool(defaultValue),
-        isDetailed: false, type: LDValueType.boolean)
+            isDetailed: false, type: LDValueType.boolean)
         .value
         .booleanValue();
   }
@@ -428,8 +428,8 @@ final class LDCommonClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<bool> boolVariationDetail(String flagKey,
-      bool defaultValue) {
+  LDEvaluationDetail<bool> boolVariationDetail(
+      String flagKey, bool defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofBool(defaultValue),
         isDetailed: true, type: LDValueType.boolean);
@@ -443,7 +443,7 @@ final class LDCommonClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   int intVariation(String flagKey, int defaultValue) {
     return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-        isDetailed: false, type: LDValueType.number)
+            isDetailed: false, type: LDValueType.number)
         .value
         .intValue();
   }
@@ -466,7 +466,7 @@ final class LDCommonClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   double doubleVariation(String flagKey, double defaultValue) {
     return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-        isDetailed: false, type: LDValueType.number)
+            isDetailed: false, type: LDValueType.number)
         .value
         .doubleValue();
   }
@@ -475,8 +475,8 @@ final class LDCommonClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<double> doubleVariationDetail(String flagKey,
-      double defaultValue) {
+  LDEvaluationDetail<double> doubleVariationDetail(
+      String flagKey, double defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofNum(defaultValue),
         isDetailed: true, type: LDValueType.number);
@@ -490,7 +490,7 @@ final class LDCommonClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a string, or if some error occurs.
   String stringVariation(String flagKey, String defaultValue) {
     return _variationInternal(flagKey, LDValue.ofString(defaultValue),
-        isDetailed: false, type: LDValueType.string)
+            isDetailed: false, type: LDValueType.string)
         .value
         .stringValue();
   }
@@ -500,8 +500,8 @@ final class LDCommonClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<String> stringVariationDetail(String flagKey,
-      String defaultValue) {
+  LDEvaluationDetail<String> stringVariationDetail(
+      String flagKey, String defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofString(defaultValue),
         isDetailed: true, type: LDValueType.string);
@@ -521,13 +521,13 @@ final class LDCommonClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<LDValue> jsonVariationDetail(String flagKey,
-      LDValue defaultValue) {
+  LDEvaluationDetail<LDValue> jsonVariationDetail(
+      String flagKey, LDValue defaultValue) {
     return _variationInternal(flagKey, defaultValue, isDetailed: true);
   }
 
-  LDEvaluationDetail<LDValue> _variationInternal(String flagKey,
-      LDValue defaultValue,
+  LDEvaluationDetail<LDValue> _variationInternal(
+      String flagKey, LDValue defaultValue,
       {required bool isDetailed, LDValueType? type}) {
     final evalResult = _flagManager.get(flagKey);
 
@@ -555,7 +555,7 @@ final class LDCommonClient {
         trackEvent: evalResult?.flag?.trackEvents ?? false,
         debugEventsUntilDate: evalResult?.flag?.debugEventsUntilDate != null
             ? DateTime.fromMillisecondsSinceEpoch(
-            evalResult!.flag!.debugEventsUntilDate!)
+                evalResult!.flag!.debugEventsUntilDate!)
             : null,
         version: evalResult?.version));
 
@@ -572,7 +572,7 @@ final class LDCommonClient {
     final allEvalResults = _flagManager.getAll();
 
     for (var MapEntry(key: flagKey, value: evalResult)
-    in allEvalResults.entries) {
+        in allEvalResults.entries) {
       if (evalResult.flag != null) {
         res[flagKey] = evalResult.flag!.detail.value;
       }
