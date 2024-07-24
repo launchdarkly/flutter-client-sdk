@@ -45,6 +45,37 @@ final class IdentifyError implements IdentifyResult {
   IdentifyError(this.error);
 }
 
+typedef DataSourceFactoriesFn = Map<ConnectionMode, DataSourceFactory> Function(LDCommonConfig config, LDLogger logger, HttpProperties httpProperties);
+
+Map<ConnectionMode, DataSourceFactory> _defaultFactories(LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
+  return {
+    ConnectionMode.streaming: (LDContext context) {
+      return StreamingDataSource(
+          credential: config.sdkCredential,
+          context: context,
+          endpoints: config.serviceEndpoints,
+          logger: logger,
+          dataSourceConfig: StreamingDataSourceConfig(
+              useReport: config.dataSourceConfig.useReport,
+              withReasons: config.dataSourceConfig.evaluationReasons),
+          httpProperties: httpProperties);
+    },
+    ConnectionMode.polling: (LDContext context) {
+      return PollingDataSource(
+          credential: config.sdkCredential,
+          context: context,
+          endpoints: config.serviceEndpoints,
+          logger: logger,
+          dataSourceConfig: PollingDataSourceConfig(
+              useReport: config.dataSourceConfig.useReport,
+              withReasons: config.dataSourceConfig.evaluationReasons,
+              pollingInterval:
+              config.dataSourceConfig.polling.pollingInterval),
+          httpProperties: httpProperties);
+    },
+  };
+}
+
 final class LDCommonClient {
   final LDCommonConfig _config;
   final Persistence _persistence;
@@ -58,6 +89,7 @@ final class LDCommonClient {
   late final DataSourceManager _dataSourceManager;
   late final EnvironmentReport _envReport;
   late final AsyncSingleQueue<void> _identifyQueue = AsyncSingleQueue();
+  late final DataSourceFactoriesFn _dataSourceFactories;
 
   // Modifications will happen in the order they are specified in this list.
   // If there are cross-dependent modifiers, then this must be considered.
@@ -93,7 +125,8 @@ final class LDCommonClient {
   }
 
   LDCommonClient(LDCommonConfig commonConfig, CommonPlatform platform,
-      LDContext context, DiagnosticSdkData sdkData)
+      LDContext context, DiagnosticSdkData sdkData,
+      {DataSourceFactoriesFn? dataSourceFactories})
       : _config = commonConfig,
         _platform = platform,
         _persistence = ValidatingPersistence(
@@ -107,6 +140,8 @@ final class LDCommonClient {
             persistence: platform.persistence),
         _dataSourceStatusManager = DataSourceStatusManager(),
         _initialUndecoratedContext = context,
+        // Data source factories is primarily a mechanism for testing.
+        _dataSourceFactories = dataSourceFactories ?? _defaultFactories,
         _sdkData = sdkData {
     final dataSourceEventHandler = DataSourceEventHandler(
         flagManager: _flagManager,
@@ -168,7 +203,7 @@ final class LDCommonClient {
 
   Future<void> _setAndDecorateContext(LDContext context) async {
     _context = await _modifiers.asyncReduce(
-        (reducer, accumulator) async => await reducer.decorate(accumulator),
+            (reducer, accumulator) async => await reducer.decorate(accumulator),
         context);
   }
 
@@ -179,7 +214,15 @@ final class LDCommonClient {
   ///
   /// If the return value is true, then the SDK has initialized, if false
   /// then the SDK has encountered an unrecoverable error.
-  Future<bool> start() {
+  ///
+  /// The [waitForNonCachedValues] parameters, when true, indicates that the SDK
+  /// will attempt to wait for values from LaunchDarkly instead of depending
+  /// on cached values. The cached values will still be loaded, but the future
+  /// returned by this function will not resolve. Generally this
+  /// option should NOT be used and instead flag changes should be listened to.
+  /// If [waitForNonCachedValues] is true, and an error is encountered, then
+  /// false may be returned even if cached values were loaded.
+  Future<bool> start({bool waitForNonCachedValues = false}) {
     if (_startFuture != null) {
       return _startFuture!.then(_mapIdentifyStart);
     }
@@ -191,7 +234,7 @@ final class LDCommonClient {
     // having been set resulting in a crash.
     _identifyQueue.execute(() async {
       await _startInternal();
-      await _identifyInternal(_initialUndecoratedContext);
+      await _identifyInternal(_initialUndecoratedContext, waitForNonCachedValues: waitForNonCachedValues);
     }).then((res) {
       _startCompleter!.complete(_mapIdentifyResult(res));
     });
@@ -204,12 +247,12 @@ final class LDCommonClient {
       case IdentifyComplete():
         return true;
       case IdentifySuperseded():
-        // This case does not happen because of the queue configuration. First
-        // item in the queue will always be the start identify and it will
-        // always be executed.
+      // This case does not happen because of the queue configuration. First
+      // item in the queue will always be the start identify and it will
+      // always be executed.
         _logger.error(
             'Identify was superseded, this represents a logic error in the SDK '
-            'implementation. Please file a bug report.');
+                'implementation. Please file a bug report.');
         continue error; // Simulate fallthrough.
       error:
       case IdentifyError():
@@ -253,38 +296,14 @@ final class LDCommonClient {
               .where((ref) => ref.valid)
               .toSet(),
           diagnosticRecordingInterval:
-              _config.events.diagnosticRecordingInterval);
+          _config.events.diagnosticRecordingInterval);
     }
 
     _updateEventSendingState();
 
     if (!_config.offline) {
-      _dataSourceManager.setFactories({
-        ConnectionMode.streaming: (LDContext context) {
-          return StreamingDataSource(
-              credential: _config.sdkCredential,
-              context: context,
-              endpoints: _config.serviceEndpoints,
-              logger: _logger,
-              dataSourceConfig: StreamingDataSourceConfig(
-                  useReport: _config.dataSourceConfig.useReport,
-                  withReasons: _config.dataSourceConfig.evaluationReasons),
-              httpProperties: httpProperties);
-        },
-        ConnectionMode.polling: (LDContext context) {
-          return PollingDataSource(
-              credential: _config.sdkCredential,
-              context: context,
-              endpoints: _config.serviceEndpoints,
-              logger: _logger,
-              dataSourceConfig: PollingDataSourceConfig(
-                  useReport: _config.dataSourceConfig.useReport,
-                  withReasons: _config.dataSourceConfig.evaluationReasons,
-                  pollingInterval:
-                      _config.dataSourceConfig.polling.pollingInterval),
-              httpProperties: httpProperties);
-        },
-      });
+      _dataSourceManager.setFactories(
+          _dataSourceFactories(_config, _logger, httpProperties));
     } else {
       _dataSourceManager.setFactories({
         ConnectionMode.streaming: (LDContext context) {
@@ -301,40 +320,40 @@ final class LDCommonClient {
     final diagnosticsManager = _config.events.diagnosticOptOut
         ? null
         : DiagnosticsManager(
-            credential: _config.sdkCredential,
-            sdkData: _sdkData,
-            platformData: DiagnosticPlatformData(
-              name: 'Dart',
-              osName: osInfo?.name,
-              osVersion: osInfo?.version,
-            ),
-            configData: DiagnosticConfigData(
-                customBaseUri: _config.serviceEndpoints.polling !=
-                    _config.serviceEndpoints.defaultPolling,
-                customStreamUri: _config.serviceEndpoints.streaming !=
-                    _config.serviceEndpoints.streaming,
-                eventsCapacity: _config.events.eventCapacity,
-                connectTimeoutMillis:
-                    _config.httpProperties.connectTimeout.inMilliseconds,
-                eventsFlushIntervalMillis:
-                    _config.events.flushInterval.inMilliseconds,
-                pollingIntervalMillis: _config
-                    .dataSourceConfig.polling.pollingInterval.inMilliseconds,
-                // TODO: If made dynamic, then needs implemented.
-                reconnectTimeoutMillis: 1000,
-                // For now disabled means polling is enabled. When dynamic
-                // switching is added, then this can potentially just return
-                // `false`.
-                streamingDisabled:
-                    _config.dataSourceConfig.initialConnectionMode ==
-                        ConnectionMode.polling,
-                offline: _config.offline,
-                allAttributesPrivate: _config.allAttributesPrivate,
-                diagnosticRecordingIntervalMillis:
-                    _config.events.diagnosticRecordingInterval.inMilliseconds,
-                useReport: _config.dataSourceConfig.useReport,
-                evaluationReasonsRequested:
-                    _config.dataSourceConfig.evaluationReasons));
+        credential: _config.sdkCredential,
+        sdkData: _sdkData,
+        platformData: DiagnosticPlatformData(
+          name: 'Dart',
+          osName: osInfo?.name,
+          osVersion: osInfo?.version,
+        ),
+        configData: DiagnosticConfigData(
+            customBaseUri: _config.serviceEndpoints.polling !=
+                _config.serviceEndpoints.defaultPolling,
+            customStreamUri: _config.serviceEndpoints.streaming !=
+                _config.serviceEndpoints.streaming,
+            eventsCapacity: _config.events.eventCapacity,
+            connectTimeoutMillis:
+            _config.httpProperties.connectTimeout.inMilliseconds,
+            eventsFlushIntervalMillis:
+            _config.events.flushInterval.inMilliseconds,
+            pollingIntervalMillis: _config
+                .dataSourceConfig.polling.pollingInterval.inMilliseconds,
+            // TODO: If made dynamic, then needs implemented.
+            reconnectTimeoutMillis: 1000,
+            // For now disabled means polling is enabled. When dynamic
+            // switching is added, then this can potentially just return
+            // `false`.
+            streamingDisabled:
+            _config.dataSourceConfig.initialConnectionMode ==
+                ConnectionMode.polling,
+            offline: _config.offline,
+            allAttributesPrivate: _config.allAttributesPrivate,
+            diagnosticRecordingIntervalMillis:
+            _config.events.diagnosticRecordingInterval.inMilliseconds,
+            useReport: _config.dataSourceConfig.useReport,
+            evaluationReasonsRequested:
+            _config.dataSourceConfig.evaluationReasons));
     return diagnosticsManager;
   }
 
@@ -350,7 +369,8 @@ final class LDCommonClient {
   /// When the context is changed, the SDK will load flag values for the context from a local cache if available, while
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
-  Future<IdentifyResult> identify(LDContext context) async {
+  Future<IdentifyResult> identify(LDContext context,
+      {bool waitForNonCachedValues = false}) async {
     if (_startFuture == null) {
       const message =
           'Identify called before SDK has been started. Start the SDK before '
@@ -359,7 +379,8 @@ final class LDCommonClient {
       return IdentifyError(Exception(message));
     }
     final res = await _identifyQueue.execute(() async {
-      await _identifyInternal(context);
+      await _identifyInternal(context,
+          waitForNonCachedValues: waitForNonCachedValues);
     });
     return _mapIdentifyResult(res);
   }
@@ -375,19 +396,19 @@ final class LDCommonClient {
     }
   }
 
-  Future<void> _identifyInternal(LDContext context) async {
+  Future<void> _identifyInternal(LDContext context,
+      {bool waitForNonCachedValues = false}) async {
     await _setAndDecorateContext(context);
     final completer = Completer<void>();
     _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
     final loadedFromCache = await _flagManager.loadCached(_context);
 
     if (_config.offline) {
-      // TODO: Do we need to do anything different here?
       return;
     }
     _dataSourceManager.identify(_context, completer);
 
-    if (loadedFromCache) {
+    if (loadedFromCache && !waitForNonCachedValues) {
       return;
     }
     return completer.future;
@@ -398,7 +419,7 @@ final class LDCommonClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
   bool boolVariation(String flagKey, bool defaultValue) {
     return _variationInternal(flagKey, LDValue.ofBool(defaultValue),
-            isDetailed: false, type: LDValueType.boolean)
+        isDetailed: false, type: LDValueType.boolean)
         .value
         .booleanValue();
   }
@@ -407,8 +428,8 @@ final class LDCommonClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<bool> boolVariationDetail(
-      String flagKey, bool defaultValue) {
+  LDEvaluationDetail<bool> boolVariationDetail(String flagKey,
+      bool defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofBool(defaultValue),
         isDetailed: true, type: LDValueType.boolean);
@@ -422,7 +443,7 @@ final class LDCommonClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   int intVariation(String flagKey, int defaultValue) {
     return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-            isDetailed: false, type: LDValueType.number)
+        isDetailed: false, type: LDValueType.number)
         .value
         .intValue();
   }
@@ -445,7 +466,7 @@ final class LDCommonClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   double doubleVariation(String flagKey, double defaultValue) {
     return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-            isDetailed: false, type: LDValueType.number)
+        isDetailed: false, type: LDValueType.number)
         .value
         .doubleValue();
   }
@@ -454,8 +475,8 @@ final class LDCommonClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<double> doubleVariationDetail(
-      String flagKey, double defaultValue) {
+  LDEvaluationDetail<double> doubleVariationDetail(String flagKey,
+      double defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofNum(defaultValue),
         isDetailed: true, type: LDValueType.number);
@@ -469,7 +490,7 @@ final class LDCommonClient {
   /// Will return the provided [defaultValue] if the flag is missing, not a string, or if some error occurs.
   String stringVariation(String flagKey, String defaultValue) {
     return _variationInternal(flagKey, LDValue.ofString(defaultValue),
-            isDetailed: false, type: LDValueType.string)
+        isDetailed: false, type: LDValueType.string)
         .value
         .stringValue();
   }
@@ -479,8 +500,8 @@ final class LDCommonClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<String> stringVariationDetail(
-      String flagKey, String defaultValue) {
+  LDEvaluationDetail<String> stringVariationDetail(String flagKey,
+      String defaultValue) {
     final ldValueVariation = _variationInternal(
         flagKey, LDValue.ofString(defaultValue),
         isDetailed: true, type: LDValueType.string);
@@ -500,13 +521,13 @@ final class LDCommonClient {
   ///
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
-  LDEvaluationDetail<LDValue> jsonVariationDetail(
-      String flagKey, LDValue defaultValue) {
+  LDEvaluationDetail<LDValue> jsonVariationDetail(String flagKey,
+      LDValue defaultValue) {
     return _variationInternal(flagKey, defaultValue, isDetailed: true);
   }
 
-  LDEvaluationDetail<LDValue> _variationInternal(
-      String flagKey, LDValue defaultValue,
+  LDEvaluationDetail<LDValue> _variationInternal(String flagKey,
+      LDValue defaultValue,
       {required bool isDetailed, LDValueType? type}) {
     final evalResult = _flagManager.get(flagKey);
 
@@ -534,7 +555,7 @@ final class LDCommonClient {
         trackEvent: evalResult?.flag?.trackEvents ?? false,
         debugEventsUntilDate: evalResult?.flag?.debugEventsUntilDate != null
             ? DateTime.fromMillisecondsSinceEpoch(
-                evalResult!.flag!.debugEventsUntilDate!)
+            evalResult!.flag!.debugEventsUntilDate!)
             : null,
         version: evalResult?.version));
 
@@ -551,7 +572,7 @@ final class LDCommonClient {
     final allEvalResults = _flagManager.getAll();
 
     for (var MapEntry(key: flagKey, value: evalResult)
-        in allEvalResults.entries) {
+    in allEvalResults.entries) {
       if (evalResult.flag != null) {
         res[flagKey] = evalResult.flag!.detail.value;
       }

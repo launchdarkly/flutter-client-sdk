@@ -1,5 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
+import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:test/test.dart';
+
+import 'mock_persistence.dart';
 
 final class TestConfig extends LDCommonConfig {
   TestConfig(super.sdkCredential, super.autoEnvAttributes,
@@ -11,6 +18,36 @@ final class TestConfig extends LDCommonConfig {
       super.offline,
       super.logger,
       super.dataSourceConfig});
+}
+
+final class TestDataSource implements DataSource {
+  final StreamController<DataSourceEvent> _eventController = StreamController();
+
+  @override
+  // TODO: implement events
+  Stream<DataSourceEvent> get events => _eventController.stream;
+
+  @override
+  void restart() {}
+
+  @override
+  void start() {
+    Timer(Duration(milliseconds: 10), () {
+      _eventController.sink.add(DataEvent(
+          'put',
+          '{"flagA":{'
+              '"version":1,'
+              '"value":"datasource",'
+              '"variation":0,'
+              '"reason":{"kind":"OFF"}'
+              '}}'));
+    });
+  }
+
+  @override
+  void stop() {
+    _eventController.close();
+  }
 }
 
 void main() {
@@ -144,6 +181,107 @@ void main() {
     test('can call flush', () async {
       // No exceptions and completes without timeout.
       await client.flush();
+    });
+  });
+
+  group('given a mock data source', () {
+    late LDCommonClient client;
+    late MockPersistence mockPersistence;
+    final sdkKey = 'the-sdk-key';
+    final sdkKeyPersistence =
+        'LaunchDarkly_${sha256.convert(utf8.encode(sdkKey))}';
+
+    setUp(() {
+      mockPersistence = MockPersistence();
+      client = LDCommonClient(
+          TestConfig(sdkKey, AutoEnvAttributes.disabled),
+          CommonPlatform(persistence: mockPersistence),
+          LDContextBuilder().kind('user', 'bob').build(),
+          DiagnosticSdkData(name: '', version: ''), dataSourceFactories:
+              (LDCommonConfig config, LDLogger logger,
+                  HttpProperties properties) {
+        return {
+          ConnectionMode.streaming: (LDContext context) {
+            return TestDataSource();
+          },
+          ConnectionMode.polling: (LDContext context) {
+            return TestDataSource();
+          },
+        };
+      });
+    });
+
+    test('identify can resolve cached values', () async {
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode('joe')).toString();
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey: '{"flagA":{'
+            '"version":1,'
+            '"value":"storage",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
+            '}}'
+      };
+      // We are going to ignore the items for the first context.
+      await client.start();
+
+      await client.identify(LDContextBuilder().kind('user', 'joe').build());
+      final res = client.stringVariation('flagA', 'default');
+      expect(res, 'storage');
+    });
+
+    test('identify can resolve non-cached values', () async {
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode('joe')).toString();
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey: '{"flagA":{'
+            '"version":1,'
+            '"value":"storage",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
+            '}}'
+      };
+      // We are going to ignore the items for the first context.
+      await client.start();
+
+      await client.identify(LDContextBuilder().kind('user', 'joe').build(),
+          waitForNonCachedValues: true);
+      final res = client.stringVariation('flagA', 'default');
+      expect(res, 'datasource');
+    });
+
+    test('start can resolve cached values', () async {
+      final contextPersistenceKey =
+      sha256.convert(utf8.encode('bob')).toString();
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey: '{"flagA":{'
+            '"version":1,'
+            '"value":"storage",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
+            '}}'
+      };
+
+      await client.start();
+      final res = client.stringVariation('flagA', 'default');
+      expect(res, 'storage');
+    });
+
+    test('start can resolve non-cached values', () async {
+      final contextPersistenceKey =
+      sha256.convert(utf8.encode('bob')).toString();
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey: '{"flagA":{'
+            '"version":1,'
+            '"value":"storage",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
+            '}}'
+      };
+
+      await client.start(waitForNonCachedValues: true);
+      final res = client.stringVariation('flagA', 'default');
+      expect(res, 'datasource');
     });
   });
 }
