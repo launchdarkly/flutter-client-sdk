@@ -117,7 +117,6 @@ interface class LDClient {
   ///
   /// If [waitForNetworkResults] is true, and an error is encountered, then
   /// false may be returned even if cached values were loaded.
-  /// false may be returned even if cached values were loaded.
   Future<bool> start({bool waitForNetworkResults = false}) async {
     return _client.start(waitForNetworkResults: waitForNetworkResults);
   }
