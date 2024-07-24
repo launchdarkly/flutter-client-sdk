@@ -45,9 +45,11 @@ final class IdentifyError implements IdentifyResult {
   IdentifyError(this.error);
 }
 
-typedef DataSourceFactoriesFn = Map<ConnectionMode, DataSourceFactory> Function(LDCommonConfig config, LDLogger logger, HttpProperties httpProperties);
+typedef DataSourceFactoriesFn = Map<ConnectionMode, DataSourceFactory> Function(
+    LDCommonConfig config, LDLogger logger, HttpProperties httpProperties);
 
-Map<ConnectionMode, DataSourceFactory> _defaultFactories(LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
+Map<ConnectionMode, DataSourceFactory> _defaultFactories(
+    LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
   return {
     ConnectionMode.streaming: (LDContext context) {
       return StreamingDataSource(
@@ -69,8 +71,7 @@ Map<ConnectionMode, DataSourceFactory> _defaultFactories(LDCommonConfig config, 
           dataSourceConfig: PollingDataSourceConfig(
               useReport: config.dataSourceConfig.useReport,
               withReasons: config.dataSourceConfig.evaluationReasons,
-              pollingInterval:
-              config.dataSourceConfig.polling.pollingInterval),
+              pollingInterval: config.dataSourceConfig.polling.pollingInterval),
           httpProperties: httpProperties);
     },
   };
@@ -234,7 +235,8 @@ final class LDCommonClient {
     // having been set resulting in a crash.
     _identifyQueue.execute(() async {
       await _startInternal();
-      await _identifyInternal(_initialUndecoratedContext, waitForNonCachedValues: waitForNonCachedValues);
+      await _identifyInternal(_initialUndecoratedContext,
+          waitForNonCachedValues: waitForNonCachedValues);
     }).then((res) {
       _startCompleter!.complete(_mapIdentifyResult(res));
     });
@@ -302,8 +304,8 @@ final class LDCommonClient {
     _updateEventSendingState();
 
     if (!_config.offline) {
-      _dataSourceManager.setFactories(
-          _dataSourceFactories(_config, _logger, httpProperties));
+      _dataSourceManager
+          .setFactories(_dataSourceFactories(_config, _logger, httpProperties));
     } else {
       _dataSourceManager.setFactories({
         ConnectionMode.streaming: (LDContext context) {

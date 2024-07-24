@@ -251,7 +251,7 @@ void main() {
 
     test('start can resolve cached values', () async {
       final contextPersistenceKey =
-      sha256.convert(utf8.encode('bob')).toString();
+          sha256.convert(utf8.encode('bob')).toString();
       mockPersistence.storage[sdkKeyPersistence] = {
         contextPersistenceKey: '{"flagA":{'
             '"version":1,'
@@ -268,7 +268,7 @@ void main() {
 
     test('start can resolve non-cached values', () async {
       final contextPersistenceKey =
-      sha256.convert(utf8.encode('bob')).toString();
+          sha256.convert(utf8.encode('bob')).toString();
       mockPersistence.storage[sdkKeyPersistence] = {
         contextPersistenceKey: '{"flagA":{'
             '"version":1,'

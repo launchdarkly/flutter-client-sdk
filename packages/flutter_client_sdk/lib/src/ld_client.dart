@@ -157,8 +157,10 @@ interface class LDClient {
   ///
   /// [IdentifyError] this means that the identify has permanently failed. For
   /// instance the SDK key is no longer valid.
-  Future<IdentifyResult> identify(LDContext context, {bool waitForNonCachedValues = false}) async {
-    return _client.identify(context, waitForNonCachedValues: waitForNonCachedValues);
+  Future<IdentifyResult> identify(LDContext context,
+      {bool waitForNonCachedValues = false}) async {
+    return _client.identify(context,
+        waitForNonCachedValues: waitForNonCachedValues);
   }
 
   /// Track custom events associated with the current context for data export or
