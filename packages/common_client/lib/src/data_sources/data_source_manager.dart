@@ -41,7 +41,7 @@ final class DataSourceManager {
         _dataSourceEventHandler = dataSourceEventHandler;
 
   /// Set the available data source factories. These factories will not apply
-  /// until the next identify fall. Currently factories will be set once during
+  /// until the next identify call. Currently factories will be set once during
   /// startup and before the first identify.
   void setFactories(Map<ConnectionMode, DataSourceFactory> factories) {
     _dataSourceFactories.clear();

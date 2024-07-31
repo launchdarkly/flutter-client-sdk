@@ -45,6 +45,38 @@ final class IdentifyError implements IdentifyResult {
   IdentifyError(this.error);
 }
 
+typedef DataSourceFactoriesFn = Map<ConnectionMode, DataSourceFactory> Function(
+    LDCommonConfig config, LDLogger logger, HttpProperties httpProperties);
+
+Map<ConnectionMode, DataSourceFactory> _defaultFactories(
+    LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
+  return {
+    ConnectionMode.streaming: (LDContext context) {
+      return StreamingDataSource(
+          credential: config.sdkCredential,
+          context: context,
+          endpoints: config.serviceEndpoints,
+          logger: logger,
+          dataSourceConfig: StreamingDataSourceConfig(
+              useReport: config.dataSourceConfig.useReport,
+              withReasons: config.dataSourceConfig.evaluationReasons),
+          httpProperties: httpProperties);
+    },
+    ConnectionMode.polling: (LDContext context) {
+      return PollingDataSource(
+          credential: config.sdkCredential,
+          context: context,
+          endpoints: config.serviceEndpoints,
+          logger: logger,
+          dataSourceConfig: PollingDataSourceConfig(
+              useReport: config.dataSourceConfig.useReport,
+              withReasons: config.dataSourceConfig.evaluationReasons,
+              pollingInterval: config.dataSourceConfig.polling.pollingInterval),
+          httpProperties: httpProperties);
+    },
+  };
+}
+
 final class LDCommonClient {
   final LDCommonConfig _config;
   final Persistence _persistence;
@@ -58,6 +90,7 @@ final class LDCommonClient {
   late final DataSourceManager _dataSourceManager;
   late final EnvironmentReport _envReport;
   late final AsyncSingleQueue<void> _identifyQueue = AsyncSingleQueue();
+  late final DataSourceFactoriesFn _dataSourceFactories;
 
   // Modifications will happen in the order they are specified in this list.
   // If there are cross-dependent modifiers, then this must be considered.
@@ -93,7 +126,8 @@ final class LDCommonClient {
   }
 
   LDCommonClient(LDCommonConfig commonConfig, CommonPlatform platform,
-      LDContext context, DiagnosticSdkData sdkData)
+      LDContext context, DiagnosticSdkData sdkData,
+      {DataSourceFactoriesFn? dataSourceFactories})
       : _config = commonConfig,
         _platform = platform,
         _persistence = ValidatingPersistence(
@@ -107,6 +141,8 @@ final class LDCommonClient {
             persistence: platform.persistence),
         _dataSourceStatusManager = DataSourceStatusManager(),
         _initialUndecoratedContext = context,
+        // Data source factories is primarily a mechanism for testing.
+        _dataSourceFactories = dataSourceFactories ?? _defaultFactories,
         _sdkData = sdkData {
     final dataSourceEventHandler = DataSourceEventHandler(
         flagManager: _flagManager,
@@ -179,7 +215,7 @@ final class LDCommonClient {
   ///
   /// If the return value is true, then the SDK has initialized, if false
   /// then the SDK has encountered an unrecoverable error.
-  Future<bool> start() {
+  Future<bool> start({bool waitForNetworkResults = false}) {
     if (_startFuture != null) {
       return _startFuture!.then(_mapIdentifyStart);
     }
@@ -191,7 +227,8 @@ final class LDCommonClient {
     // having been set resulting in a crash.
     _identifyQueue.execute(() async {
       await _startInternal();
-      await _identifyInternal(_initialUndecoratedContext);
+      await _identifyInternal(_initialUndecoratedContext,
+          waitForNetworkResults: waitForNetworkResults);
     }).then((res) {
       _startCompleter!.complete(_mapIdentifyResult(res));
     });
@@ -259,32 +296,8 @@ final class LDCommonClient {
     _updateEventSendingState();
 
     if (!_config.offline) {
-      _dataSourceManager.setFactories({
-        ConnectionMode.streaming: (LDContext context) {
-          return StreamingDataSource(
-              credential: _config.sdkCredential,
-              context: context,
-              endpoints: _config.serviceEndpoints,
-              logger: _logger,
-              dataSourceConfig: StreamingDataSourceConfig(
-                  useReport: _config.dataSourceConfig.useReport,
-                  withReasons: _config.dataSourceConfig.evaluationReasons),
-              httpProperties: httpProperties);
-        },
-        ConnectionMode.polling: (LDContext context) {
-          return PollingDataSource(
-              credential: _config.sdkCredential,
-              context: context,
-              endpoints: _config.serviceEndpoints,
-              logger: _logger,
-              dataSourceConfig: PollingDataSourceConfig(
-                  useReport: _config.dataSourceConfig.useReport,
-                  withReasons: _config.dataSourceConfig.evaluationReasons,
-                  pollingInterval:
-                      _config.dataSourceConfig.polling.pollingInterval),
-              httpProperties: httpProperties);
-        },
-      });
+      _dataSourceManager
+          .setFactories(_dataSourceFactories(_config, _logger, httpProperties));
     } else {
       _dataSourceManager.setFactories({
         ConnectionMode.streaming: (LDContext context) {
@@ -350,7 +363,8 @@ final class LDCommonClient {
   /// When the context is changed, the SDK will load flag values for the context from a local cache if available, while
   /// initiating a connection to retrieve the most current flag values. An event will be queued to be sent to the service
   /// containing the public [LDContext] fields for indexing on the dashboard.
-  Future<IdentifyResult> identify(LDContext context) async {
+  Future<IdentifyResult> identify(LDContext context,
+      {bool waitForNetworkResults = false}) async {
     if (_startFuture == null) {
       const message =
           'Identify called before SDK has been started. Start the SDK before '
@@ -359,7 +373,8 @@ final class LDCommonClient {
       return IdentifyError(Exception(message));
     }
     final res = await _identifyQueue.execute(() async {
-      await _identifyInternal(context);
+      await _identifyInternal(context,
+          waitForNetworkResults: waitForNetworkResults);
     });
     return _mapIdentifyResult(res);
   }
@@ -375,19 +390,19 @@ final class LDCommonClient {
     }
   }
 
-  Future<void> _identifyInternal(LDContext context) async {
+  Future<void> _identifyInternal(LDContext context,
+      {bool waitForNetworkResults = false}) async {
     await _setAndDecorateContext(context);
     final completer = Completer<void>();
     _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
     final loadedFromCache = await _flagManager.loadCached(_context);
 
     if (_config.offline) {
-      // TODO: Do we need to do anything different here?
       return;
     }
     _dataSourceManager.identify(_context, completer);
 
-    if (loadedFromCache) {
+    if (loadedFromCache && !waitForNetworkResults) {
       return;
     }
     return completer.future;
