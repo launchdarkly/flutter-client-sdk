@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.7.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.6.0...4.7.0) (2024-08-01)
+
+
+### Features
+
+* Add support for waiting for non-cached values. ([#160](https://github.com/launchdarkly/flutter-client-sdk/issues/160)) ([28f7efa](https://github.com/launchdarkly/flutter-client-sdk/commit/28f7efa6128b937a4626fe4b4ca60b9e64db1641))
+* Update to common client 1.3.0 ([#164](https://github.com/launchdarkly/flutter-client-sdk/issues/164)) ([3189d51](https://github.com/launchdarkly/flutter-client-sdk/commit/3189d51d938786dddce487a3a638a3465b0c4cc8))
+
 ## [4.6.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.5.0...4.6.0) (2024-05-02)
 
 
