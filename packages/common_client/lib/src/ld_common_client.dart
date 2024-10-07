@@ -551,7 +551,7 @@ final class LDCommonClient {
             ? DateTime.fromMillisecondsSinceEpoch(
                 evalResult!.flag!.debugEventsUntilDate!)
             : null,
-        version: evalResult?.version));
+        version: evalResult?.flag?.flagVersion ?? evalResult?.version));
 
     return detail;
   }

@@ -35,7 +35,8 @@ final class TestDataSource implements DataSource {
       _eventController.sink.add(DataEvent(
           'put',
           '{"flagA":{'
-              '"version":1,'
+              '"version":11,'
+              '"flagVersion":1,'
               '"value":"datasource",'
               '"variation":0,'
               '"reason":{"kind":"OFF"}'

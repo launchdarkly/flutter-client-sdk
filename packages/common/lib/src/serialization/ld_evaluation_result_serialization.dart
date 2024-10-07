@@ -3,6 +3,7 @@ import '../../launchdarkly_dart_common.dart';
 final class LDEvaluationResultSerialization {
   static LDEvaluationResult fromJson(Map<String, dynamic> json) {
     final version = json['version'] as num;
+    final flagVersion = json['flagVersion'] as num?;
     final trackEvents = (json['trackEvents'] ?? false) as bool;
     final trackReason = (json['trackReason'] ?? false) as bool;
     final debugEventsUntilDateRaw = json['debugEventsUntilDate'] as num?;
@@ -19,6 +20,7 @@ final class LDEvaluationResultSerialization {
 
     return LDEvaluationResult(
         version: version.toInt(),
+        flagVersion: flagVersion?.toInt(),
         detail: LDEvaluationDetail(value, variationIndex, reason),
         trackEvents: trackEvents,
         trackReason: trackReason,

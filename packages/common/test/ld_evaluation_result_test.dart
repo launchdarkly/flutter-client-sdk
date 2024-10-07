@@ -61,13 +61,14 @@ void main() {
 
   test('it produces the expected string', () {
     final a = LDEvaluationResult(
-        version: 1,
+        version: 11,
+        flagVersion: 1,
         detail: LDEvaluationDetail<LDValue>(
             LDValue.ofString('toast'), null, LDEvaluationReason.targetMatch()));
 
     expect(
         a.toString(),
-        'LDEvaluationResult{version: 1, trackEvents: false, trackReason: false,'
+        'LDEvaluationResult{version: 11, flagVersion: 1, trackEvents: false, trackReason: false,'
         ' debugEventsUntilDate: null, detail: LDEvaluationDetail{value:'
         ' LDValue{_value: toast}, variationIndex: null, reason:'
         ' LDEvaluationReason{kind: TARGET_MATCH, ruleIndex: null,'
