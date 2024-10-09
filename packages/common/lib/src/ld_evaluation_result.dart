@@ -9,6 +9,9 @@ final class LDEvaluationResult {
   /// Incremented by LaunchDarkly each time the flag's state changes.
   final int version;
 
+  /// The version of the flag. Changes when modifications are made to the flag.
+  final int? flagVersion;
+
   ///  True if a client SDK should track events for this flag.
   final bool trackEvents;
 
@@ -24,6 +27,7 @@ final class LDEvaluationResult {
 
   const LDEvaluationResult(
       {required this.version,
+      this.flagVersion,
       required this.detail,
       this.trackEvents = false,
       this.trackReason = false,
@@ -31,8 +35,9 @@ final class LDEvaluationResult {
 
   @override
   String toString() {
-    return 'LDEvaluationResult{version: $version, trackEvents: $trackEvents, '
-        'trackReason: $trackReason, debugEventsUntilDate: $debugEventsUntilDate,'
+    return 'LDEvaluationResult{version: $version, flagVersion: $flagVersion,'
+        ' trackEvents: $trackEvents, trackReason: $trackReason,'
+        ' debugEventsUntilDate: $debugEventsUntilDate,'
         ' detail: $detail}';
   }
 
@@ -41,6 +46,7 @@ final class LDEvaluationResult {
       identical(this, other) ||
       other is LDEvaluationResult &&
           version == other.version &&
+          flagVersion == other.flagVersion &&
           trackEvents == other.trackEvents &&
           trackReason == other.trackReason &&
           debugEventsUntilDate == other.debugEventsUntilDate &&
@@ -49,6 +55,7 @@ final class LDEvaluationResult {
   @override
   int get hashCode =>
       version.hashCode ^
+      flagVersion.hashCode ^
       trackEvents.hashCode ^
       trackReason.hashCode ^
       debugEventsUntilDate.hashCode ^
