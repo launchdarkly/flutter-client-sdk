@@ -139,7 +139,7 @@ final class LDCommonClient {
   // If there are cross-dependent modifiers, then this must be considered.
   late final List<ContextModifier> _modifiers;
 
-  EventProcessorFactory _eventProcessorFactory;
+  final EventProcessorFactory _eventProcessorFactory;
 
   /// The event processor is not constructed during LDCommonClient construction
   /// because it requires the HTTP properties which must be determined
