@@ -6,6 +6,7 @@ import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:test/test.dart';
 
+import 'mock_eventprocessor.dart';
 import 'mock_persistence.dart';
 
 final class TestConfig extends LDCommonConfig {
@@ -282,6 +283,68 @@ void main() {
       await client.start(waitForNetworkResults: true);
       final res = client.stringVariation('flagA', 'default');
       expect(res, 'datasource');
+    });
+  });
+
+  group('given mock flag data with prerequisites', () {
+    late LDCommonClient client;
+    late MockPersistence mockPersistence;
+    late MockEventProcessor mockEventProcessor;
+    final sdkKey = 'the-sdk-key';
+    final sdkKeyPersistence =
+        'LaunchDarkly_${sha256.convert(utf8.encode(sdkKey))}';
+
+    setUp(() {
+      mockPersistence = MockPersistence();
+      mockEventProcessor = MockEventProcessor();
+      client = LDCommonClient(
+        TestConfig(sdkKey, AutoEnvAttributes.disabled),
+        CommonPlatform(persistence: mockPersistence),
+        LDContextBuilder().kind('user', 'bob').build(),
+        DiagnosticSdkData(name: '', version: ''),
+        dataSourceFactories: (LDCommonConfig config, LDLogger logger,
+            HttpProperties properties) {
+          return {
+            ConnectionMode.streaming: (LDContext context) {
+              return TestDataSource();
+            },
+            ConnectionMode.polling: (LDContext context) {
+              return TestDataSource();
+            },
+          };
+        },
+        eventProcessorFactory: (
+                {required allAttributesPrivate,
+                required analyticsEventsPath,
+                required client,
+                required diagnosticEventsPath,
+                required diagnosticRecordingInterval,
+                diagnosticsManager,
+                required endpoints,
+                required eventCapacity,
+                required flushInterval,
+                required globalPrivateAttributes,
+                required indexEvents,
+                required logger}) =>
+            mockEventProcessor,
+      );
+    });
+
+    test('it includes reports events for each prerequisite', () async {
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode('bob')).toString();
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey:
+            '{"flagA":{"version":1,"value":"storage","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagAB"]},"flagAB":{"version":1,"value":"storage","variation":0,"reason":{"kind":"OFF"}}}'
+      };
+
+      await client
+          .start(); // note no call to wait for network results here so we get the storage values
+      final res = client.stringVariation('flagA', 'default');
+      expect(res, 'storage');
+      expect(mockEventProcessor.evalEvents.length, 2);
+      expect(mockEventProcessor.evalEvents[0].flagKey, 'flagAB');
+      expect(mockEventProcessor.evalEvents[1].flagKey, 'flagA');
     });
   });
 }

@@ -24,7 +24,8 @@ class TestApiImpl extends SdkTestApi {
     'client-independence',
     'context-comparison',
     'inline-context',
-    'anonymous-redaction'
+    'anonymous-redaction',
+    'client-prereq-events',
   ];
 
   static const clientUrlPrefix = '/client/';
