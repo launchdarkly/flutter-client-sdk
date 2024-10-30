@@ -7,8 +7,8 @@ final class LDEvaluationResultSerialization {
     final trackEvents = (json['trackEvents'] ?? false) as bool;
     final trackReason = (json['trackReason'] ?? false) as bool;
     final prerequisites = (json['prerequisites'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList();
+        ?.map((e) => e as String)
+        .toList();
     final debugEventsUntilDateRaw = json['debugEventsUntilDate'] as num?;
     final value = LDValueSerialization.fromJson(json['value']);
     final jsonReason = json['reason'];

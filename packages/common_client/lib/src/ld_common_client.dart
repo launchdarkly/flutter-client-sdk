@@ -89,8 +89,7 @@ typedef EventProcessorFactory = EventProcessor Function(
     required Duration diagnosticRecordingInterval,
     required bool allAttributesPrivate,
     required Set<AttributeReference> globalPrivateAttributes,
-    DiagnosticsManager? diagnosticsManager}
-    );
+    DiagnosticsManager? diagnosticsManager});
 
 EventProcessor _defaultEventProcessorFactory(
     {required LDLogger logger,
