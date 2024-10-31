@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.2.1...launchdarkly_dart_common-v1.3.0) (2024-10-31)
+
+
+### Features
+
+* Adds support for client-side prerequisite events ([#172](https://github.com/launchdarkly/flutter-client-sdk/issues/172)) ([7a042c2](https://github.com/launchdarkly/flutter-client-sdk/commit/7a042c2047798831b62ea29243313d7e411d22e1))
+
 ## [1.2.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.2.0...launchdarkly_dart_common-v1.2.1) (2024-10-09)
 
 
