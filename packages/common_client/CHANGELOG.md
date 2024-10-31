@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.4.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.3.1...launchdarkly_common_client-v1.4.0) (2024-10-31)
+
+
+### Features
+
+* Adds support for client-side prerequisite events ([#172](https://github.com/launchdarkly/flutter-client-sdk/issues/172)) ([7a042c2](https://github.com/launchdarkly/flutter-client-sdk/commit/7a042c2047798831b62ea29243313d7e411d22e1))
+
 ## [1.3.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.3.0...launchdarkly_common_client-v1.3.1) (2024-10-09)
 
 
