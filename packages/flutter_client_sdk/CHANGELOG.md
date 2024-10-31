@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.8.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.7.1...4.8.0) (2024-10-31)
+
+
+### Features
+
+* Adds support for client-side prerequisite events ([#177](https://github.com/launchdarkly/flutter-client-sdk/issues/177)) ([dea28fd](https://github.com/launchdarkly/flutter-client-sdk/commit/dea28fda80fedd8a16e5791990725c2d77c8fa5c))
+
 ## [4.7.1](https://github.com/launchdarkly/flutter-client-sdk/compare/4.7.0...4.7.1) (2024-10-09)
 
 
