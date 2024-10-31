@@ -6,6 +6,9 @@ final class LDEvaluationResultSerialization {
     final flagVersion = json['flagVersion'] as num?;
     final trackEvents = (json['trackEvents'] ?? false) as bool;
     final trackReason = (json['trackReason'] ?? false) as bool;
+    final prerequisites = (json['prerequisites'] as List<dynamic>?)
+        ?.map((e) => e as String)
+        .toList();
     final debugEventsUntilDateRaw = json['debugEventsUntilDate'] as num?;
     final value = LDValueSerialization.fromJson(json['value']);
     final jsonReason = json['reason'];
@@ -24,6 +27,7 @@ final class LDEvaluationResultSerialization {
         detail: LDEvaluationDetail(value, variationIndex, reason),
         trackEvents: trackEvents,
         trackReason: trackReason,
+        prerequisites: prerequisites,
         debugEventsUntilDate: debugEventsUntilDateRaw?.toInt());
   }
 
@@ -36,6 +40,9 @@ final class LDEvaluationResultSerialization {
     }
     if (evaluationResult.trackReason) {
       result['trackReason'] = evaluationResult.trackReason;
+    }
+    if (evaluationResult.prerequisites?.isNotEmpty ?? false) {
+      result['prerequisites'] = evaluationResult.prerequisites;
     }
     if (evaluationResult.debugEventsUntilDate != null) {
       result['debugEventsUntilDate'] = evaluationResult.debugEventsUntilDate;

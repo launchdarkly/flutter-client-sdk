@@ -18,6 +18,9 @@ final class LDEvaluationResult {
   /// True if a client SDK should track reasons for this flag.
   final bool trackReason;
 
+  /// List of prerequisite flags that were evaluated as part of determining this [LDEvaluationResult]
+  final List<String>? prerequisites;
+
   /// A millisecond timestamp, which if the current time is before, a client SDK
   /// should send debug events for the flag.
   final int? debugEventsUntilDate;
@@ -31,6 +34,7 @@ final class LDEvaluationResult {
       required this.detail,
       this.trackEvents = false,
       this.trackReason = false,
+      this.prerequisites,
       this.debugEventsUntilDate});
 
   @override

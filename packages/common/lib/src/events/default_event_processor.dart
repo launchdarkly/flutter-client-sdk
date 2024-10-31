@@ -50,7 +50,7 @@ final class DefaultEventProcessor implements EventProcessor {
 
   DefaultEventProcessor(
       {required LDLogger logger,
-      bool indexEvents = false,
+      required bool indexEvents,
       required int eventCapacity,
       required Duration flushInterval,
       required HttpClient client,

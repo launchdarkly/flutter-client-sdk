@@ -77,6 +77,48 @@ Map<ConnectionMode, DataSourceFactory> _defaultFactories(
   };
 }
 
+typedef EventProcessorFactory = EventProcessor Function(
+    {required LDLogger logger,
+    required bool indexEvents,
+    required int eventCapacity,
+    required Duration flushInterval,
+    required HttpClient client,
+    required String analyticsEventsPath,
+    required String diagnosticEventsPath,
+    required ServiceEndpoints endpoints,
+    required Duration diagnosticRecordingInterval,
+    required bool allAttributesPrivate,
+    required Set<AttributeReference> globalPrivateAttributes,
+    DiagnosticsManager? diagnosticsManager});
+
+EventProcessor _defaultEventProcessorFactory(
+    {required LDLogger logger,
+    required bool indexEvents,
+    required int eventCapacity,
+    required Duration flushInterval,
+    required HttpClient client,
+    required String analyticsEventsPath,
+    required String diagnosticEventsPath,
+    required ServiceEndpoints endpoints,
+    required Duration diagnosticRecordingInterval,
+    required bool allAttributesPrivate,
+    required Set<AttributeReference> globalPrivateAttributes,
+    DiagnosticsManager? diagnosticsManager}) {
+  return DefaultEventProcessor(
+      logger: logger,
+      indexEvents: indexEvents,
+      eventCapacity: eventCapacity,
+      flushInterval: flushInterval,
+      client: client,
+      analyticsEventsPath: analyticsEventsPath,
+      diagnosticEventsPath: diagnosticEventsPath,
+      diagnosticsManager: diagnosticsManager,
+      endpoints: endpoints,
+      allAttributesPrivate: allAttributesPrivate,
+      globalPrivateAttributes: globalPrivateAttributes,
+      diagnosticRecordingInterval: diagnosticRecordingInterval);
+}
+
 final class LDCommonClient {
   final LDCommonConfig _config;
   final Persistence _persistence;
@@ -95,6 +137,8 @@ final class LDCommonClient {
   // Modifications will happen in the order they are specified in this list.
   // If there are cross-dependent modifiers, then this must be considered.
   late final List<ContextModifier> _modifiers;
+
+  final EventProcessorFactory _eventProcessorFactory;
 
   /// The event processor is not constructed during LDCommonClient construction
   /// because it requires the HTTP properties which must be determined
@@ -127,7 +171,8 @@ final class LDCommonClient {
 
   LDCommonClient(LDCommonConfig commonConfig, CommonPlatform platform,
       LDContext context, DiagnosticSdkData sdkData,
-      {DataSourceFactoriesFn? dataSourceFactories})
+      {DataSourceFactoriesFn? dataSourceFactories,
+      EventProcessorFactory? eventProcessorFactory})
       : _config = commonConfig,
         _platform = platform,
         _persistence = ValidatingPersistence(
@@ -143,6 +188,8 @@ final class LDCommonClient {
         _initialUndecoratedContext = context,
         // Data source factories is primarily a mechanism for testing.
         _dataSourceFactories = dataSourceFactories ?? _defaultFactories,
+        _eventProcessorFactory =
+            eventProcessorFactory ?? _defaultEventProcessorFactory,
         _sdkData = sdkData {
     final dataSourceEventHandler = DataSourceEventHandler(
         flagManager: _flagManager,
@@ -273,8 +320,9 @@ final class LDCommonClient {
       final osInfo = _envReport.osInfo;
       DiagnosticsManager? diagnosticsManager = _makeDiagnosticsManager(osInfo);
 
-      _eventProcessor = DefaultEventProcessor(
+      _eventProcessor = _eventProcessorFactory(
           logger: _logger,
+          indexEvents: false,
           eventCapacity: _config.events.eventCapacity,
           flushInterval: _config.events.flushInterval,
           client: HttpClient(httpProperties: httpProperties),
@@ -528,6 +576,10 @@ final class LDCommonClient {
     LDEvaluationDetail<LDValue> detail;
 
     if (evalResult != null && evalResult.flag != null) {
+      evalResult.flag?.prerequisites?.forEach((prereq) {
+        _variationInternal(prereq, LDValue.ofNull(), isDetailed: isDetailed);
+      });
+
       if (type == null || type == evalResult.flag!.detail.value.type) {
         detail = evalResult.flag!.detail;
       } else {

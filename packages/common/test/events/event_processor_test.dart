@@ -23,6 +23,7 @@ import '../logging_test.dart';
   return (
     DefaultEventProcessor(
         logger: LDLogger(adapter: adapter),
+        indexEvents: false,
         eventCapacity: 100,
         flushInterval: Duration(milliseconds: 100),
         client: client,
@@ -47,6 +48,7 @@ import '../logging_test.dart';
   return (
     DefaultEventProcessor(
         logger: LDLogger(adapter: adapter),
+        indexEvents: false,
         eventCapacity: 100,
         flushInterval: Duration(milliseconds: 100),
         client: client,
