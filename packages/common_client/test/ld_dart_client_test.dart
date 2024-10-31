@@ -330,7 +330,7 @@ void main() {
       );
     });
 
-    test('it includes reports events for each prerequisite', () async {
+    test('it reports events for each prerequisite', () async {
       final contextPersistenceKey =
           sha256.convert(utf8.encode('bob')).toString();
       mockPersistence.storage[sdkKeyPersistence] = {

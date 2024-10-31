@@ -576,11 +576,9 @@ final class LDCommonClient {
     LDEvaluationDetail<LDValue> detail;
 
     if (evalResult != null && evalResult.flag != null) {
-      if (evalResult.flag?.prerequisites != null) {
-        evalResult.flag?.prerequisites?.forEach((prereq) {
-          _variationInternal(prereq, LDValue.ofNull(), isDetailed: isDetailed);
-        });
-      }
+      evalResult.flag?.prerequisites?.forEach((prereq) {
+        _variationInternal(prereq, LDValue.ofNull(), isDetailed: isDetailed);
+      });
 
       if (type == null || type == evalResult.flag!.detail.value.type) {
         detail = evalResult.flag!.detail;
