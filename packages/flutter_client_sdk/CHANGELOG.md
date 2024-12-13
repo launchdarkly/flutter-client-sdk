@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.9.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.8.0...4.9.0) (2024-12-13)
+
+
+### Features
+
+* Support device_info_plus version 11. ([#180](https://github.com/launchdarkly/flutter-client-sdk/issues/180)) ([24e0ca2](https://github.com/launchdarkly/flutter-client-sdk/commit/24e0ca2f124032bc3b4bd39420fac66d7fb9cc59))
+
 ## [4.8.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.7.1...4.8.0) (2024-10-31)
 
 
