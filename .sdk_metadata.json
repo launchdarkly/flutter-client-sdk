@@ -7,7 +7,9 @@
       "path": "packages/flutter_client_sdk",
       "languages": [
         "Dart"
-      ]
+      ],
+      "userAgents": ["FlutterClientSdk"],
+      "wrapperNames": ["FlutterClientSdk"]
     }
   }
 }
