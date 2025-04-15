@@ -18,11 +18,11 @@ class LDAppLifecycleListener {
             : AppLifecycleState.resumed);
 
     _streamController.onListen = () {
-      // web.document.addEventListener('visibilitychange', listenerFunc.toJS);
+      web.document.addEventListener('visibilitychange', listenerFunc.toJS);
     };
 
     _streamController.onCancel = () {
-      // web.document.removeEventListener('visibilitychange', listenerFunc.toJS);
+      web.document.removeEventListener('visibilitychange', listenerFunc.toJS);
     };
   }
 
