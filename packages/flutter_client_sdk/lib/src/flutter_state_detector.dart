@@ -6,7 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'connection_manager.dart';
 import 'lifecycle/stub_lifecycle_listener.dart'
     if (dart.library.io) 'lifecycle/io_lifecycle_listener.dart'
-    if (dart.library.html) 'lifecycle/js_lifecycle_listener.dart';
+    if (dart.library.js_interop) 'lifecycle/js_lifecycle_listener.dart';
 
 /// This class detects the application and network state for flutter.
 final class FlutterStateDetector implements StateDetector {
