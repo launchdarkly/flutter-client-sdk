@@ -72,9 +72,11 @@ class HtmlSseClient implements SSEClient {
   void _handleMessageEvent(web.Event event) {
     _activeSince = DateTime.now().millisecondsSinceEpoch;
     final messageEvent = event as web.MessageEvent;
-    final ldMessageEvent = ld_message_event.MessageEvent(
-        messageEvent.type, (messageEvent.data as JSString).toDart, messageEvent.lastEventId);
-    _messageEventsController.sink.add(ldMessageEvent);
+    if (messageEvent.data != null && messageEvent.data.typeofEquals('string')) {
+      final ldMessageEvent = ld_message_event.MessageEvent(messageEvent.type,
+          (messageEvent.data as JSString).toDart, messageEvent.lastEventId);
+      _messageEventsController.sink.add(ldMessageEvent);
+    }
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
