@@ -1,6 +1,6 @@
 import 'stub_config.dart'
     if (dart.library.io) 'io_config.dart'
-    if (dart.library.html) 'js_config.dart';
+    if (dart.library.js_interop) 'js_config.dart';
 
 /// Configuration common to web and mobile is contained in this file.
 ///

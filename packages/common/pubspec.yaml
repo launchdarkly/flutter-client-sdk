@@ -13,6 +13,7 @@ dependencies:
   http_parser: ^4.0.0
   uuid: ">= 3.0.7 <5.0.0"
   crypto: ^3.0.3
+  web: ^1.1.1
 
 dev_dependencies:
   test: ^1.24.3

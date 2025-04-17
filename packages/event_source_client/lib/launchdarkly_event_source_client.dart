@@ -7,7 +7,7 @@ import 'src/http_consts.dart';
 import 'src/message_event.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
-    if (dart.library.html) 'src/sse_client_html.dart';
+    if (dart.library.js_interop) 'src/sse_client_html.dart';
 
 export 'src/message_event.dart' show MessageEvent;
 
