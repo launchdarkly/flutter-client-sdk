@@ -134,12 +134,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     _userKeyController.text)
                                                 .build())
                                             .then((value) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content:
-                                                    Text('Identify complete')),
-                                          );
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content: Text(
+                                                      'Identify complete')),
+                                            );
+                                          }
                                         });
                                       }
                                     },

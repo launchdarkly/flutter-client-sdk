@@ -153,7 +153,7 @@ class _Node {
 
   bool tryWrite(_ISettableMap settableMap) {
     if (_value != null && _value != LDValue.ofNull()) {
-      settableMap.set(_key, _value!);
+      settableMap.set(_key, _value);
       return true;
     }
 
@@ -162,7 +162,7 @@ class _Node {
     final objBuilder = LDValue.buildObject();
     final adaptedBuilder = _ObjectBuilderAdapter(objBuilder);
 
-    final wroteANode = _children!.fold(false,
+    final wroteANode = _children.fold(false,
         (wroteANode, node) => wroteANode | node.tryWrite(adaptedBuilder));
 
     if (!wroteANode) return false;
