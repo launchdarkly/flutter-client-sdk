@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v1.0.0...launchdarkly_event_source_client-v1.1.0) (2025-04-18)
+
+
+### Features
+
+* **deps:** Update minimum required Flutter version to 3.22.0 and minimum required Dart version to 3.4.0 ([#186](https://github.com/launchdarkly/flutter-client-sdk/issues/186)) ([1b36324](https://github.com/launchdarkly/flutter-client-sdk/commit/1b363247ef5d01e08baa480e4f5ed4b644397dad))
+
 ## [1.0.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v0.0.3...launchdarkly_event_source_client-v1.0.0) (2024-01-30)
 
 
