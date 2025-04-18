@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.10.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.9.0...4.10.0) (2025-04-18)
+
+
+### Features
+
+* **deps:** Update minimum required Flutter version to 3.22.0 and minimum required Dart version to 3.4.0 ([#186](https://github.com/launchdarkly/flutter-client-sdk/issues/186)) ([1b36324](https://github.com/launchdarkly/flutter-client-sdk/commit/1b363247ef5d01e08baa480e4f5ed4b644397dad))
+
 ## [4.9.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.8.0...4.9.0) (2024-12-13)
 
 
