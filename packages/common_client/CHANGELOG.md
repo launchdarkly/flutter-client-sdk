@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.5.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.4.1...launchdarkly_common_client-v1.5.0) (2025-04-18)
+
+
+### Features
+
+* **deps:** Update minimum required Flutter version to 3.22.0 and minimum required Dart version to 3.4.0 ([#186](https://github.com/launchdarkly/flutter-client-sdk/issues/186)) ([1b36324](https://github.com/launchdarkly/flutter-client-sdk/commit/1b363247ef5d01e08baa480e4f5ed4b644397dad))
+
 ## [1.4.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.4.0...launchdarkly_common_client-v1.4.1) (2024-10-31)
 
 
