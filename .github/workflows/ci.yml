@@ -12,6 +12,12 @@ on:
 
 jobs:
   build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        versions:
+          - { flutter: '3.22.0', dart: '3.4.0' }
+          - { flutter: '3.29.3', dart: '3.7.2' }
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -20,3 +26,5 @@ jobs:
         uses: ./.github/actions/ci
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          flutter_version: ${{ matrix.versions.flutter }}
+          dart_version: ${{ matrix.versions.dart }}

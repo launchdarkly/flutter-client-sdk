@@ -221,15 +221,15 @@ final class LDValue {
   /// Returns this value as an `int` if the value is numeric, otherwise returns `0`.
   ///
   /// Equivalent to `LDValue.numValue().toInt()`
-  int intValue() => _value is num ? (_value as num).toInt() : 0;
+  int intValue() => _value is num ? _value.toInt() : 0;
 
   /// Returns this value as a `double` if the value is numeric, otherwise returns `0`.
   ///
   /// Equivalent to `LDValue.numValue().toDouble()`
-  double doubleValue() => _value is num ? (_value as num).toDouble() : 0;
+  double doubleValue() => _value is num ? _value.toDouble() : 0;
 
   /// Returns this value as a `String` if the type matches, otherwise returns an empty string.
-  String stringValue() => _value is String ? (_value as String) : '';
+  String stringValue() => _value is String ? _value : '';
 
   /// Starts building an array value.
   ///
@@ -278,7 +278,7 @@ final class LDValue {
   /// Returns [ofNull] if the value is not an array or if the index is out of range.
   LDValue get(int index) {
     if (_value is _LDValueArray) {
-      return (_value as _LDValueArray)[index];
+      return _value[index];
     }
     return LDValue.ofNull();
   }
@@ -288,7 +288,7 @@ final class LDValue {
   /// Returns [ofNull] if the value is not an object or if the key is not found.
   LDValue getFor(String key) {
     if (_value is _LDValueObject) {
-      return (_value as _LDValueObject)[key];
+      return _value[key];
     }
     return LDValue.ofNull();
   }
@@ -296,7 +296,7 @@ final class LDValue {
   /// Enumerates the property names in an object, returns an empty iterable for all other types.
   Iterable<String> get keys {
     if (_value is _LDValueObject) {
-      return (_value as _LDValueObject).keys;
+      return _value.keys;
     }
     return [];
   }
@@ -304,10 +304,10 @@ final class LDValue {
   /// Enumerates the property values in an array or object, returns an empty iterable for all other types.
   Iterable<LDValue> get values {
     if (_value is _LDValueObject) {
-      return (_value as _LDValueObject).values;
+      return _value.values;
     }
     if (_value is _LDValueArray) {
-      return (_value as _LDValueArray).values;
+      return _value.values;
     }
     return [];
   }
@@ -315,10 +315,10 @@ final class LDValue {
   /// Returns the number of elements in an array or object, returns `0` for all other types.
   int get length {
     if (_value is _LDValueObject) {
-      return (_value as _LDValueObject).length;
+      return _value.length;
     }
     if (_value is _LDValueArray) {
-      return (_value as _LDValueArray).length;
+      return _value.length;
     }
     return 0;
   }

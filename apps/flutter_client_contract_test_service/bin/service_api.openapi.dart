@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-// ignore_for_file: prefer_initializing_formals, no_leading_underscores_for_library_prefixes, library_private_types_in_public_api
+// ignore_for_file: prefer_initializing_formals, library_private_types_in_public_api
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -573,9 +573,9 @@ class GetResponseBody200 implements OpenApiContent {
   String toString() => toJson().toString();
 }
 
-class _GetResponse200 extends GetResponse implements OpenApiResponseBodyJson {
+class GetResponse200 extends GetResponse implements OpenApiResponseBodyJson {
   /// OK
-  _GetResponse200.response200(this.body)
+  GetResponse200.response200(this.body)
       : status = 200,
         bodyJson = body.toJson();
 
@@ -592,7 +592,7 @@ class _GetResponse200 extends GetResponse implements OpenApiResponseBodyJson {
       OpenApiContentType.parse('application/json');
 
   @override
-  Map<String, dynamic?> propertiesToString() => {
+  Map<String, dynamic> propertiesToString() => {
         'status': status,
         'body': body,
         'bodyJson': bodyJson,
@@ -600,36 +600,41 @@ class _GetResponse200 extends GetResponse implements OpenApiResponseBodyJson {
       };
 }
 
-abstract class GetResponse extends OpenApiResponse
+sealed class GetResponse extends OpenApiResponse
     implements HasSuccessResponse<GetResponseBody200> {
   GetResponse();
 
   /// OK
   factory GetResponse.response200(GetResponseBody200 body) =>
-      _GetResponse200.response200(body);
+      GetResponse200.response200(body);
 
-  void map({required ResponseMap<_GetResponse200> on200}) {
-    if (this is _GetResponse200) {
-      on200((this as _GetResponse200));
+  R map<R>({
+    required ResponseMap<GetResponse200, R> on200,
+    ResponseMap<GetResponse, R>? onElse,
+  }) {
+    if (this is GetResponse200) {
+      return on200((this as GetResponse200));
+    } else if (onElse != null) {
+      return onElse(this);
     } else {
-      throw StateError('Invalid instance type $this');
+      throw StateError('Invalid instance of type $this');
     }
   }
 
   /// status 200:  OK
   @override
   GetResponseBody200 requireSuccess() {
-    if (this is _GetResponse200) {
-      return (this as _GetResponse200).body;
+    if (this is GetResponse200) {
+      return (this as GetResponse200).body;
     } else {
       throw StateError('Expected success response, but got $this');
     }
   }
 }
 
-class _PostResponse201 extends PostResponse {
+class PostResponse201 extends PostResponse {
   /// Successful creation
-  _PostResponse201.response201() : status = 201;
+  PostResponse201.response201() : status = 201;
 
   @override
   final int status;
@@ -638,15 +643,15 @@ class _PostResponse201 extends PostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic?> propertiesToString() => {
+  Map<String, dynamic> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
 }
 
-class _PostResponse400 extends PostResponse {
+class PostResponse400 extends PostResponse {
   /// Invalid parameters
-  _PostResponse400.response400() : status = 400;
+  PostResponse400.response400() : status = 400;
 
   @override
   final int status;
@@ -655,39 +660,42 @@ class _PostResponse400 extends PostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic?> propertiesToString() => {
+  Map<String, dynamic> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
 }
 
-abstract class PostResponse extends OpenApiResponse
+sealed class PostResponse extends OpenApiResponse
     implements HasSuccessResponse<void> {
   PostResponse();
 
   /// Successful creation
-  factory PostResponse.response201() => _PostResponse201.response201();
+  factory PostResponse.response201() => PostResponse201.response201();
 
   /// Invalid parameters
-  factory PostResponse.response400() => _PostResponse400.response400();
+  factory PostResponse.response400() => PostResponse400.response400();
 
-  void map({
-    required ResponseMap<_PostResponse201> on201,
-    required ResponseMap<_PostResponse400> on400,
+  R map<R>({
+    required ResponseMap<PostResponse201, R> on201,
+    required ResponseMap<PostResponse400, R> on400,
+    ResponseMap<PostResponse, R>? onElse,
   }) {
-    if (this is _PostResponse201) {
-      on201((this as _PostResponse201));
-    } else if (this is _PostResponse400) {
-      on400((this as _PostResponse400));
+    if (this is PostResponse201) {
+      return on201((this as PostResponse201));
+    } else if (this is PostResponse400) {
+      return on400((this as PostResponse400));
+    } else if (onElse != null) {
+      return onElse(this);
     } else {
-      throw StateError('Invalid instance type $this');
+      throw StateError('Invalid instance of type $this');
     }
   }
 
   /// status 201:  Successful creation
   @override
   void requireSuccess() {
-    if (this is _PostResponse201) {
+    if (this is PostResponse201) {
       return;
     } else {
       throw StateError('Expected success response, but got $this');
@@ -1172,9 +1180,9 @@ class PostSchema implements OpenApiContent {
   String toString() => toJson().toString();
 }
 
-class _DeleteResponse200 extends DeleteResponse {
+class DeleteResponse200 extends DeleteResponse {
   /// Service stopped
-  _DeleteResponse200.response200() : status = 200;
+  DeleteResponse200.response200() : status = 200;
 
   @override
   final int status;
@@ -1183,31 +1191,36 @@ class _DeleteResponse200 extends DeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic?> propertiesToString() => {
+  Map<String, dynamic> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
 }
 
-abstract class DeleteResponse extends OpenApiResponse
+sealed class DeleteResponse extends OpenApiResponse
     implements HasSuccessResponse<void> {
   DeleteResponse();
 
   /// Service stopped
-  factory DeleteResponse.response200() => _DeleteResponse200.response200();
+  factory DeleteResponse.response200() => DeleteResponse200.response200();
 
-  void map({required ResponseMap<_DeleteResponse200> on200}) {
-    if (this is _DeleteResponse200) {
-      on200((this as _DeleteResponse200));
+  R map<R>({
+    required ResponseMap<DeleteResponse200, R> on200,
+    ResponseMap<DeleteResponse, R>? onElse,
+  }) {
+    if (this is DeleteResponse200) {
+      return on200((this as DeleteResponse200));
+    } else if (onElse != null) {
+      return onElse(this);
     } else {
-      throw StateError('Invalid instance type $this');
+      throw StateError('Invalid instance of type $this');
     }
   }
 
   /// status 200:  Service stopped
   @override
   void requireSuccess() {
-    if (this is _DeleteResponse200) {
+    if (this is DeleteResponse200) {
       return;
     } else {
       throw StateError('Expected success response, but got $this');
@@ -1215,10 +1228,10 @@ abstract class DeleteResponse extends OpenApiResponse
   }
 }
 
-class _ClientIdPostResponse200 extends ClientIdPostResponse
+class ClientIdPostResponse200 extends ClientIdPostResponse
     implements OpenApiResponseBodyJson {
   /// Success
-  _ClientIdPostResponse200.response200(this.body)
+  ClientIdPostResponse200.response200(this.body)
       : status = 200,
         bodyJson = body.toJson();
 
@@ -1235,7 +1248,7 @@ class _ClientIdPostResponse200 extends ClientIdPostResponse
       OpenApiContentType.parse('application/json');
 
   @override
-  Map<String, dynamic?> propertiesToString() => {
+  Map<String, dynamic> propertiesToString() => {
         'status': status,
         'body': body,
         'bodyJson': bodyJson,
@@ -1243,9 +1256,9 @@ class _ClientIdPostResponse200 extends ClientIdPostResponse
       };
 }
 
-class _ClientIdPostResponse404 extends ClientIdPostResponse {
+class ClientIdPostResponse404 extends ClientIdPostResponse {
   /// Not found
-  _ClientIdPostResponse404.response404() : status = 404;
+  ClientIdPostResponse404.response404() : status = 404;
 
   @override
   final int status;
@@ -1254,51 +1267,54 @@ class _ClientIdPostResponse404 extends ClientIdPostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic?> propertiesToString() => {
+  Map<String, dynamic> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
 }
 
-abstract class ClientIdPostResponse extends OpenApiResponse
+sealed class ClientIdPostResponse extends OpenApiResponse
     implements HasSuccessResponse<Response> {
   ClientIdPostResponse();
 
   /// Success
   factory ClientIdPostResponse.response200(Response body) =>
-      _ClientIdPostResponse200.response200(body);
+      ClientIdPostResponse200.response200(body);
 
   /// Not found
   factory ClientIdPostResponse.response404() =>
-      _ClientIdPostResponse404.response404();
+      ClientIdPostResponse404.response404();
 
-  void map({
-    required ResponseMap<_ClientIdPostResponse200> on200,
-    required ResponseMap<_ClientIdPostResponse404> on404,
+  R map<R>({
+    required ResponseMap<ClientIdPostResponse200, R> on200,
+    required ResponseMap<ClientIdPostResponse404, R> on404,
+    ResponseMap<ClientIdPostResponse, R>? onElse,
   }) {
-    if (this is _ClientIdPostResponse200) {
-      on200((this as _ClientIdPostResponse200));
-    } else if (this is _ClientIdPostResponse404) {
-      on404((this as _ClientIdPostResponse404));
+    if (this is ClientIdPostResponse200) {
+      return on200((this as ClientIdPostResponse200));
+    } else if (this is ClientIdPostResponse404) {
+      return on404((this as ClientIdPostResponse404));
+    } else if (onElse != null) {
+      return onElse(this);
     } else {
-      throw StateError('Invalid instance type $this');
+      throw StateError('Invalid instance of type $this');
     }
   }
 
   /// status 200:  Success
   @override
   Response requireSuccess() {
-    if (this is _ClientIdPostResponse200) {
-      return (this as _ClientIdPostResponse200).body;
+    if (this is ClientIdPostResponse200) {
+      return (this as ClientIdPostResponse200).body;
     } else {
       throw StateError('Expected success response, but got $this');
     }
   }
 }
 
-class _ClientIdDeleteResponse200 extends ClientIdDeleteResponse {
+class ClientIdDeleteResponse200 extends ClientIdDeleteResponse {
   /// OK
-  _ClientIdDeleteResponse200.response200() : status = 200;
+  ClientIdDeleteResponse200.response200() : status = 200;
 
   @override
   final int status;
@@ -1307,15 +1323,15 @@ class _ClientIdDeleteResponse200 extends ClientIdDeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic?> propertiesToString() => {
+  Map<String, dynamic> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
 }
 
-class _ClientIdDeleteResponse404 extends ClientIdDeleteResponse {
+class ClientIdDeleteResponse404 extends ClientIdDeleteResponse {
   /// Client not found
-  _ClientIdDeleteResponse404.response404() : status = 404;
+  ClientIdDeleteResponse404.response404() : status = 404;
 
   @override
   final int status;
@@ -1324,41 +1340,44 @@ class _ClientIdDeleteResponse404 extends ClientIdDeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic?> propertiesToString() => {
+  Map<String, dynamic> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
 }
 
-abstract class ClientIdDeleteResponse extends OpenApiResponse
+sealed class ClientIdDeleteResponse extends OpenApiResponse
     implements HasSuccessResponse<void> {
   ClientIdDeleteResponse();
 
   /// OK
   factory ClientIdDeleteResponse.response200() =>
-      _ClientIdDeleteResponse200.response200();
+      ClientIdDeleteResponse200.response200();
 
   /// Client not found
   factory ClientIdDeleteResponse.response404() =>
-      _ClientIdDeleteResponse404.response404();
+      ClientIdDeleteResponse404.response404();
 
-  void map({
-    required ResponseMap<_ClientIdDeleteResponse200> on200,
-    required ResponseMap<_ClientIdDeleteResponse404> on404,
+  R map<R>({
+    required ResponseMap<ClientIdDeleteResponse200, R> on200,
+    required ResponseMap<ClientIdDeleteResponse404, R> on404,
+    ResponseMap<ClientIdDeleteResponse, R>? onElse,
   }) {
-    if (this is _ClientIdDeleteResponse200) {
-      on200((this as _ClientIdDeleteResponse200));
-    } else if (this is _ClientIdDeleteResponse404) {
-      on404((this as _ClientIdDeleteResponse404));
+    if (this is ClientIdDeleteResponse200) {
+      return on200((this as ClientIdDeleteResponse200));
+    } else if (this is ClientIdDeleteResponse404) {
+      return on404((this as ClientIdDeleteResponse404));
+    } else if (onElse != null) {
+      return onElse(this);
     } else {
-      throw StateError('Invalid instance type $this');
+      throw StateError('Invalid instance of type $this');
     }
   }
 
   /// status 200:  OK
   @override
   void requireSuccess() {
-    if (this is _ClientIdDeleteResponse200) {
+    if (this is ClientIdDeleteResponse200) {
       return;
     } else {
       throw StateError('Expected success response, but got $this');
@@ -1455,7 +1474,7 @@ class _SdkTestApiClientImpl extends OpenApiClientBase
       request,
       {
         '200': (OpenApiClientResponse response) async =>
-            _GetResponse200.response200(
+            GetResponse200.response200(
                 GetResponseBody200.fromJson(await response.responseBodyJson()))
       },
     );
@@ -1480,9 +1499,9 @@ class _SdkTestApiClientImpl extends OpenApiClientBase
       request,
       {
         '201': (OpenApiClientResponse response) async =>
-            _PostResponse201.response201(),
+            PostResponse201.response201(),
         '400': (OpenApiClientResponse response) async =>
-            _PostResponse400.response400(),
+            PostResponse400.response400(),
       },
     );
   }
@@ -1501,7 +1520,7 @@ class _SdkTestApiClientImpl extends OpenApiClientBase
       request,
       {
         '200': (OpenApiClientResponse response) async =>
-            _DeleteResponse200.response200()
+            DeleteResponse200.response200()
       },
     );
   }
@@ -1531,10 +1550,10 @@ class _SdkTestApiClientImpl extends OpenApiClientBase
       request,
       {
         '200': (OpenApiClientResponse response) async =>
-            _ClientIdPostResponse200.response200(
+            ClientIdPostResponse200.response200(
                 Response.fromJson(await response.responseBodyJson())),
         '404': (OpenApiClientResponse response) async =>
-            _ClientIdPostResponse404.response404(),
+            ClientIdPostResponse404.response404(),
       },
     );
   }
@@ -1557,9 +1576,9 @@ class _SdkTestApiClientImpl extends OpenApiClientBase
       request,
       {
         '200': (OpenApiClientResponse response) async =>
-            _ClientIdDeleteResponse200.response200(),
+            ClientIdDeleteResponse200.response200(),
         '404': (OpenApiClientResponse response) async =>
-            _ClientIdDeleteResponse404.response404(),
+            ClientIdDeleteResponse404.response404(),
       },
     );
   }

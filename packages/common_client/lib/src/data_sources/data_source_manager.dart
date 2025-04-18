@@ -127,7 +127,7 @@ final class DataSourceManager {
         _statusManager.setOffline();
       case ConnectionMode.streaming:
       case ConnectionMode.polling:
-      default:
+      // default:
       // We may want to consider adding another state to the data source state
       // for the intermediate between switching data sources, or for identifying
       // a new context.
