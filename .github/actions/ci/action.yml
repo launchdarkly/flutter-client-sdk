@@ -5,8 +5,16 @@ name: Shared CI Workflow
 
 inputs:
   github_token:
-    description: "Github token used to access contract test harness."
+    description: 'Github token used to access contract test harness.'
     required: true
+  flutter_version:
+    description: 'The Flutter version to install'
+    required: false
+    default: '3.29.3'
+  dart_version:
+    description: 'The Dart version to install'
+    required: false
+    default: '3.7.2'
 
 description: Shared build and test for CI and release.
 runs:
@@ -15,12 +23,12 @@ runs:
     - name: Install Dart
       uses: dart-lang/setup-dart@v1
       with:
-        sdk: stable
+        sdk: ${{ inputs.dart_version }}
 
     - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.16.3'
+        flutter-version: ${{ inputs.flutter_version }}
         channel: 'stable'
 
     - name: Install Melos

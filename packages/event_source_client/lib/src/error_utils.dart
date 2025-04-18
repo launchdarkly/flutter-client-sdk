@@ -25,11 +25,12 @@ class ErrorUtils {
       if (error.message.contains('Redirect loop detected')) {
         return false;
       }
+      if (error.message.contains('has no Location header for redirect')) {
+        return false;
+      }
     }
-
     if (error is StateError) {
-      if (error.message
-          .contains('Response has no Location header for redirect')) {
+      if (error.message.contains('has no Location header for redirect')) {
         return false;
       }
     }

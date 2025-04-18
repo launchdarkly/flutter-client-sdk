@@ -24,18 +24,10 @@ RequestIdentifyEvent _$RequestIdentifyEventFromJson(
     );
 
 Map<String, dynamic> _$RequestIdentifyEventToJson(
-    RequestIdentifyEvent instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('context', instance.context);
-  return val;
-}
+        RequestIdentifyEvent instance) =>
+    <String, dynamic>{
+      if (instance.context case final value?) 'context': value,
+    };
 
 RequestEvaluateContext _$RequestEvaluateContextFromJson(
         Map<String, dynamic> json) =>
@@ -66,22 +58,14 @@ RequestEvaluate _$RequestEvaluateFromJson(Map<String, dynamic> json) =>
       detail: json['detail'] as bool?,
     );
 
-Map<String, dynamic> _$RequestEvaluateToJson(RequestEvaluate instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('flagKey', instance.flagKey);
-  writeNotNull('context', instance.context);
-  writeNotNull('user', instance.user);
-  writeNotNull('valueType', instance.valueType);
-  writeNotNull('detail', instance.detail);
-  return val;
-}
+Map<String, dynamic> _$RequestEvaluateToJson(RequestEvaluate instance) =>
+    <String, dynamic>{
+      if (instance.flagKey case final value?) 'flagKey': value,
+      if (instance.context case final value?) 'context': value,
+      if (instance.user case final value?) 'user': value,
+      if (instance.valueType case final value?) 'valueType': value,
+      if (instance.detail case final value?) 'detail': value,
+    };
 
 RequestEvaluateAllContext _$RequestEvaluateAllContextFromJson(
         Map<String, dynamic> json) =>
@@ -114,23 +98,15 @@ RequestEvaluateAll _$RequestEvaluateAllFromJson(Map<String, dynamic> json) =>
       detailsOnlyForTrackedFlags: json['detailsOnlyForTrackedFlags'] as bool?,
     );
 
-Map<String, dynamic> _$RequestEvaluateAllToJson(RequestEvaluateAll instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('context', instance.context);
-  writeNotNull('user', instance.user);
-  writeNotNull('withReasons', instance.withReasons);
-  writeNotNull('clientSideOnly', instance.clientSideOnly);
-  writeNotNull(
-      'detailsOnlyForTrackedFlags', instance.detailsOnlyForTrackedFlags);
-  return val;
-}
+Map<String, dynamic> _$RequestEvaluateAllToJson(RequestEvaluateAll instance) =>
+    <String, dynamic>{
+      if (instance.context case final value?) 'context': value,
+      if (instance.user case final value?) 'user': value,
+      if (instance.withReasons case final value?) 'withReasons': value,
+      if (instance.clientSideOnly case final value?) 'clientSideOnly': value,
+      if (instance.detailsOnlyForTrackedFlags case final value?)
+        'detailsOnlyForTrackedFlags': value,
+    };
 
 RequestCustomEvent _$RequestCustomEventFromJson(Map<String, dynamic> json) =>
     RequestCustomEvent(
@@ -139,20 +115,12 @@ RequestCustomEvent _$RequestCustomEventFromJson(Map<String, dynamic> json) =>
       metricValue: json['metricValue'] as num?,
     );
 
-Map<String, dynamic> _$RequestCustomEventToJson(RequestCustomEvent instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('eventKey', instance.eventKey);
-  writeNotNull('omitNullData', instance.omitNullData);
-  writeNotNull('metricValue', instance.metricValue);
-  return val;
-}
+Map<String, dynamic> _$RequestCustomEventToJson(RequestCustomEvent instance) =>
+    <String, dynamic>{
+      if (instance.eventKey case final value?) 'eventKey': value,
+      if (instance.omitNullData case final value?) 'omitNullData': value,
+      if (instance.metricValue case final value?) 'metricValue': value,
+    };
 
 BuildContext _$BuildContextFromJson(Map<String, dynamic> json) =>
     BuildContext();
@@ -172,19 +140,11 @@ SingleOrMultiBuildContext _$SingleOrMultiBuildContextFromJson(
     );
 
 Map<String, dynamic> _$SingleOrMultiBuildContextToJson(
-    SingleOrMultiBuildContext instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('single', instance.single);
-  writeNotNull('multi', instance.multi);
-  return val;
-}
+        SingleOrMultiBuildContext instance) =>
+    <String, dynamic>{
+      if (instance.single case final value?) 'single': value,
+      if (instance.multi case final value?) 'multi': value,
+    };
 
 RequestContextConvert _$RequestContextConvertFromJson(
         Map<String, dynamic> json) =>
@@ -193,18 +153,10 @@ RequestContextConvert _$RequestContextConvertFromJson(
     );
 
 Map<String, dynamic> _$RequestContextConvertToJson(
-    RequestContextConvert instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('input', instance.input);
-  return val;
-}
+        RequestContextConvert instance) =>
+    <String, dynamic>{
+      if (instance.input case final value?) 'input': value,
+    };
 
 RequestContextComparison _$RequestContextComparisonFromJson(
         Map<String, dynamic> json) =>
@@ -220,19 +172,11 @@ RequestContextComparison _$RequestContextComparisonFromJson(
     );
 
 Map<String, dynamic> _$RequestContextComparisonToJson(
-    RequestContextComparison instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('context1', instance.context1);
-  writeNotNull('context2', instance.context2);
-  return val;
-}
+        RequestContextComparison instance) =>
+    <String, dynamic>{
+      if (instance.context1 case final value?) 'context1': value,
+      if (instance.context2 case final value?) 'context2': value,
+    };
 
 Request _$RequestFromJson(Map<String, dynamic> json) => Request(
       command: json['command'] as String?,
@@ -265,25 +209,17 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
               json['contextComparison'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$RequestToJson(Request instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('command', instance.command);
-  writeNotNull('identifyEvent', instance.identifyEvent);
-  writeNotNull('evaluate', instance.evaluate);
-  writeNotNull('evaluateAll', instance.evaluateAll);
-  writeNotNull('customEvent', instance.customEvent);
-  writeNotNull('contextBuild', instance.contextBuild);
-  writeNotNull('contextConvert', instance.contextConvert);
-  writeNotNull('contextComparison', instance.contextComparison);
-  return val;
-}
+Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
+      if (instance.command case final value?) 'command': value,
+      if (instance.identifyEvent case final value?) 'identifyEvent': value,
+      if (instance.evaluate case final value?) 'evaluate': value,
+      if (instance.evaluateAll case final value?) 'evaluateAll': value,
+      if (instance.customEvent case final value?) 'customEvent': value,
+      if (instance.contextBuild case final value?) 'contextBuild': value,
+      if (instance.contextConvert case final value?) 'contextConvert': value,
+      if (instance.contextComparison case final value?)
+        'contextComparison': value,
+    };
 
 Response _$ResponseFromJson(Map<String, dynamic> json) => Response();
 
@@ -298,20 +234,12 @@ GetResponseBody200 _$GetResponseBody200FromJson(Map<String, dynamic> json) =>
           .toList(),
     );
 
-Map<String, dynamic> _$GetResponseBody200ToJson(GetResponseBody200 instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('name', instance.name);
-  writeNotNull('clientVersion', instance.clientVersion);
-  writeNotNull('capabilities', instance.capabilities);
-  return val;
-}
+Map<String, dynamic> _$GetResponseBody200ToJson(GetResponseBody200 instance) =>
+    <String, dynamic>{
+      if (instance.name case final value?) 'name': value,
+      if (instance.clientVersion case final value?) 'clientVersion': value,
+      if (instance.capabilities case final value?) 'capabilities': value,
+    };
 
 PostSchemaConfigurationServiceEndpoints
     _$PostSchemaConfigurationServiceEndpointsFromJson(
@@ -323,20 +251,12 @@ PostSchemaConfigurationServiceEndpoints
         );
 
 Map<String, dynamic> _$PostSchemaConfigurationServiceEndpointsToJson(
-    PostSchemaConfigurationServiceEndpoints instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('streaming', instance.streaming);
-  writeNotNull('polling', instance.polling);
-  writeNotNull('events', instance.events);
-  return val;
-}
+        PostSchemaConfigurationServiceEndpoints instance) =>
+    <String, dynamic>{
+      if (instance.streaming case final value?) 'streaming': value,
+      if (instance.polling case final value?) 'polling': value,
+      if (instance.events case final value?) 'events': value,
+    };
 
 PostSchemaConfigurationStreaming _$PostSchemaConfigurationStreamingFromJson(
         Map<String, dynamic> json) =>
@@ -347,20 +267,13 @@ PostSchemaConfigurationStreaming _$PostSchemaConfigurationStreamingFromJson(
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationStreamingToJson(
-    PostSchemaConfigurationStreaming instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('baseUri', instance.baseUri);
-  writeNotNull('initialRetryDelayMs', instance.initialRetryDelayMs);
-  writeNotNull('filter', instance.filter);
-  return val;
-}
+        PostSchemaConfigurationStreaming instance) =>
+    <String, dynamic>{
+      if (instance.baseUri case final value?) 'baseUri': value,
+      if (instance.initialRetryDelayMs case final value?)
+        'initialRetryDelayMs': value,
+      if (instance.filter case final value?) 'filter': value,
+    };
 
 PostSchemaConfigurationPolling _$PostSchemaConfigurationPollingFromJson(
         Map<String, dynamic> json) =>
@@ -371,20 +284,12 @@ PostSchemaConfigurationPolling _$PostSchemaConfigurationPollingFromJson(
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationPollingToJson(
-    PostSchemaConfigurationPolling instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('baseUri', instance.baseUri);
-  writeNotNull('pollIntervalMs', instance.pollIntervalMs);
-  writeNotNull('filter', instance.filter);
-  return val;
-}
+        PostSchemaConfigurationPolling instance) =>
+    <String, dynamic>{
+      if (instance.baseUri case final value?) 'baseUri': value,
+      if (instance.pollIntervalMs case final value?) 'pollIntervalMs': value,
+      if (instance.filter case final value?) 'filter': value,
+    };
 
 PostSchemaConfigurationEvents _$PostSchemaConfigurationEventsFromJson(
         Map<String, dynamic> json) =>
@@ -401,23 +306,18 @@ PostSchemaConfigurationEvents _$PostSchemaConfigurationEventsFromJson(
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationEventsToJson(
-    PostSchemaConfigurationEvents instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('baseUri', instance.baseUri);
-  writeNotNull('capacity', instance.capacity);
-  writeNotNull('enableDiagnostics', instance.enableDiagnostics);
-  writeNotNull('allAttributesPrivate', instance.allAttributesPrivate);
-  writeNotNull('globalPrivateAttributes', instance.globalPrivateAttributes);
-  writeNotNull('flushIntervalMs', instance.flushIntervalMs);
-  return val;
-}
+        PostSchemaConfigurationEvents instance) =>
+    <String, dynamic>{
+      if (instance.baseUri case final value?) 'baseUri': value,
+      if (instance.capacity case final value?) 'capacity': value,
+      if (instance.enableDiagnostics case final value?)
+        'enableDiagnostics': value,
+      if (instance.allAttributesPrivate case final value?)
+        'allAttributesPrivate': value,
+      if (instance.globalPrivateAttributes case final value?)
+        'globalPrivateAttributes': value,
+      if (instance.flushIntervalMs case final value?) 'flushIntervalMs': value,
+    };
 
 PostSchemaConfigurationBigSegments _$PostSchemaConfigurationBigSegmentsFromJson(
         Map<String, dynamic> json) =>
@@ -430,22 +330,15 @@ PostSchemaConfigurationBigSegments _$PostSchemaConfigurationBigSegmentsFromJson(
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationBigSegmentsToJson(
-    PostSchemaConfigurationBigSegments instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('callbackUri', instance.callbackUri);
-  writeNotNull('userCacheSize', instance.userCacheSize);
-  writeNotNull('userCacheTimeMs', instance.userCacheTimeMs);
-  writeNotNull('statusPollIntervalMS', instance.statusPollIntervalMS);
-  writeNotNull('staleAfterMs', instance.staleAfterMs);
-  return val;
-}
+        PostSchemaConfigurationBigSegments instance) =>
+    <String, dynamic>{
+      if (instance.callbackUri case final value?) 'callbackUri': value,
+      if (instance.userCacheSize case final value?) 'userCacheSize': value,
+      if (instance.userCacheTimeMs case final value?) 'userCacheTimeMs': value,
+      if (instance.statusPollIntervalMS case final value?)
+        'statusPollIntervalMS': value,
+      if (instance.staleAfterMs case final value?) 'staleAfterMs': value,
+    };
 
 PostSchemaConfigurationTags _$PostSchemaConfigurationTagsFromJson(
         Map<String, dynamic> json) =>
@@ -455,19 +348,12 @@ PostSchemaConfigurationTags _$PostSchemaConfigurationTagsFromJson(
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationTagsToJson(
-    PostSchemaConfigurationTags instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('applicationId', instance.applicationId);
-  writeNotNull('applicationVersion', instance.applicationVersion);
-  return val;
-}
+        PostSchemaConfigurationTags instance) =>
+    <String, dynamic>{
+      if (instance.applicationId case final value?) 'applicationId': value,
+      if (instance.applicationVersion case final value?)
+        'applicationVersion': value,
+    };
 
 PostSchemaConfigurationClientSideInitialContext
     _$PostSchemaConfigurationClientSideInitialContextFromJson(
@@ -503,21 +389,14 @@ PostSchemaConfigurationClientSide _$PostSchemaConfigurationClientSideFromJson(
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationClientSideToJson(
-    PostSchemaConfigurationClientSide instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('initialContext', instance.initialContext);
-  writeNotNull('initialUser', instance.initialUser);
-  writeNotNull('evaluationReasons', instance.evaluationReasons);
-  writeNotNull('useReport', instance.useReport);
-  return val;
-}
+        PostSchemaConfigurationClientSide instance) =>
+    <String, dynamic>{
+      if (instance.initialContext case final value?) 'initialContext': value,
+      if (instance.initialUser case final value?) 'initialUser': value,
+      if (instance.evaluationReasons case final value?)
+        'evaluationReasons': value,
+      if (instance.useReport case final value?) 'useReport': value,
+    };
 
 PostSchemaConfiguration _$PostSchemaConfigurationFromJson(
         Map<String, dynamic> json) =>
@@ -556,27 +435,20 @@ PostSchemaConfiguration _$PostSchemaConfigurationFromJson(
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationToJson(
-    PostSchemaConfiguration instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('credential', instance.credential);
-  writeNotNull('startWaitTimeMs', instance.startWaitTimeMs);
-  writeNotNull('initCanFail', instance.initCanFail);
-  writeNotNull('serviceEndpoints', instance.serviceEndpoints);
-  writeNotNull('streaming', instance.streaming);
-  writeNotNull('polling', instance.polling);
-  writeNotNull('events', instance.events);
-  writeNotNull('bigSegments', instance.bigSegments);
-  writeNotNull('tags', instance.tags);
-  writeNotNull('clientSide', instance.clientSide);
-  return val;
-}
+        PostSchemaConfiguration instance) =>
+    <String, dynamic>{
+      if (instance.credential case final value?) 'credential': value,
+      if (instance.startWaitTimeMs case final value?) 'startWaitTimeMs': value,
+      if (instance.initCanFail case final value?) 'initCanFail': value,
+      if (instance.serviceEndpoints case final value?)
+        'serviceEndpoints': value,
+      if (instance.streaming case final value?) 'streaming': value,
+      if (instance.polling case final value?) 'polling': value,
+      if (instance.events case final value?) 'events': value,
+      if (instance.bigSegments case final value?) 'bigSegments': value,
+      if (instance.tags case final value?) 'tags': value,
+      if (instance.clientSide case final value?) 'clientSide': value,
+    };
 
 PostSchema _$PostSchemaFromJson(Map<String, dynamic> json) => PostSchema(
       tag: json['tag'] as String?,
@@ -586,16 +458,8 @@ PostSchema _$PostSchemaFromJson(Map<String, dynamic> json) => PostSchema(
               json['configuration'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$PostSchemaToJson(PostSchema instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('tag', instance.tag);
-  writeNotNull('configuration', instance.configuration);
-  return val;
-}
+Map<String, dynamic> _$PostSchemaToJson(PostSchema instance) =>
+    <String, dynamic>{
+      if (instance.tag case final value?) 'tag': value,
+      if (instance.configuration case final value?) 'configuration': value,
+    };
