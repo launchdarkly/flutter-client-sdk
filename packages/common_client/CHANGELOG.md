@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.6.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.5.0...launchdarkly_common_client-v1.6.0) (2025-04-21)
+
+
+### Features
+
+* Add support for WASM ([#191](https://github.com/launchdarkly/flutter-client-sdk/issues/191)) ([33431eb](https://github.com/launchdarkly/flutter-client-sdk/commit/33431eb34e1d69e8b0c10f522b40c8a339fe1b5c))
+* **deps:** Update depdendency versions for launchdarkly_common_client ([#196](https://github.com/launchdarkly/flutter-client-sdk/issues/196)) ([0646c2a](https://github.com/launchdarkly/flutter-client-sdk/commit/0646c2aaaffb8fd17c61646bed815cc7898fa428))
+
 ## [1.5.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.4.1...launchdarkly_common_client-v1.5.0) (2025-04-18)
 
 
