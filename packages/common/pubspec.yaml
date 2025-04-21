@@ -1,6 +1,6 @@
 name: launchdarkly_dart_common
 description: Common dart libraries used by LaunchDarkly SDKs. This is an internal package not designed for general use.
-version: 1.4.0
+version: 1.5.0
 homepage: https://github.com/launchdarkly/flutter-client-sdk
 repository: https://github.com/launchdarkly/flutter-client-sdk/tree/main/packages/common
 
