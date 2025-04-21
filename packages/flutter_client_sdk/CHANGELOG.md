@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.11.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.10.0...4.11.0) (2025-04-21)
+
+
+### Features
+
+* Add support for WASM ([#191](https://github.com/launchdarkly/flutter-client-sdk/issues/191)) ([33431eb](https://github.com/launchdarkly/flutter-client-sdk/commit/33431eb34e1d69e8b0c10f522b40c8a339fe1b5c))
+* **deps:** Update dependencies for launchdarkly_flutter_client_sdk ([#197](https://github.com/launchdarkly/flutter-client-sdk/issues/197)) ([de52cc8](https://github.com/launchdarkly/flutter-client-sdk/commit/de52cc8515337c40b1e1efe3c83994af7df6394e))
+
 ## [4.10.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.9.0...4.10.0) (2025-04-18)
 
 
