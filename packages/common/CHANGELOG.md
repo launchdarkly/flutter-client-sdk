@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.5.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.4.0...launchdarkly_dart_common-v1.5.0) (2025-04-21)
+
+
+### Features
+
+* Add support for WASM ([#191](https://github.com/launchdarkly/flutter-client-sdk/issues/191)) ([33431eb](https://github.com/launchdarkly/flutter-client-sdk/commit/33431eb34e1d69e8b0c10f522b40c8a339fe1b5c))
+
 ## [1.4.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.3.0...launchdarkly_dart_common-v1.4.0) (2025-04-18)
 
 
