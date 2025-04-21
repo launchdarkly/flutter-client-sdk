@@ -1,6 +1,6 @@
 import 'dart:async';
-// ignore: deprecated_member_use
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 
 import 'package:flutter/widgets.dart';
 
@@ -12,17 +12,17 @@ class LDAppLifecycleListener {
   LDAppLifecycleListener() {
     _streamController = StreamController.broadcast();
 
-    void listenerFunc(event) =>
-        _streamController.add(html.document.hidden == true
+    void listenerFunc(web.Event event) =>
+        _streamController.add(web.document.hidden == true
             ? AppLifecycleState.hidden
             : AppLifecycleState.resumed);
 
     _streamController.onListen = () {
-      html.document.addEventListener('visibilitychange', listenerFunc);
+      web.document.addEventListener('visibilitychange', listenerFunc.toJS);
     };
 
     _streamController.onCancel = () {
-      html.document.removeEventListener('visibilitychange', listenerFunc);
+      web.document.removeEventListener('visibilitychange', listenerFunc.toJS);
     };
   }
 

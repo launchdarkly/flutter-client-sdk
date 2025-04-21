@@ -4,7 +4,7 @@ import '../config/defaults/common_default_config.dart';
 import '../config/http_properties.dart';
 import 'platform_client/stub_client.dart'
     if (dart.library.io) 'platform_client/io_client.dart'
-    if (dart.library.html) 'platform_client/js_client.dart';
+    if (dart.library.js_interop) 'platform_client/js_client.dart';
 import 'utils.dart';
 
 /// Http requests methods supported by the HTTP client.
