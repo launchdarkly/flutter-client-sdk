@@ -1,6 +1,6 @@
 import 'dart:async';
-// ignore: deprecated_member_use
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 import 'dart:math' as math;
 
 import '../launchdarkly_event_source_client.dart';
@@ -8,10 +8,10 @@ import '../launchdarkly_event_source_client.dart';
 import 'backoff.dart';
 import 'message_event.dart' as ld_message_event;
 
-/// An [SSEClient] that uses the [html.EventSource] available on most browsers for web platform support.
+/// An [SSEClient] that uses the [web.EventSource] available on most browsers for web platform support.
 class HtmlSseClient implements SSEClient {
   /// The underlying eventsource
-  html.EventSource? _eventSource;
+  web.EventSource? _eventSource;
 
   /// This controller is for the events going to the subscribers of this client.
   late final StreamController<ld_message_event.MessageEvent>
@@ -54,27 +54,29 @@ class HtmlSseClient implements SSEClient {
   }
 
   void _setupConnection() {
-    _eventSource = html.EventSource(_uri.toString());
+    _eventSource = web.EventSource(_uri.toString());
 
     for (var eventType in _eventTypes) {
-      _eventSource?.addEventListener(eventType, _handleMessageEvent);
+      _eventSource?.addEventListener(eventType, _handleMessageEvent.toJS);
     }
-    _eventSource?.addEventListener('error', _handleError);
+    _eventSource?.addEventListener('error', _handleError.toJS);
   }
 
-  void _handleError(html.Event event) {
+  void _handleError(web.Event event) {
     // The browser event source errors are reasonably opaque, if we could
     // determine the type of condition, then this is where we would
     // determine if this was a temporary or permanent failure.
     restart();
   }
 
-  void _handleMessageEvent(html.Event event) {
+  void _handleMessageEvent(web.Event event) {
     _activeSince = DateTime.now().millisecondsSinceEpoch;
-    final messageEvent = event as html.MessageEvent;
-    final ldMessageEvent = ld_message_event.MessageEvent(
-        messageEvent.type, messageEvent.data, messageEvent.lastEventId);
-    _messageEventsController.sink.add(ldMessageEvent);
+    final messageEvent = event as web.MessageEvent;
+    if (messageEvent.data != null && messageEvent.data.typeofEquals('string')) {
+      final ldMessageEvent = ld_message_event.MessageEvent(messageEvent.type,
+          (messageEvent.data as JSString).toDart, messageEvent.lastEventId);
+      _messageEventsController.sink.add(ldMessageEvent);
+    }
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first

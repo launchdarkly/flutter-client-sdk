@@ -311,7 +311,7 @@ packages:
       path: "../../packages/event_source_client"
       relative: true
     source: path
-    version: "1.0.0"
+    version: "1.1.0"
   lints:
     dependency: "direct dev"
     description:
@@ -632,6 +632,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+  web:
+    dependency: transitive
+    description:
+      name: web
+      sha256: "868d88a33d8a87b18ffc05f9f030ba328ffefba92d6c127917a2ba740f9cfe4a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.1"
   web_socket_channel:
     dependency: transitive
     description:
