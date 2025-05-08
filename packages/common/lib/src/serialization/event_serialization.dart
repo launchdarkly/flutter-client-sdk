@@ -19,8 +19,8 @@ final class IdentifyEventSerialization {
 
 final class CustomEventSerialization {
   static Map<String, dynamic> toJson(CustomEvent event,
-        {required bool allAttributesPrivate,
-        required Set<AttributeReference> globalPrivateAttributes}) {
+      {required bool allAttributesPrivate,
+      required Set<AttributeReference> globalPrivateAttributes}) {
     final json = <String, dynamic>{};
 
     json['kind'] = 'custom';

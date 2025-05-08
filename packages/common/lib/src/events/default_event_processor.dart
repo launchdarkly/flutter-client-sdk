@@ -96,8 +96,8 @@ final class DefaultEventProcessor implements EventProcessor {
   @override
   void processCustomEvent(CustomEvent event) {
     _enqueue(CustomEventSerialization.toJson(event,
-          allAttributesPrivate: _allAttributesPrivate,
-          globalPrivateAttributes: _globalPrivateAttributes));
+        allAttributesPrivate: _allAttributesPrivate,
+        globalPrivateAttributes: _globalPrivateAttributes));
   }
 
   @override
