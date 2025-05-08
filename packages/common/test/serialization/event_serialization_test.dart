@@ -96,8 +96,9 @@ void main() {
         '"kind": "custom",'
         '"key": "my-key",'
         '"creationDate": 0,'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind"': "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
@@ -120,8 +121,9 @@ void main() {
         '"metricValue": 100,'
         '"key": "my-key",'
         '"creationDate": 0,'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind"': "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
@@ -144,8 +146,9 @@ void main() {
         '"key": "my-key",'
         '"data": {"test": "value"},'
         '"creationDate": 0,'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind"': "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
@@ -170,8 +173,9 @@ void main() {
         '"data": {"test": "value"},'
         '"metricValue": 100,'
         '"creationDate": 0,'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind"': "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
