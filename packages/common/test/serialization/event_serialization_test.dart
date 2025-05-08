@@ -97,7 +97,7 @@ void main() {
         '"key": "my-key",'
         '"creationDate": 0,'
         '"context": {'
-        '"kind"': "user",'
+        '"kind": "user",'
         '"key": "user-key"'
         '}'
         '}'));
@@ -122,7 +122,7 @@ void main() {
         '"key": "my-key",'
         '"creationDate": 0,'
         '"context": {'
-        '"kind"': "user",'
+        '"kind": "user",'
         '"key": "user-key"'
         '}'
         '}'));
@@ -147,7 +147,7 @@ void main() {
         '"data": {"test": "value"},'
         '"creationDate": 0,'
         '"context": {'
-        '"kind"': "user",'
+        '"kind": "user",'
         '"key": "user-key"'
         '}'
         '}'));
@@ -174,7 +174,7 @@ void main() {
         '"metricValue": 100,'
         '"creationDate": 0,'
         '"context": {'
-        '"kind"': "user",'
+        '"kind": "user",'
         '"key": "user-key"'
         '}'
         '}'));
