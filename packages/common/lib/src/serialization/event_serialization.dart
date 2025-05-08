@@ -18,7 +18,9 @@ final class IdentifyEventSerialization {
 }
 
 final class CustomEventSerialization {
-  static Map<String, dynamic> toJson(CustomEvent event) {
+  static Map<String, dynamic> toJson(CustomEvent event,
+        {required bool allAttributesPrivate,
+        required Set<AttributeReference> globalPrivateAttributes}) {
     final json = <String, dynamic>{};
 
     json['kind'] = 'custom';
@@ -32,8 +34,8 @@ final class CustomEventSerialization {
     }
     json['context'] = LDContextSerialization.toJson(event.context,
         isEvent: true,
-        allAttributesPrivate: false,
-        globalPrivateAttributes: {});
+        allAttributesPrivate: allAttributesPrivate,
+        globalPrivateAttributes: globalPrivateAttributes);
 
     return json;
   }

@@ -88,7 +88,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         key: 'my-key');
 
-    final json = jsonEncode(CustomEventSerialization.toJson(event));
+    final json = jsonEncode(CustomEventSerialization.toJson(event
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -112,7 +113,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         key: 'my-key');
 
-    final json = jsonEncode(CustomEventSerialization.toJson(event));
+    final json = jsonEncode(CustomEventSerialization.toJson(event
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -137,7 +139,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         key: 'my-key');
 
-    final json = jsonEncode(CustomEventSerialization.toJson(event));
+    final json = jsonEncode(CustomEventSerialization.toJson(event
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -163,7 +166,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         key: 'my-key');
 
-    final json = jsonEncode(CustomEventSerialization.toJson(event));
+    final json = jsonEncode(CustomEventSerialization.toJson(event
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
