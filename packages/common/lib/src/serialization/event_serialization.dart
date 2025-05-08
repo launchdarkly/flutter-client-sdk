@@ -30,7 +30,10 @@ final class CustomEventSerialization {
     if (event.metricValue != null) {
       json['metricValue'] = event.metricValue;
     }
-    json['contextKeys'] = event.context.keys;
+    json['context'] = LDContextSerialization.toJson(event.context,
+        isEvent: true,
+        allAttributesPrivate: false,
+        globalPrivateAttributes: {});
 
     return json;
   }

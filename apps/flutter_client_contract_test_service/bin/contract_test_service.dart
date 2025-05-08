@@ -23,7 +23,7 @@ class TestApiImpl extends SdkTestApi {
     'tags',
     'client-independence',
     'context-comparison',
-    'inline-context',
+    'inline-context-all',
     'anonymous-redaction',
     'client-prereq-events',
     'auto-env-attributes',
