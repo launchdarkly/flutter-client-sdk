@@ -88,7 +88,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         key: 'my-key');
 
-    final json = jsonEncode(CustomEventSerialization.toJson(event));
+    final json = jsonEncode(CustomEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -96,8 +97,9 @@ void main() {
         '"kind": "custom",'
         '"key": "my-key",'
         '"creationDate": 0,'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
@@ -111,7 +113,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         key: 'my-key');
 
-    final json = jsonEncode(CustomEventSerialization.toJson(event));
+    final json = jsonEncode(CustomEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -120,8 +123,9 @@ void main() {
         '"metricValue": 100,'
         '"key": "my-key",'
         '"creationDate": 0,'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
@@ -135,7 +139,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         key: 'my-key');
 
-    final json = jsonEncode(CustomEventSerialization.toJson(event));
+    final json = jsonEncode(CustomEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -144,8 +149,9 @@ void main() {
         '"key": "my-key",'
         '"data": {"test": "value"},'
         '"creationDate": 0,'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
@@ -160,7 +166,8 @@ void main() {
         context: LDContextBuilder().kind('user', 'user-key').build(),
         key: 'my-key');
 
-    final json = jsonEncode(CustomEventSerialization.toJson(event));
+    final json = jsonEncode(CustomEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -170,8 +177,9 @@ void main() {
         '"data": {"test": "value"},'
         '"metricValue": 100,'
         '"creationDate": 0,'
-        '"contextKeys": {'
-        '"user": "user-key"'
+        '"context": {'
+        '"kind": "user",'
+        '"key": "user-key"'
         '}'
         '}'));
 
