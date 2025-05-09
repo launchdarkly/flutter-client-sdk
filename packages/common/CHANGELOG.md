@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.6.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.5.0...launchdarkly_dart_common-v1.6.0) (2025-05-09)
+
+
+### Features
+
+* Inline context for custom events ([#199](https://github.com/launchdarkly/flutter-client-sdk/issues/199)) ([70a9ead](https://github.com/launchdarkly/flutter-client-sdk/commit/70a9ead28552a3df6b8d3024295b41c35e869338))
+
 ## [1.5.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.4.0...launchdarkly_dart_common-v1.5.0) (2025-04-21)
 
 
