@@ -393,7 +393,7 @@ packages:
       path: "../../packages/common_client"
       relative: true
     source: path
-    version: "1.6.0"
+    version: "1.6.1"
   launchdarkly_dart_common:
     dependency: "direct overridden"
     description:
