@@ -11,6 +11,8 @@ import 'connection_mode.dart';
 import 'context_modifiers/anonymous_context_modifier.dart';
 import 'context_modifiers/context_modifier.dart';
 import 'context_modifiers/env_context_modifier.dart';
+import 'hooks/hook.dart';
+import 'hooks/hook_runner.dart';
 import 'data_sources/data_source_event_handler.dart';
 import 'data_sources/data_source_manager.dart';
 import 'data_sources/data_source_status.dart';
@@ -22,6 +24,30 @@ import 'flag_manager/flag_manager.dart';
 import 'ld_common_config.dart';
 import 'persistence/persistence.dart';
 import 'persistence/validating_persistence.dart';
+
+/// Enumeration of method names used to identify the originating method of a
+/// hook invocation.
+enum VariationMethodNames {
+  boolVariation('boolVariation'),
+  boolVariationDetail('boolVariationDetail'),
+  intVariation('intVariation'),
+  intVariationDetail('intVariationDetail'),
+  doubleVariation('doubleVariation'),
+  doubleVariationDetail('doubleVariationDetail'),
+  stringVariation('stringVariation'),
+  stringVariationDetail('stringVariationDetail'),
+  jsonVariation('jsonVariation'),
+  jsonVariationDetail('jsonVariationDetail');
+
+  final String _value;
+
+  const VariationMethodNames(this._value);
+
+  @override
+  String toString() {
+    return _value;
+  }
+}
 
 /// Base class used for all identify results. Using a sealed class allows for
 /// exhaustive matching the the return from identify operations.
@@ -153,6 +179,8 @@ final class LDCommonClient {
   // is complete.
   LDContext _context = LDContextBuilder().build();
 
+  late final HookRunner _hookRunner;
+
   bool _eventSendingEnabled = true;
   bool _networkAvailable = true;
 
@@ -172,7 +200,8 @@ final class LDCommonClient {
   LDCommonClient(LDCommonConfig commonConfig, CommonPlatform platform,
       LDContext context, DiagnosticSdkData sdkData,
       {DataSourceFactoriesFn? dataSourceFactories,
-      EventProcessorFactory? eventProcessorFactory})
+      EventProcessorFactory? eventProcessorFactory,
+      List<Hook>? hooks})
       : _config = commonConfig,
         _platform = platform,
         _persistence = ValidatingPersistence(
@@ -191,6 +220,7 @@ final class LDCommonClient {
         _eventProcessorFactory =
             eventProcessorFactory ?? _defaultEventProcessorFactory,
         _sdkData = sdkData {
+    _hookRunner = HookRunner(_logger, hooks ?? []);
     final dataSourceEventHandler = DataSourceEventHandler(
         flagManager: _flagManager,
         statusManager: _dataSourceStatusManager,
@@ -440,28 +470,51 @@ final class LDCommonClient {
 
   Future<void> _identifyInternal(LDContext context,
       {bool waitForNetworkResults = false}) async {
-    await _setAndDecorateContext(context);
-    final completer = Completer<void>();
-    _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
-    final loadedFromCache = await _flagManager.loadCached(_context);
+    // Set up hooks for identify operation
+    final afterIdentifyCallback = _hookRunner.identify(context);
 
-    if (_config.offline) {
-      return;
-    }
-    _dataSourceManager.identify(_context, completer);
+    IdentifyResult result;
+    try {
+      await _setAndDecorateContext(context);
+      final completer = Completer<void>();
+      _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
+      final loadedFromCache = await _flagManager.loadCached(_context);
 
-    if (loadedFromCache && !waitForNetworkResults) {
-      return;
+      if (_config.offline) {
+        result = IdentifyComplete();
+        afterIdentifyCallback(result);
+        return;
+      }
+      _dataSourceManager.identify(_context, completer);
+
+      if (loadedFromCache && !waitForNetworkResults) {
+        result = IdentifyComplete();
+        afterIdentifyCallback(result);
+        return;
+      }
+      await completer.future;
+      result = IdentifyComplete();
+      afterIdentifyCallback(result);
+    } catch (error) {
+      result = IdentifyError(error);
+      afterIdentifyCallback(result);
+      rethrow;
     }
-    return completer.future;
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a bool, or if some error occurs.
   bool boolVariation(String flagKey, bool defaultValue) {
-    return _variationInternal(flagKey, LDValue.ofBool(defaultValue),
-            isDetailed: false, type: LDValueType.boolean)
+    return _hookRunner
+        .withEvaluation(
+          flagKey,
+          _context,
+          LDValue.ofBool(defaultValue),
+          VariationMethodNames.boolVariation,
+          () => _variationInternal(flagKey, LDValue.ofBool(defaultValue),
+              isDetailed: false, type: LDValueType.boolean),
+        )
         .value
         .booleanValue();
   }
@@ -472,9 +525,14 @@ final class LDCommonClient {
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<bool> boolVariationDetail(
       String flagKey, bool defaultValue) {
-    final ldValueVariation = _variationInternal(
-        flagKey, LDValue.ofBool(defaultValue),
-        isDetailed: true, type: LDValueType.boolean);
+    final ldValueVariation = _hookRunner.withEvaluation(
+      flagKey,
+      _context,
+      LDValue.ofBool(defaultValue),
+      VariationMethodNames.boolVariationDetail,
+      () => _variationInternal(flagKey, LDValue.ofBool(defaultValue),
+          isDetailed: true, type: LDValueType.boolean),
+    );
 
     return LDEvaluationDetail(ldValueVariation.value.booleanValue(),
         ldValueVariation.variationIndex, ldValueVariation.reason);
@@ -484,8 +542,15 @@ final class LDCommonClient {
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   int intVariation(String flagKey, int defaultValue) {
-    return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-            isDetailed: false, type: LDValueType.number)
+    return _hookRunner
+        .withEvaluation(
+          flagKey,
+          _context,
+          LDValue.ofNum(defaultValue),
+          VariationMethodNames.intVariation,
+          () => _variationInternal(flagKey, LDValue.ofNum(defaultValue),
+              isDetailed: false, type: LDValueType.number),
+        )
         .value
         .intValue();
   }
@@ -495,9 +560,14 @@ final class LDCommonClient {
   /// See [LDEvaluationDetail] for more information on the returned value. Note that [DataSourceConfig.evaluationReasons]
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<int> intVariationDetail(String flagKey, int defaultValue) {
-    final ldValueVariation = _variationInternal(
-        flagKey, LDValue.ofNum(defaultValue),
-        isDetailed: true, type: LDValueType.number);
+    final ldValueVariation = _hookRunner.withEvaluation(
+      flagKey,
+      _context,
+      LDValue.ofNum(defaultValue),
+      VariationMethodNames.intVariationDetail,
+      () => _variationInternal(flagKey, LDValue.ofNum(defaultValue),
+          isDetailed: true, type: LDValueType.number),
+    );
 
     return LDEvaluationDetail(ldValueVariation.value.intValue(),
         ldValueVariation.variationIndex, ldValueVariation.reason);
@@ -507,8 +577,15 @@ final class LDCommonClient {
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a number, or if some error occurs.
   double doubleVariation(String flagKey, double defaultValue) {
-    return _variationInternal(flagKey, LDValue.ofNum(defaultValue),
-            isDetailed: false, type: LDValueType.number)
+    return _hookRunner
+        .withEvaluation(
+          flagKey,
+          _context,
+          LDValue.ofNum(defaultValue),
+          VariationMethodNames.doubleVariation,
+          () => _variationInternal(flagKey, LDValue.ofNum(defaultValue),
+              isDetailed: false, type: LDValueType.number),
+        )
         .value
         .doubleValue();
   }
@@ -519,9 +596,14 @@ final class LDCommonClient {
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<double> doubleVariationDetail(
       String flagKey, double defaultValue) {
-    final ldValueVariation = _variationInternal(
-        flagKey, LDValue.ofNum(defaultValue),
-        isDetailed: true, type: LDValueType.number);
+    final ldValueVariation = _hookRunner.withEvaluation(
+      flagKey,
+      _context,
+      LDValue.ofNum(defaultValue),
+      VariationMethodNames.doubleVariationDetail,
+      () => _variationInternal(flagKey, LDValue.ofNum(defaultValue),
+          isDetailed: true, type: LDValueType.number),
+    );
 
     return LDEvaluationDetail(ldValueVariation.value.doubleValue(),
         ldValueVariation.variationIndex, ldValueVariation.reason);
@@ -531,8 +613,15 @@ final class LDCommonClient {
   ///
   /// Will return the provided [defaultValue] if the flag is missing, not a string, or if some error occurs.
   String stringVariation(String flagKey, String defaultValue) {
-    return _variationInternal(flagKey, LDValue.ofString(defaultValue),
-            isDetailed: false, type: LDValueType.string)
+    return _hookRunner
+        .withEvaluation(
+          flagKey,
+          _context,
+          LDValue.ofString(defaultValue),
+          VariationMethodNames.stringVariation,
+          () => _variationInternal(flagKey, LDValue.ofString(defaultValue),
+              isDetailed: false, type: LDValueType.string),
+        )
         .value
         .stringValue();
   }
@@ -544,9 +633,14 @@ final class LDCommonClient {
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<String> stringVariationDetail(
       String flagKey, String defaultValue) {
-    final ldValueVariation = _variationInternal(
-        flagKey, LDValue.ofString(defaultValue),
-        isDetailed: true, type: LDValueType.string);
+    final ldValueVariation = _hookRunner.withEvaluation(
+      flagKey,
+      _context,
+      LDValue.ofString(defaultValue),
+      VariationMethodNames.stringVariationDetail,
+      () => _variationInternal(flagKey, LDValue.ofString(defaultValue),
+          isDetailed: true, type: LDValueType.string),
+    );
 
     return LDEvaluationDetail(ldValueVariation.value.stringValue(),
         ldValueVariation.variationIndex, ldValueVariation.reason);
@@ -556,7 +650,15 @@ final class LDCommonClient {
   ///
   /// Will return the provided [defaultValue] if the flag is missing, or if some error occurs.
   LDValue jsonVariation(String flagKey, LDValue defaultValue) {
-    return _variationInternal(flagKey, defaultValue, isDetailed: false).value;
+    return _hookRunner
+        .withEvaluation(
+          flagKey,
+          _context,
+          defaultValue,
+          VariationMethodNames.jsonVariation,
+          () => _variationInternal(flagKey, defaultValue, isDetailed: false),
+        )
+        .value;
   }
 
   /// Returns the value of flag [flagKey] for the current context as an [LDValue], along with information about the resultant value.
@@ -565,7 +667,13 @@ final class LDCommonClient {
   /// must have been set to `true` to request the additional evaluation information from the backend.
   LDEvaluationDetail<LDValue> jsonVariationDetail(
       String flagKey, LDValue defaultValue) {
-    return _variationInternal(flagKey, defaultValue, isDetailed: true);
+    return _hookRunner.withEvaluation(
+      flagKey,
+      _context,
+      defaultValue,
+      VariationMethodNames.jsonVariationDetail,
+      () => _variationInternal(flagKey, defaultValue, isDetailed: true),
+    );
   }
 
   LDEvaluationDetail<LDValue> _variationInternal(
@@ -687,6 +795,14 @@ final class LDCommonClient {
   /// instance is used for general purpose logging.
   LDLogger get logger => _logger;
 
+  /// Add a hook to SDK instance.
+  ///
+  /// Hooks allow customization of SDK behavior at various stages of flag evaluation,
+  /// context identification, and event tracking.
+  void addHook(Hook hook) {
+    _hookRunner.addHook(hook);
+  }
+
   /// Track custom events associated with the current context for data export or experimentation.
   ///
   /// The [eventName] is the key associated with the event or experiment. [data] is an optional parameter for additional
@@ -697,6 +813,15 @@ final class LDCommonClient {
         context: _context,
         metricValue: metricValue,
         data: data));
+
+    // Execute afterTrack hooks
+    final trackContext = TrackSeriesContext.internal(
+      key: eventName,
+      context: _context,
+      data: data,
+      numericValue: metricValue,
+    );
+    _hookRunner.afterTrack(trackContext);
   }
 
   /// Permanently shuts down the client.
