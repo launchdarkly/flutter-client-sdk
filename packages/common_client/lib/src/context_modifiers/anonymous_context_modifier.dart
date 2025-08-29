@@ -8,9 +8,11 @@ const _anonContextKeyNamespace = 'LaunchDarkly_AnonContextKey';
 
 final class AnonymousContextModifier implements ContextModifier {
   final Persistence _persistence;
+  final LDLogger _logger;
 
-  AnonymousContextModifier(Persistence persistence)
-      : _persistence = persistence;
+  AnonymousContextModifier(Persistence persistence, LDLogger logger)
+      : _persistence = persistence,
+        _logger = logger;
 
   /// For any anonymous contexts, which do not have keys specified, generate
   /// or read a persisted key for the anonymous kinds present. If persistence
@@ -18,7 +20,8 @@ final class AnonymousContextModifier implements ContextModifier {
   @override
   Future<LDContext> decorate(LDContext context) async {
     if (!context.valid) {
-      return context;
+      _logger.info(
+          'AnonymousContextModifier was asked to modify an invalid context and will attempt to do so. This is expected if starting with an empty context.');
     }
     // Before we make a builder we should check if any anonymous contexts
     // without keys exist.

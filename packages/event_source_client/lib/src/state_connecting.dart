@@ -18,6 +18,7 @@ class StateConnecting {
   static Future run(StateValues svo) async {
     // record transition to this state for testing/logging
     svo.transitionSink.add(StateConnecting);
+    svo.logger.debug('Transitioned to StateConnecting.');
 
     final client = svo.clientFactory();
 
@@ -49,10 +50,13 @@ class StateConnecting {
     }
 
     try {
+      svo.logger.debug('Sending HTTP request to ${svo.uri}');
       final response = await client.send(request).timeout(svo.connectTimeout);
 
       // anything besides OK is bad, but some may be recoverable with a retry.
       if (response.statusCode != HttpStatusCodes.okStatus) {
+        svo.logger.info(
+            'HTTP connection error occurred with status code ${response.statusCode}');
         if (!ErrorUtils.isHttpStatusCodeRecoverable(response.statusCode)) {
           // looks like the error wasn't recoverable, go to idle and wait
           // for something to change
@@ -62,7 +66,11 @@ class StateConnecting {
         }
 
         // the error is recoverable, backoff then we'll try again
-        return () => StateBackoff.run(svo);
+        return () {
+          svo.logger.info(
+              'Recoverable HTTP status code ${response.statusCode}, will retry');
+          StateBackoff.run(svo);
+        };
       }
 
       final isEventStream = response.headers.entries.any((e) =>
@@ -70,14 +78,23 @@ class StateConnecting {
           e.value.toLowerCase().contains(MimeTypes.textEventStream));
       if (!isEventStream) {
         // non event-stream content types are considered recoverable since it may be a service issue.
-        return () => StateBackoff.run(svo);
+        return () {
+          svo.logger.info(
+              'Connection received non-event-stream content type, will retry with backoff.');
+          StateBackoff.run(svo);
+        };
       }
 
       return () => StateConnected.run(svo, client, response.stream);
     } on TimeoutException {
       // didn't connect in a timely manner, so backoff then we'll try again
+
       client.close;
-      return () => StateBackoff.run(svo);
+      return () {
+        svo.logger.info(
+            'Connection TimeoutException occurred, will retry with backoff.');
+        StateBackoff.run(svo);
+      };
     } catch (err) {
       client.close();
       if (!ErrorUtils.isConnectionErrorRecoverable(err)) {

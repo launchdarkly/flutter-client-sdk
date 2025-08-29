@@ -10,7 +10,10 @@ class StateIdle {
 
     // unrecoverable errors are reported to subscribers of the client.
     if (errorCause != null) {
+      svo.logger.info('Transitioned to StateIdle due to error: $errorCause');
       svo.eventSink.addError(errorCause);
+    } else {
+      svo.logger.debug('Transitioned to StateIdle');
     }
 
     try {

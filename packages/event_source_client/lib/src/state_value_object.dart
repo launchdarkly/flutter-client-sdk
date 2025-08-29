@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:math' as math;
 
 import 'backoff.dart';
+import 'logging.dart';
 import 'message_event.dart';
 
 typedef ClientFactory = http.Client Function();
@@ -37,6 +38,7 @@ class StateValues {
   final math.Random random;
 
   final Backoff backoff;
+  final EventSourceLogger logger;
 
   // Transient data
 
@@ -59,6 +61,7 @@ class StateValues {
       this.random,
       this.body,
       this.httpMethod,
-      this.resetRequest)
+      this.resetRequest,
+      this.logger)
       : backoff = Backoff(random);
 }

@@ -131,7 +131,8 @@ final class LDCommonClient {
 
   late final DataSourceManager _dataSourceManager;
   late final EnvironmentReport _envReport;
-  late final AsyncSingleQueue<void> _identifyQueue = AsyncSingleQueue();
+  late final AsyncSingleQueue<IdentifyResult> _identifyQueue =
+      AsyncSingleQueue();
   late final DataSourceFactoriesFn _dataSourceFactories;
 
   // Modifications will happen in the order they are specified in this list.
@@ -274,7 +275,7 @@ final class LDCommonClient {
     // having been set resulting in a crash.
     _identifyQueue.execute(() async {
       await _startInternal();
-      await _identifyInternal(_initialUndecoratedContext,
+      return _identifyInternal(_initialUndecoratedContext,
           waitForNetworkResults: waitForNetworkResults);
     }).then((res) {
       _startCompleter!.complete(_mapIdentifyResult(res));
@@ -308,7 +309,7 @@ final class LDCommonClient {
     _envReport = await _makeEnvironmentReport();
 
     // set up context modifiers, adding the auto env modifier if turned on
-    _modifiers = [AnonymousContextModifier(_persistence)];
+    _modifiers = [AnonymousContextModifier(_persistence, _logger)];
     if (_config.autoEnvAttributes == AutoEnvAttributes.enabled) {
       _modifiers.add(
           AutoEnvContextModifier(_envReport, _persistence, _config.logger));
@@ -421,39 +422,52 @@ final class LDCommonClient {
       return IdentifyError(Exception(message));
     }
     final res = await _identifyQueue.execute(() async {
-      await _identifyInternal(context,
+      return _identifyInternal(context,
           waitForNetworkResults: waitForNetworkResults);
     });
     return _mapIdentifyResult(res);
   }
 
-  Future<IdentifyResult> _mapIdentifyResult(TaskResult<void> res) async {
+  Future<IdentifyResult> _mapIdentifyResult(
+      TaskResult<IdentifyResult> res) async {
     switch (res) {
-      case TaskComplete<void>():
-        return IdentifyComplete();
-      case TaskShed<void>():
+      case TaskComplete<IdentifyResult>(result: var result):
+        return result ?? IdentifyComplete();
+      case TaskShed<IdentifyResult>():
         return IdentifySuperseded();
-      case TaskError<void>(error: var error):
+      case TaskError<IdentifyResult>(error: var error):
         return IdentifyError(error);
     }
   }
 
-  Future<void> _identifyInternal(LDContext context,
+  Future<IdentifyResult> _identifyInternal(LDContext context,
       {bool waitForNetworkResults = false}) async {
-    await _setAndDecorateContext(context);
-    final completer = Completer<void>();
-    _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
-    final loadedFromCache = await _flagManager.loadCached(_context);
-
-    if (_config.offline) {
-      return;
+    if (!context.valid) {
+      const message =
+          'LDClient was provided an invalid context. The context will be ignored. Existing flags will be used for evaluations until identify is called with a valid context.';
+      _logger.warn(message);
+      return IdentifyError(Exception(message));
     }
-    _dataSourceManager.identify(_context, completer);
 
-    if (loadedFromCache && !waitForNetworkResults) {
-      return;
+    try {
+      await _setAndDecorateContext(context);
+      final completer = Completer<void>();
+      _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
+      final loadedFromCache = await _flagManager.loadCached(_context);
+
+      if (_config.offline) {
+        return IdentifyComplete();
+      }
+      _dataSourceManager.identify(_context, completer);
+
+      if (loadedFromCache && !waitForNetworkResults) {
+        return IdentifyComplete();
+      }
+      await completer.future;
+      return IdentifyComplete();
+    } catch (error) {
+      return IdentifyError(error);
     }
-    return completer.future;
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.

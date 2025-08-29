@@ -4,12 +4,15 @@ library launchdarkly_sse;
 import 'dart:async';
 
 import 'src/http_consts.dart';
+import 'src/logging.dart';
 import 'src/message_event.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
 
 export 'src/message_event.dart' show MessageEvent;
+export 'src/logging.dart'
+    show EventSourceLogger, LogLevel, NoOpLogger, PrintLogger;
 
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
@@ -77,17 +80,21 @@ abstract class SSEClient {
   /// An optional [httpMethod], if not included then the `GET` method will be
   /// used. On `html` platforms the httpMethod will be ignored, as the `html`
   /// implementation uses the standard `EventSource` which only uses `GET`.
+  ///
+  /// An optional [logger] for controlling logging output from the SSE client.
+  /// If not provided, a [NoOpLogger] will be used.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,
       Duration readTimeout = defaultReadTimeout,
       String? body,
-      SseHttpMethod httpMethod = SseHttpMethod.get}) {
+      SseHttpMethod httpMethod = SseHttpMethod.get,
+      EventSourceLogger? logger}) {
     // merge headers so consumer gets reasonable defaults
     var mergedHeaders = <String, String>{};
     mergedHeaders.addAll(defaultHeaders);
     mergedHeaders.addAll(headers);
     return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
-        readTimeout, body, httpMethod.toString());
+        readTimeout, body, httpMethod.toString(), logger);
   }
 }

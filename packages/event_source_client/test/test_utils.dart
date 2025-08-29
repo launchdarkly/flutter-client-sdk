@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:http/http.dart';
 import 'package:http/testing.dart';
 import 'package:launchdarkly_event_source_client/src/http_consts.dart';
+import 'package:launchdarkly_event_source_client/src/logging.dart';
 import 'package:launchdarkly_event_source_client/src/message_event.dart';
 import 'package:launchdarkly_event_source_client/src/state_value_object.dart';
 
@@ -28,7 +29,8 @@ class TestUtils {
       Sink<dynamic>? transitionSink,
       ClientFactory? clientFactory,
       math.Random? random,
-      Stream<void>? resetStream}) {
+      Stream<void>? resetStream,
+      EventSourceLogger? logger}) {
     return StateValues(
         uri ?? Uri.parse(defaultUri),
         eventTypes ?? defaultEventTypes,
@@ -42,7 +44,8 @@ class TestUtils {
         math.Random(),
         null,
         'GET',
-        resetStream ?? StreamController<void>.broadcast().stream);
+        resetStream ?? StreamController<void>.broadcast().stream,
+        logger ?? NoOpLogger());
   }
 
   static MockClient makeMockHttpClient(

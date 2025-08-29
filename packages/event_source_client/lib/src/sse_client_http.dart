@@ -19,6 +19,7 @@ class HttpSseClient implements SSEClient {
 
   /// This controller is for the events going to the subscribers of this client.
   late final StreamController<MessageEvent> _messageEventsController;
+  late final EventSourceLogger _logger;
 
   /// This controller is for controlling the internal state machine when subscribers
   /// subscribe / unsubscribe.
@@ -37,9 +38,20 @@ class HttpSseClient implements SSEClient {
       Duration connectTimeout,
       Duration readTimeout,
       String? body,
-      String httpMethod)
-      : this.internal(uri, eventTypes, headers, connectTimeout, readTimeout,
-            _NoOpSink(), () => http.Client(), math.Random(), body, httpMethod);
+      String httpMethod,
+      EventSourceLogger? logger)
+      : this.internal(
+            uri,
+            eventTypes,
+            headers,
+            connectTimeout,
+            readTimeout,
+            _NoOpSink(),
+            () => http.Client(),
+            math.Random(),
+            body,
+            httpMethod,
+            logger);
 
   /// An internal constructor for injecting necessary dependencies for testing.
   HttpSseClient.internal(
@@ -52,7 +64,9 @@ class HttpSseClient implements SSEClient {
       ClientFactory clientFactory,
       math.Random random,
       String? body,
-      String httpMethod) {
+      String httpMethod,
+      EventSourceLogger? logger) {
+    _logger = logger ?? NoOpLogger();
     _messageEventsController = StreamController<MessageEvent>.broadcast(
       // this is triggered when first listener subscribes
       onListen: () => _connectionDesiredStateController.add(true),
@@ -73,7 +87,8 @@ class HttpSseClient implements SSEClient {
         random,
         body,
         httpMethod,
-        _resetRequest.stream));
+        _resetRequest.stream,
+        logger ?? NoOpLogger()));
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
@@ -83,6 +98,7 @@ class HttpSseClient implements SSEClient {
 
   @override
   Future close() async {
+    _logger.debug('Closing SSE client permanently.');
     _messageEventsController.close();
     _connectionDesiredStateController.close();
     _resetRequest.close();
@@ -90,6 +106,7 @@ class HttpSseClient implements SSEClient {
 
   @override
   void restart() {
+    _logger.debug('Restarting SSE client.');
     if (_resetRequest.hasListener) {
       _resetRequest.sink.add(null);
     }
@@ -112,6 +129,7 @@ SSEClient getSSEClient(
         Duration connectTimeout,
         Duration readTimeout,
         String? body,
-        String method) =>
-    HttpSseClient(
-        uri, eventTypes, headers, connectTimeout, readTimeout, body, method);
+        String method,
+        EventSourceLogger? logger) =>
+    HttpSseClient(uri, eventTypes, headers, connectTimeout, readTimeout, body,
+        method, logger);
