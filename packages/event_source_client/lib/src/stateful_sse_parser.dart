@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'message_event.dart';
+import 'events.dart';
 
 /// Enum for tracking the category of the last parsed rune.
 enum _LastParsed {

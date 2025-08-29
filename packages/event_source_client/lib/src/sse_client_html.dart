@@ -6,7 +6,7 @@ import 'dart:math' as math;
 import '../launchdarkly_event_source_client.dart';
 
 import 'backoff.dart';
-import 'message_event.dart' as ld_message_event;
+import 'events.dart' as ld_message_event;
 
 /// An [SSEClient] that uses the [web.EventSource] available on most browsers for web platform support.
 class HtmlSseClient implements SSEClient {
@@ -82,8 +82,12 @@ class HtmlSseClient implements SSEClient {
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect a network delay initially.
   @override
-  Stream<ld_message_event.MessageEvent> get stream =>
-      _messageEventsController.stream;
+  Stream<MessageEvent> get stream => _messageEventsController.stream
+      .where((t) => ld_message_event.isMessageEvent(t))
+      .cast<MessageEvent>();
+
+  @override
+  Stream<Event> get allEvents => _messageEventsController.stream;
 
   @override
   Future close() => _messageEventsController.close();

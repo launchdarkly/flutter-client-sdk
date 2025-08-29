@@ -7,7 +7,7 @@ import 'dart:math' as math;
 import 'package:http/http.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:launchdarkly_event_source_client/src/http_consts.dart';
-import 'package:launchdarkly_event_source_client/src/message_event.dart';
+import 'package:launchdarkly_event_source_client/src/events.dart';
 import 'package:launchdarkly_event_source_client/src/sse_client_http.dart';
 import 'package:launchdarkly_event_source_client/src/state_connected.dart';
 import 'package:launchdarkly_event_source_client/src/state_connecting.dart';

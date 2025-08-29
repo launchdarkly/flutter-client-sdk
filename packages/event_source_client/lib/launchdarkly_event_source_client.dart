@@ -4,12 +4,12 @@ library launchdarkly_sse;
 import 'dart:async';
 
 import 'src/http_consts.dart';
-import 'src/message_event.dart';
+import 'src/events.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
 
-export 'src/message_event.dart' show MessageEvent;
+export 'src/events.dart' show Event, MessageEvent, ConnectedEvent;
 
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
@@ -29,10 +29,10 @@ enum SseHttpMethod {
 
 /// An [SSEClient] that works to maintain a SSE connection to a server.
 ///
-/// You can receive [MessageEvent]s by listening to the [stream] object.  The SSEClient will
-/// connect when there is a nonzero number of subscribers on [stream] and will disconnect when
-/// there are zero subscribers on [stream].  In certain cases, unrecoverable errors will be
-/// reported on the [stream] at which point the stream will be done.
+/// You can receive [Events]s by listening to the [allEvents] object.  The SSEClient will
+/// connect when there is a nonzero number of subscribers on [allEvents] and will disconnect when
+/// there are zero subscribers on [allEvents].  In certain cases, unrecoverable errors will be
+/// reported on the [allEvents] at which point the stream will be done.
 ///
 /// The [SSEClient] will make best effort to maintain the streaming connection.
 abstract class SSEClient {
@@ -46,7 +46,13 @@ abstract class SSEClient {
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect network delay initially.
+  /// The [allEvents] stream includes message events as well as other event types.
+  @Deprecated('[allEvents] instead')
   Stream<MessageEvent> get stream;
+
+  /// Subscribe to [allEvents] to receive events and sometimes errors.  The first
+  /// subscribe triggers the connection, so expect network delay initially.
+  Stream<Event> get allEvents => StreamController<Event>().stream;
 
   /// Closes the SSEClient and tears down connections and resources.  Do not use the
   /// SSEClient after close is called, behavior is undefined at that point.

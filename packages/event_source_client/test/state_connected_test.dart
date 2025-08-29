@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart';
-import 'package:launchdarkly_event_source_client/src/message_event.dart';
+import 'package:launchdarkly_event_source_client/src/events.dart';
 import 'package:launchdarkly_event_source_client/src/state_backoff.dart';
 import 'package:launchdarkly_event_source_client/src/state_connected.dart';
 import 'package:launchdarkly_event_source_client/src/state_idle.dart';

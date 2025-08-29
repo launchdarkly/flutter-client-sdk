@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:launchdarkly_event_source_client/src/message_event.dart';
+import 'package:launchdarkly_event_source_client/src/events.dart';
 import 'package:launchdarkly_event_source_client/src/stateful_sse_parser.dart';
 import 'package:test/test.dart';
 import 'package:mocktail/mocktail.dart';
