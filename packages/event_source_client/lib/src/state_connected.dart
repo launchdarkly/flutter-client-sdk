@@ -52,12 +52,20 @@ class StateConnected {
           recordedActiveSince = true;
         }
 
-        // hold on to most recent id if there is one so we can use it for session resumption
-        svo.lastId = event.id ?? svo.lastId;
+        // Implementation note: Currently only message events are supported
+        // by the parser, but we could potentially extend that to support
+        // emitting comment events.
+        switch (event) {
+          case MessageEvent():
+            // hold on to most recent id if there is one so we can use it for session resumption
+            svo.lastId = event.id ?? svo.lastId;
 
-        // only emit events that have event types the sse client was configured to use
-        if (svo.eventTypes.contains(event.type)) {
-          svo.eventSink.add(event);
+            // only emit events that have event types the sse client was configured to use
+            if (svo.eventTypes.contains(event.type)) {
+              svo.eventSink.add(event);
+            }
+          default:
+            break;
         }
       }
 

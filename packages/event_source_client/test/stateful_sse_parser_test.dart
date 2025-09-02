@@ -23,8 +23,10 @@ void main() {
         reason: 'Captured:{$captured}, Expected:{$expected}');
 
     for (var i = 0; i < captured.length; i++) {
-      final expectedMessageEvent = expected[i];
+      expect(expected[i], isA<MessageEvent>());
+      final expectedMessageEvent = expected[i] as MessageEvent;
       final messageEvent = captured[i] as MessageEvent;
+      expect(messageEvent, isA<MessageEvent>());
       expect(messageEvent.type, equals(expectedMessageEvent.type));
       expect(messageEvent.data, equals(expectedMessageEvent.data));
       expect(messageEvent.id, equals(expectedMessageEvent.id));
