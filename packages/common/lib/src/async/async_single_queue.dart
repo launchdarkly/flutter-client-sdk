@@ -31,15 +31,14 @@ final class _Pending<TTaskReturn> {
   _Pending(this._fn, this._completer);
 
   Future<TaskResult<TTaskReturn>> execute() {
-    this
-        ._fn()
+    _fn()
         .then((value) => _completer.complete(TaskComplete(value)))
         .catchError((err) => _completer.complete(TaskError(err)));
-    return this._completer.future;
+    return _completer.future;
   }
 
   void shed() {
-    this._completer.complete(TaskShed());
+    _completer.complete(TaskShed());
   }
 }
 
