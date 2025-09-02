@@ -32,10 +32,11 @@ enum SseHttpMethod {
 
 /// An [SSEClient] that works to maintain a SSE connection to a server.
 ///
-/// You can receive [Events]s by listening to the [allEvents] object.  The SSEClient will
-/// connect when there is a nonzero number of subscribers on [allEvents] and will disconnect when
-/// there are zero subscribers on [allEvents].  In certain cases, unrecoverable errors will be
-/// reported on the [allEvents] at which point the stream will be done.
+/// You can receive [Events]s by listening to the [stream] object. The SSEClient
+/// will connect when there is a nonzero number of subscribers on the [stream]
+/// and will disconnect when there are zero subscribers on the [stream].
+/// In certain cases, unrecoverable errors will be reported on the [stream] at
+/// which point the stream will be done.
 ///
 /// The [SSEClient] will make best effort to maintain the streaming connection.
 abstract class SSEClient {
