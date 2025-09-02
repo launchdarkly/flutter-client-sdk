@@ -14,8 +14,7 @@ class HtmlSseClient implements SSEClient {
   web.EventSource? _eventSource;
 
   /// This controller is for the events going to the subscribers of this client.
-  late final StreamController<ld_message_event.Event>
-      _messageEventsController;
+  late final StreamController<ld_message_event.Event> _messageEventsController;
 
   Backoff _backoff = Backoff(math.Random());
 

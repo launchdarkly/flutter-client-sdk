@@ -48,7 +48,7 @@ final class OpenEvent implements Event {
 
   @override
   String toString() {
-    return 'ConnectedEvent{headers:$headers}';
+    return 'OpenEvent{headers:$headers}';
   }
 
   bool _compareHeaders(UnmodifiableMapView<String, String>? otherHeaders) {

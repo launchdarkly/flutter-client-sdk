@@ -18,7 +18,7 @@ class MockClient extends Mock implements Client {}
 void main() {
   test('Test connected emits events', () async {
     final transitionController = StreamController<dynamic>.broadcast();
-    final eventController = StreamController<MessageEvent>.broadcast();
+    final eventController = StreamController<Event>.broadcast();
     final dataController = StreamController<List<int>>.broadcast();
     final mockClient =
         MockClient(); // this mock client doesn't do anything in this test case

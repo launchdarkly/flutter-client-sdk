@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'events.dart';
 import 'state_backoff.dart';
 import 'state_idle.dart';
 import 'state_value_object.dart';
@@ -15,6 +17,10 @@ class StateConnected {
       StateValues svo, http.Client client, Stream<List<int>> stream) async {
     // record transition to this state for testing/logging
     svo.transitionSink.add(StateConnected);
+    svo.eventSink.add(OpenEvent(
+        headers: svo.connectHeaders != null
+            ? UnmodifiableMapView(svo.connectHeaders!)
+            : null));
 
     // wait for either the stream to terminate or desired connection change to transition
     final transition = await Future.any([

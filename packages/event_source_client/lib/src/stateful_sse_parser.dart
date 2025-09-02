@@ -47,7 +47,7 @@ class StatefulSSEParser {
   /// This function will iterate over the SSE stream [chunk] provided and statefully process it.
   /// When warranted, [MessageEvent]s may be sent to the provided [sink].  Subsequent calls
   /// with subsequent [chunk]s provided will be treated as a continuation of the data stream.
-  void parse(String chunk, EventSink<MessageEvent> sink) {
+  void parse(String chunk, EventSink<Event> sink) {
     // switch statements are used instead of a state machine for memory and performance reasons
     for (var rune in chunk.runes) {
       switch (_lastParsed) {
@@ -207,7 +207,7 @@ class StatefulSSEParser {
 
   /// This function is intended to send a [MessageEvent] to the provided [sink] when invoked.
   /// There are some edge cases in which dispatching will be cancelled, such as invalid data.
-  void _dispatchEvent(EventSink<MessageEvent> sink) {
+  void _dispatchEvent(EventSink<Event> sink) {
     // if data is empty, ignore this dispatch and reset, but don't clear id
     if (_dataBuffer.isEmpty) {
       _eventType = '';

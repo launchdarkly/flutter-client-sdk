@@ -20,22 +20,14 @@ void main() {
   group('given different connect messages', () {
     var cases = [
       CompareCase(OpenEvent(), OpenEvent(), true),
-      CompareCase(
-          OpenEvent(),
-          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
-          false),
-      CompareCase(
-          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
-          OpenEvent(),
-          false),
-      CompareCase(
-          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
-          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
-          true),
-      CompareCase(
-          OpenEvent(headers: UnmodifiableMapView({'key': 'valueA'})),
-          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
-          false),
+      CompareCase(OpenEvent(),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})), false),
+      CompareCase(OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
+          OpenEvent(), false),
+      CompareCase(OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})), true),
+      CompareCase(OpenEvent(headers: UnmodifiableMapView({'key': 'valueA'})),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})), false),
       CompareCase(
           OpenEvent(
               headers:
