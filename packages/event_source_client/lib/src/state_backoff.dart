@@ -22,7 +22,7 @@ class StateBackoff {
   static Future<Function> _waitForBackoff(StateValues svo) async {
     final retryDelay = svo.backoff.getRetryDelay(svo.activeSince);
 
-    svo.logger.info('Waiting ${retryDelay} ms before retrying');
+    svo.logger.info('Waiting $retryDelay ms before retrying');
     await Future.delayed(Duration(milliseconds: retryDelay));
     return () {
       StateConnecting.run(svo);
