@@ -12,6 +12,21 @@ import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
+class MockSseClient implements SSEClient {
+  final Stream<MessageEvent> mockStream;
+
+  MockSseClient(this.mockStream);
+
+  @override
+  Future close() async {}
+
+  @override
+  void restart() {}
+
+  @override
+  Stream<MessageEvent> get stream => mockStream;
+}
+
 (
   StreamingDataSource,
   FlagManager,
@@ -30,6 +45,7 @@ import 'package:test/test.dart';
 
   final logger = LDLogger();
   final httpProperties = inProperties ?? HttpProperties();
+  final client = MockSseClient(mockStream);
   const sdkKey = 'dummy-key';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
@@ -46,8 +62,7 @@ import 'package:test/test.dart';
       clientFactory: (Uri uri, HttpProperties properties, String? body,
           SseHttpMethod? method) {
         factoryCallback?.call(uri, properties, body, method);
-        return SSEClient.testClient(uri, {'put', 'patch', 'delete'},
-            sourceStream: mockStream);
+        return client;
       });
 
   streaming.events.asyncMap((event) async {
