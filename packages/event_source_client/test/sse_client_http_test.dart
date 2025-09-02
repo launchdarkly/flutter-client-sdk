@@ -7,7 +7,6 @@ import 'dart:math' as math;
 import 'package:http/http.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:launchdarkly_event_source_client/src/http_consts.dart';
-import 'package:launchdarkly_event_source_client/src/message_event.dart';
 import 'package:launchdarkly_event_source_client/src/sse_client_http.dart';
 import 'package:launchdarkly_event_source_client/src/state_connected.dart';
 import 'package:launchdarkly_event_source_client/src/state_connecting.dart';
@@ -38,7 +37,8 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.  The mock client is set up to send a message.
@@ -63,7 +63,8 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.  The mock client is set up to send a message.
@@ -88,7 +89,8 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.
@@ -118,7 +120,7 @@ void main() {
                 Map<String, String> headers = const {},
                 bool blocking = false}) {
           return mockClient;
-        }, math.Random(), null, method);
+        }, math.Random(), null, method, const NoOpLogger());
 
         when(() => mockClient.send(any())).thenAnswer((_) async {
           return http.StreamedResponse(
@@ -154,7 +156,7 @@ void main() {
             Map<String, String> headers = const {},
             bool blocking = false}) {
       return mockClient;
-    }, math.Random(), null, 'GET');
+    }, math.Random(), null, 'GET', const NoOpLogger());
 
     when(() => mockClient.send(any())).thenAnswer((_) async {
       return http.StreamedResponse(

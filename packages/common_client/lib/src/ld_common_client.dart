@@ -308,7 +308,7 @@ final class LDCommonClient {
     _envReport = await _makeEnvironmentReport();
 
     // set up context modifiers, adding the auto env modifier if turned on
-    _modifiers = [AnonymousContextModifier(_persistence)];
+    _modifiers = [AnonymousContextModifier(_persistence, _logger)];
     if (_config.autoEnvAttributes == AutoEnvAttributes.enabled) {
       _modifiers.add(
           AutoEnvContextModifier(_envReport, _persistence, _config.logger));
@@ -440,6 +440,13 @@ final class LDCommonClient {
 
   Future<void> _identifyInternal(LDContext context,
       {bool waitForNetworkResults = false}) async {
+    if (!context.valid) {
+      const message =
+          'LDClient was provided an invalid context. The context will be ignored. Existing flags will be used for evaluations until identify is called with a valid context.';
+      _logger.warn(message);
+      throw Exception(message);
+    }
+
     await _setAndDecorateContext(context);
     final completer = Completer<void>();
     _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));

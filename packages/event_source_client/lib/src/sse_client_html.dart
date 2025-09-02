@@ -17,6 +17,8 @@ class HtmlSseClient implements SSEClient {
   late final StreamController<ld_message_event.MessageEvent>
       _messageEventsController;
 
+  late final EventSourceLogger _logger;
+
   Backoff _backoff = Backoff(math.Random());
 
   final Uri _uri;
@@ -27,9 +29,10 @@ class HtmlSseClient implements SSEClient {
 
   /// Creates an instance of an SSEClient that will connect in the future
   /// to the [uri] provided.
-  HtmlSseClient(Uri uri, Set<String> eventTypes)
+  HtmlSseClient(Uri uri, Set<String> eventTypes, EventSourceLogger? logger)
       : _uri = uri,
         _eventTypes = eventTypes {
+    _logger = logger ?? NoOpLogger();
     _messageEventsController =
         StreamController<ld_message_event.MessageEvent>.broadcast(
       onListen: () {
@@ -86,7 +89,10 @@ class HtmlSseClient implements SSEClient {
       _messageEventsController.stream;
 
   @override
-  Future close() => _messageEventsController.close();
+  Future close() async {
+    _logger.debug('Closing SSE client permanently.');
+    _messageEventsController.close();
+  }
 
   @override
   void restart() {
@@ -111,6 +117,7 @@ SSEClient getSSEClient(
         Duration connectTimeout,
         Duration readTimeout,
         String? body,
-        String method) =>
+        String method,
+        EventSourceLogger? logger) =>
     // dropping unsupported configuration options
-    HtmlSseClient(uri, eventTypes);
+    HtmlSseClient(uri, eventTypes, logger);

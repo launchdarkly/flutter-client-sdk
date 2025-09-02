@@ -1,11 +1,22 @@
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/context_modifiers/anonymous_context_modifier.dart';
 import 'package:launchdarkly_common_client/src/persistence/persistence.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
+import 'package:mocktail/mocktail.dart';
 
 import '../mock_persistence.dart';
 
+class MockAdapter extends Mock implements LDLogAdapter {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(LDLogRecord(
+        level: LDLogLevel.debug,
+        message: '',
+        time: DateTime.now(),
+        logTag: ''));
+  });
   group('without persistence', () {
     test('it populates keys for anonymous contexts that lack them', () async {
       final context = LDContextBuilder()
@@ -16,7 +27,8 @@ void main() {
           .anonymous(true)
           .build();
 
-      final decorator = AnonymousContextModifier(InMemoryPersistence());
+      final decorator =
+          AnonymousContextModifier(InMemoryPersistence(), LDLogger());
       final decoratedContext = await decorator.decorate(context);
 
       expect(decoratedContext.attributesByKind['user']!.key, isNotEmpty);
@@ -33,7 +45,8 @@ void main() {
           .anonymous(true)
           .build();
 
-      final decorator = AnonymousContextModifier(InMemoryPersistence());
+      final decorator =
+          AnonymousContextModifier(InMemoryPersistence(), LDLogger());
       final decoratedContext = await decorator.decorate(context);
 
       expect(decoratedContext.attributesByKind['user']!.key,
@@ -49,7 +62,8 @@ void main() {
           .anonymous(true)
           .build();
 
-      final decorator = AnonymousContextModifier(InMemoryPersistence());
+      final decorator =
+          AnonymousContextModifier(InMemoryPersistence(), LDLogger());
       final decoratedContext = await decorator.decorate(context);
       final decoratedContext2 = await decorator.decorate(context);
 
@@ -74,7 +88,7 @@ void main() {
         encodePersistenceKey('user'): 'the-user-key',
         encodePersistenceKey('company'): 'the-company-key',
       };
-      final decorator = AnonymousContextModifier(mockPersistence);
+      final decorator = AnonymousContextModifier(mockPersistence, LDLogger());
 
       final decoratedContext = await decorator.decorate(context);
 
@@ -92,7 +106,7 @@ void main() {
           .build();
 
       final mockPersistence = MockPersistence();
-      final decorator = AnonymousContextModifier(mockPersistence);
+      final decorator = AnonymousContextModifier(mockPersistence, LDLogger());
 
       final decoratedContext = await decorator.decorate(context);
 
@@ -104,6 +118,27 @@ void main() {
           decoratedContext.attributesByKind['company']!.key,
           mockPersistence.storage['LaunchDarkly_AnonContextKey']![
               encodePersistenceKey('company')]);
+    });
+  });
+
+  group('invalid context handling', () {
+    test('it logs a info log when asked to modify an invalid context',
+        () async {
+      final invalidContext =
+          LDContextBuilder().build(); // This creates an invalid context
+      final mockAdapter = MockAdapter();
+      final logger = LDLogger(adapter: mockAdapter, level: LDLogLevel.info);
+      final decorator = AnonymousContextModifier(InMemoryPersistence(), logger);
+
+      final result = await decorator.decorate(invalidContext);
+
+      expect(result.valid, false);
+
+      final logRecord = verify(() => mockAdapter.log(captureAny())).captured[0]
+          as LDLogRecord;
+      expect(logRecord.level, LDLogLevel.warn);
+      expect(logRecord.message,
+          'AnonymousContextModifier was asked to modify an invalid context and will attempt to do so. This is expected if starting with an empty context.');
     });
   });
 }
