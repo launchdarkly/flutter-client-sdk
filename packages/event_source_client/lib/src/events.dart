@@ -1,6 +1,10 @@
 import 'dart:collection';
 
+/// Base class for event source events.
 final class Event {}
+
+// Implementation note: Any new constructor parameters should be added as
+// optional parameters unless added in a major version.
 
 /// Represents a message that came across the SSE stream.
 final class MessageEvent implements Event {
@@ -35,12 +39,12 @@ final class MessageEvent implements Event {
 }
 
 /// Event emitted when the SSE client connects.
-final class ConnectedEvent implements Event {
+final class OpenEvent implements Event {
   /// Any headers associated with the connection.
   final UnmodifiableMapView<String, String>? headers;
 
   /// Create a connected event with the specified headers.
-  const ConnectedEvent({this.headers});
+  const OpenEvent({this.headers});
 
   @override
   String toString() {
@@ -76,7 +80,7 @@ final class ConnectedEvent implements Event {
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is ConnectedEvent && _compareHeaders(other.headers);
+        other is OpenEvent && _compareHeaders(other.headers);
   }
 
   @override

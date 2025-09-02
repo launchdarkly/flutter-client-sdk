@@ -19,34 +19,34 @@ class CompareCase {
 void main() {
   group('given different connect messages', () {
     var cases = [
-      CompareCase(ConnectedEvent(), ConnectedEvent(), true),
+      CompareCase(OpenEvent(), OpenEvent(), true),
       CompareCase(
-          ConnectedEvent(),
-          ConnectedEvent(headers: UnmodifiableMapView({'key': 'value'})),
+          OpenEvent(),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
           false),
       CompareCase(
-          ConnectedEvent(headers: UnmodifiableMapView({'key': 'value'})),
-          ConnectedEvent(),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
+          OpenEvent(),
           false),
       CompareCase(
-          ConnectedEvent(headers: UnmodifiableMapView({'key': 'value'})),
-          ConnectedEvent(headers: UnmodifiableMapView({'key': 'value'})),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
           true),
       CompareCase(
-          ConnectedEvent(headers: UnmodifiableMapView({'key': 'valueA'})),
-          ConnectedEvent(headers: UnmodifiableMapView({'key': 'value'})),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'valueA'})),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
           false),
       CompareCase(
-          ConnectedEvent(
+          OpenEvent(
               headers:
                   UnmodifiableMapView({'key': 'value', 'second': 'value'})),
-          ConnectedEvent(headers: UnmodifiableMapView({'key': 'value'})),
+          OpenEvent(headers: UnmodifiableMapView({'key': 'value'})),
           false),
       CompareCase(
-          ConnectedEvent(
+          OpenEvent(
               headers:
                   UnmodifiableMapView({'key': 'value', 'second': 'value'})),
-          ConnectedEvent(
+          OpenEvent(
               headers:
                   UnmodifiableMapView({'second': 'value', 'key': 'value'})),
           true),

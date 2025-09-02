@@ -2,14 +2,17 @@
 library launchdarkly_sse;
 
 import 'dart:async';
+import 'dart:collection';
 
 import 'src/http_consts.dart';
 import 'src/events.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
+import 'src/sse_client_test.dart';
 
-export 'src/events.dart' show Event, MessageEvent, ConnectedEvent;
+export 'src/events.dart' show Event, MessageEvent, OpenEvent;
+export 'src/sse_client_test.dart' show TestSseClient;
 
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
@@ -44,15 +47,9 @@ abstract class SSEClient {
   static const defaultConnectTimeout = Duration(seconds: 30);
   static const defaultReadTimeout = Duration(minutes: 5);
 
-  /// Subscribe to this [stream] to receive events and sometimes errors.  The first
+  /// Subscribe to this [stream] to receive events and sometimes errors.
   /// subscribe triggers the connection, so expect network delay initially.
-  /// The [allEvents] stream includes message events as well as other event types.
-  @Deprecated('[allEvents] instead')
-  Stream<MessageEvent> get stream;
-
-  /// Subscribe to [allEvents] to receive events and sometimes errors.  The first
-  /// subscribe triggers the connection, so expect network delay initially.
-  Stream<Event> get allEvents => StreamController<Event>().stream;
+  Stream<Event> get stream;
 
   /// Closes the SSEClient and tears down connections and resources.  Do not use the
   /// SSEClient after close is called, behavior is undefined at that point.
@@ -95,5 +92,34 @@ abstract class SSEClient {
     mergedHeaders.addAll(headers);
     return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
         readTimeout, body, httpMethod.toString());
+  }
+
+  /// Get an SSE client for use in unit tests.
+  ///
+  /// Most parameters are the same as those of the main SSEClient factory, but
+  /// the test client supports an additional property which is the [sourceStream].
+  /// Events sent to the [sourceStream] will also be emitted by the event source
+  /// if the event source has listeners. When a user unsubscribes from the event
+  /// stream, then the test client will unsubscribe from the source stream.
+  ///
+  /// This method is primarily for use the the LaunchDarkly SDK implementation.
+  /// Changes may be made to this API without following semantic conventions.
+  static TestSseClient testClient(
+    Uri uri,
+    Set<String> eventTypes, {
+    Map<String, String> headers = defaultHeaders,
+    Duration connectTimeout = defaultConnectTimeout,
+    Duration readTimeout = defaultReadTimeout,
+    String? body,
+    SseHttpMethod httpMethod = SseHttpMethod.get,
+    Stream<Event>? sourceStream,
+  }) {
+    return TestSseClient.internal(
+        headers: UnmodifiableMapView(headers),
+        connectTimeout: connectTimeout,
+        readTimeout: readTimeout,
+        body: body,
+        httpMethod: httpMethod,
+        sourceStream: sourceStream);
   }
 }

@@ -80,12 +80,7 @@ class HttpSseClient implements SSEClient {
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect a network delay initially.
   @override
-  Stream<MessageEvent> get stream => _messageEventsController.stream
-      .where((t) => isMessageEvent(t))
-      .cast<MessageEvent>();
-
-  @override
-  Stream<Event> get allEvents => _messageEventsController.stream;
+  Stream<Event> get stream => _messageEventsController.stream;
 
   @override
   Future close() async {

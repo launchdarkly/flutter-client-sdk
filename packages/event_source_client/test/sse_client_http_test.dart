@@ -68,7 +68,8 @@ void main() {
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.  The mock client is set up to send a message.
     var messageEvent = await sseClientUnderTest.stream.first;
-    expect(messageEvent.data, equals('helloworld'));
+    expect(messageEvent, isA<MessageEvent>());
+    expect((messageEvent as MessageEvent).data, equals('helloworld'));
   });
 
   test('Test close', () async {

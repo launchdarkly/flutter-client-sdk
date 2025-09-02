@@ -14,7 +14,7 @@ class HtmlSseClient implements SSEClient {
   web.EventSource? _eventSource;
 
   /// This controller is for the events going to the subscribers of this client.
-  late final StreamController<ld_message_event.MessageEvent>
+  late final StreamController<ld_message_event.Event>
       _messageEventsController;
 
   Backoff _backoff = Backoff(math.Random());
@@ -31,7 +31,7 @@ class HtmlSseClient implements SSEClient {
       : _uri = uri,
         _eventTypes = eventTypes {
     _messageEventsController =
-        StreamController<ld_message_event.MessageEvent>.broadcast(
+        StreamController<ld_message_event.Event>.broadcast(
       onListen: () {
         // this is triggered when first listener subscribes
 
@@ -60,6 +60,7 @@ class HtmlSseClient implements SSEClient {
       _eventSource?.addEventListener(eventType, _handleMessageEvent.toJS);
     }
     _eventSource?.addEventListener('error', _handleError.toJS);
+    _eventSource?.addEventListener('open', _handleOpen.toJS);
   }
 
   void _handleError(web.Event event) {
@@ -67,6 +68,11 @@ class HtmlSseClient implements SSEClient {
     // determine the type of condition, then this is where we would
     // determine if this was a temporary or permanent failure.
     restart();
+  }
+
+  void _handleOpen(web.Event event) {
+    // The browser event source doesn't have header support.
+    _messageEventsController.sink.add(OpenEvent());
   }
 
   void _handleMessageEvent(web.Event event) {
@@ -82,12 +88,7 @@ class HtmlSseClient implements SSEClient {
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect a network delay initially.
   @override
-  Stream<MessageEvent> get stream => _messageEventsController.stream
-      .where((t) => ld_message_event.isMessageEvent(t))
-      .cast<MessageEvent>();
-
-  @override
-  Stream<Event> get allEvents => _messageEventsController.stream;
+  Stream<Event> get stream => _messageEventsController.stream;
 
   @override
   Future close() => _messageEventsController.close();
