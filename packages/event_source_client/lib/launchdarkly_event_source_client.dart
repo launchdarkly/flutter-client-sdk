@@ -9,10 +9,10 @@ import 'src/events.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
-import 'src/sse_client_test.dart';
+import 'src/test_sse_client.dart';
 
 export 'src/events.dart' show Event, MessageEvent, OpenEvent;
-export 'src/sse_client_test.dart' show TestSseClient;
+export 'src/test_sse_client.dart' show TestSseClient;
 
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {

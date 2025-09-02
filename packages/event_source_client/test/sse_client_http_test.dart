@@ -32,7 +32,7 @@ void main() {
         Uri.parse('/path'),
         {'put'},
         {},
-        Duration(days: 99),
+      Duration(days: 99),
         Duration(days: 99),
         transitionController.sink,
         TestUtils.makeMockHttpClient,
@@ -94,7 +94,7 @@ void main() {
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.
     var messageEvent = await sseClientUnderTest.stream.first;
-    expect(messageEvent.data, equals('helloworld'));
+    expect((messageEvent as MessageEvent).data, equals('helloworld'));
     sseClientUnderTest.close();
   });
 
