@@ -487,7 +487,7 @@ void main() {
 
       final logRecord = verify(() => mockAdapter.log(captureAny())).captured[0]
           as LDLogRecord;
-      expect(logRecord.level, LDLogLevel.info);
+      expect(logRecord.level, LDLogLevel.warn);
       expect(logRecord.message,
           'AutoEnvContextModifier was asked to modify an invalid context and will attempt to do so. This is expected if starting with an empty context.');
     });

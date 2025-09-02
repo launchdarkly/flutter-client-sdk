@@ -121,5 +121,3 @@ SSEClient getSSEClient(
         EventSourceLogger? logger) =>
     // dropping unsupported configuration options
     HtmlSseClient(uri, eventTypes, logger);
-
-// TODO: see if logging can be piped through to html source

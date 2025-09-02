@@ -43,7 +43,7 @@ final class AutoEnvContextModifier implements ContextModifier {
   @override
   Future<LDContext> decorate(LDContext context) async {
     if (!context.valid) {
-      _logger.info(
+      _logger.warn(
           'AutoEnvContextModifier was asked to modify an invalid context and will attempt to do so. This is expected if starting with an empty context.');
     }
 
