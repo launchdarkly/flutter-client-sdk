@@ -10,6 +10,8 @@ class MessageEvent {
   final String? id;
 
   /// Creates the message with the provided values.
+  /// Implementation note: Any new parameters should be added as new optional
+  /// parameters unless added in a major version.
   MessageEvent(this.type, this.data, this.id);
 
   @override
