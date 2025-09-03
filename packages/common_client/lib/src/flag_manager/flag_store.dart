@@ -5,10 +5,12 @@ import '../item_descriptor.dart';
 /// it is just a key-value store.
 final class FlagStore {
   final Map<String, ItemDescriptor> _flags = {};
+  String? _environmentId;
 
-  void init(Map<String, ItemDescriptor> newFlags) {
+  void init(Map<String, ItemDescriptor> newFlags, {String? environmentId}) {
     _flags.clear();
     _flags.addAll(newFlags);
+    _environmentId = environmentId;
   }
 
   void insertOrUpdate(String key, ItemDescriptor update) {
@@ -17,6 +19,10 @@ final class FlagStore {
 
   /// Attempts to get a flag by key from the current flags.
   ItemDescriptor? get(String key) => _flags[key];
+
+  /// Get the environment ID for the flag set.
+  /// The ID may not always be available.
+  String? get environmentId => _environmentId;
 
   /// Gets all the current flags.
   Map<String, ItemDescriptor> getAll() {

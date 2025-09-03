@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'data_source_status.dart';
 
 sealed class DataSourceEvent {}
@@ -5,8 +7,9 @@ sealed class DataSourceEvent {}
 final class DataEvent implements DataSourceEvent {
   final String type;
   final String data;
+  final String? environmentId;
 
-  DataEvent(this.type, this.data);
+  DataEvent(this.type, this.data, {this.environmentId});
 }
 
 final class StatusEvent implements DataSourceEvent {

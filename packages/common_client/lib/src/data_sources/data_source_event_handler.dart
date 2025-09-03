@@ -50,13 +50,14 @@ final class DataSourceEventHandler {
   final LDLogger _logger;
 
   Future<MessageStatus> handleMessage(
-      LDContext context, String type, String data) async {
+      LDContext context, String type, String data,
+      {String? environmentId}) async {
     switch (type) {
       case 'put':
         {
           try {
             final parsed = jsonDecode(data);
-            return _processPut(context, parsed);
+            return _processPut(context, parsed, environmentId);
           } catch (err) {
             _logger.error('put message contained invalid json: $err');
             _statusManager.setErrorByKind(
@@ -95,12 +96,13 @@ final class DataSourceEventHandler {
     }
   }
 
-  Future<MessageStatus> _processPut(LDContext context, dynamic parsed) async {
+  Future<MessageStatus> _processPut(
+      LDContext context, dynamic parsed, String? environmentId) async {
     try {
       final putData = LDEvaluationResultsSerialization.fromJson(parsed).map(
           (key, value) => MapEntry(
               key, ItemDescriptor(version: value.version, flag: value)));
-      await _flagManager.init(context, putData);
+      await _flagManager.init(context, putData, environmentId: environmentId);
       _statusManager.setValid();
       return MessageStatus.messageHandled;
     } catch (err) {

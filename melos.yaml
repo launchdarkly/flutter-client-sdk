@@ -4,9 +4,7 @@ environment:
   sdk: '>=3.4.0 <4.0.0'
 
 packages:
-  # Remove the event_source_client from the workspace temporarily to allow a breaking change.
-  - packages/common
-  - packages/common_client
+  - packages/*
   - packages/flutter_client_sdk/example
   - apps/*
 

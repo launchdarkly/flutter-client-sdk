@@ -7,6 +7,7 @@ import 'dart:math';
 import '../config/data_source_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
+import 'get_environment_id.dart';
 
 HttpClient _defaultClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
@@ -134,7 +135,8 @@ final class PollingDataSource implements DataSource {
       }
       _lastEtag = etag;
 
-      _eventController.sink.add(DataEvent('put', res.body));
+      _eventController.sink.add(DataEvent('put', res.body,
+          environmentId: getEnvironmentId(res.headers)));
     } else {
       if (isHttpGloballyRecoverable(res.statusCode)) {
         _eventController.sink.add(StatusEvent(
