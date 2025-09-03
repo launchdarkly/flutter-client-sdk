@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:math' as math;
 
 import 'backoff.dart';
-import 'message_event.dart';
+import 'logging.dart';
+import 'events.dart';
 
 typedef ClientFactory = http.Client Function();
 
@@ -31,12 +32,13 @@ class StateValues {
   // This is a broadcast stream, and the request is only posted if there are
   // listeners, so it is an ephemeral trigger.
   final Stream<void> resetRequest;
-  final EventSink<MessageEvent> eventSink;
+  final EventSink<Event> eventSink;
   final Sink<dynamic> transitionSink; // for testing transitions
   final ClientFactory clientFactory;
   final math.Random random;
 
   final Backoff backoff;
+  final EventSourceLogger logger;
 
   // Transient data
 
@@ -44,6 +46,9 @@ class StateValues {
   int? activeSince; // millis since epoch
   /// The most recently received event ID from the server.  Used for resumption.
   String lastId = '';
+
+  /// Headers received from the connection.
+  Map<String, String>? connectHeaders;
 
   /// Creates a [_StateValues] instance.  Used by the state machine.
   StateValues(
@@ -59,6 +64,7 @@ class StateValues {
       this.random,
       this.body,
       this.httpMethod,
-      this.resetRequest)
+      this.resetRequest,
+      this.logger)
       : backoff = Backoff(random);
 }

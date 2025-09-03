@@ -299,14 +299,20 @@ final class LDCommonClient {
     _startCompleter = Completer<IdentifyResult>();
     _startFuture = _startCompleter!.future;
 
+    Function(IdentifyResult)? afterIdentify;
+
     // The setup of modifiers and other items must be done in the identify
     // queue to ensure that identifies cannot be done without those items
     // having been set resulting in a crash.
     _identifyQueue.execute(() async {
       await _startInternal();
-      await _identifyInternal(_initialUndecoratedContext,
-          waitForNetworkResults: waitForNetworkResults);
+
+      await _identifyInternal(_initialUndecoratedContext, (cb) {
+        afterIdentify = cb;
+      }, waitForNetworkResults: waitForNetworkResults);
     }).then((res) {
+      final identifyResult = _mapIdentifyResult(res);
+      afterIdentify?.call(identifyResult);
       _startCompleter!.complete(_mapIdentifyResult(res));
     });
 
@@ -338,7 +344,7 @@ final class LDCommonClient {
     _envReport = await _makeEnvironmentReport();
 
     // set up context modifiers, adding the auto env modifier if turned on
-    _modifiers = [AnonymousContextModifier(_persistence)];
+    _modifiers = [AnonymousContextModifier(_persistence, _logger)];
     if (_config.autoEnvAttributes == AutoEnvAttributes.enabled) {
       _modifiers.add(
           AutoEnvContextModifier(_envReport, _persistence, _config.logger));
@@ -450,14 +456,18 @@ final class LDCommonClient {
       _logger.warn(message);
       return IdentifyError(Exception(message));
     }
+    Function(IdentifyResult)? afterRunner;
     final res = await _identifyQueue.execute(() async {
-      await _identifyInternal(context,
-          waitForNetworkResults: waitForNetworkResults);
+      await _identifyInternal(context, (cb) {
+        afterRunner = cb;
+      }, waitForNetworkResults: waitForNetworkResults);
     });
-    return _mapIdentifyResult(res);
+    final identifyResult = _mapIdentifyResult(res);
+    afterRunner?.call(identifyResult);
+    return identifyResult;
   }
 
-  Future<IdentifyResult> _mapIdentifyResult(TaskResult<void> res) async {
+  IdentifyResult _mapIdentifyResult(TaskResult<void> res) {
     switch (res) {
       case TaskComplete<void>():
         return IdentifyComplete();
@@ -468,38 +478,33 @@ final class LDCommonClient {
     }
   }
 
-  Future<void> _identifyInternal(LDContext context,
+  Future<void> _identifyInternal(
+      LDContext context, Function(Function(IdentifyResult)) hookCallback,
       {bool waitForNetworkResults = false}) async {
-    // Set up hooks for identify operation
-    final afterIdentifyCallback = _hookRunner.identify(context);
-
-    IdentifyResult result;
-    try {
-      await _setAndDecorateContext(context);
-      final completer = Completer<void>();
-      _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
-      final loadedFromCache = await _flagManager.loadCached(_context);
-
-      if (_config.offline) {
-        result = IdentifyComplete();
-        afterIdentifyCallback(result);
-        return;
-      }
-      _dataSourceManager.identify(_context, completer);
-
-      if (loadedFromCache && !waitForNetworkResults) {
-        result = IdentifyComplete();
-        afterIdentifyCallback(result);
-        return;
-      }
-      await completer.future;
-      result = IdentifyComplete();
-      afterIdentifyCallback(result);
-    } catch (error) {
-      result = IdentifyError(error);
-      afterIdentifyCallback(result);
-      rethrow;
+    if (!context.valid) {
+      const message =
+          'LDClient was provided an invalid context. The context will be ignored. Existing flags will be used for evaluations until identify is called with a valid context.';
+      _logger.warn(message);
+      throw Exception(message);
     }
+
+    await _setAndDecorateContext(context);
+    final afterIdentify = _hookRunner.identify(_context);
+    hookCallback(afterIdentify);
+
+    final completer = Completer<void>();
+    _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
+    final loadedFromCache = await _flagManager.loadCached(_context);
+
+    if (_config.offline) {
+      return;
+    }
+    _dataSourceManager.identify(_context, completer);
+
+    if (loadedFromCache && !waitForNetworkResults) {
+      return;
+    }
+    return completer.future;
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.

@@ -1,6 +1,6 @@
 name: launchdarkly_event_source_client
 description: Server-sent events (SSE) client implementation for dart and flutter.
-version: 1.2.0
+version: 2.0.0
 homepage: https://github.com/launchdarkly/flutter-client-sdk
 repository: https://github.com/launchdarkly/flutter-client-sdk/tree/main/packages/event_source_client
 

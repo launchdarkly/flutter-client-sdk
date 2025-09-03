@@ -2,14 +2,20 @@
 library launchdarkly_sse;
 
 import 'dart:async';
+import 'dart:collection';
 
 import 'src/http_consts.dart';
-import 'src/message_event.dart';
+import 'src/logging.dart';
+import 'src/events.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
+import 'src/test_sse_client.dart';
 
-export 'src/message_event.dart' show MessageEvent;
+export 'src/events.dart' show Event, MessageEvent, OpenEvent;
+export 'src/test_sse_client.dart' show TestSseClient;
+export 'src/logging.dart'
+    show EventSourceLogger, LogLevel, NoOpLogger, PrintLogger;
 
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
@@ -29,10 +35,11 @@ enum SseHttpMethod {
 
 /// An [SSEClient] that works to maintain a SSE connection to a server.
 ///
-/// You can receive [MessageEvent]s by listening to the [stream] object.  The SSEClient will
-/// connect when there is a nonzero number of subscribers on [stream] and will disconnect when
-/// there are zero subscribers on [stream].  In certain cases, unrecoverable errors will be
-/// reported on the [stream] at which point the stream will be done.
+/// You can receive [Events]s by listening to the [stream] object. The SSEClient
+/// will connect when there is a nonzero number of subscribers on the [stream]
+/// and will disconnect when there are zero subscribers on the [stream].
+/// In certain cases, unrecoverable errors will be reported on the [stream] at
+/// which point the stream will be done.
 ///
 /// The [SSEClient] will make best effort to maintain the streaming connection.
 abstract class SSEClient {
@@ -44,9 +51,9 @@ abstract class SSEClient {
   static const defaultConnectTimeout = Duration(seconds: 30);
   static const defaultReadTimeout = Duration(minutes: 5);
 
-  /// Subscribe to this [stream] to receive events and sometimes errors.  The first
+  /// Subscribe to this [stream] to receive events and sometimes errors.
   /// subscribe triggers the connection, so expect network delay initially.
-  Stream<MessageEvent> get stream;
+  Stream<Event> get stream;
 
   /// Closes the SSEClient and tears down connections and resources.  Do not use the
   /// SSEClient after close is called, behavior is undefined at that point.
@@ -77,17 +84,50 @@ abstract class SSEClient {
   /// An optional [httpMethod], if not included then the `GET` method will be
   /// used. On `html` platforms the httpMethod will be ignored, as the `html`
   /// implementation uses the standard `EventSource` which only uses `GET`.
+  ///
+  /// An optional [logger] for controlling logging output from the SSE client.
+  /// If not provided, a [NoOpLogger] will be used.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,
       Duration readTimeout = defaultReadTimeout,
       String? body,
-      SseHttpMethod httpMethod = SseHttpMethod.get}) {
+      SseHttpMethod httpMethod = SseHttpMethod.get,
+      EventSourceLogger? logger}) {
     // merge headers so consumer gets reasonable defaults
     var mergedHeaders = <String, String>{};
     mergedHeaders.addAll(defaultHeaders);
     mergedHeaders.addAll(headers);
     return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
-        readTimeout, body, httpMethod.toString());
+        readTimeout, body, httpMethod.toString(), logger);
+  }
+
+  /// Get an SSE client for use in unit tests.
+  ///
+  /// Most parameters are the same as those of the main SSEClient factory, but
+  /// the test client supports an additional property which is the [sourceStream].
+  /// Events sent to the [sourceStream] will also be emitted by the event source
+  /// if the event source has listeners. When a user unsubscribes from the event
+  /// stream, then the test client will unsubscribe from the source stream.
+  ///
+  /// This method is primarily for use the the LaunchDarkly SDK implementation.
+  /// Changes may be made to this API without following semantic conventions.
+  static TestSseClient testClient(
+    Uri uri,
+    Set<String> eventTypes, {
+    Map<String, String> headers = defaultHeaders,
+    Duration connectTimeout = defaultConnectTimeout,
+    Duration readTimeout = defaultReadTimeout,
+    String? body,
+    SseHttpMethod httpMethod = SseHttpMethod.get,
+    Stream<Event>? sourceStream,
+  }) {
+    return TestSseClient.internal(
+        headers: UnmodifiableMapView(headers),
+        connectTimeout: connectTimeout,
+        readTimeout: readTimeout,
+        body: body,
+        httpMethod: httpMethod,
+        sourceStream: sourceStream);
   }
 }

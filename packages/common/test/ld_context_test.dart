@@ -63,6 +63,22 @@ void main() {
     expect(LDContextBuilder().build().canonicalKey, '');
   });
 
+  test('can modify an invalid context to become valid', () {
+    // Start with an invalid context (no kind specified)
+    final invalidContext = LDContextBuilder().build();
+    expect(invalidContext.valid, false);
+    expect(invalidContext.canonicalKey, '');
+
+    // Modify it to become valid by adding a valid kind
+    final validContext = LDContextBuilder.fromContext(invalidContext)
+        .kind('user', 'user-key')
+        .build();
+
+    expect(validContext.valid, true);
+    expect(validContext.canonicalKey, 'user-key');
+    expect(validContext.keys, <String, String>{'user': 'user-key'});
+  });
+
   test('can change the key of a context during build', () {
     final context = LDContextBuilder()
         .kind('user', 'user-key')

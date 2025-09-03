@@ -6,7 +6,7 @@ import 'dart:math' as math;
 import '../launchdarkly_event_source_client.dart';
 
 import 'backoff.dart';
-import 'message_event.dart' as ld_message_event;
+import 'events.dart' as ld_message_event;
 
 /// An [SSEClient] that uses the [web.EventSource] available on most browsers for web platform support.
 class HtmlSseClient implements SSEClient {
@@ -14,8 +14,9 @@ class HtmlSseClient implements SSEClient {
   web.EventSource? _eventSource;
 
   /// This controller is for the events going to the subscribers of this client.
-  late final StreamController<ld_message_event.MessageEvent>
-      _messageEventsController;
+  late final StreamController<ld_message_event.Event> _messageEventsController;
+
+  late final EventSourceLogger _logger;
 
   Backoff _backoff = Backoff(math.Random());
 
@@ -27,11 +28,12 @@ class HtmlSseClient implements SSEClient {
 
   /// Creates an instance of an SSEClient that will connect in the future
   /// to the [uri] provided.
-  HtmlSseClient(Uri uri, Set<String> eventTypes)
+  HtmlSseClient(Uri uri, Set<String> eventTypes, EventSourceLogger? logger)
       : _uri = uri,
         _eventTypes = eventTypes {
+    _logger = logger ?? NoOpLogger();
     _messageEventsController =
-        StreamController<ld_message_event.MessageEvent>.broadcast(
+        StreamController<ld_message_event.Event>.broadcast(
       onListen: () {
         // this is triggered when first listener subscribes
 
@@ -60,6 +62,7 @@ class HtmlSseClient implements SSEClient {
       _eventSource?.addEventListener(eventType, _handleMessageEvent.toJS);
     }
     _eventSource?.addEventListener('error', _handleError.toJS);
+    _eventSource?.addEventListener('open', _handleOpen.toJS);
   }
 
   void _handleError(web.Event event) {
@@ -67,6 +70,11 @@ class HtmlSseClient implements SSEClient {
     // determine the type of condition, then this is where we would
     // determine if this was a temporary or permanent failure.
     restart();
+  }
+
+  void _handleOpen(web.Event event) {
+    // The browser event source doesn't have header support.
+    _messageEventsController.sink.add(OpenEvent());
   }
 
   void _handleMessageEvent(web.Event event) {
@@ -82,11 +90,13 @@ class HtmlSseClient implements SSEClient {
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect a network delay initially.
   @override
-  Stream<ld_message_event.MessageEvent> get stream =>
-      _messageEventsController.stream;
+  Stream<ld_message_event.Event> get stream => _messageEventsController.stream;
 
   @override
-  Future close() => _messageEventsController.close();
+  Future close() async {
+    _logger.debug('Closing SSE client permanently.');
+    _messageEventsController.close();
+  }
 
   @override
   void restart() {
@@ -111,6 +121,7 @@ SSEClient getSSEClient(
         Duration connectTimeout,
         Duration readTimeout,
         String? body,
-        String method) =>
+        String method,
+        EventSourceLogger? logger) =>
     // dropping unsupported configuration options
-    HtmlSseClient(uri, eventTypes);
+    HtmlSseClient(uri, eventTypes, logger);
