@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 const _envIdHeader = 'x-ld-envid';
 
 /// Get the environment ID from headers.

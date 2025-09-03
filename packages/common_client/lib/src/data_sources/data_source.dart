@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'data_source_status.dart';
 
 sealed class DataSourceEvent {}
