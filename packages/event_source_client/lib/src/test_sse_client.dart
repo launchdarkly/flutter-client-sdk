@@ -79,7 +79,6 @@ final class TestSseClient implements SSEClient {
       },
       onCancel: () {
         _sourceStreamSubscription?.cancel();
-        close();
       },
     );
   }
