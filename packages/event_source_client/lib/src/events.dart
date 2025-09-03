@@ -89,3 +89,14 @@ final class OpenEvent implements Event {
           headers!.entries.map((item) => Object.hash(item.key, item.value)))
       : null.hashCode;
 }
+
+bool isMessageEvent(Event event) {
+  {
+    switch (event) {
+      case MessageEvent():
+        return true;
+      default:
+        return false;
+    }
+  }
+}

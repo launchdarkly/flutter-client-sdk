@@ -2,17 +2,6 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
-## [2.0.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v1.2.1...launchdarkly_event_source_client-v2.0.0) (2025-09-03)
-
-
-### ⚠ BREAKING CHANGES
-
-* Add support for getting headers on event source connection. ([#208](https://github.com/launchdarkly/flutter-client-sdk/issues/208))
-
-### Features
-
-* Add support for getting headers on event source connection. ([#208](https://github.com/launchdarkly/flutter-client-sdk/issues/208)) ([9f0b1e4](https://github.com/launchdarkly/flutter-client-sdk/commit/9f0b1e41b238209b60de49a1f05324c2080675fc))
-
 ## [1.2.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v1.2.0...launchdarkly_event_source_client-v1.2.1) (2025-09-02)
 
 
