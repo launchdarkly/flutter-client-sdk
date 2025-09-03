@@ -90,7 +90,7 @@ class HtmlSseClient implements SSEClient {
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect a network delay initially.
   @override
-  Stream<Event> get stream => _messageEventsController.stream;
+  Stream<ld_message_event.Event> get stream => _messageEventsController.stream;
 
   @override
   Future close() async {
