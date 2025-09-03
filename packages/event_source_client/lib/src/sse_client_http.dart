@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
 import '../launchdarkly_event_source_client.dart';
+import 'events.dart' show isMessageEvent;
 import 'state_idle.dart';
 import 'state_value_object.dart';
 
@@ -18,7 +19,7 @@ class HttpSseClient implements SSEClient {
   static const defaultReadTimeout = Duration(minutes: 5);
 
   /// This controller is for the events going to the subscribers of this client.
-  late final StreamController<MessageEvent> _messageEventsController;
+  late final StreamController<Event> _messageEventsController;
   late final EventSourceLogger _logger;
 
   /// This controller is for controlling the internal state machine when subscribers
@@ -67,7 +68,7 @@ class HttpSseClient implements SSEClient {
       String httpMethod,
       EventSourceLogger? logger) {
     _logger = logger ?? NoOpLogger();
-    _messageEventsController = StreamController<MessageEvent>.broadcast(
+    _messageEventsController = StreamController<Event>.broadcast(
       // this is triggered when first listener subscribes
       onListen: () => _connectionDesiredStateController.add(true),
       // this is triggered when last listener unsubscribes
@@ -94,7 +95,7 @@ class HttpSseClient implements SSEClient {
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
   /// subscribe triggers the connection, so expect a network delay initially.
   @override
-  Stream<MessageEvent> get stream => _messageEventsController.stream;
+  Stream<Event> get stream => _messageEventsController.stream;
 
   @override
   Future close() async {

@@ -1,18 +1,18 @@
 import 'dart:async';
 
-import 'package:launchdarkly_event_source_client/src/message_event.dart';
+import 'package:launchdarkly_event_source_client/src/events.dart';
 import 'package:launchdarkly_event_source_client/src/stateful_sse_parser.dart';
 import 'package:test/test.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockSink extends Mock implements EventSink<MessageEvent> {}
+class MockSink extends Mock implements EventSink<Event> {}
 
 void main() {
   setUpAll(() {
     registerFallbackValue(MessageEvent('fallback', 'fallback', 'fallback'));
   });
 
-  void testCase(String input, List<MessageEvent> expected) {
+  void testCase(String input, List<Event> expected) {
     final parserUnderTest = StatefulSSEParser();
     final mockSink = MockSink();
     parserUnderTest.parse(input, mockSink);
@@ -23,8 +23,10 @@ void main() {
         reason: 'Captured:{$captured}, Expected:{$expected}');
 
     for (var i = 0; i < captured.length; i++) {
-      final expectedMessageEvent = expected[i];
+      expect(expected[i], isA<MessageEvent>());
+      final expectedMessageEvent = expected[i] as MessageEvent;
       final messageEvent = captured[i] as MessageEvent;
+      expect(messageEvent, isA<MessageEvent>());
       expect(messageEvent.type, equals(expectedMessageEvent.type));
       expect(messageEvent.data, equals(expectedMessageEvent.data));
       expect(messageEvent.id, equals(expectedMessageEvent.id));

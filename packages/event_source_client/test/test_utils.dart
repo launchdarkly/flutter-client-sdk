@@ -8,7 +8,7 @@ import 'package:http/http.dart';
 import 'package:http/testing.dart';
 import 'package:launchdarkly_event_source_client/src/http_consts.dart';
 import 'package:launchdarkly_event_source_client/src/logging.dart';
-import 'package:launchdarkly_event_source_client/src/message_event.dart';
+import 'package:launchdarkly_event_source_client/src/events.dart';
 import 'package:launchdarkly_event_source_client/src/state_value_object.dart';
 
 class TestUtils {
@@ -25,7 +25,7 @@ class TestUtils {
       Duration? connectTimeout,
       Duration? readTimeout,
       Stream<bool>? connectionDesired,
-      EventSink<MessageEvent>? eventSink,
+      EventSink<Event>? eventSink,
       Sink<dynamic>? transitionSink,
       ClientFactory? clientFactory,
       math.Random? random,
@@ -38,7 +38,7 @@ class TestUtils {
         connectTimeout ?? Duration.zero,
         readTimeout ?? Duration.zero,
         connectionDesired ?? StreamController<bool>.broadcast().stream,
-        eventSink ?? StreamController<MessageEvent>.broadcast(),
+        eventSink ?? StreamController<Event>.broadcast(),
         transitionSink ?? StreamController<dynamic>.broadcast(),
         clientFactory ?? makeMockHttpClient,
         math.Random(),

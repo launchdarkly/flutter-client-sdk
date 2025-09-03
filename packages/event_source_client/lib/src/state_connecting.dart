@@ -85,6 +85,8 @@ class StateConnecting {
         };
       }
 
+      svo.connectHeaders = response.headers;
+
       return () => StateConnected.run(svo, client, response.stream);
     } on TimeoutException {
       // didn't connect in a timely manner, so backoff then we'll try again

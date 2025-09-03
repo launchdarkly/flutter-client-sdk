@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'events.dart';
 import 'state_backoff.dart';
 import 'state_idle.dart';
 import 'state_value_object.dart';
@@ -16,6 +18,10 @@ class StateConnected {
     // record transition to this state for testing/logging
     svo.transitionSink.add(StateConnected);
     svo.logger.debug('Transitioned to StateConnected');
+    svo.eventSink.add(OpenEvent(
+        headers: svo.connectHeaders != null
+            ? UnmodifiableMapView(svo.connectHeaders!)
+            : null));
 
     // wait for either the stream to terminate or desired connection change to transition
     final transition = await Future.any([
@@ -47,12 +53,20 @@ class StateConnected {
           recordedActiveSince = true;
         }
 
-        // hold on to most recent id if there is one so we can use it for session resumption
-        svo.lastId = event.id ?? svo.lastId;
+        // Implementation note: Currently only message events are supported
+        // by the parser, but we could potentially extend that to support
+        // emitting comment events.
+        switch (event) {
+          case MessageEvent():
+            // hold on to most recent id if there is one so we can use it for session resumption
+            svo.lastId = event.id ?? svo.lastId;
 
-        // only emit events that have event types the sse client was configured to use
-        if (svo.eventTypes.contains(event.type)) {
-          svo.eventSink.add(event);
+            // only emit events that have event types the sse client was configured to use
+            if (svo.eventTypes.contains(event.type)) {
+              svo.eventSink.add(event);
+            }
+          default:
+            break;
         }
       }
 
