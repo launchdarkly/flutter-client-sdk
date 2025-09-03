@@ -95,8 +95,8 @@ void main() {
           emits(DataSourceStatus(
               state: DataSourceState.valid, stateSince: DateTime(2))));
 
-      expectLater(flagManager!.changes,
-          emits(FlagsChangedEvent(keys: ['HasBob'])));
+      expectLater(
+          flagManager!.changes, emits(FlagsChangedEvent(keys: ['HasBob'])));
 
       eventHandler!.handleMessage(
           context,
@@ -120,8 +120,8 @@ void main() {
           emits(DataSourceStatus(
               state: DataSourceState.valid, stateSince: DateTime(2))));
 
-      expectLater(flagManager!.changes,
-          emits(FlagsChangedEvent(keys: ['HasBob'])));
+      expectLater(
+          flagManager!.changes, emits(FlagsChangedEvent(keys: ['HasBob'])));
 
       eventHandler!.handleMessage(
           context,

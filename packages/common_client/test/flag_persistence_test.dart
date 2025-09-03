@@ -349,10 +349,12 @@ void main() {
 
       final context = LDContextBuilder().kind('user', 'user-key').build();
 
-      await flagPersistence.init(context, basicData, environmentId: 'test-env-123');
+      await flagPersistence.init(context, basicData,
+          environmentId: 'test-env-123');
 
       // Environment ID should be stored separately
-      expect(mockPersistence.storage[sdkKeyPersistence]!['EnvironmentId'], 'test-env-123');
+      expect(mockPersistence.storage[sdkKeyPersistence]!['EnvironmentId'],
+          'test-env-123');
     });
 
     test('it loads environment ID from persistence', () async {
@@ -396,7 +398,8 @@ void main() {
       expect(flagStore.environmentId, 'cached-env-456');
     });
 
-    test('it handles missing environment ID in persistence gracefully', () async {
+    test('it handles missing environment ID in persistence gracefully',
+        () async {
       final context = LDContextBuilder().kind('user', 'user-key').build();
       final contextPersistenceKey =
           sha256.convert(utf8.encode(context.canonicalKey)).toString();
@@ -430,7 +433,8 @@ void main() {
       expect(flagStore.environmentId, null);
     });
 
-    test('it does not store environment ID when maxCachedContexts is 0', () async {
+    test('it does not store environment ID when maxCachedContexts is 0',
+        () async {
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
       final flagPersistence = FlagPersistence(
@@ -444,14 +448,20 @@ void main() {
 
       final context = LDContextBuilder().kind('user', 'user-key').build();
 
-      await flagPersistence.init(context, basicData, environmentId: 'test-env-123');
+      await flagPersistence.init(context, basicData,
+          environmentId: 'test-env-123');
 
       // Only the index should be stored, not the context data or environment ID
-      expect(mockPersistence.storage[sdkKeyPersistence]!.containsKey('EnvironmentId'), false);
-      expect(mockPersistence.storage[sdkKeyPersistence]!.length, 1); // Just the index
+      expect(
+          mockPersistence.storage[sdkKeyPersistence]!
+              .containsKey('EnvironmentId'),
+          false);
+      expect(mockPersistence.storage[sdkKeyPersistence]!.length,
+          1); // Just the index
     });
 
-    test('it does not store environment ID when environment ID is null', () async {
+    test('it does not store environment ID when environment ID is null',
+        () async {
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
       final flagPersistence = FlagPersistence(
@@ -465,10 +475,14 @@ void main() {
 
       final context = LDContextBuilder().kind('user', 'user-key').build();
 
-      await flagPersistence.init(context, basicData); // No environment ID provided
+      await flagPersistence.init(
+          context, basicData); // No environment ID provided
 
       // Environment ID should not be in storage when it's null
-      expect(mockPersistence.storage[sdkKeyPersistence]!.containsKey('EnvironmentId'), false);
+      expect(
+          mockPersistence.storage[sdkKeyPersistence]!
+              .containsKey('EnvironmentId'),
+          false);
     });
   });
 

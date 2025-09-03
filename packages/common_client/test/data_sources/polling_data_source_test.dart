@@ -394,7 +394,8 @@ void main() {
     var receivedEnvironmentId = '';
 
     final innerClient = MockClient((request) async {
-      return http.Response(flagData, 200, headers: {'x-ld-envid': 'env-123-test'});
+      return http.Response(flagData, 200,
+          headers: {'x-ld-envid': 'env-123-test'});
     });
 
     final context = LDContextBuilder().kind('user', 'test').build();
@@ -417,8 +418,8 @@ void main() {
             withReasons: false,
             useReport: false),
         httpProperties: HttpProperties(),
-        clientFactory: (properties) =>
-            ld_common.HttpClient(client: innerClient, httpProperties: properties),
+        clientFactory: (properties) => ld_common.HttpClient(
+            client: innerClient, httpProperties: properties),
         testingInterval: Duration(milliseconds: 50));
 
     polling.events.asyncMap((event) async {
@@ -478,8 +479,8 @@ void main() {
             withReasons: false,
             useReport: false),
         httpProperties: HttpProperties(),
-        clientFactory: (properties) =>
-            ld_common.HttpClient(client: innerClient, httpProperties: properties),
+        clientFactory: (properties) => ld_common.HttpClient(
+            client: innerClient, httpProperties: properties),
         testingInterval: Duration(milliseconds: 50));
 
     polling.events.asyncMap((event) async {
