@@ -286,6 +286,45 @@ void main() {
     });
   });
 
+  group('given an invalid context', () {
+    test('start returns false with invalid context', () async {
+      final invalidClient = LDCommonClient(
+          TestConfig('', AutoEnvAttributes.disabled, offline: true),
+          CommonPlatform(),
+          LDContextBuilder()
+              .kind('invalid#kind', '') // invalid kind and invalid key
+              .build(),
+          DiagnosticSdkData(name: '', version: ''));
+
+      expect(await invalidClient.start(), false);
+    });
+
+    test('identify returns IdentifyError with invalid context', () async {
+      final invalidClient = LDCommonClient(
+          TestConfig('', AutoEnvAttributes.disabled, offline: true),
+          CommonPlatform(),
+          LDContextBuilder()
+              .kind('user', 'bob')
+              .build(), // Valid initial context
+          DiagnosticSdkData(name: '', version: ''));
+
+      await invalidClient.start();
+
+      final invalidContext = LDContextBuilder()
+          .kind('invalid#kind', '') // invalid kind and invalid key
+          .build();
+
+      expect(
+          await invalidClient.identify(invalidContext), isA<IdentifyError>());
+
+      // check subsequent identify with valid context is accepted
+      final validContext = LDContextBuilder().kind('user', 'alice').build();
+
+      final identifyResult = await invalidClient.identify(validContext);
+      expect(identifyResult, isA<IdentifyComplete>());
+    });
+  });
+
   group('given mock flag data with prerequisites', () {
     late LDCommonClient client;
     late MockPersistence mockPersistence;

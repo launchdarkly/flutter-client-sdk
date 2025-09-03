@@ -11,15 +11,20 @@ import 'data_source_status.dart';
 
 typedef MessageHandler = void Function(MessageEvent);
 typedef ErrorHandler = void Function(dynamic);
-typedef SseClientFactory = SSEClient Function(Uri uri,
-    HttpProperties httpProperties, String? body, SseHttpMethod? method);
+typedef SseClientFactory = SSEClient Function(
+    Uri uri,
+    HttpProperties httpProperties,
+    String? body,
+    SseHttpMethod? method,
+    EventSourceLogger? logger);
 
 SSEClient _defaultClientFactory(Uri uri, HttpProperties httpProperties,
-    String? body, SseHttpMethod? method) {
+    String? body, SseHttpMethod? method, EventSourceLogger? logger) {
   return SSEClient(uri, {'put', 'patch', 'delete'},
       headers: httpProperties.baseHeaders,
       body: body,
-      httpMethod: method ?? SseHttpMethod.get);
+      httpMethod: method ?? SseHttpMethod.get,
+      logger: logger);
 }
 
 final class StreamingDataSource implements DataSource {
@@ -109,7 +114,8 @@ final class StreamingDataSource implements DataSource {
         _uri,
         _httpProperties,
         _useReport ? _contextString : null,
-        _useReport ? SseHttpMethod.report : SseHttpMethod.get);
+        _useReport ? SseHttpMethod.report : SseHttpMethod.get,
+        LDLoggerToEventSourceAdapter(_logger));
 
     _subscription = _client!.stream.listen((event) async {
       if (_stopped) {
@@ -146,4 +152,23 @@ final class StreamingDataSource implements DataSource {
     _stopped = true;
     _dataController.close();
   }
+}
+
+/// Adapter to convert LDLogger to EventSourceLogger
+class LDLoggerToEventSourceAdapter implements EventSourceLogger {
+  final LDLogger _logger;
+
+  LDLoggerToEventSourceAdapter(this._logger);
+
+  @override
+  void debug(String message) => _logger.debug(message);
+
+  @override
+  void info(String message) => _logger.info(message);
+
+  @override
+  void warn(String message) => _logger.warn(message);
+
+  @override
+  void error(String message) => _logger.error(message);
 }

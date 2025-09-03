@@ -17,6 +17,7 @@ class StateConnected {
       StateValues svo, http.Client client, Stream<List<int>> stream) async {
     // record transition to this state for testing/logging
     svo.transitionSink.add(StateConnected);
+    svo.logger.debug('Transitioned to StateConnected');
     svo.eventSink.add(OpenEvent(
         headers: svo.connectHeaders != null
             ? UnmodifiableMapView(svo.connectHeaders!)
@@ -69,11 +70,22 @@ class StateConnected {
         }
       }
 
-      return () => StateBackoff.run(svo);
+      return () {
+        svo.logger.info('Connection closed, will retry with backoff.');
+        StateBackoff.run(svo);
+      };
     } on TimeoutException {
-      return () => StateBackoff.run(svo);
+      return () {
+        svo.logger.info(
+            'Connection TimeoutException occurred, will retry with backoff.');
+        StateBackoff.run(svo);
+      };
     } catch (error) {
-      return () => StateBackoff.run(svo);
+      return () {
+        svo.logger.info(
+            'Connection error occurred, will retry with backoff. Error was: $error');
+        StateBackoff.run(svo);
+      };
     }
   }
 
@@ -89,6 +101,7 @@ class StateConnected {
 
     return () {
       client.close();
+      svo.logger.debug('Connection no longer required.');
       StateIdle.run(svo);
     };
   }

@@ -2,8 +2,19 @@ import 'package:launchdarkly_common_client/src/context_modifiers/env_context_mod
 import 'package:launchdarkly_common_client/src/persistence/persistence.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockAdapter extends Mock implements LDLogAdapter {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(LDLogRecord(
+        level: LDLogLevel.debug,
+        message: '',
+        time: DateTime.now(),
+        logTag: ''));
+  });
+
   group('env reporter with various configurations', () {
     test('reporter has all attributes', () async {
       final mockPersistence = InMemoryPersistence();
@@ -447,6 +458,68 @@ void main() {
           .stringValue();
       expect(key1, isNot(null));
       expect(key1, key2);
+    });
+  });
+
+  group('invalid context handling', () {
+    test('it logs an info log when asked to modify an invalid context',
+        () async {
+      final invalidContext =
+          LDContextBuilder().build(); // This creates an invalid context
+      final mockPersistence = InMemoryPersistence();
+      final mockAdapter = MockAdapter();
+      final logger = LDLogger(adapter: mockAdapter, level: LDLogLevel.info);
+      final envReporter = ConcreteEnvReporter(
+          applicationInfo: Future.value(null),
+          osInfo: Future.value(null),
+          deviceInfo: Future.value(null),
+          locale: Future.value(null));
+
+      final report = await PrioritizedEnvReportBuilder()
+          .setConfigLayer(envReporter)
+          .build();
+
+      final decorator = AutoEnvContextModifier(report, mockPersistence, logger);
+
+      final result = await decorator.decorate(invalidContext);
+
+      expect(result.valid, false);
+
+      final logRecord = verify(() => mockAdapter.log(captureAny())).captured[0]
+          as LDLogRecord;
+      expect(logRecord.level, LDLogLevel.warn);
+      expect(logRecord.message,
+          'AutoEnvContextModifier was asked to modify an invalid context and will attempt to do so. This is expected if starting with an empty context.');
+    });
+
+    test('it makes an invalid context valid by adding environment attributes',
+        () async {
+      final invalidContext = LDContextBuilder().build();
+      final mockPersistence = InMemoryPersistence();
+      final logger = LDLogger();
+      final envReporter = ConcreteEnvReporter(
+          applicationInfo: Future.value(ApplicationInfo(
+              applicationId: 'mockID',
+              applicationName: 'mockName',
+              applicationVersion: 'mockVersion',
+              applicationVersionName: 'mockVersionName')),
+          osInfo: Future.value(OsInfo(
+              family: 'mockFamily',
+              name: 'mockOsName',
+              version: 'mockOsVersion')),
+          deviceInfo: Future.value(
+              DeviceInfo(model: 'mockModel', manufacturer: 'mockManufacturer')),
+          locale: Future.value('mockLocale'));
+
+      final report = await PrioritizedEnvReportBuilder()
+          .setConfigLayer(envReporter)
+          .build();
+
+      final decorator = AutoEnvContextModifier(report, mockPersistence, logger);
+
+      final result = await decorator.decorate(invalidContext);
+
+      expect(result.valid, true);
     });
   });
 }

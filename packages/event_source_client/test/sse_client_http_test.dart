@@ -38,7 +38,8 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.  The mock client is set up to send a message.
@@ -65,7 +66,8 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.  The mock client is set up to send a message.
@@ -98,7 +100,8 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.
@@ -136,7 +139,7 @@ void main() {
                 Map<String, String> headers = const {},
                 bool blocking = false}) {
           return mockClient;
-        }, math.Random(), null, method);
+        }, math.Random(), null, method, const NoOpLogger());
 
         when(() => mockClient.send(any())).thenAnswer((_) async {
           return http.StreamedResponse(
@@ -172,7 +175,7 @@ void main() {
             Map<String, String> headers = const {},
             bool blocking = false}) {
       return mockClient;
-    }, math.Random(), null, 'GET');
+    }, math.Random(), null, 'GET', const NoOpLogger());
 
     when(() => mockClient.send(any())).thenAnswer((_) async {
       return http.StreamedResponse(

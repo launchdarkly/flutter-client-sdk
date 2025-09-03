@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.6.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.6.0...launchdarkly_dart_common-v1.6.1) (2025-09-03)
+
+
+### Bug Fixes
+
+* improves handling of invalid contexts and adds SSE Client logging. ([#207](https://github.com/launchdarkly/flutter-client-sdk/issues/207)) ([fcab81f](https://github.com/launchdarkly/flutter-client-sdk/commit/fcab81f006f6efd78206756447d2587f87b8c43c))
+
 ## [1.6.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.5.0...launchdarkly_dart_common-v1.6.0) (2025-05-09)
 
 
