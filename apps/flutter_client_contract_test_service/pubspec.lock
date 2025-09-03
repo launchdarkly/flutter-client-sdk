@@ -393,28 +393,28 @@ packages:
       path: "../../packages/common_client"
       relative: true
     source: path
-    version: "1.6.1"
+    version: "1.6.2"
   launchdarkly_dart_common:
     dependency: "direct overridden"
     description:
       path: "../../packages/common"
       relative: true
     source: path
-    version: "1.6.0"
+    version: "1.6.1"
   launchdarkly_event_source_client:
     dependency: "direct overridden"
     description:
       path: "../../packages/event_source_client"
       relative: true
     source: path
-    version: "1.2.0"
+    version: "1.2.1"
   launchdarkly_flutter_client_sdk:
     dependency: "direct main"
     description:
       path: "../../packages/flutter_client_sdk"
       relative: true
     source: path
-    version: "4.11.1"
+    version: "4.11.2"
   lints:
     dependency: "direct dev"
     description:
