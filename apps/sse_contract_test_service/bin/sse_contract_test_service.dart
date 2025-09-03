@@ -64,7 +64,7 @@ class TestApiImpl extends TestApi {
         body: body.body,
         httpMethod: method,
         headers: headers);
-  final subscription = client.stream.listen((event) {
+    final subscription = client.stream.listen((event) {
       switch (event) {
         case MessageEvent():
           callbackClient.callbackNumberPost(

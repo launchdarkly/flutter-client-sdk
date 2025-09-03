@@ -4,7 +4,9 @@ environment:
   sdk: '>=3.4.0 <4.0.0'
 
 packages:
-  - packages/*
+  # Remove the event_source_client from the workspace temporarily to allow a breaking change.
+  - packages/common
+  - packages/common_client
   - packages/flutter_client_sdk/example
   - apps/*
 
@@ -19,7 +21,9 @@ scripts:
     # Add more packages as more of them have tests.
     # Tests are ran with flutter as it supports coverage. Some packages may also include flutter
     # dependencies.
-    run: MELOS_PACKAGES="launchdarkly_dart_common,launchdarkly_common_client,launchdarkly_flutter_client_sdk" melos exec -- flutter test . --coverage
+    run: >
+      MELOS_PACKAGES="launchdarkly_dart_common,launchdarkly_common_client,launchdarkly_flutter_client_sdk" melos exec -- flutter test . --coverage &&
+      cd packages/event_source_client && dart test
 
   merge-trace-files:
     description: Merge all packages coverage trace files ignoring data related to generated files.
