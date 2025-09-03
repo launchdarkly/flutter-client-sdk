@@ -60,7 +60,7 @@ class MockSseClient implements SSEClient {
           withReasons: withReasons, useReport: useReport),
       httpProperties: httpProperties,
       clientFactory: (Uri uri, HttpProperties properties, String? body,
-          SseHttpMethod? method) {
+          SseHttpMethod? method, EventSourceLogger? logger) {
         factoryCallback?.call(uri, properties, body, method);
         return client;
       });

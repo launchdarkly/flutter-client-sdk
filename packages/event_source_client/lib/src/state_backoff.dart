@@ -8,6 +8,7 @@ class StateBackoff {
   static Future run(StateValues svo) async {
     // record transition to this state for testing/logging
     svo.transitionSink.add(StateBackoff);
+    svo.logger.debug('Transitioned to StateBackoff.');
 
     // wait for either backoff or desired connection change to transition
     final transition = await Future.any(
@@ -21,6 +22,7 @@ class StateBackoff {
   static Future<Function> _waitForBackoff(StateValues svo) async {
     final retryDelay = svo.backoff.getRetryDelay(svo.activeSince);
 
+    svo.logger.info('Waiting $retryDelay ms before retrying');
     await Future.delayed(Duration(milliseconds: retryDelay));
     return () {
       StateConnecting.run(svo);

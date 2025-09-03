@@ -65,13 +65,18 @@ class TestApiImpl extends TestApi {
         httpMethod: method,
         headers: headers);
     final subscription = client.stream.listen((event) {
-      callbackClient.callbackNumberPost(
-          PostCallback(
-              kind: 'event',
-              event: PostCallbackEvent(
-                  type: event.type, data: event.data, id: event.id)),
-          callbackNumber: callbackId);
-      callbackId++;
+      switch (event) {
+        case MessageEvent():
+          callbackClient.callbackNumberPost(
+              PostCallback(
+                  kind: 'event',
+                  event: PostCallbackEvent(
+                      type: event.type, data: event.data, id: event.id)),
+              callbackNumber: callbackId);
+          callbackId++;
+        default:
+          break;
+      }
     }, onError: (error) {
       callbackClient.callbackNumberPost(
           PostCallback(kind: 'error', comment: error.toString()),

@@ -38,12 +38,15 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.  The mock client is set up to send a message.
-    expectLater(sseClientUnderTest.stream,
-        emitsInOrder([MessageEvent('put', 'helloworld', '')]));
+    expectLater(
+        sseClientUnderTest.stream,
+        emitsInOrder(
+            [isA<OpenEvent>(), MessageEvent('put', 'helloworld', '')]));
   });
 
   test('Test disconnects when stream.first unsubscribes', () async {
@@ -63,13 +66,21 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.  The mock client is set up to send a message.
-    var messageEvent = await sseClientUnderTest.stream.first;
-    expect(messageEvent, isA<Event>());
-    expect((messageEvent as MessageEvent).data, equals('helloworld'));
+    var events = <Event>[];
+    await for (final event in sseClientUnderTest.stream) {
+      events.add(event);
+      if (events.length >= 2) break; // Collect OpenEvent and MessageEvent
+    }
+
+    expect(events.length, equals(2));
+    expect(events[0], isA<OpenEvent>());
+    expect(events[1], isA<MessageEvent>());
+    expect((events[1] as MessageEvent).data, equals('helloworld'));
   });
 
   test('Test close', () async {
@@ -89,12 +100,21 @@ void main() {
         TestUtils.makeMockHttpClient,
         math.Random(),
         null,
-        'GET');
+        'GET',
+        const NoOpLogger());
 
     // this expect statement will register a listener on the stream triggering the client to
     // connect to the mock client.
-    var messageEvent = await sseClientUnderTest.stream.first;
-    expect((messageEvent as MessageEvent).data, equals('helloworld'));
+    var events = <Event>[];
+    await for (final event in sseClientUnderTest.stream) {
+      events.add(event);
+      if (events.length >= 2) break; // Collect OpenEvent and MessageEvent
+    }
+
+    expect(events.length, equals(2));
+    expect(events[0], isA<OpenEvent>());
+    expect(events[1], isA<MessageEvent>());
+    expect((events[1] as MessageEvent).data, equals('helloworld'));
     sseClientUnderTest.close();
   });
 
@@ -119,7 +139,7 @@ void main() {
                 Map<String, String> headers = const {},
                 bool blocking = false}) {
           return mockClient;
-        }, math.Random(), null, method);
+        }, math.Random(), null, method, const NoOpLogger());
 
         when(() => mockClient.send(any())).thenAnswer((_) async {
           return http.StreamedResponse(
@@ -155,7 +175,7 @@ void main() {
             Map<String, String> headers = const {},
             bool blocking = false}) {
       return mockClient;
-    }, math.Random(), null, 'GET');
+    }, math.Random(), null, 'GET', const NoOpLogger());
 
     when(() => mockClient.send(any())).thenAnswer((_) async {
       return http.StreamedResponse(
