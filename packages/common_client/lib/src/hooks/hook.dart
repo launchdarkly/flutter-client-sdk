@@ -35,7 +35,7 @@ final class EvaluationSeriesContext {
   /// The environment ID associated with the evaluation if available.
   final String? environmentId;
 
-  const EvaluationSeriesContext.internal(
+  EvaluationSeriesContext.internal(
       {required this.flagKey,
       required this.context,
       required this.defaultValue,
@@ -52,7 +52,7 @@ final class IdentifySeriesContext {
   // If the timeout does become managed by the SDK, then it should be
   // added here.
 
-  const IdentifySeriesContext.internal({required this.context});
+  IdentifySeriesContext.internal({required this.context});
 }
 
 /// Contextual information provided to track stages.
@@ -69,7 +69,7 @@ final class TrackSeriesContext {
   /// The metric value associated with the track operation.
   final num? numericValue;
 
-  const TrackSeriesContext.internal(
+  TrackSeriesContext.internal(
       {required this.key, required this.context, this.data, this.numericValue});
 }
 
