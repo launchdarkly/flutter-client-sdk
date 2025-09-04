@@ -313,7 +313,7 @@ final class LDCommonClient {
     }).then((res) {
       final identifyResult = _mapIdentifyResult(res);
       afterIdentify?.call(identifyResult);
-      _startCompleter!.complete(_mapIdentifyResult(res));
+      _startCompleter!.complete(identifyResult);
     });
 
     return _startFuture!.then(_mapIdentifyStart);
