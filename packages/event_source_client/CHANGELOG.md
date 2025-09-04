@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [2.0.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v2.0.0...launchdarkly_event_source_client-v2.0.1) (2025-09-04)
+
+
+### Bug Fixes
+
+* Fix analysis issues. ([#219](https://github.com/launchdarkly/flutter-client-sdk/issues/219)) ([a061270](https://github.com/launchdarkly/flutter-client-sdk/commit/a061270bb7bc26728513c41a7d73faa335cfac06))
+
 ## [2.0.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v1.2.1...launchdarkly_event_source_client-v2.0.0) (2025-09-03)
 
 
