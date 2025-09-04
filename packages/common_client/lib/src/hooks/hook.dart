@@ -78,11 +78,22 @@ final class TrackSeriesContext {
 ///
 /// Default implementations are provided for each stage and an implementer
 /// should override at least one of the stage methods.
-base class Hook {
-  final HookMetadata metadata;
+///
+/// All implementations must implement the metadata getter.
+abstract base class Hook {
+  /// Metadata associated with this hook.
+  ///
+  /// Hook implementations must implement this property.
+  /// ```dart
+  /// final _metadata = HookMetadata(name: 'MyHookName');
+  ///
+  /// @override
+  /// HookMetadata get metadata => _metadata;
+  /// ```
+  HookMetadata get metadata;
 
   /// Construct a new hook instance.
-  Hook(this.metadata);
+  Hook();
 
   /// This method is called during the execution of a variation method before
   /// the flag value has been determined. The method is executed synchronously.

@@ -16,16 +16,21 @@ final class TestHook extends Hook {
   final String? errorMessage;
   final List<UnmodifiableMapView<String, LDValue>> receivedBeforeData = [];
   final List<UnmodifiableMapView<String, LDValue>> receivedAfterData = [];
+  final HookMetadata _metadata;
 
   // For tracking execution order across multiple hooks
   static final List<String> globalExecutionOrder = [];
+
+  @override
+  HookMetadata get metadata => _metadata;
 
   TestHook({
     required String name,
     this.dataToReturn = const {},
     this.shouldThrow = false,
     this.errorMessage,
-  }) : super(HookMetadata(name: name));
+  })  : _metadata = HookMetadata(name: name),
+        super();
 
   void clearGlobalOrder() {
     globalExecutionOrder.clear();

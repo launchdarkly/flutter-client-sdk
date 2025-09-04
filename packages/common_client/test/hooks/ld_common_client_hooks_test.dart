@@ -11,8 +11,14 @@ final class TestHook extends Hook {
   final List<TrackSeriesContext> trackContexts = [];
   final List<IdentifyResult> identifyResults = [];
   final List<LDEvaluationDetail<LDValue>> evaluationResults = [];
+  final HookMetadata _metadata;
 
-  TestHook(String name) : super(HookMetadata(name: name));
+  @override
+  HookMetadata get metadata => _metadata;
+
+  TestHook(String name)
+      : _metadata = HookMetadata(name: name),
+        super();
 
   @override
   UnmodifiableMapView<String, LDValue> beforeEvaluation(
