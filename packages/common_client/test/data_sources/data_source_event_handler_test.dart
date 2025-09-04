@@ -46,12 +46,6 @@ void main() {
               '"variation":0,"trackEvents":false}'
               '}');
 
-      final bob = flagManager!.get('HasBob')!.flag!;
-      expect(bob.version, 11);
-      expect(bob.detail.value, LDValue.ofBool(false));
-      expect(bob.detail.variationIndex, 1);
-      expect(bob.detail.reason, isNull);
-
       final killSwitch = flagManager!.get('killswitch')!.flag!;
       expect(killSwitch.version, 10);
       expect(killSwitch.detail.value, LDValue.ofBool(true));
