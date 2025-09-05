@@ -334,6 +334,156 @@ void main() {
               .containsKey(sha256.convert(utf8.encode('0')).toString()),
           false);
     });
+
+    test('it stores environment ID separately in persistence', () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+
+      await flagPersistence.init(context, basicData,
+          environmentId: 'test-env-123');
+
+      // Environment ID should be stored separately
+      expect(mockPersistence.storage[sdkKeyPersistence]!['EnvironmentId'],
+          'test-env-123');
+    });
+
+    test('it loads environment ID from persistence', () async {
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
+
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+
+      // Pre-populate persistence with flag data and environment ID
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey: '{"flagA":{'
+            '"version":1,'
+            '"value":"test",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
+            '},'
+            '"flagB":{'
+            '"version":2,'
+            '"value":"test2",'
+            '"variation":1,'
+            '"reason":{"kind":"TARGET_MATCH"}'
+            '}}',
+        'EnvironmentId': 'cached-env-456'
+      };
+
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final loaded = await flagPersistence.loadCached(context);
+      expect(loaded, isTrue);
+
+      // Verify environment ID was loaded
+      expect(flagStore.environmentId, 'cached-env-456');
+    });
+
+    test('it handles missing environment ID in persistence gracefully',
+        () async {
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
+
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+
+      // Pre-populate persistence with flag data but no environment ID
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey: '{"flagA":{'
+            '"version":1,'
+            '"value":"test",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
+            '}}'
+      };
+
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final loaded = await flagPersistence.loadCached(context);
+      expect(loaded, isTrue);
+
+      // Environment ID should be null when not in persistence
+      expect(flagStore.environmentId, null);
+    });
+
+    test('it does not store environment ID when maxCachedContexts is 0',
+        () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 0, // No caching
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+
+      await flagPersistence.init(context, basicData,
+          environmentId: 'test-env-123');
+
+      // Only the index should be stored, not the context data or environment ID
+      expect(
+          mockPersistence.storage[sdkKeyPersistence]!
+              .containsKey('EnvironmentId'),
+          false);
+      expect(mockPersistence.storage[sdkKeyPersistence]!.length,
+          1); // Just the index
+    });
+
+    test('it does not store environment ID when environment ID is null',
+        () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+
+      await flagPersistence.init(
+          context, basicData); // No environment ID provided
+
+      // Environment ID should not be in storage when it's null
+      expect(
+          mockPersistence.storage[sdkKeyPersistence]!
+              .containsKey('EnvironmentId'),
+          false);
+    });
   });
 
   group('without persistence', () {

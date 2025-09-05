@@ -144,7 +144,8 @@ final class DataSourceManager {
       switch (event) {
         case DataEvent():
           var handled = await _dataSourceEventHandler.handleMessage(
-              _activeContext!, event.type, event.data);
+              _activeContext!, event.type, event.data,
+              environmentId: event.environmentId);
           if (handled == MessageStatus.messageHandled &&
               _identifyCompleter != null) {
             if (_identifyCompleter!.isCompleted) {

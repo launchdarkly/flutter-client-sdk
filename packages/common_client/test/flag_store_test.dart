@@ -122,4 +122,83 @@ void main() {
 
     expect(store.get('flagA')?.flag, null);
   });
+
+  group('environment ID', () {
+    test('can initialize store with environment ID', () {
+      final store = FlagStore();
+      final flagA = LDEvaluationResult(
+          version: 1,
+          detail: LDEvaluationDetail(
+              LDValue.ofString('test'), 0, LDEvaluationReason.off()));
+
+      store.init({
+        'flagA': ItemDescriptor(version: 1, flag: flagA),
+      }, environmentId: 'test-env-123');
+
+      expect(store.environmentId, 'test-env-123');
+      expect(store.get('flagA')?.flag, flagA);
+    });
+
+    test('can initialize store without environment ID', () {
+      final store = FlagStore();
+      final flagA = LDEvaluationResult(
+          version: 1,
+          detail: LDEvaluationDetail(
+              LDValue.ofString('test'), 0, LDEvaluationReason.off()));
+
+      store.init({
+        'flagA': ItemDescriptor(version: 1, flag: flagA),
+      });
+
+      expect(store.environmentId, null);
+      expect(store.get('flagA')?.flag, flagA);
+    });
+
+    test('environment ID is updated when store is re-initialized', () {
+      final store = FlagStore();
+      final flagA = LDEvaluationResult(
+          version: 1,
+          detail: LDEvaluationDetail(
+              LDValue.ofString('test'), 0, LDEvaluationReason.off()));
+
+      store.init({
+        'flagA': ItemDescriptor(version: 1, flag: flagA),
+      }, environmentId: 'env-1');
+
+      expect(store.environmentId, 'env-1');
+
+      final flagB = LDEvaluationResult(
+          version: 2,
+          detail: LDEvaluationDetail(
+              LDValue.ofString('test2'), 1, LDEvaluationReason.targetMatch()));
+
+      store.init({
+        'flagB': ItemDescriptor(version: 2, flag: flagB),
+      }, environmentId: 'env-2');
+
+      expect(store.environmentId, 'env-2');
+      expect(store.get('flagA'), null);
+      expect(store.get('flagB')?.flag, flagB);
+    });
+
+    test('environment ID can be set to null on re-initialization', () {
+      final store = FlagStore();
+      final flagA = LDEvaluationResult(
+          version: 1,
+          detail: LDEvaluationDetail(
+              LDValue.ofString('test'), 0, LDEvaluationReason.off()));
+
+      store.init({
+        'flagA': ItemDescriptor(version: 1, flag: flagA),
+      }, environmentId: 'env-1');
+
+      expect(store.environmentId, 'env-1');
+
+      store.init({
+        'flagA': ItemDescriptor(version: 1, flag: flagA),
+      });
+
+      expect(store.environmentId, null);
+    });
+  });
 }

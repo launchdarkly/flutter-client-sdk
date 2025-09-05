@@ -388,4 +388,127 @@ void main() {
 
     polling.start();
   });
+
+  test('it extracts environment ID from response headers', () async {
+    final flagData = '{"testFlag":{"version":1,"value":true,"variation":0}}';
+    var receivedEnvironmentId = '';
+
+    final innerClient = MockClient((request) async {
+      return http.Response(flagData, 200,
+          headers: {'x-ld-envid': 'env-123-test'});
+    });
+
+    final context = LDContextBuilder().kind('user', 'test').build();
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final logger = LDLogger();
+    const sdkKey = 'dummy-key';
+    final flagManager =
+        FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
+
+    final eventHandler = DataSourceEventHandler(
+        logger: logger, flagManager: flagManager, statusManager: statusManager);
+
+    final polling = PollingDataSource(
+        credential: sdkKey,
+        context: context,
+        endpoints: ServiceEndpoints(),
+        logger: logger,
+        dataSourceConfig: PollingDataSourceConfig(
+            pollingInterval: const Duration(seconds: 30),
+            withReasons: false,
+            useReport: false),
+        httpProperties: HttpProperties(),
+        clientFactory: (properties) => ld_common.HttpClient(
+            client: innerClient, httpProperties: properties),
+        testingInterval: Duration(milliseconds: 50));
+
+    polling.events.asyncMap((event) async {
+      switch (event) {
+        case DataEvent():
+          receivedEnvironmentId = event.environmentId ?? '';
+          return eventHandler.handleMessage(context, event.type, event.data,
+              environmentId: event.environmentId);
+        case StatusEvent():
+          if (event.statusCode != null) {
+            statusManager.setErrorResponse(event.statusCode!, event.message,
+                shutdown: event.shutdown);
+          } else {
+            statusManager.setErrorByKind(event.kind, event.message,
+                shutdown: event.shutdown);
+          }
+      }
+    }).listen((_) {});
+
+    polling.start();
+
+    // Wait for the polling to complete and the environment ID to be processed
+    await Future.delayed(Duration(milliseconds: 100));
+
+    // Verify that the environment ID was extracted from headers and passed through
+    expect(receivedEnvironmentId, 'env-123-test');
+    expect(flagManager.environmentId, 'env-123-test');
+
+    polling.stop();
+  });
+
+  test('it handles missing environment ID header gracefully', () async {
+    final flagData = '{"testFlag":{"version":1,"value":true,"variation":0}}';
+    var receivedEnvironmentId = '';
+
+    final innerClient = MockClient((request) async {
+      return http.Response(flagData, 200); // No environment ID header
+    });
+
+    final context = LDContextBuilder().kind('user', 'test').build();
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final logger = LDLogger();
+    const sdkKey = 'dummy-key';
+    final flagManager =
+        FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
+
+    final eventHandler = DataSourceEventHandler(
+        logger: logger, flagManager: flagManager, statusManager: statusManager);
+
+    final polling = PollingDataSource(
+        credential: sdkKey,
+        context: context,
+        endpoints: ServiceEndpoints(),
+        logger: logger,
+        dataSourceConfig: PollingDataSourceConfig(
+            pollingInterval: const Duration(seconds: 30),
+            withReasons: false,
+            useReport: false),
+        httpProperties: HttpProperties(),
+        clientFactory: (properties) => ld_common.HttpClient(
+            client: innerClient, httpProperties: properties),
+        testingInterval: Duration(milliseconds: 50));
+
+    polling.events.asyncMap((event) async {
+      switch (event) {
+        case DataEvent():
+          receivedEnvironmentId = event.environmentId ?? 'null-received';
+          return eventHandler.handleMessage(context, event.type, event.data,
+              environmentId: event.environmentId);
+        case StatusEvent():
+          if (event.statusCode != null) {
+            statusManager.setErrorResponse(event.statusCode!, event.message,
+                shutdown: event.shutdown);
+          } else {
+            statusManager.setErrorByKind(event.kind, event.message,
+                shutdown: event.shutdown);
+          }
+      }
+    }).listen((_) {});
+
+    polling.start();
+
+    // Wait for the polling to complete
+    await Future.delayed(Duration(milliseconds: 100));
+
+    // Verify that no environment ID was received and store remains null
+    expect(receivedEnvironmentId, 'null-received');
+    expect(flagManager.environmentId, null);
+
+    polling.stop();
+  });
 }

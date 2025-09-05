@@ -40,10 +40,14 @@ final class FlagManager {
   /// Gets all the current flags.
   Map<String, ItemDescriptor> getAll() => _flagStore.getAll();
 
+  /// Gets the environment ID for the current flag set.
+  String? get environmentId => _flagStore.environmentId;
+
   /// Initializes the flag manager with data from a data source.
   /// Persistence initialization is handled by [FlagPersistence].
-  Future<void> init(LDContext context, Map<String, ItemDescriptor> newFlags) =>
-      _flagPersistence.init(context, newFlags);
+  Future<void> init(LDContext context, Map<String, ItemDescriptor> newFlags,
+          {String? environmentId}) =>
+      _flagPersistence.init(context, newFlags, environmentId: environmentId);
 
   /// Attempt to update a flag. If the flag is for the wrong context, or
   /// it is of an older version, then an update will not be performed.
