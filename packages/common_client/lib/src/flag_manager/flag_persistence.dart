@@ -9,6 +9,7 @@ import 'flag_store.dart';
 
 const String _globalNamespace = 'LaunchDarkly';
 const String _indexKey = 'ContextIndex';
+const String _envIdKey = 'EnvironmentId';
 
 String _makeEnvironment(String sdkKey) {
   return '${_globalNamespace}_${encodePersistenceKey(sdkKey)}';
@@ -45,9 +46,9 @@ final class FlagPersistence {
         _logger = logger.subLogger('FlagPersistence'),
         _stamper = stamper;
 
-  Future<void> init(
-      LDContext context, Map<String, ItemDescriptor> newFlags) async {
-    _updater.init(context, newFlags);
+  Future<void> init(LDContext context, Map<String, ItemDescriptor> newFlags,
+      {String? environmentId}) async {
+    _updater.init(context, newFlags, environmentId: environmentId);
     return _storeCache(context);
   }
 
@@ -70,6 +71,8 @@ final class FlagPersistence {
       return false;
     }
 
+    final environmentId = await _persistence?.read(_environmentKey, _envIdKey);
+
     try {
       final flagConfig =
           LDEvaluationResultsSerialization.fromJson(jsonDecode(json));
@@ -77,7 +80,8 @@ final class FlagPersistence {
       _updater.initCached(
           context,
           flagConfig.map((key, value) => MapEntry(
-              key, ItemDescriptor(version: value.version, flag: value))));
+              key, ItemDescriptor(version: value.version, flag: value))),
+          environmentId: environmentId);
       _logger.debug('Loaded a cached flag config from persistence.');
       return true;
     } catch (e) {
@@ -135,6 +139,12 @@ final class FlagPersistence {
     // is always written.
     if (maxCachedContexts > 0) {
       await _persistence?.set(_environmentKey, contextPersistenceKey, jsonAll);
+      // There will be a singular environment ID for a given environment key
+      // (credential).
+      if (_store.environmentId != null) {
+        await _persistence?.set(
+            _environmentKey, _envIdKey, _store.environmentId!);
+      }
     }
   }
 }

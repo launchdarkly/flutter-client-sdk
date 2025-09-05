@@ -5,9 +5,11 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
 import '../config/data_source_config.dart';
+import '../config/defaults/credential_type.dart';
 import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
+import 'get_environment_id.dart';
 
 typedef MessageHandler = void Function(MessageEvent);
 typedef ErrorHandler = void Function(dynamic);
@@ -43,13 +45,17 @@ final class StreamingDataSource implements DataSource {
   late final String _contextString;
   bool _stopped = false;
 
-  StreamSubscription<MessageEvent>? _subscription;
+  StreamSubscription<Event>? _subscription;
 
   final StreamController<DataSourceEvent> _dataController = StreamController();
 
   late final bool _useReport;
 
   SSEClient? _client;
+
+  String? _environmentId;
+
+  final String _credential;
 
   @override
   Stream<DataSourceEvent> get events => _dataController.stream;
@@ -73,7 +79,8 @@ final class StreamingDataSource implements DataSource {
         _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
         _clientFactory = clientFactory,
-        _httpProperties = httpProperties {
+        _httpProperties = httpProperties,
+        _credential = credential {
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
 
@@ -122,8 +129,22 @@ final class StreamingDataSource implements DataSource {
         return;
       }
 
-      _logger.debug('Received event, data: ${event.data}');
-      _dataController.sink.add(DataEvent(event.type, event.data));
+      switch (event) {
+        case MessageEvent():
+          _logger.debug('Received message event, data: ${event.data}');
+          _dataController.sink.add(
+              DataEvent(event.type, event.data, environmentId: _environmentId));
+        case OpenEvent():
+          _logger.debug('Received connect event, data: ${event.headers}');
+          if (event.headers != null) {
+            _environmentId = getEnvironmentId(event.headers);
+          } else if (DefaultConfig.credentialConfig.credentialType ==
+              CredentialType.clientSideId) {
+            // When using a client-side ID we can use it to represent the
+            // environment.
+            _environmentId = _credential;
+          }
+      }
     })
       ..onError((err) {
         if (_permanentShutdown) {

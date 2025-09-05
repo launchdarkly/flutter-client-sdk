@@ -89,6 +89,55 @@ void main() {
       expect(killSwitch.detail.reason, LDEvaluationReason.fallthrough());
     });
 
+    test('it handles a put message with environment ID', () {
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.valid, stateSince: DateTime(2))));
+
+      expectLater(
+          flagManager!.changes, emits(FlagsChangedEvent(keys: ['HasBob'])));
+
+      eventHandler!.handleMessage(
+          context,
+          'put',
+          '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
+              '"trackEvents":false}}',
+          environmentId: 'test-env-123');
+
+      final bob = flagManager!.get('HasBob')!.flag!;
+      expect(bob.version, 11);
+      expect(bob.detail.value, LDValue.ofBool(false));
+      expect(bob.detail.variationIndex, 1);
+
+      // Verify environment ID was set in flag store
+      expect(flagManager!.environmentId, 'test-env-123');
+    });
+
+    test('it handles a put message without environment ID', () {
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.valid, stateSince: DateTime(2))));
+
+      expectLater(
+          flagManager!.changes, emits(FlagsChangedEvent(keys: ['HasBob'])));
+
+      eventHandler!.handleMessage(
+          context,
+          'put',
+          '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
+              '"trackEvents":false}}');
+
+      final bob = flagManager!.get('HasBob')!.flag!;
+      expect(bob.version, 11);
+      expect(bob.detail.value, LDValue.ofBool(false));
+      expect(bob.detail.variationIndex, 1);
+
+      // Environment ID should be null when not provided
+      expect(flagManager!.environmentId, null);
+    });
+
     test('it can handle bad json on PUT', () {
       expectLater(
           statusManager!.changes,

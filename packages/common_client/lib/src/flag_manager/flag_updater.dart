@@ -53,14 +53,16 @@ final class FlagUpdater {
       : _flagStore = flagStore,
         _logger = logger.subLogger('FlagUpdater');
 
-  void init(LDContext context, Map<String, ItemDescriptor> newFlags) {
+  void init(LDContext context, Map<String, ItemDescriptor> newFlags,
+      {String? environmentId}) {
     _activeContextKey = context.canonicalKey;
     final oldFlags = _flagStore.getAll();
-    _flagStore.init(newFlags);
+    _flagStore.init(newFlags, environmentId: environmentId);
     _handleChanges(oldFlags, newFlags);
   }
 
-  void initCached(LDContext context, Map<String, ItemDescriptor> newFlags) {
+  void initCached(LDContext context, Map<String, ItemDescriptor> newFlags,
+      {String? environmentId}) {
     // The store has been initialized from our data source for this context,
     // so we can discard this update.
     // This would happen because the network response was faster than loading
@@ -69,7 +71,7 @@ final class FlagUpdater {
       return;
     }
 
-    init(context, newFlags);
+    init(context, newFlags, environmentId: environmentId);
   }
 
   /// Create, update, or delete the item for the specific key. If the item

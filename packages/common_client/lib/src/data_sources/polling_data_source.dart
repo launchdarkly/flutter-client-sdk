@@ -5,8 +5,11 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'dart:math';
 
 import '../config/data_source_config.dart';
+import '../config/defaults/credential_type.dart';
+import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
+import 'get_environment_id.dart';
 
 HttpClient _defaultClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
@@ -41,6 +44,8 @@ final class PollingDataSource implements DataSource {
 
   final StreamController<DataSourceEvent> _eventController = StreamController();
 
+  late final String _credential;
+
   @override
   Stream<DataSourceEvent> get events => _eventController.stream;
 
@@ -68,7 +73,8 @@ final class PollingDataSource implements DataSource {
           _defaultClientFactory})
       : _endpoints = endpoints,
         _logger = logger.subLogger('PollingDataSource'),
-        _dataSourceConfig = dataSourceConfig {
+        _dataSourceConfig = dataSourceConfig,
+        _credential = credential {
     _pollingInterval = testingInterval ?? dataSourceConfig.pollingInterval;
 
     if (_dataSourceConfig.useReport) {
@@ -134,7 +140,18 @@ final class PollingDataSource implements DataSource {
       }
       _lastEtag = etag;
 
-      _eventController.sink.add(DataEvent('put', res.body));
+      var environmentId = getEnvironmentId(res.headers);
+
+      if (environmentId == null &&
+          DefaultConfig.credentialConfig.credentialType ==
+              CredentialType.clientSideId) {
+        // When using a client-side ID we can use it to represent the
+        // environment.
+        environmentId = _credential;
+      }
+
+      _eventController.sink
+          .add(DataEvent('put', res.body, environmentId: environmentId));
     } else {
       if (isHttpGloballyRecoverable(res.statusCode)) {
         _eventController.sink.add(StatusEvent(
