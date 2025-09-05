@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.7.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.6.2...launchdarkly_common_client-v1.7.0) (2025-09-05)
+
+
+### Features
+
+* Internal environment ID support. ([#217](https://github.com/launchdarkly/flutter-client-sdk/issues/217)) ([71b522b](https://github.com/launchdarkly/flutter-client-sdk/commit/71b522b78dca92d81b901a0e07089d1f1f5cc415))
+
 ## [1.6.2](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.6.1...launchdarkly_common_client-v1.6.2) (2025-09-03)
 
 
