@@ -812,8 +812,8 @@ final class LDCommonClient {
 
   /// Add a hook to SDK instance.
   ///
-  /// Hooks allow customization of SDK behavior at various stages of flag evaluation,
-  /// context identification, and event tracking.
+  /// Hooks allow for the addition of SDK observability at specific points
+  /// of execution.
   void addHook(Hook hook) {
     _hookRunner.addHook(hook);
   }
@@ -829,7 +829,6 @@ final class LDCommonClient {
         metricValue: metricValue,
         data: data));
 
-    // Execute afterTrack hooks
     final trackContext = TrackSeriesContext.internal(
       key: eventName,
       context: _context,
