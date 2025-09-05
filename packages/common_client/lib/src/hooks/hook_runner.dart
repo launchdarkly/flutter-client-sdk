@@ -6,11 +6,22 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
 import '../ld_common_client.dart' show IdentifyResult, VariationMethodNames;
 import 'hook.dart';
 
-const String _beforeEvaluationStageName = 'beforeEvaluation';
-const String _afterEvaluationStageName = 'afterEvaluation';
-const String _beforeIdentifyStageName = 'beforeIdentify';
-const String _afterIdentifyStageName = 'afterIdentify';
-const String _afterTrackStageName = 'afterTrack';
+enum HookMethodNames {
+  beforeEvaluation('beforeEvaluation'),
+  afterEvaluation('afterEvaluation'),
+  beforeIdentify('beforeIdentify'),
+  afterIdentify('afterIdentify'),
+  afterTrack('afterTrack');
+
+  final String _value;
+
+  const HookMethodNames(this._value);
+
+  @override
+  String toString() {
+    return _value;
+  }
+}
 
 // Shared instance to use whenever an empty unmodifiable map is required.
 UnmodifiableMapView<String, LDValue> _baseData = UnmodifiableMapView({});
@@ -18,7 +29,7 @@ UnmodifiableMapView<String, LDValue> _baseData = UnmodifiableMapView({});
 /// Safely executes a hook stage method and handles any exceptions that occur.
 T _tryExecuteStage<T>(
   LDLogger logger,
-  String method,
+  HookMethodNames method,
   String hookName,
   T Function() stage,
   T defaultValue,
@@ -44,7 +55,7 @@ List<UnmodifiableMapView<String, LDValue>> _executeBeforeEvaluation(
   for (final hook in hooks) {
     currentData = _tryExecuteStage(
       logger,
-      _beforeEvaluationStageName,
+      HookMethodNames.beforeEvaluation,
       hook.metadata.name,
       () => hook.beforeEvaluation(hookContext, currentData),
       currentData,
@@ -69,7 +80,7 @@ void _executeAfterEvaluation(
 
     _tryExecuteStage(
       logger,
-      _afterEvaluationStageName,
+      HookMethodNames.afterEvaluation,
       hook.metadata.name,
       () => hook.afterEvaluation(hookContext, data, detail),
       data,
@@ -89,7 +100,7 @@ List<UnmodifiableMapView<String, LDValue>> _executeBeforeIdentify(
   for (final hook in hooks) {
     currentData = _tryExecuteStage(
       logger,
-      _beforeIdentifyStageName,
+      HookMethodNames.beforeIdentify,
       hook.metadata.name,
       () => hook.beforeIdentify(hookContext, currentData),
       currentData,
@@ -114,7 +125,7 @@ void _executeAfterIdentify(
 
     _tryExecuteStage(
       logger,
-      _afterIdentifyStageName,
+      HookMethodNames.afterIdentify,
       hook.metadata.name,
       () => hook.afterIdentify(hookContext, data, result),
       data,
@@ -131,7 +142,7 @@ void _executeAfterTrack(
   for (final hook in hooks) {
     _tryExecuteStage(
       logger,
-      _afterTrackStageName,
+      HookMethodNames.afterTrack,
       hook.metadata.name,
       () => hook.afterTrack(hookContext),
       null,
