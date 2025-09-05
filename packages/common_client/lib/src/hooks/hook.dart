@@ -14,6 +14,11 @@ final class HookMetadata {
   /// Implementation note: If more fields are added then they must not be
   /// required constructor parameters for compatibility purposes.
   const HookMetadata({required this.name});
+
+  @override
+  String toString() {
+    return 'HookMetadata{name: $name}';
+  }
 }
 
 /// Contextual information provided to the evaluation stages.
@@ -41,6 +46,13 @@ final class EvaluationSeriesContext {
       required this.defaultValue,
       required this.method,
       required this.environmentId});
+
+  @override
+  String toString() {
+    return 'EvaluationSeriesContext{flagKey: $flagKey, context: $context,'
+        ' defaultValue: $defaultValue, method: $method,'
+        ' environmentId: $environmentId}';
+  }
 }
 
 /// Contextual information provided to identify stages.
@@ -53,6 +65,11 @@ final class IdentifySeriesContext {
   // added here.
 
   IdentifySeriesContext.internal({required this.context});
+
+  @override
+  String toString() {
+    return 'IdentifySeriesContext{context: $context}';
+  }
 }
 
 /// Contextual information provided to track stages.
@@ -71,6 +88,12 @@ final class TrackSeriesContext {
 
   TrackSeriesContext.internal(
       {required this.key, required this.context, this.data, this.numericValue});
+
+  @override
+  String toString() {
+    return 'TrackSeriesContext{key: $key, context: $context,'
+        ' data: $data, numericValue: $numericValue}';
+  }
 }
 
 /// Base class for extending SDK functionality via hooks.

@@ -73,6 +73,13 @@ final class LDConfig extends LDCommonConfig {
   ///
   /// [globalPrivateAttributes] is a list of attribute references that will
   /// be marked private.
+  ///
+  /// [hooks] is an initial set of hooks for the client.
+  ///
+  /// Hooks provide entry-points which allow for observation of SDK functions.
+  ///
+  /// LaunchDarkly provides integration packages, and most applications will not
+  /// need to implement their own hooks.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
@@ -84,6 +91,7 @@ final class LDConfig extends LDCommonConfig {
       super.dataSourceConfig,
       super.allAttributesPrivate,
       super.globalPrivateAttributes,
-      ApplicationEvents? applicationEvents})
+      ApplicationEvents? applicationEvents,
+      super.hooks})
       : applicationEvents = applicationEvents ?? ApplicationEvents();
 }

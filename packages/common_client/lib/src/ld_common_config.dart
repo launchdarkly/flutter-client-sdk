@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
+import 'hooks/hook.dart';
 import 'config/defaults/default_config.dart';
 import 'config/events_config.dart';
 import 'connection_mode.dart';
@@ -120,24 +121,29 @@ abstract class LDCommonConfig {
   /// Settings for SDK data sources.
   final DataSourceConfig dataSourceConfig;
 
+  /// Whether all context attributes (except the context key) should be marked
+  /// as private, and not sent to LaunchDarkly in analytics events.
   final bool allAttributesPrivate;
 
+  /// A list of attribute references that will be marked private.
   final List<String> globalPrivateAttributes;
 
-  LDCommonConfig(
-    this.sdkCredential,
-    this.autoEnvAttributes, {
-    this.applicationInfo,
-    HttpProperties? httpProperties,
-    ServiceEndpoints? serviceEndpoints,
-    EventsConfig? events,
-    PersistenceConfig? persistence,
-    bool? offline,
-    LDLogger? logger,
-    DataSourceConfig? dataSourceConfig,
-    bool? allAttributesPrivate,
-    List<String>? globalPrivateAttributes,
-  })  : httpProperties = httpProperties ?? HttpProperties(),
+  /// An initial list of hooks.
+  final List<Hook>? hooks;
+
+  LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,
+      {this.applicationInfo,
+      HttpProperties? httpProperties,
+      ServiceEndpoints? serviceEndpoints,
+      EventsConfig? events,
+      PersistenceConfig? persistence,
+      bool? offline,
+      LDLogger? logger,
+      DataSourceConfig? dataSourceConfig,
+      bool? allAttributesPrivate,
+      List<String>? globalPrivateAttributes,
+      this.hooks})
+      : httpProperties = httpProperties ?? HttpProperties(),
         serviceEndpoints =
             serviceEndpoints ?? client_endpoints.ServiceEndpoints(),
         events = events ?? EventsConfig(),
