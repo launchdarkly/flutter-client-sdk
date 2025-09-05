@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:collection';
 import 'package:test/test.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
+import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 
 import '../ld_dart_client_test.dart' show TestConfig;
 
@@ -68,6 +70,44 @@ final class TestHook extends Hook {
   void afterTrack(TrackSeriesContext hookContext) {
     callLog.add('afterTrack');
     trackContexts.add(hookContext);
+  }
+}
+
+final class TestDataSourceWithEnvironmentId implements DataSource {
+  final StreamController<DataSourceEvent> _eventController = StreamController();
+  final String environmentId;
+
+  TestDataSourceWithEnvironmentId(this.environmentId);
+
+  @override
+  Stream<DataSourceEvent> get events => _eventController.stream;
+
+  @override
+  void restart() {}
+
+  @override
+  void start() {
+    Timer(Duration(milliseconds: 10), () {
+      _eventController.sink.add(DataEvent(
+          'put',
+          '{"test-flag":{'
+              '"version":1,'
+              '"flagVersion":1,'
+              '"value":"test-value",'
+              '"variation":0,'
+              '"reason":{"kind":"FALLTHROUGH"}'
+              '}}',
+          environmentId: environmentId));
+    });
+  }
+
+  @override
+  void stop() {
+    _eventController.close();
+  }
+
+  void close() {
+    _eventController.close();
   }
 }
 
@@ -239,7 +279,7 @@ void main() {
       expect(evalContext.method, equals('jsonVariation'));
       expect(evalContext.context, isNotNull);
       expect(evalContext.environmentId,
-          isNull); // Environment ID not implemented yet
+          isNull); // Environment ID null when in offline mode
     });
 
     test('should handle hooks when client is not started', () async {
@@ -249,6 +289,102 @@ void main() {
       // Hooks should still be called even if client isn't fully started
       expect(initialHook.callLog, contains('beforeEvaluation'));
       expect(initialHook.callLog, contains('afterEvaluation'));
+    });
+  });
+
+  group('LDCommonClient Hooks with Environment ID', () {
+    late LDCommonClient client;
+    late TestHook testHook;
+    late LDContext testContext;
+    late TestDataSourceWithEnvironmentId dataSource;
+
+    setUp(() {
+      testHook = TestHook('test-hook');
+      testContext = LDContextBuilder().kind('user', 'test-user').build();
+      dataSource = TestDataSourceWithEnvironmentId('test-env-123');
+
+      final config = TestConfig('test-sdk-key', AutoEnvAttributes.disabled,
+          offline: false);
+
+      client = LDCommonClient(
+        config,
+        CommonPlatform(),
+        testContext,
+        DiagnosticSdkData(name: 'test-sdk', version: '1.0.0'),
+        hooks: [testHook],
+        dataSourceFactories: (LDCommonConfig config, LDLogger logger,
+            HttpProperties properties) {
+          return {
+            ConnectionMode.streaming: (LDContext context) {
+              return dataSource;
+            },
+            ConnectionMode.polling: (LDContext context) {
+              return dataSource;
+            },
+          };
+        },
+      );
+    });
+
+    tearDown(() async {
+      await client.close();
+      dataSource.close();
+    });
+
+    test('should pass environment ID to hooks when available from data source',
+        () async {
+      await client.start();
+
+      // Wait for data source to initialize
+      await Future.delayed(Duration(milliseconds: 50));
+
+      // Test all variation methods with environment ID
+      client.boolVariation('test-flag', false);
+      client.boolVariationDetail('test-flag', false);
+      client.intVariation('test-flag', 0);
+      client.intVariationDetail('test-flag', 0);
+      client.doubleVariation('test-flag', 0.0);
+      client.doubleVariationDetail('test-flag', 0.0);
+      client.stringVariation('test-flag', 'default');
+      client.stringVariationDetail('test-flag', 'default');
+      client.jsonVariation('test-flag', LDValue.ofNull());
+      client.jsonVariationDetail('test-flag', LDValue.ofNull());
+
+      // Should have calls for all variation methods
+      final beforeEvaluationCalls =
+          testHook.callLog.where((call) => call == 'beforeEvaluation').length;
+      final afterEvaluationCalls =
+          testHook.callLog.where((call) => call == 'afterEvaluation').length;
+
+      expect(beforeEvaluationCalls, equals(10));
+      expect(afterEvaluationCalls, equals(10));
+
+      // All evaluation contexts should have the environment ID
+      for (final evalContext in testHook.evaluationContexts) {
+        expect(evalContext.environmentId, equals('test-env-123'),
+            reason:
+                'Environment ID should be passed to hooks for method: ${evalContext.method}');
+        expect(evalContext.flagKey, equals('test-flag'));
+        expect(evalContext.context, isNotNull);
+      }
+
+      // Check that all variation methods are represented
+      final methods =
+          testHook.evaluationContexts.map((ctx) => ctx.method).toSet();
+      expect(
+          methods,
+          containsAll([
+            'boolVariation',
+            'boolVariationDetail',
+            'intVariation',
+            'intVariationDetail',
+            'doubleVariation',
+            'doubleVariationDetail',
+            'stringVariation',
+            'stringVariationDetail',
+            'jsonVariation',
+            'jsonVariationDetail',
+          ]));
     });
   });
 }
