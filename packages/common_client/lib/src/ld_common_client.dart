@@ -519,6 +519,7 @@ final class LDCommonClient {
           VariationMethodNames.boolVariation,
           () => _variationInternal(flagKey, LDValue.ofBool(defaultValue),
               isDetailed: false, type: LDValueType.boolean),
+          environmentId: _flagManager.environmentId,
         )
         .value
         .booleanValue();
@@ -556,6 +557,7 @@ final class LDCommonClient {
           VariationMethodNames.intVariation,
           () => _variationInternal(flagKey, LDValue.ofNum(defaultValue),
               isDetailed: false, type: LDValueType.number),
+          environmentId: _flagManager.environmentId,
         )
         .value
         .intValue();
@@ -573,6 +575,7 @@ final class LDCommonClient {
       VariationMethodNames.intVariationDetail,
       () => _variationInternal(flagKey, LDValue.ofNum(defaultValue),
           isDetailed: true, type: LDValueType.number),
+      environmentId: _flagManager.environmentId,
     );
 
     return LDEvaluationDetail(ldValueVariation.value.intValue(),
@@ -591,6 +594,7 @@ final class LDCommonClient {
           VariationMethodNames.doubleVariation,
           () => _variationInternal(flagKey, LDValue.ofNum(defaultValue),
               isDetailed: false, type: LDValueType.number),
+          environmentId: _flagManager.environmentId,
         )
         .value
         .doubleValue();
@@ -609,6 +613,7 @@ final class LDCommonClient {
       VariationMethodNames.doubleVariationDetail,
       () => _variationInternal(flagKey, LDValue.ofNum(defaultValue),
           isDetailed: true, type: LDValueType.number),
+      environmentId: _flagManager.environmentId,
     );
 
     return LDEvaluationDetail(ldValueVariation.value.doubleValue(),
@@ -627,6 +632,7 @@ final class LDCommonClient {
           VariationMethodNames.stringVariation,
           () => _variationInternal(flagKey, LDValue.ofString(defaultValue),
               isDetailed: false, type: LDValueType.string),
+          environmentId: _flagManager.environmentId,
         )
         .value
         .stringValue();
@@ -646,6 +652,7 @@ final class LDCommonClient {
       VariationMethodNames.stringVariationDetail,
       () => _variationInternal(flagKey, LDValue.ofString(defaultValue),
           isDetailed: true, type: LDValueType.string),
+      environmentId: _flagManager.environmentId,
     );
 
     return LDEvaluationDetail(ldValueVariation.value.stringValue(),
@@ -663,6 +670,7 @@ final class LDCommonClient {
           defaultValue,
           VariationMethodNames.jsonVariation,
           () => _variationInternal(flagKey, defaultValue, isDetailed: false),
+          environmentId: _flagManager.environmentId,
         )
         .value;
   }
@@ -679,6 +687,7 @@ final class LDCommonClient {
       defaultValue,
       VariationMethodNames.jsonVariationDetail,
       () => _variationInternal(flagKey, defaultValue, isDetailed: true),
+      environmentId: _flagManager.environmentId,
     );
   }
 
