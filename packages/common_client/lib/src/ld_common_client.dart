@@ -537,6 +537,7 @@ final class LDCommonClient {
       VariationMethodNames.boolVariationDetail,
       () => _variationInternal(flagKey, LDValue.ofBool(defaultValue),
           isDetailed: true, type: LDValueType.boolean),
+      environmentId: _flagManager.environmentId,
     );
 
     return LDEvaluationDetail(ldValueVariation.value.booleanValue(),
