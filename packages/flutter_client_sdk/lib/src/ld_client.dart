@@ -72,7 +72,8 @@ interface class LDClient {
         context,
         DiagnosticSdkData(
             name: 'FlutterClientSdk',
-            version: '4.11.2')); // x-release-please-version
+            version: '4.11.2'), // x-release-please-version
+        hooks: config.hooks);
     _connectionManager = ConnectionManager(
         logger: _client.logger,
         config: ConnectionManagerConfig(
@@ -323,5 +324,13 @@ interface class LDClient {
   Future<void> close() async {
     await _client.close();
     _connectionManager.dispose();
+  }
+
+  /// Add a hook to SDK instance.
+  ///
+  /// Hooks allow for the addition of SDK observability at specific points
+  /// of execution.
+  void addHook(Hook hook) {
+    _client.addHook(hook);
   }
 }

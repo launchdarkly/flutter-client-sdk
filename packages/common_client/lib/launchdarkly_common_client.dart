@@ -46,3 +46,11 @@ export 'src/config/credential/credential_source.dart' show CredentialSource;
 export 'src/connection_mode.dart' show ConnectionMode;
 export 'src/data_sources/data_source_status.dart'
     show DataSourceStatusErrorInfo, DataSourceStatus, DataSourceState;
+
+export 'src/hooks/hook.dart'
+    show
+        Hook,
+        HookMetadata,
+        EvaluationSeriesContext,
+        IdentifySeriesContext,
+        TrackSeriesContext;
