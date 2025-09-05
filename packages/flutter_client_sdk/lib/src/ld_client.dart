@@ -325,4 +325,12 @@ interface class LDClient {
     await _client.close();
     _connectionManager.dispose();
   }
+
+  /// Add a hook to SDK instance.
+  ///
+  /// Hooks allow for the addition of SDK observability at specific points
+  /// of execution.
+  void addHook(Hook hook) {
+    _client.addHook(hook);
+  }
 }
