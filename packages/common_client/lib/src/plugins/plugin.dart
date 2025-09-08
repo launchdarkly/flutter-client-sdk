@@ -113,7 +113,9 @@ abstract base class PluginBase<TClient> {
   ///
   /// The SDK initialization will typically not have been completed at this
   /// point, so the plugin should take appropriate actions to ensure the SDK is
-  /// ready before sending track events or evaluating flags.
+  /// ready before sending track events or evaluating flags. For example the
+  /// plugin could wait for the [Hook.afterIdentify] stage to indicate success
+  /// before tracking any events.
   ///
   /// The [client] the plugin is registered with.
   void register(
