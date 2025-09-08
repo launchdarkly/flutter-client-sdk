@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 
 import 'defaults/flutter_default_config.dart';
@@ -100,6 +102,8 @@ final class LDConfig extends LDCommonConfig {
       super.globalPrivateAttributes,
       ApplicationEvents? applicationEvents,
       super.hooks,
-      this.plugins})
-      : applicationEvents = applicationEvents ?? ApplicationEvents();
+      List<Plugin>? plugins})
+      : applicationEvents = applicationEvents ?? ApplicationEvents(),
+        plugins =
+            plugins != null ? UnmodifiableListView(List.from(plugins)) : null;
 }
