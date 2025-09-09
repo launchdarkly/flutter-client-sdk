@@ -7,6 +7,9 @@ import 'flutter_state_detector.dart';
 import 'persistence/shared_preferences_persistence.dart';
 import 'platform_env_reporter.dart';
 
+const sdkName = 'FlutterClientSdk';
+const sdkVersion = '4.11.2'; // x-release-please-version
+
 /// The main interface for the LaunchDarkly Flutter SDK.
 ///
 /// To setup the SDK before use, construct an [LDConfig] and
@@ -66,14 +69,12 @@ interface class LDClient {
         platformEnvReporter: PlatformEnvReporter(),
         autoEnvAttributes:
             config.autoEnvAttributes == AutoEnvAttributes.enabled);
-    _client = LDCommonClient(
-        config,
-        platformImplementation,
-        context,
-        DiagnosticSdkData(
-            name: 'FlutterClientSdk',
-            version: '4.11.2'), // x-release-please-version
-        hooks: config.hooks);
+    final pluginHooks = safeGetHooks(config.plugins, config.logger);
+    final combined = combineHooks(config.hooks, pluginHooks);
+
+    _client = LDCommonClient(config, platformImplementation, context,
+        DiagnosticSdkData(name: sdkName, version: sdkVersion),
+        hooks: combined);
     _connectionManager = ConnectionManager(
         logger: _client.logger,
         config: ConnectionManagerConfig(
@@ -88,6 +89,19 @@ interface class LDClient {
                 FlutterDefaultConfig.connectionManagerConfig.runInBackground),
         destination: DartClientAdapter(_client),
         detector: FlutterStateDetector());
+
+    final sdkPluginMetadata =
+        PluginSdkMetadata(name: sdkName, version: sdkVersion);
+
+    safeRegisterPlugins(
+        this,
+        PluginEnvironmentMetadata(
+            sdk: sdkPluginMetadata,
+            application: config.applicationInfo,
+            credential: PluginCredentialInfo(
+                type: _client.credentialType, value: config.sdkCredential)),
+        config.plugins,
+        config.logger);
   }
 
   /// Initialize the SDK.

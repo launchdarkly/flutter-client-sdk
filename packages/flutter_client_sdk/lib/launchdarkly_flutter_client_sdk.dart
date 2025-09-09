@@ -49,7 +49,9 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         HookMetadata,
         IdentifySeriesContext,
         EvaluationSeriesContext,
-        TrackSeriesContext;
+        TrackSeriesContext,
+        CredentialType;
 
 export 'src/ld_client.dart' show LDClient;
 export 'src/config/ld_config.dart' show LDConfig, ApplicationEvents;
+export 'src/plugin.dart' show Plugin;

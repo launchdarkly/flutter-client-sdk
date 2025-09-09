@@ -850,4 +850,8 @@ final class LDCommonClient {
 
   /// Check if the initialization process is complete.
   bool get initialized => _startCompleter?.isCompleted ?? false;
+
+  /// Get the type of credential the SDK uses.
+  CredentialType get credentialType =>
+      DefaultConfig.credentialConfig.credentialType;
 }

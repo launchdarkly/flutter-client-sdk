@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
@@ -129,7 +130,7 @@ abstract class LDCommonConfig {
   final List<String> globalPrivateAttributes;
 
   /// An initial list of hooks.
-  final List<Hook>? hooks;
+  final UnmodifiableListView<Hook>? hooks;
 
   LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,
       {this.applicationInfo,
@@ -142,7 +143,7 @@ abstract class LDCommonConfig {
       DataSourceConfig? dataSourceConfig,
       bool? allAttributesPrivate,
       List<String>? globalPrivateAttributes,
-      this.hooks})
+      List<Hook>? hooks})
       : httpProperties = httpProperties ?? HttpProperties(),
         serviceEndpoints =
             serviceEndpoints ?? client_endpoints.ServiceEndpoints(),
@@ -153,7 +154,8 @@ abstract class LDCommonConfig {
         dataSourceConfig = dataSourceConfig ?? DataSourceConfig(),
         allAttributesPrivate =
             allAttributesPrivate ?? DefaultConfig.allAttributesPrivate,
-        globalPrivateAttributes = globalPrivateAttributes ?? [];
+        globalPrivateAttributes = globalPrivateAttributes ?? [],
+        hooks = hooks != null ? UnmodifiableListView(List.from(hooks)) : null;
 }
 
 /// Enable / disable options for Auto Environment Attributes functionality.  When enabled, the SDK will automatically

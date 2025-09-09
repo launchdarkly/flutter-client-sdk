@@ -1,6 +1,9 @@
+import 'dart:collection';
+
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 
 import 'defaults/flutter_default_config.dart';
+import '../plugin.dart';
 
 /// Configuration which affects how the SDK responds to events affecting
 /// the application.
@@ -32,6 +35,9 @@ final class LDConfig extends LDCommonConfig {
   /// Configuration which affects how the SDK responds to events affecting
   /// the application.
   ApplicationEvents applicationEvents;
+
+  /// A list of plugins to be used with the SDK.
+  List<Plugin>? plugins;
 
   /// [sdkCredential] set the credential for the SDK. This can be either a
   /// mobile key or a client-side ID depending on the build configuration.
@@ -80,6 +86,9 @@ final class LDConfig extends LDCommonConfig {
   ///
   /// LaunchDarkly provides integration packages, and most applications will not
   /// need to implement their own hooks.
+  /// [plugins] can be used to add plugins to the SDK.
+  ///
+  /// Plugin support is currently experimental and subject to change.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
@@ -92,6 +101,9 @@ final class LDConfig extends LDCommonConfig {
       super.allAttributesPrivate,
       super.globalPrivateAttributes,
       ApplicationEvents? applicationEvents,
-      super.hooks})
-      : applicationEvents = applicationEvents ?? ApplicationEvents();
+      super.hooks,
+      List<Plugin>? plugins})
+      : applicationEvents = applicationEvents ?? ApplicationEvents(),
+        plugins =
+            plugins != null ? UnmodifiableListView(List.from(plugins)) : null;
 }

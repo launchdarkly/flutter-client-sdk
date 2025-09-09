@@ -54,3 +54,17 @@ export 'src/hooks/hook.dart'
         EvaluationSeriesContext,
         IdentifySeriesContext,
         TrackSeriesContext;
+
+export 'src/hooks/operations.dart' show combineHooks;
+
+export 'src/plugins/plugin.dart'
+    show
+        PluginBase,
+        PluginCredentialInfo,
+        PluginEnvironmentMetadata,
+        PluginMetadata,
+        PluginSdkMetadata;
+
+export 'src/plugins/operations.dart' show safeGetHooks, safeRegisterPlugins;
+
+export 'src/config/defaults/credential_type.dart' show CredentialType;
