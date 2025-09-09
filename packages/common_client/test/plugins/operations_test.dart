@@ -24,17 +24,26 @@ final class TestPlugin extends PluginBase<dynamic> {
   final List<Hook> _hooks;
   final bool shouldThrowOnGetHooks;
   final bool shouldThrowOnRegister;
+  final bool shouldThrowOnGetMetadata;
   final PluginMetadata _metadata;
   int registerCallCount = 0;
   dynamic lastClientReceived;
   PluginEnvironmentMetadata? lastEnvironmentMetadataReceived;
 
   TestPlugin(this.pluginName, this._hooks,
-      {this.shouldThrowOnGetHooks = false, this.shouldThrowOnRegister = false})
+      {this.shouldThrowOnGetHooks = false,
+      this.shouldThrowOnRegister = false,
+      this.shouldThrowOnGetMetadata = false})
       : _metadata = PluginMetadata(name: pluginName);
 
   @override
-  PluginMetadata get metadata => _metadata;
+  PluginMetadata get metadata {
+    if (shouldThrowOnGetMetadata) {
+      throw Exception(
+          'Test exception accessing metadata for plugin $pluginName');
+    }
+    return _metadata;
+  }
 
   @override
   List<Hook> get hooks {
@@ -248,6 +257,36 @@ void main() {
               record.level == LDLogLevel.warn &&
               record.message.contains('plugin-3'))))).called(1);
     });
+
+    test('handles plugin that throws when accessing metadata', () {
+      final hook1 = TestHook('hook-1');
+      final plugin1 = TestPlugin('plugin-1', [hook1]);
+      final plugin2 = TestPlugin('plugin-2', [],
+          shouldThrowOnGetHooks: true, shouldThrowOnGetMetadata: true);
+      final hook3 = TestHook('hook-3');
+      final plugin3 = TestPlugin('plugin-3', [hook3]);
+
+      final result = safeGetHooks([plugin1, plugin2, plugin3], logger);
+
+      expect(result, isNotNull);
+      expect(result!.length, equals(2));
+      expect(result, containsAll([hook1, hook3]));
+
+      // Verify warning was logged mentioning unknown plugin since metadata failed
+      // This happens when safeGetHooks tries to get the plugin name for logging after hooks fails
+      verify(() => mockLogAdapter.log(any(
+          that: predicate<LDLogRecord>((record) =>
+              record.level == LDLogLevel.warn &&
+              record.message.contains('unknown'))))).called(1);
+
+      // Also verify that the metadata access failure was logged
+      verify(() => mockLogAdapter.log(any(
+              that: predicate<LDLogRecord>((record) =>
+                  record.level == LDLogLevel.warn &&
+                  record.message.contains(
+                      'Exception thrown access the name of a registered plugin')))))
+          .called(1);
+    });
   });
 
   group('safeRegisterPlugins', () {
@@ -451,6 +490,38 @@ void main() {
       expect(plugin2.lastClientReceived, same(customClient));
       expect(plugin2.lastEnvironmentMetadataReceived,
           same(customEnvironmentMetadata));
+    });
+
+    test(
+        'handles plugin that throws when accessing metadata during registration',
+        () {
+      final plugin1 = TestPlugin('plugin-1', []);
+      final plugin2 = TestPlugin('plugin-2', [],
+          shouldThrowOnRegister: true, shouldThrowOnGetMetadata: true);
+      final plugin3 = TestPlugin('plugin-3', []);
+
+      safeRegisterPlugins(testClient, testEnvironmentMetadata,
+          [plugin1, plugin2, plugin3], logger);
+
+      // All plugins should have attempted registration
+      expect(plugin1.registerCallCount, equals(1));
+      expect(plugin2.registerCallCount, equals(1));
+      expect(plugin3.registerCallCount, equals(1));
+
+      // Verify warning was logged mentioning unknown plugin since metadata failed
+      // This happens when safeRegisterPlugins tries to log the plugin name after registration fails
+      verify(() => mockLogAdapter.log(any(
+          that: predicate<LDLogRecord>((record) =>
+              record.level == LDLogLevel.warn &&
+              record.message.contains('unknown'))))).called(1);
+
+      // Also verify that the metadata access failure was logged
+      verify(() => mockLogAdapter.log(any(
+              that: predicate<LDLogRecord>((record) =>
+                  record.level == LDLogLevel.warn &&
+                  record.message.contains(
+                      'Exception thrown access the name of a registered plugin')))))
+          .called(1);
     });
   });
 }
