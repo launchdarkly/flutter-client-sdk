@@ -33,7 +33,7 @@ final class PluginSdkMetadata {
   /// If this is a wrapper SDK, then this is the version of the wrapper.
   final String? wrapperVersion;
 
-  PluginSdkMetadata(
+  const PluginSdkMetadata(
       {required this.name,
       required this.version,
       this.wrapperName,
@@ -54,7 +54,7 @@ final class PluginCredentialInfo {
   /// The value of the credential.
   final String value;
 
-  PluginCredentialInfo({required this.type, required this.value});
+  const PluginCredentialInfo({required this.type, required this.value});
 
   @override
   String toString() {
