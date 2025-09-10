@@ -50,7 +50,11 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         IdentifySeriesContext,
         EvaluationSeriesContext,
         TrackSeriesContext,
-        CredentialType;
+        CredentialType,
+        PluginSdkMetadata,
+        PluginCredentialInfo,
+        PluginEnvironmentMetadata,
+        PluginMetadata;
 
 export 'src/ld_client.dart' show LDClient;
 export 'src/config/ld_config.dart' show LDConfig, ApplicationEvents;

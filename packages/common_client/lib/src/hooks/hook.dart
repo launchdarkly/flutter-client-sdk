@@ -136,9 +136,9 @@ abstract base class Hook {
   /// newData['new-key'] = LDValue.ofString('new-value');
   /// return UnmodifiableMapView(newData);
   /// ```
-  UnmodifiableMapView<String, LDValue> beforeEvaluation(
+  UnmodifiableMapView<String, dynamic> beforeEvaluation(
       EvaluationSeriesContext hookContext,
-      UnmodifiableMapView<String, LDValue> data) {
+      UnmodifiableMapView<String, dynamic> data) {
     return data;
   }
 
@@ -162,9 +162,9 @@ abstract base class Hook {
   /// newData['new-key'] = LDValue.ofString('new-value');
   /// return UnmodifiableMapView(newData);
   /// ```
-  UnmodifiableMapView<String, LDValue> afterEvaluation(
+  UnmodifiableMapView<String, dynamic> afterEvaluation(
       EvaluationSeriesContext hookContext,
-      UnmodifiableMapView<String, LDValue> data,
+      UnmodifiableMapView<String, dynamic> data,
       LDEvaluationDetail<LDValue> detail) {
     return data;
   }
@@ -188,9 +188,9 @@ abstract base class Hook {
   /// newData['new-key'] = LDValue.ofString('new-value');
   /// return UnmodifiableMapView(newData);
   /// ```
-  UnmodifiableMapView<String, LDValue> beforeIdentify(
+  UnmodifiableMapView<String, dynamic> beforeIdentify(
       IdentifySeriesContext hookContext,
-      UnmodifiableMapView<String, LDValue> data) {
+      UnmodifiableMapView<String, dynamic> data) {
     return data;
   }
 
@@ -210,12 +210,12 @@ abstract base class Hook {
   ///
   /// ```dart
   /// Map<String, LDValue> newData = Map.from(data);
-  /// newData['new-key'] = LDValue.ofString('new-value');
+  /// newData['new-key'] = 'new-value';
   /// return UnmodifiableMapView(newData);
   /// ```
-  UnmodifiableMapView<String, LDValue> afterIdentify(
+  UnmodifiableMapView<String, dynamic> afterIdentify(
       IdentifySeriesContext hookContext,
-      UnmodifiableMapView<String, LDValue> data,
+      UnmodifiableMapView<String, dynamic> data,
       IdentifyResult result) {
     return data;
   }

@@ -14,8 +14,8 @@ final class TestHook extends Hook {
   final Map<String, LDValue> dataToReturn;
   final bool shouldThrow;
   final String? errorMessage;
-  final List<UnmodifiableMapView<String, LDValue>> receivedBeforeData = [];
-  final List<UnmodifiableMapView<String, LDValue>> receivedAfterData = [];
+  final List<UnmodifiableMapView<String, dynamic>> receivedBeforeData = [];
+  final List<UnmodifiableMapView<String, dynamic>> receivedAfterData = [];
   final HookMetadata _metadata;
 
   // For tracking execution order across multiple hooks
@@ -37,9 +37,9 @@ final class TestHook extends Hook {
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> beforeEvaluation(
+  UnmodifiableMapView<String, dynamic> beforeEvaluation(
     EvaluationSeriesContext hookContext,
-    UnmodifiableMapView<String, LDValue> data,
+    UnmodifiableMapView<String, dynamic> data,
   ) {
     if (shouldThrow) {
       throw Exception(errorMessage ?? 'Test error in beforeEvaluation');
@@ -53,9 +53,9 @@ final class TestHook extends Hook {
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> afterEvaluation(
+  UnmodifiableMapView<String, dynamic> afterEvaluation(
     EvaluationSeriesContext hookContext,
-    UnmodifiableMapView<String, LDValue> data,
+    UnmodifiableMapView<String, dynamic> data,
     LDEvaluationDetail<LDValue> detail,
   ) {
     if (shouldThrow) {
@@ -68,9 +68,9 @@ final class TestHook extends Hook {
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> beforeIdentify(
+  UnmodifiableMapView<String, dynamic> beforeIdentify(
     IdentifySeriesContext hookContext,
-    UnmodifiableMapView<String, LDValue> data,
+    UnmodifiableMapView<String, dynamic> data,
   ) {
     if (shouldThrow) {
       throw Exception(errorMessage ?? 'Test error in beforeIdentify');
@@ -83,9 +83,9 @@ final class TestHook extends Hook {
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> afterIdentify(
+  UnmodifiableMapView<String, dynamic> afterIdentify(
     IdentifySeriesContext hookContext,
-    UnmodifiableMapView<String, LDValue> data,
+    UnmodifiableMapView<String, dynamic> data,
     IdentifyResult result,
   ) {
     if (shouldThrow) {

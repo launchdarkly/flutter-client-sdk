@@ -23,9 +23,9 @@ final class TestHook extends Hook {
         super();
 
   @override
-  UnmodifiableMapView<String, LDValue> beforeEvaluation(
+  UnmodifiableMapView<String, dynamic> beforeEvaluation(
     EvaluationSeriesContext hookContext,
-    UnmodifiableMapView<String, LDValue> data,
+    UnmodifiableMapView<String, dynamic> data,
   ) {
     callLog.add('beforeEvaluation');
     evaluationContexts.add(hookContext);
@@ -33,9 +33,9 @@ final class TestHook extends Hook {
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> afterEvaluation(
+  UnmodifiableMapView<String, dynamic> afterEvaluation(
     EvaluationSeriesContext hookContext,
-    UnmodifiableMapView<String, LDValue> data,
+    UnmodifiableMapView<String, dynamic> data,
     LDEvaluationDetail<LDValue> detail,
   ) {
     callLog.add('afterEvaluation');
@@ -45,9 +45,9 @@ final class TestHook extends Hook {
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> beforeIdentify(
+  UnmodifiableMapView<String, dynamic> beforeIdentify(
     IdentifySeriesContext hookContext,
-    UnmodifiableMapView<String, LDValue> data,
+    UnmodifiableMapView<String, dynamic> data,
   ) {
     callLog.add('beforeIdentify');
     identifyContexts.add(hookContext);
@@ -55,9 +55,9 @@ final class TestHook extends Hook {
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> afterIdentify(
+  UnmodifiableMapView<String, dynamic> afterIdentify(
     IdentifySeriesContext hookContext,
-    UnmodifiableMapView<String, LDValue> data,
+    UnmodifiableMapView<String, dynamic> data,
     IdentifyResult result,
   ) {
     callLog.add('afterIdentify');

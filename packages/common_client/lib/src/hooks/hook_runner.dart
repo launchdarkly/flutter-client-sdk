@@ -24,7 +24,7 @@ enum HookMethodNames {
 }
 
 // Shared instance to use whenever an empty unmodifiable map is required.
-UnmodifiableMapView<String, LDValue> _baseData = UnmodifiableMapView({});
+UnmodifiableMapView<String, dynamic> _baseData = UnmodifiableMapView({});
 
 /// Safely executes a hook stage method and handles any exceptions that occur.
 T _tryExecuteStage<T>(
@@ -44,13 +44,13 @@ T _tryExecuteStage<T>(
 }
 
 /// Executes the beforeEvaluation stage for all hooks.
-List<UnmodifiableMapView<String, LDValue>> _executeBeforeEvaluation(
+List<UnmodifiableMapView<String, dynamic>> _executeBeforeEvaluation(
   LDLogger logger,
   List<Hook> hooks,
   EvaluationSeriesContext hookContext,
 ) {
-  final results = <UnmodifiableMapView<String, LDValue>>[];
-  UnmodifiableMapView<String, LDValue> currentData = _baseData;
+  final results = <UnmodifiableMapView<String, dynamic>>[];
+  UnmodifiableMapView<String, dynamic> currentData = _baseData;
 
   for (final hook in hooks) {
     currentData = _tryExecuteStage(
@@ -71,7 +71,7 @@ void _executeAfterEvaluation(
   LDLogger logger,
   List<Hook> hooks,
   EvaluationSeriesContext hookContext,
-  List<UnmodifiableMapView<String, LDValue>> hookData,
+  List<UnmodifiableMapView<String, dynamic>> hookData,
   LDEvaluationDetail<LDValue> detail,
 ) {
   for (int i = hooks.length - 1; i >= 0; i--) {
@@ -89,13 +89,13 @@ void _executeAfterEvaluation(
 }
 
 /// Executes the beforeIdentify stage for all hooks.
-List<UnmodifiableMapView<String, LDValue>> _executeBeforeIdentify(
+List<UnmodifiableMapView<String, dynamic>> _executeBeforeIdentify(
   LDLogger logger,
   List<Hook> hooks,
   IdentifySeriesContext hookContext,
 ) {
-  final results = <UnmodifiableMapView<String, LDValue>>[];
-  UnmodifiableMapView<String, LDValue> currentData = _baseData;
+  final results = <UnmodifiableMapView<String, dynamic>>[];
+  UnmodifiableMapView<String, dynamic> currentData = _baseData;
 
   for (final hook in hooks) {
     currentData = _tryExecuteStage(
@@ -116,7 +116,7 @@ void _executeAfterIdentify(
   LDLogger logger,
   List<Hook> hooks,
   IdentifySeriesContext hookContext,
-  List<UnmodifiableMapView<String, LDValue>> hookData,
+  List<UnmodifiableMapView<String, dynamic>> hookData,
   IdentifyResult result,
 ) {
   for (int i = hooks.length - 1; i >= 0; i--) {
