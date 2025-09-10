@@ -11,7 +11,7 @@ class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 final class TestHook extends Hook {
   final List<String> callLog = [];
-  final Map<String, LDValue> dataToReturn;
+  final Map<String, dynamic> dataToReturn;
   final bool shouldThrow;
   final String? errorMessage;
   final List<UnmodifiableMapView<String, dynamic>> receivedBeforeData = [];
@@ -47,7 +47,7 @@ final class TestHook extends Hook {
     callLog.add('beforeEvaluation');
     globalExecutionOrder.add('${metadata.name}-before');
     receivedBeforeData.add(data);
-    final newData = Map<String, LDValue>.from(data);
+    final newData = Map<String, dynamic>.from(data);
     newData.addAll(dataToReturn);
     return UnmodifiableMapView(newData);
   }
@@ -77,7 +77,7 @@ final class TestHook extends Hook {
     }
     callLog.add('beforeIdentify');
     globalExecutionOrder.add('${metadata.name}-beforeIdentify');
-    final newData = Map<String, LDValue>.from(data);
+    final newData = Map<String, dynamic>.from(data);
     newData.addAll(dataToReturn);
     return UnmodifiableMapView(newData);
   }
