@@ -2,6 +2,21 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.7.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.6.2...launchdarkly_common_client-v1.7.0) (2025-09-12)
+
+
+### Features
+
+* Add experimental plugin support. ([#225](https://github.com/launchdarkly/flutter-client-sdk/issues/225)) ([5bd9ce7](https://github.com/launchdarkly/flutter-client-sdk/commit/5bd9ce7035d4e0d6e56f8d2193c103a46bc8040e))
+* Add support for hooks. ([#220](https://github.com/launchdarkly/flutter-client-sdk/issues/220)) ([6e7a26d](https://github.com/launchdarkly/flutter-client-sdk/commit/6e7a26da6407afbf28f3ff2599ef35b536cd2db5))
+* Internal environment ID support. ([#217](https://github.com/launchdarkly/flutter-client-sdk/issues/217)) ([71b522b](https://github.com/launchdarkly/flutter-client-sdk/commit/71b522b78dca92d81b901a0e07089d1f1f5cc415))
+
+
+### Bug Fixes
+
+* Change hook data values to `dynamic` from `LDValue`. ([d7720f3](https://github.com/launchdarkly/flutter-client-sdk/commit/d7720f3091cf31ed276a00a9a20dcf34b5dc7f28))
+* Export required plugin meta-data types. ([d7720f3](https://github.com/launchdarkly/flutter-client-sdk/commit/d7720f3091cf31ed276a00a9a20dcf34b5dc7f28))
+
 ## [1.6.2](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.6.1...launchdarkly_common_client-v1.6.2) (2025-09-03)
 
 
