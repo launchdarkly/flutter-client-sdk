@@ -9,7 +9,6 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 
 import 'package:flutter/widgets.dart' as widgets;
@@ -27,34 +26,34 @@ final class TestHook extends Hook {
   HookMetadata get metadata => _metadata;
 
   @override
-  UnmodifiableMapView<String, LDValue> beforeEvaluation(
+  UnmodifiableMapView<String, dynamic> beforeEvaluation(
       EvaluationSeriesContext hookContext,
-      UnmodifiableMapView<String, LDValue> data) {
+      UnmodifiableMapView<String, dynamic> data) {
     callLog.add('beforeEvaluation:$hookContext:$data');
     return super.beforeEvaluation(hookContext, data);
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> afterEvaluation(
+  UnmodifiableMapView<String, dynamic> afterEvaluation(
       EvaluationSeriesContext hookContext,
-      UnmodifiableMapView<String, LDValue> data,
+      UnmodifiableMapView<String, dynamic> data,
       LDEvaluationDetail<LDValue> detail) {
     callLog.add('afterEvaluation:$hookContext:$data:$detail');
     return super.afterEvaluation(hookContext, data, detail);
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> beforeIdentify(
+  UnmodifiableMapView<String, dynamic> beforeIdentify(
       IdentifySeriesContext hookContext,
-      UnmodifiableMapView<String, LDValue> data) {
+      UnmodifiableMapView<String, dynamic> data) {
     callLog.add('beforeIdentify:$hookContext:$data');
     return super.beforeIdentify(hookContext, data);
   }
 
   @override
-  UnmodifiableMapView<String, LDValue> afterIdentify(
+  UnmodifiableMapView<String, dynamic> afterIdentify(
       IdentifySeriesContext hookContext,
-      UnmodifiableMapView<String, LDValue> data,
+      UnmodifiableMapView<String, dynamic> data,
       IdentifyResult result) {
     callLog.add('afterIdentify:$hookContext:$data:$result');
     return super.afterIdentify(hookContext, data, result);
