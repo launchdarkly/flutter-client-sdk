@@ -11,8 +11,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  package_info_plus: ">=4.2.0 <9.0.0"
-  device_info_plus: ">=9.1.1 <12.0.0"
+  package_info_plus: ">=4.2.0 <10.0.0"
+  device_info_plus: ">=9.1.1 <13.0.0"
   launchdarkly_common_client: 1.7.0
   shared_preferences: ^2.2.2
   connectivity_plus: ">=5.0.2 <7.0.0"
