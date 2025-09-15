@@ -2,6 +2,23 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.12.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.11.2...4.12.0) (2025-09-15)
+
+
+### Features
+
+* Add experimental plugin support. ([#225](https://github.com/launchdarkly/flutter-client-sdk/issues/225)) ([5bd9ce7](https://github.com/launchdarkly/flutter-client-sdk/commit/5bd9ce7035d4e0d6e56f8d2193c103a46bc8040e))
+* Add hook support and experimental plugin support. ([#228](https://github.com/launchdarkly/flutter-client-sdk/issues/228)) ([b698905](https://github.com/launchdarkly/flutter-client-sdk/commit/b69890584945c5dd528f509061d430ff3fe0b180))
+* Add support for hooks. ([#220](https://github.com/launchdarkly/flutter-client-sdk/issues/220)) ([6e7a26d](https://github.com/launchdarkly/flutter-client-sdk/commit/6e7a26da6407afbf28f3ff2599ef35b536cd2db5))
+* Update version constraints for device_info_plus to allow using 12.x. ([9b5f530](https://github.com/launchdarkly/flutter-client-sdk/commit/9b5f530abd7a03129c2d4a8238a013412cca4f4f))
+* Update version constraints for package_info_plus to allow using 9.x. ([9b5f530](https://github.com/launchdarkly/flutter-client-sdk/commit/9b5f530abd7a03129c2d4a8238a013412cca4f4f))
+
+
+### Bug Fixes
+
+* Change hook data values to `dynamic` from `LDValue`. ([d7720f3](https://github.com/launchdarkly/flutter-client-sdk/commit/d7720f3091cf31ed276a00a9a20dcf34b5dc7f28))
+* Export required plugin meta-data types. ([d7720f3](https://github.com/launchdarkly/flutter-client-sdk/commit/d7720f3091cf31ed276a00a9a20dcf34b5dc7f28))
+
 ## [4.11.2](https://github.com/launchdarkly/flutter-client-sdk/compare/4.11.1...4.11.2) (2025-09-03)
 
 
