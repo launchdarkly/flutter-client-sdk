@@ -15,7 +15,7 @@ dependencies:
   device_info_plus: ">=9.1.1 <13.0.0"
   launchdarkly_common_client: 1.7.0
   shared_preferences: ^2.2.2
-  connectivity_plus: ">=5.0.2 <7.0.0"
+  connectivity_plus: ">=5.0.2 <8.0.0"
   web: ^1.1.1
 
 dev_dependencies:
