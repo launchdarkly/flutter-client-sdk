@@ -16,6 +16,7 @@ export 'src/events.dart' show Event, MessageEvent, OpenEvent;
 export 'src/test_sse_client.dart' show TestSseClient;
 export 'src/logging.dart'
     show EventSourceLogger, LogLevel, NoOpLogger, PrintLogger;
+export 'src/backoff.dart' show Backoff;
 
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {

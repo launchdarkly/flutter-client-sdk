@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
-import 'package:launchdarkly_event_source_client/src/backoff.dart';
 
 import '../config/data_source_config.dart';
 import '../config/defaults/credential_type.dart';
