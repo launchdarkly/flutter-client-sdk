@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
+import 'package:http/http.dart' as http;
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
+import 'package:launchdarkly_event_source_client/src/backoff.dart';
 
 import '../config/data_source_config.dart';
 import '../config/defaults/credential_type.dart';
@@ -11,8 +14,6 @@ import 'data_source.dart';
 import 'data_source_status.dart';
 import 'get_environment_id.dart';
 
-typedef MessageHandler = void Function(MessageEvent);
-typedef ErrorHandler = void Function(dynamic);
 typedef SseClientFactory = SSEClient Function(
     Uri uri,
     HttpProperties httpProperties,
@@ -22,7 +23,7 @@ typedef SseClientFactory = SSEClient Function(
 
 SSEClient _defaultClientFactory(Uri uri, HttpProperties httpProperties,
     String? body, SseHttpMethod? method, EventSourceLogger? logger) {
-  return SSEClient(uri, {'put', 'patch', 'delete'},
+  return SSEClient(uri, {'put', 'patch', 'delete', 'ping'},
       headers: httpProperties.baseHeaders,
       body: body,
       httpMethod: method ?? SseHttpMethod.get,
@@ -30,43 +31,41 @@ SSEClient _defaultClientFactory(Uri uri, HttpProperties httpProperties,
 }
 
 final class StreamingDataSource implements DataSource {
+  static const int _httpOk = 200;
+  static const int _httpNotModified = 304;
+  static const String _ifNoneMatchHeader = 'if-none-match';
+  static const String _etagHeader = 'etag';
+  static const String _pingEventType = 'ping';
+
   final LDLogger _logger;
-
   final ServiceEndpoints _endpoints;
-
   final StreamingDataSourceConfig _dataSourceConfig;
-
   final SseClientFactory _clientFactory;
+  final HttpProperties _httpProperties;
+  final String _credential;
+  final Backoff _pollBackoff;
 
   late final Uri _uri;
-
-  late final HttpProperties _httpProperties;
-
   late final String _contextString;
-  bool _stopped = false;
-
-  StreamSubscription<Event>? _subscription;
+  late final bool _useReport;
+  late final HttpClient _pollingClient;
+  late final Uri _pollingUri;
+  late final RequestMethod _pollingMethod;
 
   final StreamController<DataSourceEvent> _dataController = StreamController();
-
-  late final bool _useReport;
-
   SSEClient? _client;
-
+  StreamSubscription<Event>? _subscription;
   String? _environmentId;
+  bool _stopped = false;
+  bool _permanentShutdown = false;
 
-  final String _credential;
+  int _pollGeneration = 0;
+  int? _pollActiveSince;
+  String? _lastEtag;
 
   @override
   Stream<DataSourceEvent> get events => _dataController.stream;
 
-  /// Used to track if there has been an unrecoverable error.
-  bool _permanentShutdown = false;
-
-  /// The [clientFactory] parameter is primarily intended for testing, but it also
-  /// could be used for customized SSE clients which support functionality
-  /// our default client support does not, or for alternative implementations
-  /// which are not based on SSE.
   StreamingDataSource(
       {required String credential,
       required LDContext context,
@@ -80,7 +79,8 @@ final class StreamingDataSource implements DataSource {
         _dataSourceConfig = dataSourceConfig,
         _clientFactory = clientFactory,
         _httpProperties = httpProperties,
-        _credential = credential {
+        _credential = credential,
+        _pollBackoff = Backoff(math.Random()) {
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
 
@@ -97,17 +97,9 @@ final class StreamingDataSource implements DataSource {
         ? plainContextString
         : base64UrlEncode(utf8.encode(plainContextString));
 
-    final path = _useReport
-        ? _dataSourceConfig.streamingReportPath(credential, _contextString)
-        : _dataSourceConfig.streamingGetPath(credential, _contextString);
-
-    String completeUrl = appendPath(_endpoints.streaming, path);
-
-    if (_dataSourceConfig.withReasons) {
-      completeUrl = '$completeUrl?withReasons=true';
-    }
-
-    _uri = Uri.parse(completeUrl);
+    _uri = _buildStreamingUri();
+    _setupPollingClient();
+    _pollingUri = _buildPollingUri();
   }
 
   @override
@@ -124,26 +116,20 @@ final class StreamingDataSource implements DataSource {
         _useReport ? SseHttpMethod.report : SseHttpMethod.get,
         LDLoggerToEventSourceAdapter(_logger));
 
-    _subscription = _client!.stream.listen((event) async {
+    _subscription = _client!.stream.listen((event) {
       if (_stopped) {
         return;
       }
 
       switch (event) {
         case MessageEvent():
-          _logger.debug('Received message event, data: ${event.data}');
-          _dataController.sink.add(
-              DataEvent(event.type, event.data, environmentId: _environmentId));
-        case OpenEvent():
-          _logger.debug('Received connect event, data: ${event.headers}');
-          if (event.headers != null) {
-            _environmentId = getEnvironmentId(event.headers);
-          } else if (DefaultConfig.credentialConfig.credentialType ==
-              CredentialType.clientSideId) {
-            // When using a client-side ID we can use it to represent the
-            // environment.
-            _environmentId = _credential;
+          if (event.type == _pingEventType) {
+            _handlePingEvent();
+          } else {
+            _handleMessageEvent(event.type, event.data);
           }
+        case OpenEvent():
+          _environmentId = _getEnvironmentIdFromHeaders(event.headers);
       }
     })
       ..onError((err) {
@@ -166,12 +152,179 @@ final class StreamingDataSource implements DataSource {
 
   @override
   void stop() {
-    // Cancel is async, but it should only be for the cleanup portion, according
-    // to the method documentation.
+    if (_stopped) {
+      return;
+    }
     _subscription?.cancel();
     _subscription = null;
     _stopped = true;
+    _pollGeneration++;
+    _pollActiveSince = null;
     _dataController.close();
+  }
+
+  void _handleMessageEvent(String type, String data) {
+    _dataController.sink.add(
+        DataEvent(type, data, environmentId: _environmentId));
+  }
+
+  Future<void> _handlePingEvent() async {
+    if (_stopped) {
+      return;
+    }
+
+    final currentGeneration = ++_pollGeneration;
+    _updatePollActiveTime();
+    await _pollWithRetry(currentGeneration);
+  }
+
+  Future<void> _pollWithRetry(int generation, {bool isRetry = false}) async {
+    if (!_isValidGeneration(generation)) {
+      return;
+    }
+
+    if (isRetry) {
+      await _waitForBackoff();
+      if (!_isValidGeneration(generation)) {
+        return;
+      }
+    }
+
+    try {
+      final res = await _makePollingRequest();
+      if (!_isValidGeneration(generation)) {
+        return;
+      }
+
+      final shouldRetry = _handlePollingResponse(res, generation);
+      if (shouldRetry) {
+        await _pollWithRetry(generation, isRetry: true);
+      }
+    } catch (err) {
+      if (!_isValidGeneration(generation)) {
+        return;
+      }
+      _logger.error('encountered error with ping-triggered polling request: $err');
+      await _pollWithRetry(generation, isRetry: true);
+    }
+  }
+
+  Future<http.Response> _makePollingRequest() {
+    final body = _dataSourceConfig.useReport ? _contextString : null;
+    return _pollingClient.request(_pollingMethod, _pollingUri,
+        additionalHeaders: _buildPollingHeaders(), body: body);
+  }
+
+  bool _handlePollingResponse(http.Response res, int generation) {
+    if (!_isValidGeneration(generation)) {
+      return false;
+    }
+
+    final statusCode = res.statusCode;
+    if (statusCode == _httpOk || statusCode == _httpNotModified) {
+      if (statusCode == _httpOk) {
+        _updateEtagFromResponse(res);
+        final environmentId = _getEnvironmentIdFromHeaders(res.headers);
+        _dataController.sink
+            .add(DataEvent('put', res.body, environmentId: environmentId));
+      }
+      _updatePollActiveTime();
+      return false;
+    }
+
+    return _handlePollingError(statusCode);
+  }
+
+  bool _handlePollingError(int statusCode) {
+    if (isHttpGloballyRecoverable(statusCode)) {
+      _logger.debug(
+          'received recoverable status code when polling in response to ping: $statusCode, will retry');
+      return true;
+    }
+
+    _logger.error(
+        'received unexpected status code when polling in response to ping: $statusCode');
+    _dataController.sink.add(StatusEvent(
+        ErrorKind.networkError,
+        statusCode,
+        'Received unexpected status code: $statusCode',
+        shutdown: true));
+    _permanentShutdown = true;
+    stop();
+    return false;
+  }
+
+  bool _isValidGeneration(int generation) {
+    return !_stopped && generation == _pollGeneration;
+  }
+
+  void _updatePollActiveTime() {
+    _pollActiveSince = DateTime.now().millisecondsSinceEpoch;
+  }
+
+  Future<void> _waitForBackoff() async {
+    final retryDelay = _pollBackoff.getRetryDelay(_pollActiveSince);
+    await Future.delayed(Duration(milliseconds: retryDelay));
+  }
+
+  String? _getEnvironmentIdFromHeaders(Map<String, String>? headers) {
+    var environmentId = getEnvironmentId(headers);
+    if (environmentId == null &&
+        DefaultConfig.credentialConfig.credentialType ==
+            CredentialType.clientSideId) {
+      environmentId = _credential;
+    }
+    return environmentId;
+  }
+
+  Map<String, String>? _buildPollingHeaders() {
+    if (_lastEtag == null) {
+      return null;
+    }
+    return {_ifNoneMatchHeader: _lastEtag!};
+  }
+
+  void _updateEtagFromResponse(http.Response res) {
+    final etag = res.headers[_etagHeader];
+    if (etag != null) {
+      _lastEtag = etag;
+    }
+  }
+
+  Uri _buildStreamingUri() {
+    return _buildUri(_endpoints.streaming, _dataSourceConfig.streamingReportPath,
+        _dataSourceConfig.streamingGetPath);
+  }
+
+  Uri _buildPollingUri() {
+    return _buildUri(_endpoints.polling,
+        DefaultConfig.pollingPaths.pollingReportPath,
+        DefaultConfig.pollingPaths.pollingGetPath);
+  }
+
+  Uri _buildUri(String baseUrl, String Function(String, String) reportPath,
+      String Function(String, String) getPath) {
+    final path = _useReport
+        ? reportPath(_credential, _contextString)
+        : getPath(_credential, _contextString);
+
+    var url = appendPath(baseUrl, path);
+    if (_dataSourceConfig.withReasons) {
+      url = '$url?withReasons=true';
+    }
+    return Uri.parse(url);
+  }
+
+  void _setupPollingClient() {
+    if (_dataSourceConfig.useReport) {
+      final updatedProperties =
+          _httpProperties.withHeaders({'content-type': 'application/json'});
+      _pollingMethod = RequestMethod.report;
+      _pollingClient = HttpClient(httpProperties: updatedProperties);
+    } else {
+      _pollingMethod = RequestMethod.get;
+      _pollingClient = HttpClient(httpProperties: _httpProperties);
+    }
   }
 }
 
