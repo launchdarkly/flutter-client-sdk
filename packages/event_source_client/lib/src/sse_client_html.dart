@@ -5,7 +5,6 @@ import 'dart:math' as math;
 
 import '../launchdarkly_event_source_client.dart';
 
-import 'backoff.dart';
 import 'events.dart' as ld_message_event;
 
 /// An [SSEClient] that uses the [web.EventSource] available on most browsers for web platform support.
