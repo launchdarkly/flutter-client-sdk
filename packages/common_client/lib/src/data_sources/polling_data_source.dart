@@ -9,6 +9,7 @@ import '../config/defaults/credential_type.dart';
 import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
+import 'data_source_requestor.dart';
 import 'get_environment_id.dart';
 
 HttpClient _defaultClientFactory(HttpProperties httpProperties) {
@@ -27,6 +28,8 @@ final class PollingDataSource implements DataSource {
   final PollingDataSourceConfig _dataSourceConfig;
 
   late final HttpClient _client;
+
+  late final DataSourceRequestor _requestor;
 
   Timer? _pollTimer;
 
@@ -48,8 +51,6 @@ final class PollingDataSource implements DataSource {
 
   @override
   Stream<DataSourceEvent> get events => _eventController.stream;
-
-  String? _lastEtag;
 
   /// Used to track if there has been an unrecoverable error.
   bool _permanentShutdown = false;
@@ -87,6 +88,9 @@ final class PollingDataSource implements DataSource {
       _client = clientFactory(httpProperties);
     }
 
+    _requestor = DataSourceRequestor(
+        client: _client, logger: _logger, credential: credential);
+
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
     if (dataSourceConfig.useReport) {
@@ -111,66 +115,42 @@ final class PollingDataSource implements DataSource {
   }
 
   Future<void> _makeRequest() async {
-    try {
-      _logger.debug(
-          'Making polling request, method: $_method, uri: $_uri, etag: $_lastEtag');
-      final res = await _client.request(_method, _uri,
-          additionalHeaders: _lastEtag != null ? {'etag': _lastEtag!} : null,
-          body: _dataSourceConfig.useReport ? _contextString : null);
-      await _handleResponse(res);
-    } catch (err) {
-      _logger.error('encountered error with polling request: $err, will retry');
-      _eventController.sink
-          .add(StatusEvent(ErrorKind.networkError, null, err.toString()));
-    }
-  }
-
-  Future<void> _handleResponse(http.Response res) async {
-    // The data source has been instructed to stop, so we discard the response.
     if (_stopped) {
       return;
     }
 
-    if (res.statusCode == 200 || res.statusCode == 304) {
-      final etag = res.headers['etag'];
-      if (etag != null && etag == _lastEtag) {
-        // The response has not changed, so we don't need to do the work of
-        // updating the store, calculating changes, or persisting the payload.
+    final chainId = _requestor.startRequestChain();
+
+    try {
+      final res = await _requestor.makeRequest(
+        chainId,
+        _uri,
+        _method,
+        body: _dataSourceConfig.useReport ? _contextString : null,
+      );
+
+      final result = _requestor.processResponse(
+        res,
+        chainId,
+        isRecoverableStatus: isHttpGloballyRecoverable,
+      );
+
+      if (result == null) {
         return;
       }
-      _lastEtag = etag;
 
-      var environmentId = getEnvironmentId(res.headers);
-
-      if (environmentId == null &&
-          DefaultConfig.credentialConfig.credentialType ==
-              CredentialType.clientSideId) {
-        // When using a client-side ID we can use it to represent the
-        // environment.
-        environmentId = _credential;
+      if (result.event != null) {
+        _eventController.sink.add(result.event!);
       }
 
-      _eventController.sink
-          .add(DataEvent('put', res.body, environmentId: environmentId));
-    } else {
-      if (isHttpGloballyRecoverable(res.statusCode)) {
-        _eventController.sink.add(StatusEvent(
-            ErrorKind.networkError,
-            res.statusCode,
-            'Received unexpected status code: ${res.statusCode}'));
-        _logger.error(
-            'received unexpected status code when polling: ${res.statusCode}, will retry');
-      } else {
-        _logger.error(
-            'received unexpected status code when polling: ${res.statusCode}, stopping polling');
-        _eventController.sink.add(StatusEvent(
-            ErrorKind.networkError,
-            res.statusCode,
-            'Received unexpected status code: ${res.statusCode}',
-            shutdown: true));
+      if (result.shutdown) {
         _permanentShutdown = true;
         stop();
       }
+    } catch (err) {
+      _logger.error('encountered error with polling request: $err, will retry');
+      _eventController.sink
+          .add(StatusEvent(ErrorKind.networkError, null, err.toString()));
     }
   }
 

@@ -10,6 +10,7 @@ import '../config/data_source_config.dart';
 import '../config/defaults/credential_type.dart';
 import '../config/defaults/default_config.dart';
 import 'data_source.dart';
+import 'data_source_requestor.dart';
 import 'data_source_status.dart';
 import 'get_environment_id.dart';
 
@@ -30,10 +31,6 @@ SSEClient _defaultClientFactory(Uri uri, HttpProperties httpProperties,
 }
 
 final class StreamingDataSource implements DataSource {
-  static const int _httpOk = 200;
-  static const int _httpNotModified = 304;
-  static const String _ifNoneMatchHeader = 'if-none-match';
-  static const String _etagHeader = 'etag';
   static const String _pingEventType = 'ping';
 
   final LDLogger _logger;
@@ -48,6 +45,7 @@ final class StreamingDataSource implements DataSource {
   late final String _contextString;
   late final bool _useReport;
   late final HttpClient _pollingClient;
+  late final DataSourceRequestor _requestor;
   late final Uri _pollingUri;
   late final RequestMethod _pollingMethod;
 
@@ -58,9 +56,7 @@ final class StreamingDataSource implements DataSource {
   bool _stopped = false;
   bool _permanentShutdown = false;
 
-  int _pollGeneration = 0;
   int? _pollActiveSince;
-  String? _lastEtag;
 
   @override
   Stream<DataSourceEvent> get events => _dataController.stream;
@@ -98,6 +94,8 @@ final class StreamingDataSource implements DataSource {
 
     _uri = _buildStreamingUri();
     _setupPollingClient();
+    _requestor = DataSourceRequestor(
+        client: _pollingClient, logger: _logger, credential: credential);
     _pollingUri = _buildPollingUri();
   }
 
@@ -157,7 +155,6 @@ final class StreamingDataSource implements DataSource {
     _subscription?.cancel();
     _subscription = null;
     _stopped = true;
-    _pollGeneration++;
     _pollActiveSince = null;
     _pollingClient.close();
     _dataController.close();
@@ -173,89 +170,61 @@ final class StreamingDataSource implements DataSource {
       return;
     }
 
-    final currentGeneration = ++_pollGeneration;
+    final chainId = _requestor.startRequestChain();
     _updatePollActiveTime();
-    await _pollWithRetry(currentGeneration);
+    await _pollWithRetry(chainId);
   }
 
-  Future<void> _pollWithRetry(int generation, {bool isRetry = false}) async {
-    if (!_isValidGeneration(generation)) {
+  Future<void> _pollWithRetry(int chainId, {bool isRetry = false}) async {
+    if (!_requestor.isValidChain(chainId)) {
       return;
     }
 
     if (isRetry) {
       await _waitForBackoff();
-      if (!_isValidGeneration(generation)) {
+      if (!_requestor.isValidChain(chainId)) {
         return;
       }
     }
 
     try {
-      final res = await _makePollingRequest();
-      if (!_isValidGeneration(generation)) {
+      final res = await _requestor.makeRequest(
+        chainId,
+        _pollingUri,
+        _pollingMethod,
+        body: _dataSourceConfig.useReport ? _contextString : null,
+      );
+
+      final result = _requestor.processResponse(
+        res,
+        chainId,
+        isRecoverableStatus: isHttpGloballyRecoverable,
+      );
+
+      if (result == null) {
         return;
       }
 
-      final shouldRetry = _handlePollingResponse(res, generation);
-      if (shouldRetry) {
-        await _pollWithRetry(generation, isRetry: true);
+      if (result.event != null) {
+        _dataController.sink.add(result.event!);
+        if (result.event is DataEvent) {
+          _updatePollActiveTime();
+        }
+      }
+
+      if (result.shouldRetry) {
+        await _pollWithRetry(chainId, isRetry: true);
+      } else if (result.shutdown) {
+        _permanentShutdown = true;
+        stop();
       }
     } catch (err) {
-      if (!_isValidGeneration(generation)) {
+      if (!_requestor.isValidChain(chainId)) {
         return;
       }
       _logger.error('encountered error with ping-triggered polling request: $err');
-      await _pollWithRetry(generation, isRetry: true);
+      await _pollWithRetry(chainId, isRetry: true);
     }
-  }
-
-  Future<http.Response> _makePollingRequest() {
-    final body = _dataSourceConfig.useReport ? _contextString : null;
-    return _pollingClient.request(_pollingMethod, _pollingUri,
-        additionalHeaders: _buildPollingHeaders(), body: body);
-  }
-
-  bool _handlePollingResponse(http.Response res, int generation) {
-    if (!_isValidGeneration(generation)) {
-      return false;
-    }
-
-    final statusCode = res.statusCode;
-    if (statusCode == _httpOk || statusCode == _httpNotModified) {
-      if (statusCode == _httpOk) {
-        _updateEtagFromResponse(res);
-        final environmentId = _getEnvironmentIdFromHeaders(res.headers);
-        _dataController.sink
-            .add(DataEvent('put', res.body, environmentId: environmentId));
-      }
-      _updatePollActiveTime();
-      return false;
-    }
-
-    return _handlePollingError(statusCode);
-  }
-
-  bool _handlePollingError(int statusCode) {
-    if (isHttpGloballyRecoverable(statusCode)) {
-      _logger.debug(
-          'received recoverable status code when polling in response to ping: $statusCode, will retry');
-      return true;
-    }
-
-    _logger.error(
-        'received unexpected status code when polling in response to ping: $statusCode');
-    _dataController.sink.add(StatusEvent(
-        ErrorKind.networkError,
-        statusCode,
-        'Received unexpected status code: $statusCode',
-        shutdown: true));
-    _permanentShutdown = true;
-    stop();
-    return false;
-  }
-
-  bool _isValidGeneration(int generation) {
-    return !_stopped && generation == _pollGeneration;
   }
 
   void _updatePollActiveTime() {
@@ -265,30 +234,6 @@ final class StreamingDataSource implements DataSource {
   Future<void> _waitForBackoff() async {
     final retryDelay = _pollBackoff.getRetryDelay(_pollActiveSince);
     await Future.delayed(Duration(milliseconds: retryDelay));
-  }
-
-  String? _getEnvironmentIdFromHeaders(Map<String, String>? headers) {
-    var environmentId = getEnvironmentId(headers);
-    if (environmentId == null &&
-        DefaultConfig.credentialConfig.credentialType ==
-            CredentialType.clientSideId) {
-      environmentId = _credential;
-    }
-    return environmentId;
-  }
-
-  Map<String, String>? _buildPollingHeaders() {
-    if (_lastEtag == null) {
-      return null;
-    }
-    return {_ifNoneMatchHeader: _lastEtag!};
-  }
-
-  void _updateEtagFromResponse(http.Response res) {
-    final etag = res.headers[_etagHeader];
-    if (etag != null) {
-      _lastEtag = etag;
-    }
   }
 
   Uri _buildStreamingUri() {
