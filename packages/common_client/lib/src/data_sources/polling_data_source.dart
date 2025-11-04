@@ -68,8 +68,7 @@ final class PollingDataSource implements DataSource {
           _defaultClientFactory})
       : _endpoints = endpoints,
         _logger = logger.subLogger('PollingDataSource'),
-        _dataSourceConfig = dataSourceConfig,
-        _credential = credential {
+        _dataSourceConfig = dataSourceConfig {
     _pollingInterval = testingInterval ?? dataSourceConfig.pollingInterval;
 
     if (_dataSourceConfig.useReport) {
