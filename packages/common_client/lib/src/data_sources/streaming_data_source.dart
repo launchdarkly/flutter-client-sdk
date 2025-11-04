@@ -221,7 +221,8 @@ final class StreamingDataSource implements DataSource {
       if (!_requestor.isValidChain(chainId)) {
         return;
       }
-      _logger.error('encountered error with ping-triggered polling request: $err');
+      _logger
+          .error('encountered error with ping-triggered polling request: $err');
       await _pollWithRetry(chainId, isRetry: true);
     }
   }
@@ -246,7 +247,9 @@ final class StreamingDataSource implements DataSource {
   }
 
   Uri _buildStreamingUri() {
-    return _buildUri(_endpoints.streaming, _dataSourceConfig.streamingReportPath,
+    return _buildUri(
+        _endpoints.streaming,
+        _dataSourceConfig.streamingReportPath,
         _dataSourceConfig.streamingGetPath);
   }
 
