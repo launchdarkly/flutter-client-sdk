@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import '../config/defaults/credential_type.dart';
 import '../config/defaults/default_config.dart';
+import 'data_source.dart';
 import 'data_source_status.dart';
 import 'get_environment_id.dart';
 

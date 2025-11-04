@@ -1,16 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'dart:math';
 
 import '../config/data_source_config.dart';
-import '../config/defaults/credential_type.dart';
-import '../config/defaults/default_config.dart';
 import 'data_source.dart';
-import 'data_source_status.dart';
 import 'data_source_requestor.dart';
-import 'get_environment_id.dart';
+import 'data_source_status.dart';
 
 HttpClient _defaultClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
@@ -46,8 +42,6 @@ final class PollingDataSource implements DataSource {
   late final RequestMethod _method;
 
   final StreamController<DataSourceEvent> _eventController = StreamController();
-
-  late final String _credential;
 
   @override
   Stream<DataSourceEvent> get events => _eventController.stream;

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:http/http.dart' as http;
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
@@ -234,6 +233,16 @@ final class StreamingDataSource implements DataSource {
   Future<void> _waitForBackoff() async {
     final retryDelay = _pollBackoff.getRetryDelay(_pollActiveSince);
     await Future.delayed(Duration(milliseconds: retryDelay));
+  }
+
+  String? _getEnvironmentIdFromHeaders(Map<String, String>? headers) {
+    var environmentId = getEnvironmentId(headers);
+    if (environmentId == null &&
+        DefaultConfig.credentialConfig.credentialType ==
+            CredentialType.clientSideId) {
+      environmentId = _credential;
+    }
+    return environmentId;
   }
 
   Uri _buildStreamingUri() {
