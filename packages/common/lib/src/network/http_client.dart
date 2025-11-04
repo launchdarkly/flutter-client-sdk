@@ -82,4 +82,9 @@ final class HttpClient {
     return await http.Response.fromStream(streamedResponse)
         .timeout(_httpProperties.readTimeout);
   }
+
+  /// Close the underlying HTTP client and free its resources.
+  void close() {
+    _client.close();
+  }
 }

@@ -160,6 +160,7 @@ final class StreamingDataSource implements DataSource {
     _stopped = true;
     _pollGeneration++;
     _pollActiveSince = null;
+    _pollingClient.close();
     _dataController.close();
   }
 
