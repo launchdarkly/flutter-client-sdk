@@ -1,5 +1,10 @@
 export 'src/ld_common_config.dart'
-    show LDCommonConfig, PersistenceConfig, DataSourceConfig, AutoEnvAttributes;
+    show
+        LDCommonConfig,
+        PersistenceConfig,
+        DataSourceConfig,
+        AutoEnvAttributes,
+        PollingConfig;
 
 export 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     show
