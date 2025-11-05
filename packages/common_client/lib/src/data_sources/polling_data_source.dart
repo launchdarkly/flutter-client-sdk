@@ -1,17 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'dart:math';
 
 import '../config/data_source_config.dart';
-import '../config/defaults/credential_type.dart';
-import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
-import 'get_environment_id.dart';
+import 'requestor.dart';
 
-HttpClient _defaultClientFactory(HttpProperties httpProperties) {
+HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
 }
 
@@ -21,12 +18,6 @@ HttpClient _defaultClientFactory(HttpProperties httpProperties) {
 
 final class PollingDataSource implements DataSource {
   final LDLogger _logger;
-
-  final ServiceEndpoints _endpoints;
-
-  final PollingDataSourceConfig _dataSourceConfig;
-
-  late final HttpClient _client;
 
   Timer? _pollTimer;
 
@@ -38,23 +29,19 @@ final class PollingDataSource implements DataSource {
 
   bool _stopped = false;
 
-  late final Uri _uri;
-
-  late final RequestMethod _method;
-
   final StreamController<DataSourceEvent> _eventController = StreamController();
 
   late final String _credential;
 
+  late final Requestor _requestor;
+
   @override
   Stream<DataSourceEvent> get events => _eventController.stream;
-
-  String? _lastEtag;
 
   /// Used to track if there has been an unrecoverable error.
   bool _permanentShutdown = false;
 
-  /// The [client] parameter is primarily intended for testing, but it also
+  /// The [httpClientFactory] parameter is primarily intended for testing, but it also
   /// could be used for customized clients which support functionality
   /// our default client support does not. For instance domain sockets or
   /// other connection mechanisms.
@@ -69,23 +56,13 @@ final class PollingDataSource implements DataSource {
       required HttpProperties httpProperties,
       Duration? testingInterval,
       String? etag,
-      HttpClient Function(HttpProperties) clientFactory =
-          _defaultClientFactory})
-      : _endpoints = endpoints,
-        _logger = logger.subLogger('PollingDataSource'),
-        _dataSourceConfig = dataSourceConfig,
+      HttpClient Function(HttpProperties)? httpClientFactory})
+      : _logger = logger.subLogger('PollingDataSource'),
         _credential = credential {
     _pollingInterval = testingInterval ?? dataSourceConfig.pollingInterval;
 
-    if (_dataSourceConfig.useReport) {
-      final updatedProperties =
-          httpProperties.withHeaders({'content-type': 'application/json'});
-      _method = RequestMethod.report;
-      _client = clientFactory(updatedProperties);
-    } else {
-      _method = RequestMethod.get;
-      _client = clientFactory(httpProperties);
-    }
+    final method =
+        dataSourceConfig.useReport ? RequestMethod.report : RequestMethod.get;
 
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
@@ -95,90 +72,49 @@ final class PollingDataSource implements DataSource {
       _contextString = base64UrlEncode(utf8.encode(plainContextString));
     }
 
-    String completeUrl;
-    if (_dataSourceConfig.useReport) {
-      completeUrl = appendPath(_endpoints.polling,
-          _dataSourceConfig.pollingReportPath(credential, _contextString));
-    } else {
-      completeUrl = appendPath(_endpoints.polling,
-          _dataSourceConfig.pollingGetPath(credential, _contextString));
-    }
-    if (_dataSourceConfig.withReasons) {
-      completeUrl = '$completeUrl?withReasons=true';
-    }
-
-    _uri = Uri.parse(completeUrl);
-  }
-
-  Future<void> _makeRequest() async {
-    try {
-      _logger.debug(
-          'Making polling request, method: $_method, uri: $_uri, etag: $_lastEtag');
-      final res = await _client.request(_method, _uri,
-          additionalHeaders: _lastEtag != null ? {'etag': _lastEtag!} : null,
-          body: _dataSourceConfig.useReport ? _contextString : null);
-      await _handleResponse(res);
-    } catch (err) {
-      _logger.error('encountered error with polling request: $err, will retry');
-      _eventController.sink
-          .add(StatusEvent(ErrorKind.networkError, null, err.toString()));
-    }
-  }
-
-  Future<void> _handleResponse(http.Response res) async {
-    // The data source has been instructed to stop, so we discard the response.
-    if (_stopped) {
-      return;
-    }
-
-    if (res.statusCode == 200 || res.statusCode == 304) {
-      final etag = res.headers['etag'];
-      if (etag != null && etag == _lastEtag) {
-        // The response has not changed, so we don't need to do the work of
-        // updating the store, calculating changes, or persisting the payload.
-        return;
-      }
-      _lastEtag = etag;
-
-      var environmentId = getEnvironmentId(res.headers);
-
-      if (environmentId == null &&
-          DefaultConfig.credentialConfig.credentialType ==
-              CredentialType.clientSideId) {
-        // When using a client-side ID we can use it to represent the
-        // environment.
-        environmentId = _credential;
-      }
-
-      _eventController.sink
-          .add(DataEvent('put', res.body, environmentId: environmentId));
-    } else {
-      if (isHttpGloballyRecoverable(res.statusCode)) {
-        _eventController.sink.add(StatusEvent(
-            ErrorKind.networkError,
-            res.statusCode,
-            'Received unexpected status code: ${res.statusCode}'));
-        _logger.error(
-            'received unexpected status code when polling: ${res.statusCode}, will retry');
-      } else {
-        _logger.error(
-            'received unexpected status code when polling: ${res.statusCode}, stopping polling');
-        _eventController.sink.add(StatusEvent(
-            ErrorKind.networkError,
-            res.statusCode,
-            'Received unexpected status code: ${res.statusCode}',
-            shutdown: true));
-        _permanentShutdown = true;
-        stop();
-      }
-    }
+    _requestor = Requestor(
+        logger: logger,
+        contextString: _contextString,
+        endpoints: endpoints,
+        dataSourceConfig: dataSourceConfig,
+        method: method,
+        httpProperties: httpProperties,
+        credential: _credential,
+        httpClientFactory: httpClientFactory ?? _defaultHttpClientFactory);
   }
 
   Future<void> _doPoll() async {
     _pollStopwatch.reset();
     _pollStopwatch.start();
 
-    await _makeRequest();
+    final event = await _requestor.requestAllFlags();
+
+    if (_stopped) {
+      return;
+    }
+
+    switch (event) {
+      case null:
+        // No change.
+        return;
+      case DataEvent():
+        _eventController.sink.add(event);
+      case StatusEvent():
+        _eventController.sink.add(event);
+        final suffix = event.shutdown ? 'stopping polling' : 'will retry';
+        final message = event.kind == ErrorKind.errorResponse
+            ? 'received unexpected status code when polling'
+            : 'encountered error with polling request';
+        final argument = event.kind == ErrorKind.errorResponse
+            ? event.statusCode
+            : event.message;
+        _logger.error('$message: $argument, $suffix');
+        if (event.shutdown) {
+          _permanentShutdown = true;
+          stop();
+        }
+    }
+
     _schedulePoll();
   }
 
@@ -194,7 +130,7 @@ final class PollingDataSource implements DataSource {
     // Example: If the poll took 5 seconds, and the interval is 30 seconds, then
     // we want to poll after 25 seconds.
     final delay = Duration(
-        milliseconds: max(
+        milliseconds: min(
             _pollingInterval.inMilliseconds - timeSincePoll.inMilliseconds,
             _pollingInterval.inMilliseconds));
 

@@ -76,6 +76,10 @@ typedef DataSourceFactoriesFn = Map<ConnectionMode, DataSourceFactory> Function(
 
 Map<ConnectionMode, DataSourceFactory> _defaultFactories(
     LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
+  final pollingDataSourceConfig = PollingDataSourceConfig(
+      useReport: config.dataSourceConfig.useReport,
+      withReasons: config.dataSourceConfig.evaluationReasons,
+      pollingInterval: config.dataSourceConfig.polling.pollingInterval);
   return {
     ConnectionMode.streaming: (LDContext context) {
       return StreamingDataSource(
@@ -86,6 +90,7 @@ Map<ConnectionMode, DataSourceFactory> _defaultFactories(
           dataSourceConfig: StreamingDataSourceConfig(
               useReport: config.dataSourceConfig.useReport,
               withReasons: config.dataSourceConfig.evaluationReasons),
+          pollingDataSourceConfig: pollingDataSourceConfig,
           httpProperties: httpProperties);
     },
     ConnectionMode.polling: (LDContext context) {
@@ -94,10 +99,7 @@ Map<ConnectionMode, DataSourceFactory> _defaultFactories(
           context: context,
           endpoints: config.serviceEndpoints,
           logger: logger,
-          dataSourceConfig: PollingDataSourceConfig(
-              useReport: config.dataSourceConfig.useReport,
-              withReasons: config.dataSourceConfig.evaluationReasons,
-              pollingInterval: config.dataSourceConfig.polling.pollingInterval),
+          dataSourceConfig: pollingDataSourceConfig,
           httpProperties: httpProperties);
     },
   };

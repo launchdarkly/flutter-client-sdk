@@ -10,6 +10,12 @@ import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
 import 'get_environment_id.dart';
+import 'requestor.dart';
+
+const String _pingEvent = 'ping';
+const String _patchEvent = 'patch';
+const String _putEvent = 'put';
+const String _delete = 'delete';
 
 typedef MessageHandler = void Function(MessageEvent);
 typedef ErrorHandler = void Function(dynamic);
@@ -22,17 +28,19 @@ typedef SseClientFactory = SSEClient Function(
 
 SSEClient _defaultClientFactory(Uri uri, HttpProperties httpProperties,
     String? body, SseHttpMethod? method, EventSourceLogger? logger) {
-  return SSEClient(uri, {'put', 'patch', 'delete'},
+  return SSEClient(uri, {_putEvent, _patchEvent, _delete, _pingEvent},
       headers: httpProperties.baseHeaders,
       body: body,
       httpMethod: method ?? SseHttpMethod.get,
       logger: logger);
 }
 
+HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
+  return HttpClient(httpProperties: httpProperties);
+}
+
 final class StreamingDataSource implements DataSource {
   final LDLogger _logger;
-
-  final ServiceEndpoints _endpoints;
 
   final StreamingDataSourceConfig _dataSourceConfig;
 
@@ -57,6 +65,8 @@ final class StreamingDataSource implements DataSource {
 
   final String _credential;
 
+  late final Requestor _requestor;
+
   @override
   Stream<DataSourceEvent> get events => _dataController.stream;
 
@@ -67,16 +77,19 @@ final class StreamingDataSource implements DataSource {
   /// could be used for customized SSE clients which support functionality
   /// our default client support does not, or for alternative implementations
   /// which are not based on SSE.
+  /// The [httpClientFactory] parameter is primarily intended for testing the
+  /// requestor used for ping events.
   StreamingDataSource(
       {required String credential,
       required LDContext context,
       required ServiceEndpoints endpoints,
       required LDLogger logger,
       required StreamingDataSourceConfig dataSourceConfig,
+      required PollingDataSourceConfig pollingDataSourceConfig,
       required HttpProperties httpProperties,
-      SseClientFactory clientFactory = _defaultClientFactory})
-      : _endpoints = endpoints,
-        _logger = logger.subLogger('StreamingDataSource'),
+      SseClientFactory clientFactory = _defaultClientFactory,
+      HttpClientFactory? httpClientFactory})
+      : _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
         _clientFactory = clientFactory,
         _httpProperties = httpProperties,
@@ -101,13 +114,23 @@ final class StreamingDataSource implements DataSource {
         ? _dataSourceConfig.streamingReportPath(credential, _contextString)
         : _dataSourceConfig.streamingGetPath(credential, _contextString);
 
-    String completeUrl = appendPath(_endpoints.streaming, path);
+    String completeUrl = appendPath(endpoints.streaming, path);
 
     if (_dataSourceConfig.withReasons) {
       completeUrl = '$completeUrl?withReasons=true';
     }
 
     _uri = Uri.parse(completeUrl);
+
+    _requestor = Requestor(
+        logger: logger,
+        contextString: _contextString,
+        method: _useReport ? RequestMethod.report : RequestMethod.get,
+        httpProperties: httpProperties,
+        dataSourceConfig: pollingDataSourceConfig,
+        endpoints: endpoints,
+        credential: _credential,
+        httpClientFactory: httpClientFactory ?? _defaultHttpClientFactory);
   }
 
   @override
@@ -131,9 +154,32 @@ final class StreamingDataSource implements DataSource {
 
       switch (event) {
         case MessageEvent():
-          _logger.debug('Received message event, data: ${event.data}');
-          _dataController.sink.add(
-              DataEvent(event.type, event.data, environmentId: _environmentId));
+          if (event.type == _pingEvent) {
+            final res = await _requestor.requestAllFlags();
+            if (_stopped) {
+              return;
+            }
+            switch (res) {
+              case null:
+                // No update, so things stay the same.
+                return;
+              case DataEvent():
+                _dataController.sink.add(res);
+              case StatusEvent():
+                final message = res.kind == ErrorKind.errorResponse
+                    ? 'received unexpected status code when polling in response to a ping event'
+                    : 'encountered error with polling request in response to a ping event';
+                final argument = res.kind == ErrorKind.errorResponse
+                    ? res.statusCode
+                    : res.message;
+                _logger.error('$message: $argument');
+                _dataController.sink.add(res);
+            }
+          } else {
+            _logger.debug('Received message event, data: ${event.data}');
+            _dataController.sink.add(DataEvent(event.type, event.data,
+                environmentId: _environmentId));
+          }
         case OpenEvent():
           _logger.debug('Received connect event, data: ${event.headers}');
           if (event.headers != null) {

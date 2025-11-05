@@ -45,7 +45,7 @@ import 'package:test/test.dart';
           withReasons: withReasons,
           useReport: useReport),
       httpProperties: httpProperties,
-      clientFactory: (properties) =>
+      httpClientFactory: (properties) =>
           ld_common.HttpClient(client: innerClient, httpProperties: properties),
       testingInterval: testingInterval);
 
@@ -418,7 +418,7 @@ void main() {
             withReasons: false,
             useReport: false),
         httpProperties: HttpProperties(),
-        clientFactory: (properties) => ld_common.HttpClient(
+        httpClientFactory: (properties) => ld_common.HttpClient(
             client: innerClient, httpProperties: properties),
         testingInterval: Duration(milliseconds: 50));
 
@@ -479,7 +479,7 @@ void main() {
             withReasons: false,
             useReport: false),
         httpProperties: HttpProperties(),
-        clientFactory: (properties) => ld_common.HttpClient(
+        httpClientFactory: (properties) => ld_common.HttpClient(
             client: innerClient, httpProperties: properties),
         testingInterval: Duration(milliseconds: 50));
 

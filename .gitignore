@@ -38,3 +38,4 @@ pubspec_overrides.yaml
 **/coverage/
 **/.flutter-plugins-dependencies
 **/.flutter-plugins
+**/devtools_options.yaml
