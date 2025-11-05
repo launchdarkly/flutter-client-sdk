@@ -2,6 +2,19 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.14.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.13.0...4.14.0) (2025-11-05)
+
+
+### Features
+
+* Add support for ping stream. ([f857931](https://github.com/launchdarkly/flutter-client-sdk/commit/f857931ccd07fb97039436dd1b895537e1c3e48e))
+* Update to launchdarkly_common_client 1.8.0 ([f857931](https://github.com/launchdarkly/flutter-client-sdk/commit/f857931ccd07fb97039436dd1b895537e1c3e48e))
+
+
+### Bug Fixes
+
+* Expose polling configuration type. ([f857931](https://github.com/launchdarkly/flutter-client-sdk/commit/f857931ccd07fb97039436dd1b895537e1c3e48e))
+
 ## [4.13.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.12.0...4.13.0) (2025-09-26)
 
 
