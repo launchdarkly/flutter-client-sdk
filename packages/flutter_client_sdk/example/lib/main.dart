@@ -26,7 +26,6 @@ class MyApp extends StatelessWidget {
               // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
               CredentialSource.fromEnvironment(),
               AutoEnvAttributes.enabled,
-              // serviceEndpoints: ServiceEndpoints.relayProxy("http://localhost:8030")
             ),
             // Here we are using a default user with 'user-key'.
             LDContextBuilder().kind('user', 'user-key').build()),
