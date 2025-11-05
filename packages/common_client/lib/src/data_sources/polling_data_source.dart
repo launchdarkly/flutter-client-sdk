@@ -5,6 +5,7 @@ import 'dart:math';
 
 import '../config/data_source_config.dart';
 import 'data_source.dart';
+import 'data_source_status.dart';
 import 'requestor.dart';
 
 HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
@@ -100,14 +101,17 @@ final class PollingDataSource implements DataSource {
         _eventController.sink.add(event);
       case StatusEvent():
         _eventController.sink.add(event);
+        final suffix = event.shutdown ? 'stopping polling' : 'will retry';
+        final message = event.kind == ErrorKind.errorResponse
+            ? 'received unexpected status code when polling'
+            : 'encountered error with polling request';
+        final argument = event.kind == ErrorKind.errorResponse
+            ? event.statusCode
+            : event.message;
+        _logger.error('$message: $argument, $suffix');
         if (event.shutdown) {
-          _logger.error(
-              'received unexpected status code when polling: ${event.statusCode}, stopping polling');
           _permanentShutdown = true;
           stop();
-        } else {
-          _logger.error(
-              'received unexpected status code when polling: ${event.statusCode}, will retry');
         }
     }
 

@@ -63,7 +63,6 @@ final class Requestor {
           body: _method != RequestMethod.get ? _contextString : null);
       return await _handleResponse(res);
     } catch (err) {
-      _logger.error('encountered error with polling request: $err, will retry');
       return StatusEvent(ErrorKind.networkError, null, err.toString());
     }
   }
@@ -91,10 +90,10 @@ final class Requestor {
       return DataEvent('put', res.body, environmentId: environmentId);
     } else {
       if (isHttpGloballyRecoverable(res.statusCode)) {
-        return StatusEvent(ErrorKind.networkError, res.statusCode,
+        return StatusEvent(ErrorKind.errorResponse, res.statusCode,
             'Received unexpected status code: ${res.statusCode}');
       } else {
-        return StatusEvent(ErrorKind.networkError, res.statusCode,
+        return StatusEvent(ErrorKind.errorResponse, res.statusCode,
             'Received unexpected status code: ${res.statusCode}',
             shutdown: true);
       }

@@ -166,8 +166,13 @@ final class StreamingDataSource implements DataSource {
               case DataEvent():
                 _dataController.sink.add(res);
               case StatusEvent():
-                _logger.error(
-                    'received unexpected status code when polling in response to a ping event: ${res.statusCode}');
+                final message = res.kind == ErrorKind.errorResponse
+                    ? 'received unexpected status code when polling in response to a ping event'
+                    : 'encountered error with polling request in response to a ping event';
+                final argument = res.kind == ErrorKind.errorResponse
+                    ? res.statusCode
+                    : res.message;
+                _logger.error('$message: $argument');
                 _dataController.sink.add(res);
             }
           } else {
