@@ -54,7 +54,8 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         PluginSdkMetadata,
         PluginCredentialInfo,
         PluginEnvironmentMetadata,
-        PluginMetadata;
+        PluginMetadata,
+        PollingConfig;
 
 export 'src/ld_client.dart' show LDClient;
 export 'src/config/ld_config.dart' show LDConfig, ApplicationEvents;
