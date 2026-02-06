@@ -28,6 +28,7 @@ export 'src/serialization/ld_evaluation_results_serialization.dart'
     show LDEvaluationResultsSerialization;
 export 'src/serialization/ld_context_serialization.dart'
     show LDContextSerialization;
+export 'src/serialization/canonicalize_json.dart' show canonicalizeJson;
 export 'src/serialization/event_serialization.dart'
     show
         IdentifyEventSerialization,
