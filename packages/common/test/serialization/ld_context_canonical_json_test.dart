@@ -1,6 +1,8 @@
 import 'dart:convert';
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_dart_common/src/ld_context.dart';
+import 'package:launchdarkly_dart_common/src/ld_value.dart';
 import 'package:launchdarkly_dart_common/src/serialization/canonicalize_json.dart';
+import 'package:launchdarkly_dart_common/src/serialization/ld_context_serialization.dart';
 import 'package:test/test.dart';
 
 void main() {
