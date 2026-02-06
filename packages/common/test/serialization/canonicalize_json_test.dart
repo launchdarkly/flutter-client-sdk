@@ -203,6 +203,23 @@ void main() {
         expect(result2, isNot(contains('E')));
       });
 
+      test('large integer-valued doubles use scientific notation', () {
+        // Per RFC 8785/ECMA-262: integers with magnitude >= 10^21 must use
+        // scientific notation, not plain decimal (even if they could be
+        // represented as integers)
+
+        // 1e30 is an integer value, but must use scientific notation
+        expect(canonicalizeJson(1e30), equals('1e+30'));
+
+        // At the 10^21 threshold
+        expect(canonicalizeJson(1e21), equals('1e+21'));
+
+        // Just below the threshold should work as integer (if representable)
+        // Note: actual behavior depends on double precision limits
+        final largeInt = 999999999999999.0; // Well below 10^21
+        expect(canonicalizeJson(largeInt), equals('999999999999999'));
+      });
+
       test('properly escapes control characters', () {
         // ASCII control characters should use lowercase hex escapes
         final input = {

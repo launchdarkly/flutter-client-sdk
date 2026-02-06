@@ -22,11 +22,15 @@ String _serializeNumber(num value, {required bool lenient}) {
   }
 
   // Check if it's an integer value (even if stored as double)
-  if (value == value.toInt()) {
+  // Per RFC 8785/ECMA-262: integers with magnitude >= 10^21 must use
+  // scientific notation, not plain decimal. Only convert to int if the
+  // value is small enough for plain decimal representation.
+  const maxPlainDecimal = 1e21;
+  if (value == value.toInt() && value.abs() < maxPlainDecimal) {
     return value.toInt().toString();
   }
 
-  // For non-integer values, use Dart's toString()
+  // For non-integer values or large integers, use Dart's toString()
   // Dart's num.toString() returns the shortest string that uniquely identifies
   // the number, using exponential notation outside the range 10^-6 to 10^21.
   // On web platforms, Dart defers to JavaScript's number serialization.
@@ -48,19 +52,9 @@ String _serializeNumber(num value, {required bool lenient}) {
   return str;
 }
 
-/// Given some object to serialize, produce a canonicalized JSON string
-/// according to RFC 8785 (https://www.rfc-editor.org/rfc/rfc8785.html).
-///
-/// We do not support custom toJson methods on objects. Objects should be
-/// limited to basic types.
-///
-/// When [lenient] is false (default), throws an [ArgumentError] if NaN or
-/// Infinity is encountered, per RFC 8785 requirements. When [lenient] is
-/// true, NaN and Infinity are replaced with null for safety.
-///
-/// Throws an [ArgumentError] if a cycle is detected in the object graph.
-String canonicalizeJson(dynamic object,
-    {bool lenient = false, List<dynamic> visited = const []}) {
+/// Internal implementation of canonicalize that tracks visited objects.
+String _canonicalizeJson(dynamic object,
+    {required bool lenient, List<dynamic> visited = const []}) {
   // Handle null
   if (object == null) {
     return 'null';
@@ -87,7 +81,7 @@ String canonicalizeJson(dynamic object,
   // Handle arrays
   if (object is List) {
     final newVisited = [...visited, object];
-    final values = object.map((item) => canonicalizeJson(item, lenient: lenient, visited: newVisited));
+    final values = object.map((item) => _canonicalizeJson(item, lenient: lenient, visited: newVisited));
     return '[${values.join(',')}]';
   }
 
@@ -105,7 +99,7 @@ String canonicalizeJson(dynamic object,
     final serializedValues = entries.map((entry) {
       final keyStr = entry.key;
       final originalValue = entry.value.value;
-      final value = canonicalizeJson(originalValue, lenient: lenient, visited: newVisited);
+      final value = _canonicalizeJson(originalValue, lenient: lenient, visited: newVisited);
       // Include the key-value pair only if the value is not undefined
       // (In Dart, we don't have undefined, so we include all values)
       return '${jsonEncode(keyStr)}:$value';
@@ -116,4 +110,19 @@ String canonicalizeJson(dynamic object,
 
   // For any other object type, we can't serialize it
   throw ArgumentError('Cannot canonicalize object of type ${object.runtimeType}');
+}
+
+/// Given some object to serialize, produce a canonicalized JSON string
+/// according to RFC 8785 (https://www.rfc-editor.org/rfc/rfc8785.html).
+///
+/// We do not support custom toJson methods on objects. Objects should be
+/// limited to basic types.
+///
+/// When [lenient] is false (default), throws an [ArgumentError] if NaN or
+/// Infinity is encountered, per RFC 8785 requirements. When [lenient] is
+/// true, NaN and Infinity are replaced with null for safety.
+///
+/// Throws an [ArgumentError] if a cycle is detected in the object graph.
+String canonicalizeJson(dynamic object, {bool lenient = false}) {
+  return _canonicalizeJson(object, lenient: lenient);
 }
