@@ -27,7 +27,10 @@ String _serializeNumber(num value, {required bool lenient}) {
   }
 
   // For non-integer values, use Dart's toString()
-  // which follows ECMA-262 semantics for number serialization
+  // Dart's num.toString() returns the shortest string that uniquely identifies
+  // the number, using exponential notation outside the range 10^-6 to 10^21.
+  // On web platforms, Dart defers to JavaScript's number serialization.
+  // See: https://api.dart.dev/dart-core/num/toString.html
   String str = value.toString();
 
   // RFC 8785 requires lowercase 'e' in scientific notation
