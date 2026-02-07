@@ -81,7 +81,8 @@ String _canonicalizeJson(dynamic object,
   // Handle arrays
   if (object is List) {
     final newVisited = [...visited, object];
-    final values = object.map((item) => _canonicalizeJson(item, lenient: lenient, visited: newVisited));
+    final values = object.map((item) =>
+        _canonicalizeJson(item, lenient: lenient, visited: newVisited));
     return '[${values.join(',')}]';
   }
 
@@ -99,7 +100,8 @@ String _canonicalizeJson(dynamic object,
     final serializedValues = entries.map((entry) {
       final keyStr = entry.key;
       final originalValue = entry.value.value;
-      final value = _canonicalizeJson(originalValue, lenient: lenient, visited: newVisited);
+      final value = _canonicalizeJson(originalValue,
+          lenient: lenient, visited: newVisited);
       // Include the key-value pair only if the value is not undefined
       // (In Dart, we don't have undefined, so we include all values)
       return '${jsonEncode(keyStr)}:$value';
@@ -109,7 +111,8 @@ String _canonicalizeJson(dynamic object,
   }
 
   // For any other object type, we can't serialize it
-  throw ArgumentError('Cannot canonicalize object of type ${object.runtimeType}');
+  throw ArgumentError(
+      'Cannot canonicalize object of type ${object.runtimeType}');
 }
 
 /// Given some object to serialize, produce a canonicalized JSON string

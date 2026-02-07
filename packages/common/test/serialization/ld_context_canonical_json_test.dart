@@ -25,7 +25,8 @@ void main() {
         expect(canonical, contains('"name":"Alice"'));
 
         // Verify email comes before key (alphabetical)
-        expect(canonical.indexOf('"email"'), lessThan(canonical.indexOf('"key"')));
+        expect(
+            canonical.indexOf('"email"'), lessThan(canonical.indexOf('"key"')));
       });
 
       test('serializes context with nested objects in canonical form', () {
@@ -44,7 +45,10 @@ void main() {
         final canonical = canonicalizeJson(json);
 
         // Nested object keys should also be sorted
-        expect(canonical, contains('{"city":"Springfield","street":"123 Main St","zip":"12345"}'));
+        expect(
+            canonical,
+            contains(
+                '{"city":"Springfield","street":"123 Main St","zip":"12345"}'));
       });
 
       test('serializes context with array values', () {
@@ -88,8 +92,7 @@ void main() {
             .kind('user', 'user-123')
             .setString('email', 'alice@example.com')
             .setString('name', 'Alice')
-            .addPrivateAttributes(['email'])
-            .build();
+            .addPrivateAttributes(['email']).build();
 
         final json = LDContextSerialization.toJson(context, isEvent: false);
         final canonical = canonicalizeJson(json);
@@ -102,14 +105,14 @@ void main() {
         expect(decoded['_meta']['privateAttributes'], contains('email'));
       });
 
-      test('event serialization with redacted attributes uses canonical form', () {
+      test('event serialization with redacted attributes uses canonical form',
+          () {
         final context = LDContextBuilder()
             .kind('user', 'user-123')
             .setString('email', 'alice@example.com')
             .setString('name', 'Alice')
             .setString('age', '30')
-            .addPrivateAttributes(['email', 'age'])
-            .build();
+            .addPrivateAttributes(['email', 'age']).build();
 
         final json = LDContextSerialization.toJson(context, isEvent: true);
         final canonical = canonicalizeJson(json);
@@ -119,7 +122,8 @@ void main() {
         expect(decoded['email'], isNull);
         expect(decoded['age'], isNull);
         expect(decoded['name'], equals('Alice'));
-        expect(decoded['_meta']['redactedAttributes'], containsAll(['age', 'email']));
+        expect(decoded['_meta']['redactedAttributes'],
+            containsAll(['age', 'email']));
       });
 
       test('serializes context with numeric and boolean values', () {
@@ -194,10 +198,13 @@ void main() {
         expect(decoded['user']['preferences']['theme'], equals('dark'));
 
         // Verify arrays maintain order
-        expect(decoded['organization']['features'], equals(['sso', 'audit-logs']));
+        expect(
+            decoded['organization']['features'], equals(['sso', 'audit-logs']));
       });
 
-      test('event serialization with allAttributesPrivate in multi-kind context', () {
+      test(
+          'event serialization with allAttributesPrivate in multi-kind context',
+          () {
         final context = LDContextBuilder()
             .kind('user', 'user-123')
             .setString('email', 'user@example.com')
@@ -217,7 +224,8 @@ void main() {
 
         // Verify both contexts have redactedAttributes in _meta
         expect(decoded['user']['_meta']['redactedAttributes'], isNotEmpty);
-        expect(decoded['organization']['_meta']['redactedAttributes'], isNotEmpty);
+        expect(
+            decoded['organization']['_meta']['redactedAttributes'], isNotEmpty);
       });
 
       test('serializes multi-kind context with anonymous context', () {
@@ -259,7 +267,8 @@ void main() {
 
         // Session context should be fully redacted
         expect(decoded['session']['deviceId'], isNull);
-        expect(decoded['session']['_meta']['redactedAttributes'], contains('/deviceId'));
+        expect(decoded['session']['_meta']['redactedAttributes'],
+            contains('/deviceId'));
       });
     });
 

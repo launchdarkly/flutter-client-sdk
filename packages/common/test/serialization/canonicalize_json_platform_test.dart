@@ -80,7 +80,8 @@ void main() {
       'array of numbers': '[1,2.5,10000000000,0.00001,0]',
       'negative zero': '0',
       'negative large': '-1e+30',
-      'complex': '{"a":{"nested":100000000000000000000,"values":[1,2.5,3]},"m":true,"z":99}',
+      'complex':
+          '{"a":{"nested":100000000000000000000,"values":[1,2.5,3]},"m":true,"z":99}',
     };
 
     for (var entry in testCases.entries) {

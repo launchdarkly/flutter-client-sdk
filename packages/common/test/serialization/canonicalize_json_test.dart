@@ -6,10 +6,8 @@ import 'package:launchdarkly_dart_common/src/serialization/canonicalize_json.dar
 void main() {
   group('canonicalize_json', () {
     // Test with data files from testdata directory
-    final testInputDir =
-        Directory('test/serialization/testdata/input');
-    final testOutputDir =
-        Directory('test/serialization/testdata/output');
+    final testInputDir = Directory('test/serialization/testdata/input');
+    final testOutputDir = Directory('test/serialization/testdata/output');
 
     if (testInputDir.existsSync()) {
       final testFiles = testInputDir
@@ -87,7 +85,13 @@ void main() {
     });
 
     test('handles mixed types in arrays', () {
-      final input = [1, 'string', true, null, {'key': 'value'}];
+      final input = [
+        1,
+        'string',
+        true,
+        null,
+        {'key': 'value'}
+      ];
       const expected = '[1,"string",true,null,{"key":"value"}]';
       final result = canonicalizeJson(input);
       expect(result, equals(expected));
@@ -271,7 +275,11 @@ void main() {
       });
 
       test('no whitespace between tokens', () {
-        final input = {'a': 1, 'b': [2, 3], 'c': {'d': 4}};
+        final input = {
+          'a': 1,
+          'b': [2, 3],
+          'c': {'d': 4}
+        };
         final result = canonicalizeJson(input);
 
         // Should not contain spaces, newlines, or tabs
