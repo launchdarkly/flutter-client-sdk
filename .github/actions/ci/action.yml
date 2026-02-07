@@ -61,7 +61,7 @@ runs:
       # Dart VM (tested above via melos run test) and Dart2JS/JavaScript (tested here).
       run: |
         cd packages/common
-        dart test test/serialization/canonicalize_json_platform_test.dart -p vm,chrome --test-randomize-ordering-seed=random
+        dart test test/serialization/canonicalize_json_platform_test.dart -p chrome --test-randomize-ordering-seed=random
 
     - name: Contract Tests
       shell: bash
