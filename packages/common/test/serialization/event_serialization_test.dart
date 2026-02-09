@@ -411,9 +411,11 @@ void main() {
   });
 
   test('can serialize summary event', () {
+    final context = LDContextBuilder().kind('user', 'user-key').build();
     final event = SummaryEvent(
         startDate: DateTime.fromMillisecondsSinceEpoch(0),
         endDate: DateTime.fromMillisecondsSinceEpoch(100),
+        context: context,
         features: <String, FlagSummary>{
           'a': FlagSummary(
               defaultValue: LDValue.ofString('default-value'),
@@ -442,7 +444,8 @@ void main() {
               ])
         });
 
-    final json = jsonEncode(SummaryEventSerialization.toJson(event));
+    final json = jsonEncode(SummaryEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -450,6 +453,7 @@ void main() {
         '{"kind":"summary",'
         '"startDate":0,'
         '"endDate":100,'
+        '"context":{"kind":"user","key":"user-key"},'
         '"features":{'
         '"a":{"default":"default-value",'
         '"contextKinds":["user","org"],'

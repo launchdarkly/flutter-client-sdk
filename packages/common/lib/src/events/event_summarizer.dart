@@ -1,3 +1,4 @@
+import '../ld_context.dart';
 import '../ld_value.dart';
 import 'events.dart';
 
@@ -37,44 +38,35 @@ final class _SummaryCounter {
   }
 }
 
-/// Tracks evaluation events in order to generate summary events.
-final class EventSummarizer {
+/// Accumulates summary statistics for a single context.
+final class _ContextAccumulator {
   int _startDate = 0;
   int _endDate = 0;
-
+  final LDContext context;
   final Map<FlagKey, _SummaryCounter> _features = {};
 
-  void summarize(EvalEvent event) {
-    if (!_features.containsKey(event.flagKey)) {
-      _features[event.flagKey] = _SummaryCounter(event.defaultValue);
-    }
-    _features[event.flagKey]!.count(
-        event.evaluationDetail.variationIndex,
-        event.version,
-        event.evaluationDetail.value,
-        event.context.attributesByKind.keys.toSet());
+  _ContextAccumulator(this.context);
 
-    if (event.creationDate.millisecondsSinceEpoch < _startDate ||
-        _startDate == 0) {
-      _startDate = event.creationDate.millisecondsSinceEpoch;
+  void count(FlagKey flagKey, LDValue defaultValue, Variation variation,
+      Version version, LDValue value, Set<String> contextKinds) {
+    if (!_features.containsKey(flagKey)) {
+      _features[flagKey] = _SummaryCounter(defaultValue);
     }
-    if (event.creationDate.millisecondsSinceEpoch > _endDate) {
-      _endDate = event.creationDate.millisecondsSinceEpoch;
+    _features[flagKey]!.count(variation, version, value, contextKinds);
+  }
+
+  void updateDates(DateTime eventDate) {
+    final timestamp = eventDate.millisecondsSinceEpoch;
+    if (timestamp < _startDate || _startDate == 0) {
+      _startDate = timestamp;
+    }
+    if (timestamp > _endDate) {
+      _endDate = timestamp;
     }
   }
 
-  void _clear() {
-    _startDate = 0;
-    _endDate = 0;
-    _features.clear();
-  }
-
-  SummaryEvent? createEventAndReset() {
+  SummaryEvent createSummary() {
     final features = <String, FlagSummary>{};
-
-    if (_features.isEmpty) {
-      return null;
-    }
 
     for (var feature in _features.entries) {
       final counters = <FlagCounter>[];
@@ -100,9 +92,54 @@ final class EventSummarizer {
     final startDate = DateTime.fromMillisecondsSinceEpoch(_startDate);
     final endDate = DateTime.fromMillisecondsSinceEpoch(_endDate);
 
-    _clear();
-
     return SummaryEvent(
-        startDate: startDate, endDate: endDate, features: features);
+        startDate: startDate,
+        endDate: endDate,
+        features: features,
+        context: context);
+  }
+}
+
+/// Tracks evaluation events in order to generate summary events.
+/// Generates one summary event per unique context.
+final class EventSummarizer {
+  final Map<LDContext, _ContextAccumulator> _accumulatorsByContext = {};
+
+  void summarize(EvalEvent event) {
+    // Skip invalid contexts
+    if (!event.context.valid) {
+      return;
+    }
+
+    // Get or create accumulator for this context
+    final accumulator = _accumulatorsByContext.putIfAbsent(
+      event.context,
+      () => _ContextAccumulator(event.context),
+    );
+
+    // Update the accumulator
+    accumulator.count(
+      event.flagKey,
+      event.defaultValue,
+      event.evaluationDetail.variationIndex,
+      event.version,
+      event.evaluationDetail.value,
+      event.context.attributesByKind.keys.toSet(),
+    );
+    accumulator.updateDates(event.creationDate);
+  }
+
+  List<SummaryEvent> createEventsAndReset() {
+    if (_accumulatorsByContext.isEmpty) {
+      return [];
+    }
+
+    final events = _accumulatorsByContext.values
+        .map((accumulator) => accumulator.createSummary())
+        .toList();
+
+    _accumulatorsByContext.clear();
+
+    return events;
   }
 }

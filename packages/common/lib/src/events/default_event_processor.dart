@@ -160,11 +160,16 @@ final class DefaultEventProcessor implements EventProcessor {
     final eventsToFlush = _eventBuffer;
     _eventBuffer = [];
 
-    final summaryEvent = _eventSummarizer.createEventAndReset();
+    final summaryEvents = _eventSummarizer.createEventsAndReset();
 
-    if (summaryEvent != null) {
-      eventsToFlush.add(SummaryEventSerialization.toJson(summaryEvent));
+    for (final summaryEvent in summaryEvents) {
+      eventsToFlush.add(SummaryEventSerialization.toJson(
+        summaryEvent,
+        allAttributesPrivate: _allAttributesPrivate,
+        globalPrivateAttributes: _globalPrivateAttributes,
+      ));
     }
+
     if (eventsToFlush.isEmpty) {
       return;
     }

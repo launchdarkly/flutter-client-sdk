@@ -144,12 +144,17 @@ final class SummaryEvent {
   final DateTime startDate;
   final DateTime endDate;
   final Map<String, FlagSummary> features;
+  final LDContext context;
 
-  SummaryEvent(
-      {required this.startDate, required this.endDate, required this.features});
+  SummaryEvent({
+    required this.startDate,
+    required this.endDate,
+    required this.features,
+    required this.context,
+  });
 
   @override
   String toString() {
-    return 'SummaryEvent{startDate: $startDate, endDate: $endDate, features: $features}';
+    return 'SummaryEvent{startDate: $startDate, endDate: $endDate, features: $features, context: $context}';
   }
 }
