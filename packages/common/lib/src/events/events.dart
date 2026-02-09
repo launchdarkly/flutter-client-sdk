@@ -144,13 +144,13 @@ final class SummaryEvent {
   final DateTime startDate;
   final DateTime endDate;
   final Map<String, FlagSummary> features;
-  final LDContext context;
+  final LDContext? context;
 
   SummaryEvent({
     required this.startDate,
     required this.endDate,
     required this.features,
-    required this.context,
+    this.context,
   });
 
   @override

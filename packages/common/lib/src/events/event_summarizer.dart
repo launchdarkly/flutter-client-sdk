@@ -43,9 +43,10 @@ final class _ContextAccumulator {
   int _startDate = 0;
   int _endDate = 0;
   final LDContext context;
+  final bool includeContextInSummary;
   final Map<FlagKey, _SummaryCounter> _features = {};
 
-  _ContextAccumulator(this.context);
+  _ContextAccumulator(this.context, {required this.includeContextInSummary});
 
   void count(FlagKey flagKey, LDValue defaultValue, Variation variation,
       Version version, LDValue value, Set<String> contextKinds) {
@@ -93,17 +94,22 @@ final class _ContextAccumulator {
     final endDate = DateTime.fromMillisecondsSinceEpoch(_endDate);
 
     return SummaryEvent(
-        startDate: startDate,
-        endDate: endDate,
-        features: features,
-        context: context);
+      startDate: startDate,
+      endDate: endDate,
+      features: features,
+      context: includeContextInSummary ? context : null,
+    );
   }
 }
 
 /// Tracks evaluation events in order to generate summary events.
-/// Generates one summary event per unique context.
+/// When [summariesPerContext] is true, generates one summary event per unique context.
+/// When false, generates a single global summary event without context information.
 final class EventSummarizer {
-  final Map<LDContext, _ContextAccumulator> _accumulatorsByContext = {};
+  final bool summariesPerContext;
+  final Map<LDContext?, _ContextAccumulator> _accumulatorsByContext = {};
+
+  EventSummarizer({this.summariesPerContext = true});
 
   void summarize(EvalEvent event) {
     // Skip invalid contexts
@@ -111,10 +117,16 @@ final class EventSummarizer {
       return;
     }
 
-    // Get or create accumulator for this context
+    // When per-context summaries are disabled, use null as the key so all
+    // events go into a single accumulator. When enabled, use the actual context
+    // as the key so each unique context gets its own accumulator.
+    final contextKey = summariesPerContext ? event.context : null;
+
+    // Get or create accumulator for this context key
     final accumulator = _accumulatorsByContext.putIfAbsent(
-      event.context,
-      () => _ContextAccumulator(event.context),
+      contextKey,
+      () => _ContextAccumulator(event.context,
+          includeContextInSummary: summariesPerContext),
     );
 
     // Update the accumulator

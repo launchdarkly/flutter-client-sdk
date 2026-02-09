@@ -121,15 +121,17 @@ final class SummaryEventSerialization {
     json['features'] = event.features.map(
         (key, value) => MapEntry(key, _FlagSummarySerialization.toJson(value)));
 
-    // Serialize context with event-style privacy filtering
-    final contextJson = LDContextSerialization.toJson(
-      event.context,
-      isEvent: true,
-      allAttributesPrivate: allAttributesPrivate,
-      globalPrivateAttributes: globalPrivateAttributes,
-    );
-    if (contextJson != null) {
-      json['context'] = contextJson;
+    // Serialize context with event-style privacy filtering (if present)
+    if (event.context != null) {
+      final contextJson = LDContextSerialization.toJson(
+        event.context!,
+        isEvent: true,
+        allAttributesPrivate: allAttributesPrivate,
+        globalPrivateAttributes: globalPrivateAttributes,
+      );
+      if (contextJson != null) {
+        json['context'] = contextJson;
+      }
     }
 
     return json;

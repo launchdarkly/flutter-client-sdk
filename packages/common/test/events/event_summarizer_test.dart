@@ -335,4 +335,88 @@ void main() {
     // Should create 2 separate summary events since contexts differ in attributes
     expect(summaryEvents.length, 2);
   });
+
+  test(
+      'with summariesPerContext disabled, generates single summary without context',
+      () {
+    final contextA = LDContextBuilder().kind('user', 'user-a').build();
+    final contextB = LDContextBuilder().kind('user', 'user-b').build();
+
+    final event1 = EvalEvent(
+        flagKey: 'flag1',
+        creationDate: DateTime.fromMillisecondsSinceEpoch(1000),
+        defaultValue: LDValue.ofString('default'),
+        evaluationDetail: LDEvaluationDetail(
+            LDValue.ofString('value-a'), 0, LDEvaluationReason.fallthrough()),
+        context: contextA,
+        withReason: false,
+        trackEvent: false,
+        version: 1);
+    final event2 = EvalEvent(
+        flagKey: 'flag1',
+        creationDate: DateTime.fromMillisecondsSinceEpoch(1500),
+        defaultValue: LDValue.ofString('default'),
+        evaluationDetail: LDEvaluationDetail(
+            LDValue.ofString('value-a'), 0, LDEvaluationReason.fallthrough()),
+        context: contextB,
+        withReason: false,
+        trackEvent: false,
+        version: 1);
+
+    final summarizer = EventSummarizer(summariesPerContext: false);
+    summarizer.summarize(event1);
+    summarizer.summarize(event2);
+
+    final summaryEvents = summarizer.createEventsAndReset();
+
+    // Should create only 1 summary event aggregating all contexts
+    expect(summaryEvents.length, 1);
+
+    // Context should not be included when per-context is disabled
+    expect(summaryEvents[0].context, isNull);
+
+    // Both evaluations should be aggregated (same flag, variation, version)
+    expect(summaryEvents[0].features['flag1']?.counters[0].count, 2);
+  });
+
+  test('with summariesPerContext disabled, aggregates different flags', () {
+    final contextA = LDContextBuilder().kind('user', 'user-a').build();
+    final contextB = LDContextBuilder().kind('user', 'user-b').build();
+
+    final event1 = EvalEvent(
+        flagKey: 'flag1',
+        creationDate: DateTime.fromMillisecondsSinceEpoch(1000),
+        defaultValue: LDValue.ofString('default1'),
+        evaluationDetail: LDEvaluationDetail(
+            LDValue.ofString('value1'), 0, LDEvaluationReason.fallthrough()),
+        context: contextA,
+        withReason: false,
+        trackEvent: false,
+        version: 1);
+    final event2 = EvalEvent(
+        flagKey: 'flag2',
+        creationDate: DateTime.fromMillisecondsSinceEpoch(2000),
+        defaultValue: LDValue.ofString('default2'),
+        evaluationDetail: LDEvaluationDetail(
+            LDValue.ofString('value2'), 1, LDEvaluationReason.fallthrough()),
+        context: contextB,
+        withReason: false,
+        trackEvent: false,
+        version: 2);
+
+    final summarizer = EventSummarizer(summariesPerContext: false);
+    summarizer.summarize(event1);
+    summarizer.summarize(event2);
+
+    final summaryEvents = summarizer.createEventsAndReset();
+
+    // Should create only 1 summary event
+    expect(summaryEvents.length, 1);
+    expect(summaryEvents[0].context, isNull);
+
+    // Should have both flags in the summary
+    expect(summaryEvents[0].features.keys, containsAll(['flag1', 'flag2']));
+    expect(summaryEvents[0].features['flag1']?.counters[0].count, 1);
+    expect(summaryEvents[0].features['flag2']?.counters[0].count, 1);
+  });
 }
