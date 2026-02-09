@@ -38,7 +38,9 @@ final class _SummaryCounter {
   }
 }
 
-/// Accumulates summary statistics for a single context.
+/// Accumulates summary statistics.
+/// When [includeContextInSummary] is true, the context is included in the generated
+/// summary event. When false, statistics are aggregated without context information.
 final class _ContextAccumulator {
   int _startDate = 0;
   int _endDate = 0;
