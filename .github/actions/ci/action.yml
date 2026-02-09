@@ -54,6 +54,15 @@ runs:
       shell: bash
       run: melos run test
 
+    - name: Platform Canonicalization Tests (Chrome)
+      shell: bash
+      # Run RFC 8785 canonicalization tests on Chrome to verify platform-independent behavior.
+      # These tests ensure that the canonicalization produces identical output on both
+      # Dart VM (tested above via melos run test) and Dart2JS/JavaScript (tested here).
+      run: |
+        cd packages/common
+        dart test test/serialization/canonicalize_json_platform_test.dart -p chrome --test-randomize-ordering-seed=random
+
     - name: Contract Tests
       shell: bash
       run: |
