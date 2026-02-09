@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.7.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.6.1...launchdarkly_dart_common-v1.7.0) (2026-02-09)
+
+
+### Features
+
+* Add support for canonical JSON serialization. ([#241](https://github.com/launchdarkly/flutter-client-sdk/issues/241)) ([680c01f](https://github.com/launchdarkly/flutter-client-sdk/commit/680c01f392fa67fb8dbd014f2f44a0b76051df7c))
+
 ## [1.6.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.6.0...launchdarkly_dart_common-v1.6.1) (2025-09-03)
 
 
