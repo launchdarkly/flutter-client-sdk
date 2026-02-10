@@ -24,7 +24,7 @@ const _eventSchema = '4';
 // along with the corresponding context de-duplication.
 
 final class DefaultEventProcessor implements EventProcessor {
-  final _eventSummarizer = EventSummarizer();
+  final EventSummarizer _eventSummarizer;
   final LDLogger _logger;
   final int _eventCapacity;
   final Duration _flushInterval;
@@ -60,6 +60,7 @@ final class DefaultEventProcessor implements EventProcessor {
       required Duration diagnosticRecordingInterval,
       required bool allAttributesPrivate,
       required Set<AttributeReference> globalPrivateAttributes,
+      bool summariesPerContext = true,
       DiagnosticsManager? diagnosticsManager})
       : _logger = logger.subLogger('EventProcessor'),
         _eventCapacity = eventCapacity,
@@ -68,7 +69,9 @@ final class DefaultEventProcessor implements EventProcessor {
         _allAttributesPrivate = allAttributesPrivate,
         _globalPrivateAttributes = globalPrivateAttributes,
         _diagnosticsManager = diagnosticsManager,
-        _diagnosticRecordingInterval = diagnosticRecordingInterval {
+        _diagnosticRecordingInterval = diagnosticRecordingInterval,
+        _eventSummarizer =
+            EventSummarizer(summariesPerContext: summariesPerContext) {
     _eventsUri = Uri.parse(appendPath(endpoints.events, analyticsEventsPath));
 
     _diagnosticEventsUri =
@@ -160,11 +163,16 @@ final class DefaultEventProcessor implements EventProcessor {
     final eventsToFlush = _eventBuffer;
     _eventBuffer = [];
 
-    final summaryEvent = _eventSummarizer.createEventAndReset();
+    final summaryEvents = _eventSummarizer.createEventsAndReset();
 
-    if (summaryEvent != null) {
-      eventsToFlush.add(SummaryEventSerialization.toJson(summaryEvent));
+    for (final summaryEvent in summaryEvents) {
+      eventsToFlush.add(SummaryEventSerialization.toJson(
+        summaryEvent,
+        allAttributesPrivate: _allAttributesPrivate,
+        globalPrivateAttributes: _globalPrivateAttributes,
+      ));
     }
+
     if (eventsToFlush.isEmpty) {
       return;
     }

@@ -411,9 +411,11 @@ void main() {
   });
 
   test('can serialize summary event', () {
+    final context = LDContextBuilder().kind('user', 'user-key').build();
     final event = SummaryEvent(
         startDate: DateTime.fromMillisecondsSinceEpoch(0),
         endDate: DateTime.fromMillisecondsSinceEpoch(100),
+        context: context,
         features: <String, FlagSummary>{
           'a': FlagSummary(
               defaultValue: LDValue.ofString('default-value'),
@@ -442,7 +444,49 @@ void main() {
               ])
         });
 
-    final json = jsonEncode(SummaryEventSerialization.toJson(event));
+    final json = jsonEncode(SummaryEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
+
+    final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
+
+    final expectedLdValue = LDValueSerialization.fromJson(jsonDecode(
+        '{"kind":"summary",'
+        '"startDate":0,'
+        '"endDate":100,'
+        '"context":{"kind":"user","key":"user-key"},'
+        '"features":{'
+        '"a":{"default":"default-value",'
+        '"contextKinds":["user","org"],'
+        '"counters":[{"value":"the-value","count":10,"version":42,"variation":2}]},'
+        '"b":{"default":"default-value",'
+        '"contextKinds":["potato","org"],'
+        '"counters":[{"value":"another-value","count":11,"unknown":true}]}}}'));
+
+    expect(jsonAsLdValue, expectedLdValue);
+  });
+
+  test('can serialize summary event without context', () {
+    final event = SummaryEvent(
+        startDate: DateTime.fromMillisecondsSinceEpoch(0),
+        endDate: DateTime.fromMillisecondsSinceEpoch(100),
+        context: null, // No context when per-context summaries are disabled
+        features: <String, FlagSummary>{
+          'flag-key': FlagSummary(
+              defaultValue: LDValue.ofString('default-value'),
+              counters: [
+                FlagCounter(
+                    value: LDValue.ofString('the-value'),
+                    count: 10,
+                    version: 42,
+                    variation: 2)
+              ],
+              contextKinds: [
+                'user',
+              ])
+        });
+
+    final json = jsonEncode(SummaryEventSerialization.toJson(event,
+        allAttributesPrivate: false, globalPrivateAttributes: {}));
 
     final jsonAsLdValue = LDValueSerialization.fromJson(jsonDecode(json));
 
@@ -451,12 +495,9 @@ void main() {
         '"startDate":0,'
         '"endDate":100,'
         '"features":{'
-        '"a":{"default":"default-value",'
-        '"contextKinds":["user","org"],'
-        '"counters":[{"value":"the-value","count":10,"version":42,"variation":2}]},'
-        '"b":{"default":"default-value",'
-        '"contextKinds":["potato","org"],'
-        '"counters":[{"value":"another-value","count":11,"unknown":true}]}}}'));
+        '"flag-key":{"default":"default-value",'
+        '"contextKinds":["user"],'
+        '"counters":[{"value":"the-value","count":10,"version":42,"variation":2}]}}}'));
 
     expect(jsonAsLdValue, expectedLdValue);
   });

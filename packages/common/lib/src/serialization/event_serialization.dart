@@ -110,7 +110,9 @@ final class _FlagSummarySerialization {
 }
 
 final class SummaryEventSerialization {
-  static Map<String, dynamic> toJson(SummaryEvent event) {
+  static Map<String, dynamic> toJson(SummaryEvent event,
+      {required bool allAttributesPrivate,
+      required Set<AttributeReference> globalPrivateAttributes}) {
     final json = <String, dynamic>{};
 
     json['kind'] = 'summary';
@@ -118,6 +120,19 @@ final class SummaryEventSerialization {
     json['endDate'] = event.endDate.millisecondsSinceEpoch;
     json['features'] = event.features.map(
         (key, value) => MapEntry(key, _FlagSummarySerialization.toJson(value)));
+
+    // Serialize context with event-style privacy filtering (if present)
+    if (event.context != null) {
+      final contextJson = LDContextSerialization.toJson(
+        event.context!,
+        isEvent: true,
+        allAttributesPrivate: allAttributesPrivate,
+        globalPrivateAttributes: globalPrivateAttributes,
+      );
+      if (contextJson != null) {
+        json['context'] = contextJson;
+      }
+    }
 
     return json;
   }
