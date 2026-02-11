@@ -8,7 +8,7 @@ import 'persistence/shared_preferences_persistence.dart';
 import 'platform_env_reporter.dart';
 
 const sdkName = 'FlutterClientSdk';
-const sdkVersion = '4.14.0'; // x-release-please-version
+const sdkVersion = '4.15.0'; // x-release-please-version
 
 /// The main interface for the LaunchDarkly Flutter SDK.
 ///

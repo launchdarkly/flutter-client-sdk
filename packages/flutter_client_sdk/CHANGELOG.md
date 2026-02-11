@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.15.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.14.0...4.15.0) (2026-02-10)
+
+
+### Features
+
+* Add support for per-context summary events. ([#247](https://github.com/launchdarkly/flutter-client-sdk/issues/247)) ([f09b3e2](https://github.com/launchdarkly/flutter-client-sdk/commit/f09b3e2ccf1f42a2b368f1fa6276cfcf83074a8a))
+
 ## [4.14.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.13.0...4.14.0) (2025-11-05)
 
 
