@@ -106,6 +106,7 @@ final class LDAttributesBuilder {
   String? _key;
   String? _name;
   bool _anonymous = false;
+  bool _anonymousExplicitlySet = false;
   final Set<AttributeReference> _privateAttributes = {};
 
   // map for tracking attributes of the context
@@ -164,6 +165,7 @@ final class LDAttributesBuilder {
   /// ```
   LDAttributesBuilder anonymous(bool anonymous) {
     _anonymous = anonymous;
+    _anonymousExplicitlySet = true;
     return this;
   }
 
@@ -308,10 +310,19 @@ final class LDAttributesBuilder {
   /// any subsequent actions on the [LDAttributesBuilder].
   LDContextAttributes? _build() {
     final key = _key ?? '';
-    if (key == '' && !_anonymous) {
-      // If no key was provided, the context is automatically anonymous.
-      // The SDK will generate a stable key during start() or identify().
-      _anonymous = true;
+    // Determine the effective anonymous value.
+    // If no key was provided and anonymous was not explicitly set,
+    // the context is automatically anonymous.
+    // If anonymous was explicitly set to false, the context is invalid
+    // without a key.
+    final bool effectiveAnonymous;
+    if (key == '' && !_anonymous && !_anonymousExplicitlySet) {
+      effectiveAnonymous = true;
+    } else if (key == '' && !_anonymous) {
+      // Explicitly set anonymous(false) with no key = invalid context.
+      return null;
+    } else {
+      effectiveAnonymous = _anonymous;
     }
     if (_validKind(_kind)) {
       return LDContextAttributes._internal(
@@ -319,7 +330,7 @@ final class LDAttributesBuilder {
           Map.unmodifiable(_attributes),
           _kind,
           _key ?? '',
-          _anonymous,
+          effectiveAnonymous,
           _privateAttributes,
           _name);
     }
