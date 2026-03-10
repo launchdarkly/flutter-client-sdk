@@ -141,17 +141,25 @@ final class LDAttributesBuilder {
   /// making attributes private; all non-private attributes will still be
   /// included in events and data export.
   ///
-  /// When a context is anonymous and no key has been provided (i.e. the key
-  /// parameter was omitted from [LDContextBuilder.kind]), the SDK will
+  /// A context is also automatically set to anonymous at build time if no key
+  /// was provided to [LDContextBuilder.kind].
+  ///
+  /// When a context is anonymous and no key has been provided, the SDK will
   /// automatically generate a key for the context during [LDClient.start] or
   /// [LDClient.identify]. The generated key is a UUID that is persisted
   /// on the device, so it will remain stable across application restarts.
   ///
   /// Example of creating an anonymous context with a generated key:
   /// ```dart
+  /// // Explicitly anonymous:
   /// final context = LDContextBuilder()
   ///   .kind('user')
   ///   .anonymous(true)
+  ///   .build();
+  ///
+  /// // Also anonymous (automatically, because no key was provided):
+  /// final context2 = LDContextBuilder()
+  ///   .kind('user')
   ///   .build();
   /// ```
   LDAttributesBuilder anonymous(bool anonymous) {
@@ -301,8 +309,9 @@ final class LDAttributesBuilder {
   LDContextAttributes? _build() {
     final key = _key ?? '';
     if (key == '' && !_anonymous) {
-      // If the context is not anonymous, then the key cannot be empty.
-      return null;
+      // If no key was provided, the context is automatically anonymous.
+      // The SDK will generate a stable key during start() or identify().
+      _anonymous = true;
     }
     if (_validKind(_kind)) {
       return LDContextAttributes._internal(
@@ -475,13 +484,10 @@ final class LDContextBuilder {
   /// non-empty.  Calling this method again with the same kind returns the same
   /// [LDAttributesBuilder] as before.
   ///
-  /// If [key] is omitted and [LDAttributesBuilder.anonymous] is set to true,
-  /// the SDK will automatically generate a stable key for this context during
-  /// [LDClient.start] or [LDClient.identify]. The generated key will be
-  /// persisted on the device and reused for future application runs.
-  ///
-  /// If [key] is omitted and anonymous is not set to true, the context will
-  /// be invalid.
+  /// If [key] is omitted, the context will automatically be set to anonymous
+  /// at build time, and the SDK will generate a stable key for this context
+  /// during [LDClient.start] or [LDClient.identify]. The generated key will
+  /// be persisted on the device and reused for future application runs.
   LDAttributesBuilder kind(String kind, [String? key]) {
     LDAttributesBuilder builder = _buildersByKind.putIfAbsent(
         kind, () => LDAttributesBuilder._internal(this, kind));
