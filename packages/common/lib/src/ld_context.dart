@@ -105,8 +105,7 @@ final class LDAttributesBuilder {
   final LDContextBuilder _parent;
   String? _key;
   String? _name;
-  bool _anonymous = false;
-  bool _anonymousExplicitlySet = false;
+  bool? _anonymous;
   final Set<AttributeReference> _privateAttributes = {};
 
   // map for tracking attributes of the context
@@ -149,23 +148,24 @@ final class LDAttributesBuilder {
   /// automatically generate a key for the context during [LDClient.start] or
   /// [LDClient.identify]. The generated key is a UUID that is persisted
   /// on the device, so it will remain stable across application restarts.
+  /// If persistence is not available, the generated key will not be stable
+  /// across application restarts.
   ///
-  /// Example of creating an anonymous context with a generated key:
+  /// Examples of creating an anonymous context:
   /// ```dart
-  /// // Explicitly anonymous:
+  /// // Implicitly anonymous and will get a generated key (no key was provided):
   /// final context = LDContextBuilder()
   ///   .kind('user')
-  ///   .anonymous(true)
   ///   .build();
   ///
-  /// // Also anonymous (automatically, because no key was provided):
+  /// // Explicitly anonymous and will get a generated key (no key was provided):
   /// final context2 = LDContextBuilder()
   ///   .kind('user')
+  ///   .anonymous(true)
   ///   .build();
   /// ```
   LDAttributesBuilder anonymous(bool anonymous) {
     _anonymous = anonymous;
-    _anonymousExplicitlySet = true;
     return this;
   }
 
@@ -310,19 +310,18 @@ final class LDAttributesBuilder {
   /// any subsequent actions on the [LDAttributesBuilder].
   LDContextAttributes? _build() {
     final key = _key ?? '';
-    // Determine the effective anonymous value.
-    // If no key was provided and anonymous was not explicitly set,
-    // the context is automatically anonymous.
-    // If anonymous was explicitly set to false, the context is invalid
-    // without a key.
+    // Determine the effective anonymous value:
+    // - _anonymous == null (never set): auto-anonymous if no key, else false
+    // - _anonymous == true: anonymous
+    // - _anonymous == false (explicitly set): not anonymous, requires a key
     final bool effectiveAnonymous;
-    if (key == '' && !_anonymous && !_anonymousExplicitlySet) {
+    if (_anonymous == null && key == '') {
       effectiveAnonymous = true;
-    } else if (key == '' && !_anonymous) {
-      // Explicitly set anonymous(false) with no key = invalid context.
+    } else if ((_anonymous ?? false) == false && key == '') {
+      // Not anonymous (explicitly set to false) with no key = invalid context.
       return null;
     } else {
-      effectiveAnonymous = _anonymous;
+      effectiveAnonymous = _anonymous ?? false;
     }
     if (_validKind(_kind)) {
       return LDContextAttributes._internal(
