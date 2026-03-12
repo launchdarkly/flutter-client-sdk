@@ -422,13 +422,6 @@ class TestApiImpl extends SdkTestApi {
         attrsBuilder.setValue(
             a.key, common.LDValueSerialization.fromJson(a.value));
       }
-      // When converting from JSON, explicitly set anonymous(false) if it
-      // wasn't set to true. This prevents the builder from auto-setting
-      // anonymous for keyless contexts during JSON deserialization, reserving
-      // that behavior for the builder API.
-      if (attributes['anonymous'] != true) {
-        attrsBuilder.anonymous(false);
-      }
       final Map<String, dynamic> meta = attributes['_meta'] ?? {};
       final List<String> privateAttrs =
           ((meta['privateAttributes'] ?? []) as List<dynamic>)
