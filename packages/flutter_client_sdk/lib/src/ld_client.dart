@@ -112,6 +112,11 @@ interface class LDClient {
   /// `runApp` is called, you must ensure the binding is initialized with
   /// `WidgetsFlutterBinding.ensureInitialized`.
   ///
+  /// During startup, if the initial context contains any anonymous contexts
+  /// without keys (i.e. [LDAttributesBuilder.anonymous] was set to true and
+  /// no key was provided to [LDContextBuilder.kind]), the SDK will
+  /// automatically generate and persist a stable key for each such context.
+  ///
   /// The [start] function can take an indeterminate amount of time to
   /// complete. For instance if the SDK is started while a device is in airplane
   /// mode, then it may not complete until some time in the future when the
@@ -143,6 +148,12 @@ interface class LDClient {
   /// the most current flag values. An event will be queued to be sent to the
   /// service containing the public [LDContext] fields for indexing on the
   /// dashboard.
+  ///
+  /// If the provided context contains any anonymous contexts without keys
+  /// (i.e. [LDAttributesBuilder.anonymous] was set to true and no key was
+  /// provided to [LDContextBuilder.kind]), the SDK will automatically generate
+  /// and persist a stable key for each such context before processing the
+  /// identify.
   ///
   /// A context with the same kinds and same keys will use the same cached
   /// context.
