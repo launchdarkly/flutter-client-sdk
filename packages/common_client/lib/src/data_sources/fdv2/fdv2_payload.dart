@@ -1,3 +1,5 @@
+import 'selector.dart';
+
 /// The type of payload transfer.
 enum PayloadType {
   /// The updates represent the complete state and replace everything.
@@ -55,12 +57,10 @@ final class Update {
 
 /// A complete payload emitted by the protocol handler.
 final class Payload {
-  /// The version of this payload.
-  final int version;
-
-  /// The opaque selector state. Present when the payload comes from an
-  /// authoritative (network) source. Null for cached data.
-  final String? state;
+  /// The selector for this payload. Contains the opaque state string
+  /// and version from the server. [Selector.empty] when no selector
+  /// was provided (e.g., cached data or intent-none).
+  final Selector selector;
 
   /// Whether this is a full, partial, or no-op payload.
   final PayloadType type;
@@ -69,14 +69,13 @@ final class Payload {
   final List<Update> updates;
 
   const Payload({
-    required this.version,
-    this.state,
+    this.selector = Selector.empty,
     required this.type,
     required this.updates,
   });
 
   @override
   String toString() =>
-      'Payload(version: $version, state: $state, type: $type, '
+      'Payload(selector: $selector, type: $type, '
       'updates: ${updates.length})';
 }

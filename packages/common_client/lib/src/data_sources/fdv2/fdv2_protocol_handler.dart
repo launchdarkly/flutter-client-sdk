@@ -2,6 +2,7 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import 'fdv2_payload.dart';
 import 'fdv2_protocol_types.dart';
+import 'selector.dart';
 
 /// Object processors that transform raw JSON objects per kind before
 /// they are included in a payload.
@@ -173,7 +174,6 @@ final class FDv2ProtocolHandler {
     }
 
     return ActionPayload(Payload(
-      version: intent.target!,
       type: PayloadType.none,
       updates: [],
     ));
@@ -264,8 +264,7 @@ final class FDv2ProtocolHandler {
     }
 
     final result = ActionPayload(Payload(
-      version: data.version!,
-      state: data.state,
+      selector: Selector(state: data.state, version: data.version!),
       type: _tempType,
       updates: _tempUpdates,
     ));

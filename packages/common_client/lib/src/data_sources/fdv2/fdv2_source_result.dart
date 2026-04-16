@@ -49,7 +49,7 @@ final class ChangeSetResult extends FDv2SourceResult {
   String toString() =>
       'ChangeSetResult(type: ${payload.type}, '
       'updates: ${payload.updates.length}, '
-      'hasSelector: ${payload.state != null}, '
+      'hasSelector: ${payload.selector.isNotEmpty}, '
       'persist: $persist, fdv1Fallback: $fdv1Fallback)';
 }
 

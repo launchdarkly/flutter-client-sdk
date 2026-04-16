@@ -10,28 +10,8 @@ void main() {
       expect(Selector.empty.isNotEmpty, isFalse);
     });
 
-    test('from null state returns empty', () {
-      expect(Selector.from(null), equals(Selector.empty));
-    });
-
-    test('from empty string returns empty', () {
-      expect(Selector.from(''), equals(Selector.empty));
-    });
-
-    test('from null state ignores version', () {
-      expect(Selector.from(null, version: 42), equals(Selector.empty));
-    });
-
-    test('from valid state creates selector with default version', () {
-      final sel = Selector.from('(p:abc:42)');
-      expect(sel.state, equals('(p:abc:42)'));
-      expect(sel.version, equals(0));
-      expect(sel.isEmpty, isFalse);
-      expect(sel.isNotEmpty, isTrue);
-    });
-
-    test('from valid state and version creates selector', () {
-      final sel = Selector.from('(p:abc:42)', version: 42);
+    test('constructed with state and version', () {
+      final sel = Selector(state: '(p:abc:42)', version: 42);
       expect(sel.state, equals('(p:abc:42)'));
       expect(sel.version, equals(42));
       expect(sel.isEmpty, isFalse);
@@ -39,10 +19,10 @@ void main() {
     });
 
     test('equality requires both state and version', () {
-      final a = Selector.from('state-1', version: 1);
-      final b = Selector.from('state-1', version: 1);
-      final c = Selector.from('state-1', version: 2);
-      final d = Selector.from('state-2', version: 1);
+      final a = Selector(state: 'state-1', version: 1);
+      final b = Selector(state: 'state-1', version: 1);
+      final c = Selector(state: 'state-1', version: 2);
+      final d = Selector(state: 'state-2', version: 1);
 
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
@@ -50,8 +30,13 @@ void main() {
       expect(a, isNot(equals(d)));
     });
 
+    test('empty string state is empty', () {
+      final sel = Selector(state: '', version: 5);
+      expect(sel.isEmpty, isTrue);
+    });
+
     test('toString includes state and version', () {
-      final sel = Selector.from('my-state', version: 10);
+      final sel = Selector(state: 'my-state', version: 10);
       expect(sel.toString(), contains('my-state'));
       expect(sel.toString(), contains('10'));
     });

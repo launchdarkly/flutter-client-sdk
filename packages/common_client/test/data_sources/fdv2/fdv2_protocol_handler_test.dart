@@ -87,9 +87,8 @@ void main() {
       expect(action, isA<ActionPayload>());
       final payload = (action as ActionPayload).payload;
       expect(payload.type, equals(PayloadType.none));
-      expect(payload.version, equals(42));
       expect(payload.updates, isEmpty);
-      expect(payload.state, isNull);
+      expect(payload.selector.isEmpty, isTrue);
     });
 
     test('empty payloads array returns error', () {
@@ -318,8 +317,8 @@ void main() {
 
       final payload = (action as ActionPayload).payload;
       expect(payload.type, equals(PayloadType.full));
-      expect(payload.version, equals(10));
-      expect(payload.state, equals('sel-1'));
+      expect(payload.selector.state, equals('sel-1'));
+      expect(payload.selector.version, equals(10));
       expect(payload.updates, hasLength(2));
       expect(payload.updates[0].key, equals('flag-1'));
       expect(payload.updates[0].deleted, isFalse);
@@ -487,8 +486,8 @@ void main() {
 
       final payload = (action as ActionPayload).payload;
       expect(payload.type, equals(PayloadType.full));
-      expect(payload.version, equals(50));
-      expect(payload.state, equals('(p:abc:50)'));
+      expect(payload.selector.state, equals('(p:abc:50)'));
+      expect(payload.selector.version, equals(50));
       expect(payload.updates, hasLength(3));
 
       expect(payload.updates[0].kind, equals('flag-eval'));
