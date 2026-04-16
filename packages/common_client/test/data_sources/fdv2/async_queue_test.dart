@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/async_queue.dart';
 import 'package:test/test.dart';
 

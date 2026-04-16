@@ -161,7 +161,7 @@ void main() {
     test('ignored for unknown kind with no processor', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
-      final action = handler.processEvent(FDv2Event(
+      handler.processEvent(FDv2Event(
           event: FDv2EventTypes.putObject,
           data: {
             'kind': 'unknown-kind',
@@ -169,7 +169,13 @@ void main() {
             'version': 1,
             'object': {'value': true}
           }));
-      expect(action, isA<ActionNone>());
+
+      // Verify the unknown-kind update is NOT in the emitted payload.
+      final action =
+          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      expect(action, isA<ActionPayload>());
+      final payload = (action as ActionPayload).payload;
+      expect(payload.updates, isEmpty);
     });
 
     test('ignored with empty key', () {
@@ -220,8 +226,35 @@ void main() {
         logger: LDLogger(),
       );
       handler.processEvent(serverIntent('xfer-full'));
-      final action = handler.processEvent(putObject('flag-1'));
-      expect(action, isA<ActionNone>());
+      handler.processEvent(putObject('flag-1'));
+
+      // Verify the update is NOT in the emitted payload.
+      final action =
+          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      expect(action, isA<ActionPayload>());
+      final payload = (action as ActionPayload).payload;
+      expect(payload.updates, isEmpty);
+    });
+
+    test('known kind accumulates while unknown kind is ignored', () {
+      final handler = makeHandler();
+      handler.processEvent(serverIntent('xfer-full'));
+      handler.processEvent(putObject('known-flag', kind: 'flag-eval'));
+      handler.processEvent(FDv2Event(
+          event: FDv2EventTypes.putObject,
+          data: {
+            'kind': 'segment',
+            'key': 'some-segment',
+            'version': 1,
+            'object': {'key': 'seg-1'}
+          }));
+
+      final action =
+          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      expect(action, isA<ActionPayload>());
+      final payload = (action as ActionPayload).payload;
+      expect(payload.updates, hasLength(1));
+      expect(payload.updates[0].key, equals('known-flag'));
     });
   });
 
@@ -250,6 +283,25 @@ void main() {
             'key': 'my-flag',
           }));
       expect(action, isA<ActionNone>());
+    });
+
+    test('ignored for unknown kind', () {
+      final handler = makeHandler();
+      handler.processEvent(serverIntent('xfer-changes'));
+      handler.processEvent(FDv2Event(
+          event: FDv2EventTypes.deleteObject,
+          data: {
+            'kind': 'segment',
+            'key': 'some-segment',
+            'version': 1,
+          }));
+
+      // Verify the unknown-kind delete is NOT in the emitted payload.
+      final action =
+          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      expect(action, isA<ActionPayload>());
+      final payload = (action as ActionPayload).payload;
+      expect(payload.updates, isEmpty);
     });
   });
 

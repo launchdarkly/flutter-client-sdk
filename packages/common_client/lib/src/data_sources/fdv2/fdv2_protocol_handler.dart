@@ -198,8 +198,11 @@ final class FDv2ProtocolHandler {
     }
 
     final processor = _objProcessors[data.kind];
-    final processed =
-        processor != null ? processor(data.object!) : data.object;
+    if (processor == null) {
+      // Per spec 4.1.2: silently ignore objects with unrecognized kind.
+      return _actionNone;
+    }
+    final processed = processor(data.object!);
     if (processed == null) {
       _logger.warn("Unable to process object for kind: '${data.kind}'");
       return _actionNone;
@@ -226,6 +229,11 @@ final class FDv2ProtocolHandler {
       _logger.warn(
           'Ignoring delete-object with missing fields: '
           'kind=${data.kind}, key=${data.key}, version=${data.version}');
+      return _actionNone;
+    }
+
+    if (!_objProcessors.containsKey(data.kind)) {
+      // Per spec 4.1.2: silently ignore objects with unrecognized kind.
       return _actionNone;
     }
 
