@@ -82,8 +82,7 @@ void main() {
 
     test('none emits a payload with type none', () {
       final handler = makeHandler();
-      final action =
-          handler.processEvent(serverIntent('none', target: 42));
+      final action = handler.processEvent(serverIntent('none', target: 42));
       expect(action, isA<ActionPayload>());
       final payload = (action as ActionPayload).payload;
       expect(payload.type, equals(PayloadType.none));
@@ -102,25 +101,24 @@ void main() {
 
     test('missing payloads field returns error', () {
       final handler = makeHandler();
-      final action = handler
-          .processEvent(FDv2Event(event: FDv2EventTypes.serverIntent, data: {}));
+      final action = handler.processEvent(
+          FDv2Event(event: FDv2EventTypes.serverIntent, data: {}));
       expect(action, isA<ActionError>());
     });
 
     test('unknown intentCode returns none without emitting payload', () {
       final handler = makeHandler();
-      final action = handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.serverIntent,
-          data: {
-            'payloads': [
-              {
-                'id': 'p1',
-                'target': 42,
-                'intentCode': 'xfer-future-unknown',
-                'reason': 'test',
-              }
-            ]
-          }));
+      final action = handler
+          .processEvent(FDv2Event(event: FDv2EventTypes.serverIntent, data: {
+        'payloads': [
+          {
+            'id': 'p1',
+            'target': 42,
+            'intentCode': 'xfer-future-unknown',
+            'reason': 'test',
+          }
+        ]
+      }));
       expect(action, isA<ActionNone>());
     });
 
@@ -131,23 +129,20 @@ void main() {
       handler.processEvent(putObject('stale-flag'));
 
       // Unknown intent code arrives — should clear accumulated updates.
-      handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.serverIntent,
-          data: {
-            'payloads': [
-              {
-                'id': 'p1',
-                'target': 1,
-                'intentCode': 'xfer-future-unknown',
-                'reason': 'test',
-              }
-            ]
-          }));
+      handler.processEvent(FDv2Event(event: FDv2EventTypes.serverIntent, data: {
+        'payloads': [
+          {
+            'id': 'p1',
+            'target': 1,
+            'intentCode': 'xfer-future-unknown',
+            'reason': 'test',
+          }
+        ]
+      }));
 
       // Now a valid transfer completes — stale update must not appear.
       handler.processEvent(putObject('fresh-flag'));
-      final action =
-          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      final action = handler.processEvent(payloadTransferred(state: 'sel-1'));
       expect(action, isA<ActionPayload>());
       final payload = (action as ActionPayload).payload;
       expect(payload.updates, hasLength(1));
@@ -156,17 +151,16 @@ void main() {
 
     test('none intent with missing target returns none', () {
       final handler = makeHandler();
-      final action = handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.serverIntent,
-          data: {
-            'payloads': [
-              {
-                'id': 'p1',
-                'intentCode': 'none',
-                'reason': 'up-to-date',
-              }
-            ]
-          }));
+      final action = handler
+          .processEvent(FDv2Event(event: FDv2EventTypes.serverIntent, data: {
+        'payloads': [
+          {
+            'id': 'p1',
+            'intentCode': 'none',
+            'reason': 'up-to-date',
+          }
+        ]
+      }));
       // Should return ActionNone, NOT a payload with version: 0
       expect(action, isA<ActionNone>());
     });
@@ -190,18 +184,15 @@ void main() {
     test('ignored for unknown kind with no processor', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
-      handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.putObject,
-          data: {
-            'kind': 'unknown-kind',
-            'key': 'test',
-            'version': 1,
-            'object': {'value': true}
-          }));
+      handler.processEvent(FDv2Event(event: FDv2EventTypes.putObject, data: {
+        'kind': 'unknown-kind',
+        'key': 'test',
+        'version': 1,
+        'object': {'value': true}
+      }));
 
       // Verify the unknown-kind update is NOT in the emitted payload.
-      final action =
-          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      final action = handler.processEvent(payloadTransferred(state: 'sel-1'));
       expect(action, isA<ActionPayload>());
       final payload = (action as ActionPayload).payload;
       expect(payload.updates, isEmpty);
@@ -210,40 +201,37 @@ void main() {
     test('ignored with empty key', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
-      final action = handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.putObject,
-          data: {
-            'kind': 'flag-eval',
-            'key': '',
-            'version': 1,
-            'object': {'value': true}
-          }));
+      final action = handler
+          .processEvent(FDv2Event(event: FDv2EventTypes.putObject, data: {
+        'kind': 'flag-eval',
+        'key': '',
+        'version': 1,
+        'object': {'value': true}
+      }));
       expect(action, isA<ActionNone>());
     });
 
     test('ignored with missing version', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
-      final action = handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.putObject,
-          data: {
-            'kind': 'flag-eval',
-            'key': 'my-flag',
-            'object': {'value': true}
-          }));
+      final action = handler
+          .processEvent(FDv2Event(event: FDv2EventTypes.putObject, data: {
+        'kind': 'flag-eval',
+        'key': 'my-flag',
+        'object': {'value': true}
+      }));
       expect(action, isA<ActionNone>());
     });
 
     test('ignored with missing object', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
-      final action = handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.putObject,
-          data: {
-            'kind': 'flag-eval',
-            'key': 'my-flag',
-            'version': 1,
-          }));
+      final action = handler
+          .processEvent(FDv2Event(event: FDv2EventTypes.putObject, data: {
+        'kind': 'flag-eval',
+        'key': 'my-flag',
+        'version': 1,
+      }));
       expect(action, isA<ActionNone>());
     });
 
@@ -258,8 +246,7 @@ void main() {
       handler.processEvent(putObject('flag-1'));
 
       // Verify the update is NOT in the emitted payload.
-      final action =
-          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      final action = handler.processEvent(payloadTransferred(state: 'sel-1'));
       expect(action, isA<ActionPayload>());
       final payload = (action as ActionPayload).payload;
       expect(payload.updates, isEmpty);
@@ -269,17 +256,14 @@ void main() {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
       handler.processEvent(putObject('known-flag', kind: 'flag-eval'));
-      handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.putObject,
-          data: {
-            'kind': 'segment',
-            'key': 'some-segment',
-            'version': 1,
-            'object': {'key': 'seg-1'}
-          }));
+      handler.processEvent(FDv2Event(event: FDv2EventTypes.putObject, data: {
+        'kind': 'segment',
+        'key': 'some-segment',
+        'version': 1,
+        'object': {'key': 'seg-1'}
+      }));
 
-      final action =
-          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      final action = handler.processEvent(payloadTransferred(state: 'sel-1'));
       expect(action, isA<ActionPayload>());
       final payload = (action as ActionPayload).payload;
       expect(payload.updates, hasLength(1));
@@ -305,29 +289,25 @@ void main() {
     test('ignored with missing version', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-changes'));
-      final action = handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.deleteObject,
-          data: {
-            'kind': 'flag-eval',
-            'key': 'my-flag',
-          }));
+      final action = handler
+          .processEvent(FDv2Event(event: FDv2EventTypes.deleteObject, data: {
+        'kind': 'flag-eval',
+        'key': 'my-flag',
+      }));
       expect(action, isA<ActionNone>());
     });
 
     test('ignored for unknown kind', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-changes'));
-      handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.deleteObject,
-          data: {
-            'kind': 'segment',
-            'key': 'some-segment',
-            'version': 1,
-          }));
+      handler.processEvent(FDv2Event(event: FDv2EventTypes.deleteObject, data: {
+        'kind': 'segment',
+        'key': 'some-segment',
+        'version': 1,
+      }));
 
       // Verify the unknown-kind delete is NOT in the emitted payload.
-      final action =
-          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      final action = handler.processEvent(payloadTransferred(state: 'sel-1'));
       expect(action, isA<ActionPayload>());
       final payload = (action as ActionPayload).payload;
       expect(payload.updates, isEmpty);
@@ -341,8 +321,8 @@ void main() {
       handler.processEvent(putObject('flag-1', version: 5));
       handler.processEvent(deleteObject('flag-2', version: 6));
 
-      final action = handler
-          .processEvent(payloadTransferred(state: 'sel-1', version: 10));
+      final action =
+          handler.processEvent(payloadTransferred(state: 'sel-1', version: 10));
       expect(action, isA<ActionPayload>());
 
       final payload = (action as ActionPayload).payload;
@@ -361,8 +341,7 @@ void main() {
       handler.processEvent(serverIntent('xfer-changes'));
       handler.processEvent(putObject('flag-1'));
 
-      final action =
-          handler.processEvent(payloadTransferred(state: 'sel-2'));
+      final action = handler.processEvent(payloadTransferred(state: 'sel-2'));
       expect(action, isA<ActionPayload>());
 
       final payload = (action as ActionPayload).payload;
@@ -399,8 +378,7 @@ void main() {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
       final action = handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.payloadTransferred,
-          data: {'state': 'sel-1'}));
+          event: FDv2EventTypes.payloadTransferred, data: {'state': 'sel-1'}));
       expect(action, isA<ActionNone>());
       expect(handler.state, equals(ProtocolState.inactive));
     });
@@ -414,8 +392,7 @@ void main() {
 
       // Second transfer (no new server-intent): partial
       handler.processEvent(putObject('flag-2'));
-      final action =
-          handler.processEvent(payloadTransferred(state: 'sel-2'));
+      final action = handler.processEvent(payloadTransferred(state: 'sel-2'));
       expect(action, isA<ActionPayload>());
       final payload = (action as ActionPayload).payload;
       expect(payload.type, equals(PayloadType.partial));
@@ -429,8 +406,7 @@ void main() {
       handler.processEvent(serverIntent('xfer-full'));
 
       final action = handler.processEvent(FDv2Event(
-          event: FDv2EventTypes.goodbye,
-          data: {'reason': 'maintenance'}));
+          event: FDv2EventTypes.goodbye, data: {'reason': 'maintenance'}));
       expect(action, isA<ActionGoodbye>());
       expect((action as ActionGoodbye).reason, equals('maintenance'));
       expect(handler.state, equals(ProtocolState.inactive));
@@ -459,8 +435,8 @@ void main() {
   group('heartbeat', () {
     test('returns none', () {
       final handler = makeHandler();
-      final action = handler.processEvent(
-          FDv2Event(event: FDv2EventTypes.heartbeat, data: {}));
+      final action = handler
+          .processEvent(FDv2Event(event: FDv2EventTypes.heartbeat, data: {}));
       expect(action, isA<ActionNone>());
     });
   });
@@ -468,11 +444,11 @@ void main() {
   group('unknown event', () {
     test('returns error action', () {
       final handler = makeHandler();
-      final action = handler
-          .processEvent(FDv2Event(event: 'unknown-type', data: {}));
+      final action =
+          handler.processEvent(FDv2Event(event: 'unknown-type', data: {}));
       expect(action, isA<ActionError>());
-      expect((action as ActionError).kind,
-          equals(ProtocolErrorKind.unknownEvent));
+      expect(
+          (action as ActionError).kind, equals(ProtocolErrorKind.unknownEvent));
     });
   });
 
@@ -510,8 +486,8 @@ void main() {
       handler.processEvent(deleteObject('flag-c', version: 3));
 
       // Complete
-      final action = handler.processEvent(
-          payloadTransferred(state: '(p:abc:50)', version: 50));
+      final action = handler
+          .processEvent(payloadTransferred(state: '(p:abc:50)', version: 50));
       expect(action, isA<ActionPayload>());
 
       final payload = (action as ActionPayload).payload;

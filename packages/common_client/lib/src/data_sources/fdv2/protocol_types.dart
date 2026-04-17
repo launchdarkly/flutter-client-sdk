@@ -66,8 +66,7 @@ final class ServerIntentData {
     final payloadsList = json['payloads'] as List<dynamic>?;
     return ServerIntentData(
       payloads: payloadsList
-              ?.map((e) =>
-                  PayloadIntent.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => PayloadIntent.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );

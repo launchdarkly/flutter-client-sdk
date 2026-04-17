@@ -26,7 +26,8 @@ void main() {
       expect(result.containsKey('my-flag'), isTrue);
       expect(result['my-flag']!.version, equals(5));
       expect(result['my-flag']!.flag, isNotNull);
-      expect(result['my-flag']!.flag!.detail.value, equals(LDValue.ofBool(true)));
+      expect(
+          result['my-flag']!.flag!.detail.value, equals(LDValue.ofBool(true)));
     });
 
     test('converts delete update to tombstone', () {

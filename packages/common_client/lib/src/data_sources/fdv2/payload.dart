@@ -75,7 +75,6 @@ final class Payload {
   });
 
   @override
-  String toString() =>
-      'Payload(selector: $selector, type: $type, '
+  String toString() => 'Payload(selector: $selector, type: $type, '
       'updates: ${updates.length})';
 }

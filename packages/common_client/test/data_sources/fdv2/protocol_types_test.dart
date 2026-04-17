@@ -5,8 +5,8 @@ void main() {
   group('IntentCode', () {
     test('fromWire parses known values', () {
       expect(IntentCode.fromWire('xfer-full'), equals(IntentCode.transferFull));
-      expect(
-          IntentCode.fromWire('xfer-changes'), equals(IntentCode.transferChanges));
+      expect(IntentCode.fromWire('xfer-changes'),
+          equals(IntentCode.transferChanges));
       expect(IntentCode.fromWire('none'), equals(IntentCode.none));
     });
 
@@ -184,13 +184,23 @@ void main() {
             'event': 'server-intent',
             'data': {
               'payloads': [
-                {'id': 'p1', 'target': 1, 'intentCode': 'xfer-full', 'reason': 'test'}
+                {
+                  'id': 'p1',
+                  'target': 1,
+                  'intentCode': 'xfer-full',
+                  'reason': 'test'
+                }
               ]
             }
           },
           {
             'event': 'put-object',
-            'data': {'kind': 'flag-eval', 'key': 'f1', 'version': 1, 'object': {}}
+            'data': {
+              'kind': 'flag-eval',
+              'key': 'f1',
+              'version': 1,
+              'object': {}
+            }
           },
         ]
       });

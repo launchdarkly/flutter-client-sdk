@@ -107,13 +107,11 @@ final class FDv2ProtocolHandler {
   ProtocolAction processEvent(FDv2Event event) {
     switch (event.event) {
       case FDv2EventTypes.serverIntent:
-        return _processServerIntent(
-            ServerIntentData.fromJson(event.data));
+        return _processServerIntent(ServerIntentData.fromJson(event.data));
       case FDv2EventTypes.putObject:
         return _processPutObject(PutObjectEvent.fromJson(event.data));
       case FDv2EventTypes.deleteObject:
-        return _processDeleteObject(
-            DeleteObjectEvent.fromJson(event.data));
+        return _processDeleteObject(DeleteObjectEvent.fromJson(event.data));
       case FDv2EventTypes.payloadTransferred:
         return _processPayloadTransferred(
             PayloadTransferredEvent.fromJson(event.data));
@@ -159,8 +157,7 @@ final class FDv2ProtocolHandler {
         _tempType = PayloadType.partial;
         return _processIntentNone(payload);
       case null:
-        _logger.warn(
-            'Unable to process intent code '
+        _logger.warn('Unable to process intent code '
             "'${payload.intentCode}'.");
         _tempUpdates = [];
         return _actionNone;
@@ -169,8 +166,7 @@ final class FDv2ProtocolHandler {
 
   ProtocolAction _processIntentNone(PayloadIntent intent) {
     if (intent.target == null) {
-      _logger.warn(
-          "Ignoring 'none' intent with missing target field.");
+      _logger.warn("Ignoring 'none' intent with missing target field.");
       return _actionNone;
     }
 
@@ -182,8 +178,7 @@ final class FDv2ProtocolHandler {
 
   ProtocolAction _processPutObject(PutObjectEvent data) {
     if (_state == ProtocolState.inactive) {
-      _logger.warn(
-          'Received put-object before server-intent was established. '
+      _logger.warn('Received put-object before server-intent was established. '
           'Ignoring.');
       return _actionNone;
     }
@@ -192,8 +187,7 @@ final class FDv2ProtocolHandler {
         data.key.isEmpty ||
         data.version == null ||
         data.object == null) {
-      _logger.warn(
-          'Ignoring put-object with missing fields: '
+      _logger.warn('Ignoring put-object with missing fields: '
           'kind=${data.kind}, key=${data.key}, version=${data.version}');
       return _actionNone;
     }
@@ -220,15 +214,14 @@ final class FDv2ProtocolHandler {
 
   ProtocolAction _processDeleteObject(DeleteObjectEvent data) {
     if (_state == ProtocolState.inactive) {
-      _logger.warn(
-          'Received delete-object before server-intent was established. '
-          'Ignoring.');
+      _logger
+          .warn('Received delete-object before server-intent was established. '
+              'Ignoring.');
       return _actionNone;
     }
 
     if (data.kind.isEmpty || data.key.isEmpty || data.version == null) {
-      _logger.warn(
-          'Ignoring delete-object with missing fields: '
+      _logger.warn('Ignoring delete-object with missing fields: '
           'kind=${data.kind}, key=${data.key}, version=${data.version}');
       return _actionNone;
     }
@@ -252,13 +245,12 @@ final class FDv2ProtocolHandler {
       return const ActionError(
         ProtocolErrorKind.protocolError,
         'A payload-transferred has been received without an intent '
-            'having been established.',
+        'having been established.',
       );
     }
 
     if (data.state.isEmpty || data.version == null) {
-      _logger.warn(
-          'Ignoring payload-transferred with missing fields: '
+      _logger.warn('Ignoring payload-transferred with missing fields: '
           'state=${data.state}, version=${data.version}');
       reset();
       return _actionNone;
@@ -281,8 +273,7 @@ final class FDv2ProtocolHandler {
   }
 
   ProtocolAction _processError(ServerErrorEvent data) {
-    _logger.info(
-        'Server error encountered receiving updates: ${data.reason}');
+    _logger.info('Server error encountered receiving updates: ${data.reason}');
     _resetAfterError();
     return ActionServerError(data.reason, id: data.payloadId);
   }

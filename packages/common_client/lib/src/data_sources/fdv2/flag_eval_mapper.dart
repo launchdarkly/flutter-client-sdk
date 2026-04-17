@@ -11,8 +11,7 @@ const String flagEvalKind = 'flag-eval';
 ///
 /// Only processes updates with kind [flagEvalKind]; other kinds are
 /// silently ignored.
-Map<String, ItemDescriptor> mapUpdatesToItemDescriptors(
-    List<Update> updates) {
+Map<String, ItemDescriptor> mapUpdatesToItemDescriptors(List<Update> updates) {
   final result = <String, ItemDescriptor>{};
   for (final update in updates) {
     if (update.kind != flagEvalKind) {
@@ -23,8 +22,8 @@ Map<String, ItemDescriptor> mapUpdatesToItemDescriptors(
       result[update.key] = ItemDescriptor(version: update.version);
     } else if (update.object != null) {
       try {
-        final evalResult = LDEvaluationResultSerialization.fromJson(
-            update.object!);
+        final evalResult =
+            LDEvaluationResultSerialization.fromJson(update.object!);
         result[update.key] = ItemDescriptor(
           version: update.version,
           flag: evalResult,

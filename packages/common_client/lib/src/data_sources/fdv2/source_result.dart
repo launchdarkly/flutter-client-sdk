@@ -46,8 +46,7 @@ final class ChangeSetResult extends FDv2SourceResult {
   });
 
   @override
-  String toString() =>
-      'ChangeSetResult(type: ${payload.type}, '
+  String toString() => 'ChangeSetResult(type: ${payload.type}, '
       'updates: ${payload.updates.length}, '
       'hasSelector: ${payload.selector.isNotEmpty}, '
       'persist: $persist, fdv1Fallback: $fdv1Fallback)';
@@ -76,8 +75,7 @@ final class StatusResult extends FDv2SourceResult {
   });
 
   @override
-  String toString() =>
-      'StatusResult(state: $state, errorKind: $errorKind, '
+  String toString() => 'StatusResult(state: $state, errorKind: $errorKind, '
       'message: $message, fdv1Fallback: $fdv1Fallback)';
 }
 
