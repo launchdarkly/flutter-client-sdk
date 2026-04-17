@@ -11,8 +11,8 @@ abstract final class FDv2EventTypes {
 
 /// The intent code from a server-intent payload entry.
 enum IntentCode {
-  xferFull('xfer-full'),
-  xferChanges('xfer-changes'),
+  transferFull('xfer-full'),
+  transferChanges('xfer-changes'),
   none('none');
 
   final String wireValue;

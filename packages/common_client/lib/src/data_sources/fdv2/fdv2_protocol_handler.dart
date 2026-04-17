@@ -143,12 +143,12 @@ final class FDv2ProtocolHandler {
     final payload = data.payloads[0];
 
     switch (payload.intentCode) {
-      case IntentCode.xferFull:
+      case IntentCode.transferFull:
         _state = ProtocolState.full;
         _tempUpdates = [];
         _tempType = PayloadType.full;
         return _actionNone;
-      case IntentCode.xferChanges:
+      case IntentCode.transferChanges:
         _state = ProtocolState.changes;
         _tempUpdates = [];
         _tempType = PayloadType.partial;

@@ -4,9 +4,9 @@ import 'package:test/test.dart';
 void main() {
   group('IntentCode', () {
     test('fromWire parses known values', () {
-      expect(IntentCode.fromWire('xfer-full'), equals(IntentCode.xferFull));
+      expect(IntentCode.fromWire('xfer-full'), equals(IntentCode.transferFull));
       expect(
-          IntentCode.fromWire('xfer-changes'), equals(IntentCode.xferChanges));
+          IntentCode.fromWire('xfer-changes'), equals(IntentCode.transferChanges));
       expect(IntentCode.fromWire('none'), equals(IntentCode.none));
     });
 
@@ -31,7 +31,7 @@ void main() {
       expect(data.payloads, hasLength(1));
       expect(data.payloads[0].id, equals('p1'));
       expect(data.payloads[0].target, equals(42));
-      expect(data.payloads[0].intentCode, equals(IntentCode.xferFull));
+      expect(data.payloads[0].intentCode, equals(IntentCode.transferFull));
       expect(data.payloads[0].reason, equals('payload-missing'));
     });
 
