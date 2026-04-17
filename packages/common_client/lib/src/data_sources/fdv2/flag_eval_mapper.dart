@@ -1,7 +1,7 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import '../../item_descriptor.dart';
-import 'fdv2_payload.dart';
+import 'payload.dart';
 
 /// The object kind for client-side flag evaluation results.
 const String flagEvalKind = 'flag-eval';

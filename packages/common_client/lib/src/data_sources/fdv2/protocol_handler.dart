@@ -1,7 +1,7 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
-import 'fdv2_payload.dart';
-import 'fdv2_protocol_types.dart';
+import 'payload.dart';
+import 'protocol_types.dart';
 import 'selector.dart';
 
 /// Object processors that transform raw JSON objects per kind before

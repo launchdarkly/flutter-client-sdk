@@ -1,4 +1,4 @@
-import 'package:launchdarkly_common_client/src/data_sources/fdv2/fdv2_protocol_types.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/protocol_types.dart';
 import 'package:test/test.dart';
 
 void main() {

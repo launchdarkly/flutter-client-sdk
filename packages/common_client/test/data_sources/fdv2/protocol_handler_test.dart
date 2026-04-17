@@ -1,7 +1,7 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
-import 'package:launchdarkly_common_client/src/data_sources/fdv2/fdv2_payload.dart';
-import 'package:launchdarkly_common_client/src/data_sources/fdv2/fdv2_protocol_handler.dart';
-import 'package:launchdarkly_common_client/src/data_sources/fdv2/fdv2_protocol_types.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/protocol_handler.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/protocol_types.dart';
 import 'package:test/test.dart';
 
 void main() {

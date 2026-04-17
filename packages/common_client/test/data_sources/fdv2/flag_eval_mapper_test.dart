@@ -1,6 +1,6 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
-import 'package:launchdarkly_common_client/src/data_sources/fdv2/fdv2_flag_eval_mapper.dart';
-import 'package:launchdarkly_common_client/src/data_sources/fdv2/fdv2_payload.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/flag_eval_mapper.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:test/test.dart';
 
 void main() {

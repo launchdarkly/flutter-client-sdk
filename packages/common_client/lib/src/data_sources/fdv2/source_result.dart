@@ -1,4 +1,4 @@
-import 'fdv2_payload.dart';
+import 'payload.dart';
 
 /// The status of a data source that is not delivering data.
 enum SourceState {
