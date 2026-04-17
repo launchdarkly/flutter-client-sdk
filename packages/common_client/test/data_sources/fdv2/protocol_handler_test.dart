@@ -124,6 +124,36 @@ void main() {
       expect(action, isA<ActionNone>());
     });
 
+    test('unknown intentCode clears stale updates', () {
+      final handler = makeHandler();
+      // Start a transfer and accumulate an update.
+      handler.processEvent(serverIntent('xfer-full'));
+      handler.processEvent(putObject('stale-flag'));
+
+      // Unknown intent code arrives — should clear accumulated updates.
+      handler.processEvent(FDv2Event(
+          event: FDv2EventTypes.serverIntent,
+          data: {
+            'payloads': [
+              {
+                'id': 'p1',
+                'target': 1,
+                'intentCode': 'xfer-future-unknown',
+                'reason': 'test',
+              }
+            ]
+          }));
+
+      // Now a valid transfer completes — stale update must not appear.
+      handler.processEvent(putObject('fresh-flag'));
+      final action =
+          handler.processEvent(payloadTransferred(state: 'sel-1'));
+      expect(action, isA<ActionPayload>());
+      final payload = (action as ActionPayload).payload;
+      expect(payload.updates, hasLength(1));
+      expect(payload.updates[0].key, equals('fresh-flag'));
+    });
+
     test('none intent with missing target returns none', () {
       final handler = makeHandler();
       final action = handler.processEvent(FDv2Event(

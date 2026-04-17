@@ -162,6 +162,7 @@ final class FDv2ProtocolHandler {
         _logger.warn(
             'Unable to process intent code '
             "'${payload.intentCode}'.");
+        _tempUpdates = [];
         return _actionNone;
     }
   }
