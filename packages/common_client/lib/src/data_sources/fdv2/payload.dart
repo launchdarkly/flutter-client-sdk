@@ -49,8 +49,7 @@ final class Update {
           deleted == other.deleted &&
           _objectEquals(object, other.object);
 
-  static bool _objectEquals(
-      Map<String, dynamic>? a, Map<String, dynamic>? b) {
+  static bool _objectEquals(Map<String, dynamic>? a, Map<String, dynamic>? b) {
     if (a == null) return b == null;
     if (b == null) return false;
     return a.equals(b);
