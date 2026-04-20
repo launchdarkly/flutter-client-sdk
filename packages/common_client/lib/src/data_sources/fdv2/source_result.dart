@@ -39,9 +39,9 @@ final class ChangeSetResult extends FDv2SourceResult {
 
   const ChangeSetResult({
     required this.payload,
+    required this.persist,
     this.environmentId,
     this.freshness,
-    this.persist = true,
     super.fdv1Fallback,
   });
 
@@ -83,16 +83,16 @@ final class StatusResult extends FDv2SourceResult {
 abstract final class FDv2SourceResults {
   static ChangeSetResult changeSet({
     required Payload payload,
+    required bool persist,
     String? environmentId,
     DateTime? freshness,
-    bool persist = true,
     bool fdv1Fallback = false,
   }) =>
       ChangeSetResult(
         payload: payload,
+        persist: persist,
         environmentId: environmentId,
         freshness: freshness,
-        persist: persist,
         fdv1Fallback: fdv1Fallback,
       );
 

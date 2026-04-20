@@ -202,12 +202,11 @@ final class FDv2EventsCollection {
   const FDv2EventsCollection({required this.events});
 
   factory FDv2EventsCollection.fromJson(Map<String, dynamic> json) {
-    final eventsList = json['events'] as List<dynamic>?;
+    final eventsList = json['events'] as List<dynamic>? ?? const [];
     return FDv2EventsCollection(
       events: eventsList
-              ?.map((e) => FDv2Event.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+          .map((e) => FDv2Event.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

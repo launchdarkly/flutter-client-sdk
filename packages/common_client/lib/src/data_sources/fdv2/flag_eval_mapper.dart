@@ -20,10 +20,9 @@ Map<String, ItemDescriptor> mapUpdatesToItemDescriptors(List<Update> updates) {
 
     if (update.deleted) {
       result[update.key] = ItemDescriptor(version: update.version);
-    } else if (update.object != null) {
+    } else if (update.object case final object?) {
       try {
-        final evalResult =
-            LDEvaluationResultSerialization.fromJson(update.object!);
+        final evalResult = LDEvaluationResultSerialization.fromJson(object);
         result[update.key] = ItemDescriptor(
           version: update.version,
           flag: evalResult,

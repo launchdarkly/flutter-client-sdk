@@ -149,7 +149,7 @@ void main() {
       expect(payload.updates[0].key, equals('fresh-flag'));
     });
 
-    test('none intent with missing target returns none', () {
+    test('none intent without target still emits none payload', () {
       final handler = makeHandler();
       final action = handler
           .processEvent(FDv2Event(event: FDv2EventTypes.serverIntent, data: {
@@ -161,8 +161,11 @@ void main() {
           }
         ]
       }));
-      // Should return ActionNone, NOT a payload with version: 0
-      expect(action, isA<ActionNone>());
+      expect(action, isA<ActionPayload>());
+      final payload = (action as ActionPayload).payload;
+      expect(payload.type, equals(PayloadType.none));
+      expect(payload.updates, isEmpty);
+      expect(payload.selector.isEmpty, isTrue);
     });
   });
 

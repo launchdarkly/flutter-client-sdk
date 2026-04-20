@@ -1,3 +1,5 @@
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+
 import 'selector.dart';
 
 /// The type of payload transfer.
@@ -44,15 +46,31 @@ final class Update {
           kind == other.kind &&
           key == other.key &&
           version == other.version &&
-          deleted == other.deleted;
+          deleted == other.deleted &&
+          _objectEquals(object, other.object);
+
+  static bool _objectEquals(
+      Map<String, dynamic>? a, Map<String, dynamic>? b) {
+    if (a == null) return b == null;
+    if (b == null) return false;
+    return a.equals(b);
+  }
 
   @override
-  int get hashCode =>
-      kind.hashCode ^ key.hashCode ^ version.hashCode ^ deleted.hashCode;
+  int get hashCode => Object.hash(
+        kind,
+        key,
+        version,
+        deleted,
+        object == null
+            ? null
+            : Object.hashAllUnordered(
+                object!.entries.map((e) => Object.hash(e.key, e.value))),
+      );
 
   @override
-  String toString() =>
-      'Update(kind: $kind, key: $key, version: $version, deleted: $deleted)';
+  String toString() => 'Update(kind: $kind, key: $key, version: $version, '
+      'deleted: $deleted, object: $object)';
 }
 
 /// A complete payload emitted by the protocol handler.

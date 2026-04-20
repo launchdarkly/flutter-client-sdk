@@ -155,25 +155,15 @@ final class FDv2ProtocolHandler {
         _state = ProtocolState.changes;
         _tempUpdates = [];
         _tempType = PayloadType.partial;
-        return _processIntentNone(payload);
+        return ActionPayload(Payload(
+          type: PayloadType.none,
+          updates: [],
+        ));
       case null:
-        _logger.warn('Unable to process intent code '
-            "'${payload.intentCode}'.");
+        _logger.warn('Unable to parse server-intent.');
         _tempUpdates = [];
         return _actionNone;
     }
-  }
-
-  ProtocolAction _processIntentNone(PayloadIntent intent) {
-    if (intent.target == null) {
-      _logger.warn("Ignoring 'none' intent with missing target field.");
-      return _actionNone;
-    }
-
-    return ActionPayload(Payload(
-      type: PayloadType.none,
-      updates: [],
-    ));
   }
 
   ProtocolAction _processPutObject(PutObjectEvent data) {
