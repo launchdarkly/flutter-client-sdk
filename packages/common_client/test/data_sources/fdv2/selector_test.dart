@@ -3,14 +3,18 @@ import 'package:test/test.dart';
 
 void main() {
   group('Selector', () {
-    test('empty selector has empty state and zero version', () {
-      expect(Selector.empty.state, equals(''));
+    test('empty selector has null state and zero version', () {
+      expect(Selector.empty.state, isNull);
       expect(Selector.empty.version, equals(0));
       expect(Selector.empty.isEmpty, isTrue);
       expect(Selector.empty.isNotEmpty, isFalse);
     });
 
-    test('constructed with state and version', () {
+    test('empty singleton is identical across references', () {
+      expect(identical(Selector.empty, Selector.empty), isTrue);
+    });
+
+    test('constructed with state and version is not empty', () {
       final sel = Selector(state: '(p:abc:42)', version: 42);
       expect(sel.state, equals('(p:abc:42)'));
       expect(sel.version, equals(42));
@@ -18,7 +22,7 @@ void main() {
       expect(sel.isNotEmpty, isTrue);
     });
 
-    test('equality requires both state and version', () {
+    test('equality requires matching emptiness, state, and version', () {
       final a = Selector(state: 'state-1', version: 1);
       final b = Selector(state: 'state-1', version: 1);
       final c = Selector(state: 'state-1', version: 2);
@@ -30,12 +34,15 @@ void main() {
       expect(a, isNot(equals(d)));
     });
 
-    test('empty string state is empty', () {
-      final sel = Selector(state: '', version: 5);
-      expect(sel.isEmpty, isTrue);
+    test('non-empty selector is not equal to empty selector', () {
+      final sel = Selector(state: 'something', version: 1);
+      expect(sel, isNot(equals(Selector.empty)));
+      expect(Selector.empty, isNot(equals(sel)));
     });
 
-    test('toString includes state and version', () {
+    test('toString differentiates empty and non-empty', () {
+      expect(Selector.empty.toString(), equals('Selector(empty)'));
+
       final sel = Selector(state: 'my-state', version: 10);
       expect(sel.toString(), contains('my-state'));
       expect(sel.toString(), contains('10'));
