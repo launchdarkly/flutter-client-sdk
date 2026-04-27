@@ -58,8 +58,7 @@ final class FDv2Requestor {
   /// Sends a single poll request, optionally including a [basis] selector
   /// for delta updates. Throws on network errors; otherwise returns the
   /// raw response. Tracks `ETag` for subsequent calls on this instance.
-  Future<RequestorResponse> request(
-      {Selector basis = Selector.empty}) async {
+  Future<RequestorResponse> request({Selector basis = Selector.empty}) async {
     final uri = _buildUri(basis: basis);
     final method = _usePost ? RequestMethod.post : RequestMethod.get;
     final additionalHeaders = <String, String>{};
@@ -102,6 +101,8 @@ final class FDv2Requestor {
     }
     final url = appendPath(_baseUrl, path);
     final uri = Uri.parse(url);
-    return queryParams.isEmpty ? uri : uri.replace(queryParameters: queryParams);
+    return queryParams.isEmpty
+        ? uri
+        : uri.replace(queryParameters: queryParams);
   }
 }

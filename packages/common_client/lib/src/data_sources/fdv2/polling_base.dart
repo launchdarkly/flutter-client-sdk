@@ -40,8 +40,7 @@ final class FDv2PollingBase {
 
   /// Performs a single poll. Never throws; all errors are reported as
   /// [StatusResult]s.
-  Future<FDv2SourceResult> pollOnce(
-      {Selector basis = Selector.empty}) async {
+  Future<FDv2SourceResult> pollOnce({Selector basis = Selector.empty}) async {
     final RequestorResponse response;
     try {
       response = await _requestor.request(basis: basis);

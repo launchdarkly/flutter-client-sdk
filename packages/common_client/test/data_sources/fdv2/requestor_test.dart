@@ -39,8 +39,7 @@ void main() {
         return http.Response('{}', 200);
       });
 
-      final requestor =
-          makeRequestor(mock, contextEncoded: 'ENC123');
+      final requestor = makeRequestor(mock, contextEncoded: 'ENC123');
       await requestor.request();
 
       expect(capturedMethod, equals('GET'));
@@ -163,8 +162,7 @@ void main() {
       final requestor = makeRequestor(mock);
       await requestor.request();
 
-      expect(
-          capturedUri.queryParameters.containsKey('withReasons'), isFalse);
+      expect(capturedUri.queryParameters.containsKey('withReasons'), isFalse);
     });
   });
 

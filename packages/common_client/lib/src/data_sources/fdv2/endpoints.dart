@@ -13,8 +13,7 @@ abstract final class FDv2Endpoints {
 
   /// Builds the polling GET path with the base64url-encoded context
   /// embedded in the URL path.
-  static String pollingGet(String encodedContext) =>
-      '$polling/$encodedContext';
+  static String pollingGet(String encodedContext) => '$polling/$encodedContext';
 
   /// Builds the streaming GET path with the base64url-encoded context
   /// embedded in the URL path.

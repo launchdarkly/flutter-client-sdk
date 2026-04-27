@@ -85,8 +85,8 @@ void main() {
   group('200 response with valid payload', () {
     test('produces a ChangeSetResult with the parsed payload', () async {
       final mock = MockClient((request) async {
-        return http.Response(buildXferFullBody(state: 'sel-99', payloadVersion: 99),
-            200);
+        return http.Response(
+            buildXferFullBody(state: 'sel-99', payloadVersion: 99), 200);
       });
 
       final base = makePollingBase(mock);
@@ -149,8 +149,7 @@ void main() {
         'returns terminalError with fdv1Fallback=true when '
         'x-ld-fd-fallback is true', () async {
       final mock = MockClient((request) async {
-        return http.Response('', 200,
-            headers: {'x-ld-fd-fallback': 'true'});
+        return http.Response('', 200, headers: {'x-ld-fd-fallback': 'true'});
       });
 
       final base = makePollingBase(mock);
@@ -197,8 +196,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.interrupted));
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
 
     test('429 is interrupted', () async {
@@ -209,8 +207,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.interrupted));
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
 
     test('401 is terminalError', () async {
@@ -221,8 +218,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.terminalError));
+      expect((result as StatusResult).state, equals(SourceState.terminalError));
     });
 
     test('403 is terminalError', () async {
@@ -233,8 +229,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.terminalError));
+      expect((result as StatusResult).state, equals(SourceState.terminalError));
     });
 
     test('500 is interrupted (5xx is recoverable)', () async {
@@ -245,8 +240,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.interrupted));
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
   });
 
@@ -259,8 +253,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.interrupted));
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
   });
 
@@ -273,12 +266,10 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.interrupted));
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
 
-    test('returns interrupted when body is JSON but not an object',
-        () async {
+    test('returns interrupted when body is JSON but not an object', () async {
       final mock = MockClient((request) async {
         return http.Response('[1, 2, 3]', 200);
       });
@@ -286,8 +277,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.interrupted));
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
 
     test('returns interrupted when no payload-transferred is present',
@@ -316,8 +306,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.interrupted));
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
   });
 
@@ -383,8 +372,7 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state,
-          equals(SourceState.interrupted));
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
   });
 }
