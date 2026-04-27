@@ -15,14 +15,14 @@ import 'source_result.dart';
 ///
 /// Wraps an [FDv2Requestor] with FDv2 protocol semantics:
 ///
-/// - Network errors → [SourceState.interrupted].
-/// - `x-ld-fd-fallback: true` header → terminal error with
+/// - Network errors --> [SourceState.interrupted].
+/// - `x-ld-fd-fallback: true` header --> terminal error with
 ///   `fdv1Fallback: true`.
-/// - HTTP `304 Not Modified` → an empty change set with
+/// - HTTP `304 Not Modified` --> an empty change set with
 ///   [PayloadType.none], confirming the cached data is current.
-/// - Other 4xx/5xx → interrupted (recoverable) or terminalError
+/// - Other 4xx/5xx --> interrupted (recoverable) or terminalError
 ///   (non-recoverable) based on [isHttpGloballyRecoverable].
-/// - `200` → body is parsed as an [FDv2EventsCollection] and fed
+/// - `200` --> body is parsed as an [FDv2EventsCollection] and fed
 ///   through an [FDv2ProtocolHandler]. The first emitted action
 ///   determines the result.
 final class FDv2PollingBase {
