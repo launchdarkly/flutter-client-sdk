@@ -65,8 +65,7 @@ final class FDv2PollingBase {
   }
 
   FDv2SourceResult _processResponse(RequestorResponse response) {
-    // Match `x-ld-fd-fallback` case-insensitively. Servers shouldn't send
-    // mixed case, but it costs nothing to be lenient on input.
+    // Match `x-ld-fd-fallback` case-insensitively.
     final fdv1Fallback =
         response.headers['x-ld-fd-fallback']?.toLowerCase() == 'true';
     final environmentId = response.headers['x-ld-envid'];
