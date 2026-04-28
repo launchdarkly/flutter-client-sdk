@@ -10,9 +10,10 @@ import 'package:launchdarkly_common_client/src/data_sources/fdv2/requestor.dart'
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_result.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
+import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-import 'support/capturing_log_adapter.dart';
+class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 FDv2PollingBase makePollingBase(
   MockClient innerClient, {
@@ -85,6 +86,14 @@ String buildXferFullBody({
 }
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(LDLogRecord(
+        level: LDLogLevel.debug,
+        message: '',
+        time: DateTime.now(),
+        logTag: ''));
+  });
+
   group('200 response with valid payload', () {
     test('produces a ChangeSetResult with the parsed payload', () async {
       final mock = MockClient((request) async {
@@ -613,8 +622,9 @@ void main() {
       // 'ClientException: <msg>, uri=<full-url>'. The full URL embeds the
       // base64url-encoded context in GET mode. The polling base must
       // never log the raw exception.
-      final captured = CapturingLogAdapter();
-      final logger = LDLogger(adapter: captured, level: LDLogLevel.debug);
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+      final logger = LDLogger(adapter: adapter, level: LDLogLevel.debug);
       final mock = MockClient((request) async {
         throw http.ClientException('Connection refused', request.url);
       });
@@ -633,8 +643,10 @@ void main() {
       final base = FDv2PollingBase(logger: logger, requestor: requestor);
       await base.pollOnce();
 
-      for (final message in captured.messages) {
-        expect(message, isNot(contains('SECRET-ENCODED-CONTEXT')));
+      final records = verify(() => adapter.log(captureAny())).captured;
+      for (final record in records) {
+        expect((record as LDLogRecord).message,
+            isNot(contains('SECRET-ENCODED-CONTEXT')));
       }
     });
 

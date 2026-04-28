@@ -5,9 +5,10 @@ import 'package:launchdarkly_common_client/src/data_sources/fdv2/requestor.dart'
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
+import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-import 'support/capturing_log_adapter.dart';
+class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 FDv2Requestor makeRequestor(
   MockClient innerClient, {
@@ -31,6 +32,14 @@ FDv2Requestor makeRequestor(
 }
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(LDLogRecord(
+        level: LDLogLevel.debug,
+        message: '',
+        time: DateTime.now(),
+        logTag: ''));
+  });
+
   group('GET requests', () {
     test('builds polling GET URL with encoded context in path', () async {
       late Uri capturedUri;
@@ -420,8 +429,9 @@ void main() {
 
   group('debug logging does not leak the encoded context', () {
     test('the context segment of the URL is not logged', () async {
-      final captured = CapturingLogAdapter();
-      final logger = LDLogger(adapter: captured, level: LDLogLevel.debug);
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+      final logger = LDLogger(adapter: adapter, level: LDLogLevel.debug);
       final mock = MockClient((request) async {
         return http.Response('{}', 200);
       });
@@ -439,8 +449,10 @@ void main() {
       );
       await requestor.request();
 
-      for (final message in captured.messages) {
-        expect(message, isNot(contains('SECRET-ENCODED-CONTEXT')));
+      final records = verify(() => adapter.log(captureAny())).captured;
+      for (final record in records) {
+        expect((record as LDLogRecord).message,
+            isNot(contains('SECRET-ENCODED-CONTEXT')));
       }
     });
   });
