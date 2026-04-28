@@ -20,16 +20,21 @@ typedef RequestorResponse = ({
 ///
 /// Pure HTTP layer: builds the URL, sends the request, tracks `ETag`
 /// across calls on the same instance, and returns the raw response. It
-/// does no FDv2 protocol parsing or error classification — that is the
+/// does no FDv2 protocol parsing or error classification -- that is the
 /// responsibility of the caller (see [FDv2PollingBase]).
 ///
 /// One [FDv2Requestor] is bound to a single evaluation context. Switching
 /// contexts requires a fresh instance so a previous context's `ETag`
 /// can never leak into a request for a different context.
+///
+/// Calls to [request] are not safe to interleave on a single instance --
+/// `ETag` tracking assumes serial requests. Callers (the polling
+/// synchronizer) must wait for each [request] to complete before issuing
+/// the next.
 final class FDv2Requestor {
   final LDLogger _logger;
   final HttpClient _client;
-  final String _baseUrl;
+  final Uri _baseUri;
   final String _contextEncoded;
   final String _contextJson;
   final bool _usePost;
@@ -46,7 +51,7 @@ final class FDv2Requestor {
     required HttpProperties httpProperties,
     HttpClientFactory httpClientFactory = _defaultHttpClientFactory,
   })  : _logger = logger.subLogger('FDv2Requestor'),
-        _baseUrl = endpoints.polling,
+        _baseUri = Uri.parse(endpoints.polling),
         _contextEncoded = contextEncoded,
         _contextJson = contextJson,
         _usePost = usePost,
@@ -57,7 +62,8 @@ final class FDv2Requestor {
 
   /// Sends a single poll request, optionally including a [basis] selector
   /// for delta updates. Throws on network errors; otherwise returns the
-  /// raw response. Tracks `ETag` for subsequent calls on this instance.
+  /// response. Tracks `ETag` across successful (`200`) responses on this
+  /// instance.
   Future<RequestorResponse> request({Selector basis = Selector.empty}) async {
     final uri = _buildUri(basis: basis);
     final method = _usePost ? RequestMethod.post : RequestMethod.get;
@@ -66,8 +72,10 @@ final class FDv2Requestor {
       additionalHeaders['if-none-match'] = _lastEtag!;
     }
 
-    _logger.debug(
-        'FDv2 poll: method=$method, uri=$uri, etag=$_lastEtag, basis=${basis.state}');
+    // Avoid logging the full URI -- in GET mode it embeds the
+    // base64url-encoded context, which is reversible PII.
+    _logger.debug('FDv2 poll: method=$method, hasEtag=${_lastEtag != null}, '
+        'hasBasis=${basis.isNotEmpty}');
 
     final response = await _client.request(
       method,
@@ -76,9 +84,15 @@ final class FDv2Requestor {
       body: _usePost ? _contextJson : null,
     );
 
-    final etag = response.headers['etag'];
-    if (etag != null) {
-      _lastEtag = etag;
+    // Only persist the ETag from a successful response. Non-200 responses
+    // could carry stale or hostile ETag values that would taint future
+    // conditional requests. A 304 confirms the existing ETag still matches,
+    // so leaving the stored value alone is correct.
+    if (response.statusCode == 200) {
+      final etag = response.headers['etag'];
+      if (etag != null) {
+        _lastEtag = etag;
+      }
     }
 
     return (
@@ -89,20 +103,31 @@ final class FDv2Requestor {
   }
 
   Uri _buildUri({required Selector basis}) {
-    final path = _usePost
+    final addedPath = _usePost
         ? FDv2Endpoints.polling
         : FDv2Endpoints.pollingGet(_contextEncoded);
-    final queryParams = <String, String>{};
+
+    // Compose against the parsed base URI so a custom polling URL
+    // carrying its own query parameters (e.g. a relay proxy with a token)
+    // is preserved correctly. String concatenation against `_baseUri`
+    // would land the appended path inside the query component.
+    final basePath = _baseUri.path.endsWith('/')
+        ? _baseUri.path.substring(0, _baseUri.path.length - 1)
+        : _baseUri.path;
+    final mergedPath = '$basePath$addedPath';
+
+    final mergedQuery = <String, String>{};
+    mergedQuery.addAll(_baseUri.queryParameters);
     if (_withReasons) {
-      queryParams['withReasons'] = 'true';
+      mergedQuery['withReasons'] = 'true';
     }
-    if (basis.isNotEmpty) {
-      queryParams['basis'] = basis.state!;
+    if (basis.isNotEmpty && basis.state!.isNotEmpty) {
+      mergedQuery['basis'] = basis.state!;
     }
-    final url = appendPath(_baseUrl, path);
-    final uri = Uri.parse(url);
-    return queryParams.isEmpty
-        ? uri
-        : uri.replace(queryParameters: queryParams);
+
+    return _baseUri.replace(
+      path: mergedPath,
+      queryParameters: mergedQuery.isEmpty ? null : mergedQuery,
+    );
   }
 }

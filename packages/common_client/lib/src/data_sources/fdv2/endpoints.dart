@@ -3,12 +3,12 @@
 /// These paths are uniform across mobile and browser SDKs; FDv2 does
 /// not distinguish between platforms at the endpoint level.
 abstract final class FDv2Endpoints {
-  /// Polling path used for POST requests. The evaluation context is
-  /// sent in the request body.
+  /// Polling path. Used as-is for POST requests (context sent in the
+  /// request body) and as the prefix for GET requests via [pollingGet].
   static const String polling = '/sdk/poll/eval';
 
-  /// Streaming path used for POST requests. The evaluation context is
-  /// sent in the request body.
+  /// Streaming path. Used as-is for POST requests (context sent in the
+  /// request body) and as the prefix for GET requests via [streamingGet].
   static const String streaming = '/sdk/stream/eval';
 
   /// Builds the polling GET path with the base64url-encoded context

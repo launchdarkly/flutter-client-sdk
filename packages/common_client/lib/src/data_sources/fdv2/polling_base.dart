@@ -15,9 +15,13 @@ import 'source_result.dart';
 ///
 /// Wraps an [FDv2Requestor] with FDv2 protocol semantics:
 ///
-/// - Network errors --> [SourceState.interrupted].
+/// - Network errors --> [SourceState.interrupted] with a sanitized
+///   message; the full error detail is logged at warn level.
 /// - `x-ld-fd-fallback: true` header --> terminal error with
-///   `fdv1Fallback: true`.
+///   `fdv1Fallback: true`. This check takes precedence over the body
+///   and over the status code: if the server signals fallback, the
+///   SDK switches to FDv1 regardless of whether a `200`, `304`, or
+///   error response carries the header.
 /// - HTTP `304 Not Modified` --> an empty change set with
 ///   [PayloadType.none], confirming the cached data is current.
 /// - Other 4xx/5xx --> interrupted (recoverable) or terminalError
@@ -38,21 +42,24 @@ final class FDv2PollingBase {
         _requestor = requestor,
         _now = now ?? DateTime.now;
 
-  /// Performs a single poll. Never throws; all errors are reported as
-  /// [StatusResult]s.
+  /// Performs a single poll. Never throws; all failures, including
+  /// malformed response bodies, are reported as [StatusResult]s.
   Future<FDv2SourceResult> pollOnce({Selector basis = Selector.empty}) async {
     final RequestorResponse response;
     try {
       response = await _requestor.request(basis: basis);
     } catch (err) {
       _logger.warn('Polling request failed: $err');
-      return FDv2SourceResults.interrupted(message: err.toString());
+      return FDv2SourceResults.interrupted(message: _describeError(err));
     }
     return _processResponse(response);
   }
 
   FDv2SourceResult _processResponse(RequestorResponse response) {
-    final fdv1Fallback = response.headers['x-ld-fd-fallback'] == 'true';
+    // Match `x-ld-fd-fallback` case-insensitively. Servers shouldn't send
+    // mixed case, but it costs nothing to be lenient on input.
+    final fdv1Fallback =
+        response.headers['x-ld-fd-fallback']?.toLowerCase() == 'true';
     final environmentId = response.headers['x-ld-envid'];
 
     if (fdv1Fallback) {
@@ -76,11 +83,13 @@ final class FDv2PollingBase {
     if (response.status >= 400) {
       final message = 'Received unexpected status code: ${response.status}';
       if (isHttpGloballyRecoverable(response.status)) {
+        _logger.warn('$message; will retry');
         return FDv2SourceResults.interrupted(
           statusCode: response.status,
           message: message,
         );
       }
+      _logger.error('$message; will not retry');
       return FDv2SourceResults.terminalError(
         statusCode: response.status,
         message: message,
@@ -94,7 +103,10 @@ final class FDv2PollingBase {
     RequestorResponse response, {
     String? environmentId,
   }) {
-    final Map<String, dynamic> json;
+    // The whole parse path is wrapped: jsonDecode plus the structural
+    // casts inside FDv2EventsCollection.fromJson and the per-event
+    // PutObjectEvent/DeleteObjectEvent/PayloadIntent/etc. fromJson calls
+    // can all throw on shapes the protocol types don't accept.
     try {
       final decoded = jsonDecode(response.body);
       if (decoded is! Map<String, dynamic>) {
@@ -103,50 +115,67 @@ final class FDv2PollingBase {
           message: 'Polling response was not a JSON object',
         );
       }
-      json = decoded;
-    } catch (err) {
-      _logger.error('Failed to parse polling response body as JSON: $err');
+
+      final collection = FDv2EventsCollection.fromJson(decoded);
+      final handler = FDv2ProtocolHandler(
+        objProcessors: {flagEvalKind: processFlagEval},
+        logger: _logger,
+      );
+
+      for (final event in collection.events) {
+        final action = handler.processEvent(event);
+        switch (action) {
+          case ActionPayload(:final payload):
+            return ChangeSetResult(
+              payload: payload,
+              environmentId: environmentId,
+              freshness: _now(),
+              persist: true,
+            );
+          case ActionGoodbye(:final reason):
+            return FDv2SourceResults.goodbyeResult(message: reason);
+          case ActionServerError(:final reason):
+            return FDv2SourceResults.interrupted(message: reason);
+          case ActionError(:final message):
+            return FDv2SourceResults.interrupted(message: message);
+          case ActionNone():
+            // Continue accumulating events until a payload-transferred or
+            // terminal action is reached.
+            break;
+        }
+      }
+
+      // The response had no payload-transferred event. The protocol
+      // handler is left in a partial state with nothing to emit, which
+      // is a protocol violation for a polling response.
       return FDv2SourceResults.interrupted(
         statusCode: response.status,
-        message: 'Polling response body was not valid JSON',
+        message: 'Polling response did not include a complete payload',
+      );
+    } catch (err) {
+      _logger.error('Failed to parse polling response: $err');
+      return FDv2SourceResults.interrupted(
+        statusCode: response.status,
+        message: 'Polling response body was malformed',
       );
     }
+  }
 
-    final collection = FDv2EventsCollection.fromJson(json);
-    final handler = FDv2ProtocolHandler(
-      objProcessors: {flagEvalKind: processFlagEval},
-      logger: _logger,
-    );
-
-    for (final event in collection.events) {
-      final action = handler.processEvent(event);
-      switch (action) {
-        case ActionPayload(:final payload):
-          return ChangeSetResult(
-            payload: payload,
-            environmentId: environmentId,
-            freshness: _now(),
-            persist: true,
-          );
-        case ActionGoodbye(:final reason):
-          return FDv2SourceResults.goodbyeResult(message: reason);
-        case ActionServerError(:final reason):
-          return FDv2SourceResults.interrupted(message: reason);
-        case ActionError(:final message):
-          return FDv2SourceResults.interrupted(message: message);
-        case ActionNone():
-          // Continue accumulating events until a payload-transferred or
-          // terminal action is reached.
-          break;
-      }
+  /// Categorizes a network exception into a fixed, sanitized message.
+  /// The full exception (which for `SocketException` / `TlsException`
+  /// can include remote address, certificate detail, and OS error
+  /// strings) stays in the warn log, not in the public status surface.
+  String _describeError(Object err) {
+    final type = err.runtimeType.toString();
+    if (type.contains('Timeout')) {
+      return 'Polling request timed out';
     }
-
-    // The response had no payload-transferred event. The protocol handler
-    // is left in a partial state with nothing to emit, which is a
-    // protocol violation for a polling response.
-    return FDv2SourceResults.interrupted(
-      statusCode: response.status,
-      message: 'Polling response did not include a complete payload',
-    );
+    if (type.contains('Tls') || type.contains('Handshake')) {
+      return 'TLS error during polling request';
+    }
+    if (type.contains('Socket') || type.contains('HttpException')) {
+      return 'Network error during polling request';
+    }
+    return 'Polling request failed';
   }
 }

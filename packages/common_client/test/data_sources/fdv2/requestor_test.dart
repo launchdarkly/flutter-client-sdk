@@ -271,4 +271,184 @@ void main() {
       );
     });
   });
+
+  group('etag is only persisted on 200', () {
+    test('etag returned on 4xx is not sent on next request', () async {
+      var requestNumber = 0;
+      Map<String, String>? secondRequestHeaders;
+      final mock = MockClient((request) async {
+        requestNumber++;
+        if (requestNumber == 1) {
+          return http.Response('error', 400, headers: {'etag': 'poisoned'});
+        }
+        secondRequestHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock);
+      await requestor.request();
+      await requestor.request();
+
+      expect(secondRequestHeaders!.containsKey('if-none-match'), isFalse);
+    });
+
+    test('etag returned on 5xx is not sent on next request', () async {
+      var requestNumber = 0;
+      Map<String, String>? secondRequestHeaders;
+      final mock = MockClient((request) async {
+        requestNumber++;
+        if (requestNumber == 1) {
+          return http.Response('error', 500, headers: {'etag': 'poisoned'});
+        }
+        secondRequestHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock);
+      await requestor.request();
+      await requestor.request();
+
+      expect(secondRequestHeaders!.containsKey('if-none-match'), isFalse);
+    });
+
+    test(
+        '304 does not overwrite the previously stored etag '
+        '(it confirms the existing one)', () async {
+      var requestNumber = 0;
+      Map<String, String>? thirdRequestHeaders;
+      final mock = MockClient((request) async {
+        requestNumber++;
+        if (requestNumber == 1) {
+          return http.Response('{}', 200, headers: {'etag': 'first'});
+        }
+        if (requestNumber == 2) {
+          // 304 returned without an etag header -- the SDK should still
+          // remember "first" from the prior 200 response.
+          return http.Response('', 304);
+        }
+        thirdRequestHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock);
+      await requestor.request();
+      await requestor.request();
+      await requestor.request();
+
+      expect(thirdRequestHeaders, containsPair('if-none-match', 'first'));
+    });
+  });
+
+  group('custom polling URL with embedded query parameters', () {
+    test(
+        'preserves query parameters from the base URL '
+        'and appends our own', () async {
+      late Uri capturedUri;
+      final mock = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = FDv2Requestor(
+        logger: LDLogger(),
+        endpoints: ServiceEndpoints.custom(
+            polling: 'https://relay.example.com/prefix?token=abc123'),
+        contextEncoded: 'CTX',
+        contextJson: '{"key":"x"}',
+        usePost: false,
+        withReasons: true,
+        httpProperties: HttpProperties(),
+        httpClientFactory: (props) =>
+            HttpClient(client: mock, httpProperties: props),
+      );
+      await requestor.request(basis: Selector(state: 'sel-1', version: 1));
+
+      expect(capturedUri.host, equals('relay.example.com'));
+      expect(capturedUri.path, equals('/prefix/sdk/poll/eval/CTX'));
+      expect(capturedUri.queryParameters['token'], equals('abc123'));
+      expect(capturedUri.queryParameters['withReasons'], equals('true'));
+      expect(capturedUri.queryParameters['basis'], equals('sel-1'));
+    });
+  });
+
+  group('basis and withReasons with POST', () {
+    test('sends basis as query parameter even on POST', () async {
+      late Uri capturedUri;
+      final mock = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock, usePost: true);
+      await requestor.request(basis: Selector(state: 'sel-2', version: 2));
+
+      expect(capturedUri.queryParameters['basis'], equals('sel-2'));
+    });
+
+    test('sends withReasons=true as query parameter on POST', () async {
+      late Uri capturedUri;
+      final mock = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock, usePost: true, withReasons: true);
+      await requestor.request();
+
+      expect(capturedUri.queryParameters['withReasons'], equals('true'));
+    });
+  });
+
+  group('selector edge cases', () {
+    test('basis is omitted when state is empty even if isNotEmpty', () async {
+      // Defensive: a Selector(state: '', version: 1) constructs as
+      // isEmpty=false. The requestor should still not send basis=.
+      late Uri capturedUri;
+      final mock = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock);
+      await requestor.request(basis: Selector(state: '', version: 1));
+
+      expect(capturedUri.queryParameters.containsKey('basis'), isFalse);
+    });
+  });
+
+  group('debug logging does not leak the encoded context', () {
+    test('the context segment of the URL is not logged', () async {
+      final captured = _CapturingAdapter();
+      final logger = LDLogger(adapter: captured, level: LDLogLevel.debug);
+      final mock = MockClient((request) async {
+        return http.Response('{}', 200);
+      });
+
+      final requestor = FDv2Requestor(
+        logger: logger,
+        endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
+        contextEncoded: 'SECRET-ENCODED-CONTEXT',
+        contextJson: '{"key":"x"}',
+        usePost: false,
+        withReasons: false,
+        httpProperties: HttpProperties(),
+        httpClientFactory: (props) =>
+            HttpClient(client: mock, httpProperties: props),
+      );
+      await requestor.request();
+
+      for (final message in captured.messages) {
+        expect(message, isNot(contains('SECRET-ENCODED-CONTEXT')));
+      }
+    });
+  });
+}
+
+class _CapturingAdapter implements LDLogAdapter {
+  final List<String> messages = [];
+
+  @override
+  void log(LDLogRecord record) {
+    messages.add(record.message);
+  }
 }

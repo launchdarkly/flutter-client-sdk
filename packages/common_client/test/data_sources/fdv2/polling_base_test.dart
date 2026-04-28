@@ -374,5 +374,202 @@ void main() {
 
       expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
+
+    test('intent-none on a 200 produces a none change set', () async {
+      final body = jsonEncode({
+        'events': [
+          {
+            'event': 'server-intent',
+            'data': {
+              'payloads': [
+                {
+                  'id': 'p1',
+                  'target': 7,
+                  'intentCode': 'none',
+                  'reason': 'up-to-date',
+                }
+              ]
+            }
+          },
+        ]
+      });
+      final mock = MockClient((request) async {
+        return http.Response(body, 200);
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect(result, isA<ChangeSetResult>());
+      final cs = result as ChangeSetResult;
+      expect(cs.payload.type, equals(PayloadType.none));
+      expect(cs.payload.updates, isEmpty);
+    });
+
+    test('heartbeat-only response is interrupted', () async {
+      final body = jsonEncode({
+        'events': [
+          {'event': 'heart-beat', 'data': {}}
+        ]
+      });
+      final mock = MockClient((request) async {
+        return http.Response(body, 200);
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
+    });
+  });
+
+  group('malformed event shapes (do not throw)', () {
+    test('non-Map element in events array produces interrupted', () async {
+      final body = jsonEncode({
+        'events': [42]
+      });
+      final mock = MockClient((request) async {
+        return http.Response(body, 200);
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
+    });
+
+    test('non-Map element in payloads array produces interrupted', () async {
+      final body = jsonEncode({
+        'events': [
+          {
+            'event': 'server-intent',
+            'data': {
+              'payloads': ['not-an-object']
+            }
+          }
+        ]
+      });
+      final mock = MockClient((request) async {
+        return http.Response(body, 200);
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
+    });
+
+    test('object field of put-object that is not a Map produces interrupted',
+        () async {
+      final body = jsonEncode({
+        'events': [
+          {
+            'event': 'server-intent',
+            'data': {
+              'payloads': [
+                {
+                  'id': 'p1',
+                  'target': 1,
+                  'intentCode': 'xfer-full',
+                  'reason': 'test',
+                }
+              ]
+            }
+          },
+          {
+            'event': 'put-object',
+            'data': {
+              'kind': 'flag-eval',
+              'key': 'k',
+              'version': 1,
+              'object': 'not-a-map',
+            }
+          },
+        ]
+      });
+      final mock = MockClient((request) async {
+        return http.Response(body, 200);
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      // Either interrupted (if the cast throws) or interrupted (if the
+      // event is silently skipped and no payload-transferred follows).
+      // Both outcomes are acceptable; the contract is "do not throw".
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
+    });
+  });
+
+  group('FDv1 fallback precedence', () {
+    test('fallback header takes precedence over a 200 with valid payload',
+        () async {
+      final mock = MockClient((request) async {
+        return http.Response(buildXferFullBody(), 200,
+            headers: {'x-ld-fd-fallback': 'true'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect(result, isA<StatusResult>());
+      final status = result as StatusResult;
+      expect(status.state, equals(SourceState.terminalError));
+      expect(status.fdv1Fallback, isTrue);
+    });
+
+    test('fallback header takes precedence over a 304', () async {
+      final mock = MockClient((request) async {
+        return http.Response('', 304, headers: {'x-ld-fd-fallback': 'true'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.terminalError));
+      expect(result.fdv1Fallback, isTrue);
+    });
+
+    test('fallback header is matched case-insensitively', () async {
+      final mock = MockClient((request) async {
+        return http.Response('', 200, headers: {'x-ld-fd-fallback': 'TRUE'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.terminalError));
+      expect(result.fdv1Fallback, isTrue);
+    });
+
+    test('fallback header value other than true is ignored', () async {
+      final mock = MockClient((request) async {
+        return http.Response(buildXferFullBody(), 200,
+            headers: {'x-ld-fd-fallback': 'false'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect(result, isA<ChangeSetResult>());
+      expect(result.fdv1Fallback, isFalse);
+    });
+  });
+
+  group('error message sanitization', () {
+    test('exception message is not echoed verbatim into the result', () async {
+      const sensitive = '203.0.113.5:443 cert CN=internal.example.com';
+      final mock = MockClient((request) async {
+        throw Exception(sensitive);
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      final status = result as StatusResult;
+      expect(status.state, equals(SourceState.interrupted));
+      expect(status.message, isNotNull);
+      expect(status.message, isNot(contains(sensitive)));
+    });
   });
 }
