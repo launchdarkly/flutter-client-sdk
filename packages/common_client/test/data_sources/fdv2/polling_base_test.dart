@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -10,6 +11,8 @@ import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_result.d
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
 import 'package:test/test.dart';
+
+import 'support/capturing_log_adapter.dart';
 
 FDv2PollingBase makePollingBase(
   MockClient innerClient, {
@@ -494,9 +497,8 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      // Either interrupted (if the cast throws) or interrupted (if the
-      // event is silently skipped and no payload-transferred follows).
-      // Both outcomes are acceptable; the contract is "do not throw".
+      // The cast inside PutObjectEvent.fromJson throws TypeError; the
+      // widened catch in _parseBody converts it to interrupted.
       expect((result as StatusResult).state, equals(SourceState.interrupted));
     });
   });
@@ -570,6 +572,74 @@ void main() {
       expect(status.state, equals(SourceState.interrupted));
       expect(status.message, isNotNull);
       expect(status.message, isNot(contains(sensitive)));
+    });
+
+    test('warn log on a network error does not contain the encoded context',
+        () async {
+      // http.ClientException's toString() formats as
+      // 'ClientException: <msg>, uri=<full-url>'. The full URL embeds the
+      // base64url-encoded context in GET mode. The polling base must
+      // never log the raw exception.
+      final captured = CapturingLogAdapter();
+      final logger = LDLogger(adapter: captured, level: LDLogLevel.debug);
+      final mock = MockClient((request) async {
+        throw http.ClientException('Connection refused', request.url);
+      });
+
+      final requestor = FDv2Requestor(
+        logger: logger,
+        endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
+        contextEncoded: 'SECRET-ENCODED-CONTEXT',
+        contextJson: '{"key":"x"}',
+        usePost: false,
+        withReasons: false,
+        httpProperties: HttpProperties(),
+        httpClientFactory: (props) =>
+            HttpClient(client: mock, httpProperties: props),
+      );
+      final base = FDv2PollingBase(logger: logger, requestor: requestor);
+      await base.pollOnce();
+
+      for (final message in captured.messages) {
+        expect(message, isNot(contains('SECRET-ENCODED-CONTEXT')));
+      }
+    });
+
+    test('TimeoutException maps to "timed out"', () async {
+      final mock = MockClient((request) async {
+        throw TimeoutException('exceeded', const Duration(seconds: 1));
+      });
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+      expect(
+        (result as StatusResult).message,
+        equals('Polling request timed out'),
+      );
+    });
+
+    test('http.ClientException maps to "Network error"', () async {
+      final mock = MockClient((request) async {
+        throw http.ClientException(
+            'Connection refused', Uri.parse('https://example.test'));
+      });
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+      expect(
+        (result as StatusResult).message,
+        equals('Network error during polling request'),
+      );
+    });
+
+    test('an unknown exception type falls back to a generic message', () async {
+      final mock = MockClient((request) async {
+        throw Exception('something');
+      });
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+      expect(
+        (result as StatusResult).message,
+        equals('Polling request failed'),
+      );
     });
   });
 }

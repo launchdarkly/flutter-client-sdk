@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import 'flag_eval_mapper.dart';
@@ -16,7 +18,7 @@ import 'source_result.dart';
 /// Wraps an [FDv2Requestor] with FDv2 protocol semantics:
 ///
 /// - Network errors --> [SourceState.interrupted] with a sanitized
-///   message; the full error detail is logged at warn level.
+///   message.
 /// - `x-ld-fd-fallback: true` header --> terminal error with
 ///   `fdv1Fallback: true`. This check takes precedence over the body
 ///   and over the status code: if the server signals fallback, the
@@ -49,8 +51,13 @@ final class FDv2PollingBase {
     try {
       response = await _requestor.request(basis: basis);
     } catch (err) {
-      _logger.warn('Polling request failed: $err');
-      return FDv2SourceResults.interrupted(message: _describeError(err));
+      // Log only the sanitized form. The raw exception's `toString()` can
+      // embed PII (e.g. `http.ClientException` formats as
+      // `'ClientException: <msg>, uri=<full-url>'`, and the URL contains
+      // the base64url-encoded context in GET mode).
+      final sanitized = _describeError(err);
+      _logger.warn('Polling request failed: $sanitized');
+      return FDv2SourceResults.interrupted(message: sanitized);
     }
     return _processResponse(response);
   }
@@ -152,8 +159,13 @@ final class FDv2PollingBase {
         statusCode: response.status,
         message: 'Polling response did not include a complete payload',
       );
-    } catch (err) {
-      _logger.error('Failed to parse polling response: $err');
+    } catch (err, stack) {
+      // Log only the type at error level (not the message — `jsonDecode`
+      // includes a slice of the offending body, which is server-supplied).
+      // The full detail goes to debug, where it is gated by the user's
+      // log level.
+      _logger.error('Failed to parse polling response (${err.runtimeType})');
+      _logger.debug('Polling response parse failure detail: $err\n$stack');
       return FDv2SourceResults.interrupted(
         statusCode: response.status,
         message: 'Polling response body was malformed',
@@ -161,20 +173,28 @@ final class FDv2PollingBase {
     }
   }
 
-  /// Categorizes a network exception into a fixed, sanitized message.
-  /// The full exception (which for `SocketException` / `TlsException`
-  /// can include remote address, certificate detail, and OS error
-  /// strings) stays in the warn log, not in the public status surface.
+  /// Categorizes an exception thrown by the requestor into a fixed,
+  /// sanitized message. The raw exception's string form (which can carry
+  /// remote address, certificate detail, OS error strings, or — in the
+  /// case of `http.ClientException` — the full request URL) is never
+  /// echoed to the public status surface or to the warn log.
+  ///
+  /// Type checks via `is` are minification-safe (unlike substring
+  /// matches against `runtimeType.toString()`).
   String _describeError(Object err) {
-    final type = err.runtimeType.toString();
-    if (type.contains('Timeout')) {
+    if (err is TimeoutException) {
       return 'Polling request timed out';
     }
+    if (err is http.ClientException) {
+      return 'Network error during polling request';
+    }
+    // dart:io's TlsException / HandshakeException can't be caught by `is`
+    // here without making this file io-only, so fall back to the type
+    // name. This is a best-effort label; if minification mangles the
+    // type name we land in the default branch below, which is still safe.
+    final type = err.runtimeType.toString();
     if (type.contains('Tls') || type.contains('Handshake')) {
       return 'TLS error during polling request';
-    }
-    if (type.contains('Socket') || type.contains('HttpException')) {
-      return 'Network error during polling request';
     }
     return 'Polling request failed';
   }

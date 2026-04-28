@@ -1,11 +1,13 @@
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:launchdarkly_common_client/src/config/service_endpoints.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/requestor.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
-import 'package:launchdarkly_common_client/src/config/service_endpoints.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
 import 'package:test/test.dart';
+
+import 'support/capturing_log_adapter.dart';
 
 FDv2Requestor makeRequestor(
   MockClient innerClient, {
@@ -418,7 +420,7 @@ void main() {
 
   group('debug logging does not leak the encoded context', () {
     test('the context segment of the URL is not logged', () async {
-      final captured = _CapturingAdapter();
+      final captured = CapturingLogAdapter();
       final logger = LDLogger(adapter: captured, level: LDLogLevel.debug);
       final mock = MockClient((request) async {
         return http.Response('{}', 200);
@@ -442,13 +444,104 @@ void main() {
       }
     });
   });
-}
 
-class _CapturingAdapter implements LDLogAdapter {
-  final List<String> messages = [];
+  group('etag edge cases', () {
+    test('empty-string etag is not stored', () async {
+      var requestNumber = 0;
+      Map<String, String>? secondHeaders;
+      final mock = MockClient((request) async {
+        requestNumber++;
+        if (requestNumber == 1) {
+          return http.Response('{}', 200, headers: {'etag': ''});
+        }
+        secondHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
 
-  @override
-  void log(LDLogRecord record) {
-    messages.add(record.message);
-  }
+      final requestor = makeRequestor(mock);
+      await requestor.request();
+      await requestor.request();
+
+      expect(secondHeaders!.containsKey('if-none-match'), isFalse);
+    });
+
+    test('304 with a new etag does NOT overwrite the stored etag', () async {
+      // Pinning current behavior: a 304 response confirms the ETag the
+      // client already sent; if the server attaches a different ETag we
+      // ignore it and continue to use the original. Updating on 304 would
+      // mean trusting an unverified value.
+      var requestNumber = 0;
+      Map<String, String>? thirdHeaders;
+      final mock = MockClient((request) async {
+        requestNumber++;
+        if (requestNumber == 1) {
+          return http.Response('{}', 200, headers: {'etag': 'first'});
+        }
+        if (requestNumber == 2) {
+          return http.Response('', 304, headers: {'etag': 'rotated'});
+        }
+        thirdHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock);
+      await requestor.request();
+      await requestor.request();
+      await requestor.request();
+
+      expect(thirdHeaders, containsPair('if-none-match', 'first'));
+    });
+  });
+
+  group('base URL trailing slash', () {
+    test('does not produce a double-slash in the merged path', () async {
+      late Uri capturedUri;
+      final mock = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = FDv2Requestor(
+        logger: LDLogger(),
+        endpoints: ServiceEndpoints.custom(
+            polling: 'https://relay.example.com/prefix/'),
+        contextEncoded: 'CTX',
+        contextJson: '{"k":"v"}',
+        usePost: false,
+        withReasons: false,
+        httpProperties: HttpProperties(),
+        httpClientFactory: (props) =>
+            HttpClient(client: mock, httpProperties: props),
+      );
+      await requestor.request();
+
+      expect(capturedUri.path, equals('/prefix/sdk/poll/eval/CTX'));
+    });
+  });
+
+  group('base URL with duplicate-key query parameters', () {
+    test('preserves all values for repeated keys', () async {
+      late Uri capturedUri;
+      final mock = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = FDv2Requestor(
+        logger: LDLogger(),
+        endpoints: ServiceEndpoints.custom(
+            polling: 'https://relay.example.com/?tag=a&tag=b'),
+        contextEncoded: 'CTX',
+        contextJson: '{"k":"v"}',
+        usePost: false,
+        withReasons: false,
+        httpProperties: HttpProperties(),
+        httpClientFactory: (props) =>
+            HttpClient(client: mock, httpProperties: props),
+      );
+      await requestor.request();
+
+      expect(capturedUri.queryParametersAll['tag'], equals(['a', 'b']));
+    });
+  });
 }

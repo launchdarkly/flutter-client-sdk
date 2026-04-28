@@ -88,9 +88,14 @@ final class FDv2Requestor {
     // could carry stale or hostile ETag values that would taint future
     // conditional requests. A 304 confirms the existing ETag still matches,
     // so leaving the stored value alone is correct.
+    //
+    // Reject empty-string ETags: an unquoted empty token is invalid per
+    // RFC 7232 §2.1, and sending `if-none-match: ` on the next request
+    // could be interpreted by some servers as "match anything" and pin
+    // the SDK to a permanent 304.
     if (response.statusCode == 200) {
       final etag = response.headers['etag'];
-      if (etag != null) {
+      if (etag != null && etag.isNotEmpty) {
         _lastEtag = etag;
       }
     }
@@ -116,8 +121,10 @@ final class FDv2Requestor {
         : _baseUri.path;
     final mergedPath = '$basePath$addedPath';
 
-    final mergedQuery = <String, String>{};
-    mergedQuery.addAll(_baseUri.queryParameters);
+    // Use queryParametersAll so a base URL like `?dup=1&dup=2` round-trips
+    // both values; the simpler `queryParameters` map collapses duplicates.
+    final mergedQuery = <String, dynamic>{};
+    mergedQuery.addAll(_baseUri.queryParametersAll);
     if (_withReasons) {
       mergedQuery['withReasons'] = 'true';
     }
