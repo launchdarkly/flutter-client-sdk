@@ -147,24 +147,9 @@ void main() {
     });
   });
 
-  group('FDv1 fallback', () {
-    test(
-        'returns terminalError with fdv1Fallback=true when '
-        'x-ld-fd-fallback is true', () async {
-      final mock = MockClient((request) async {
-        return http.Response('', 200, headers: {'x-ld-fd-fallback': 'true'});
-      });
-
-      final base = makePollingBase(mock);
-      final result = await base.pollOnce();
-
-      expect(result, isA<StatusResult>());
-      final status = result as StatusResult;
-      expect(status.state, equals(SourceState.terminalError));
-      expect(status.fdv1Fallback, isTrue);
-    });
-
-    test('does not engage fallback when header is missing', () async {
+  group('FDv1 fallback annotation', () {
+    test('absent header leaves fdv1Fallback false on a successful payload',
+        () async {
       final mock = MockClient((request) async {
         return http.Response(buildXferFullBody(), 200);
       });
@@ -503,9 +488,10 @@ void main() {
     });
   });
 
-  group('FDv1 fallback precedence', () {
-    test('fallback header takes precedence over a 200 with valid payload',
-        () async {
+  group('FDv1 fallback alongside body and status', () {
+    test(
+        'fallback on a 200 with a valid payload still parses the body and '
+        'tags the result', () async {
       final mock = MockClient((request) async {
         return http.Response(buildXferFullBody(), 200,
             headers: {'x-ld-fd-fallback': 'true'});
@@ -514,13 +500,17 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect(result, isA<StatusResult>());
-      final status = result as StatusResult;
-      expect(status.state, equals(SourceState.terminalError));
-      expect(status.fdv1Fallback, isTrue);
+      // The body is still used: ChangeSetResult, not a status result.
+      expect(result, isA<ChangeSetResult>());
+      final cs = result as ChangeSetResult;
+      expect(cs.fdv1Fallback, isTrue);
+      expect(cs.payload.type, equals(PayloadType.full));
+      expect(cs.payload.updates, hasLength(1));
     });
 
-    test('fallback header takes precedence over a 304', () async {
+    test(
+        'fallback on a 304 still produces a none-type ChangeSetResult, '
+        'tagged', () async {
       final mock = MockClient((request) async {
         return http.Response('', 304, headers: {'x-ld-fd-fallback': 'true'});
       });
@@ -528,13 +518,16 @@ void main() {
       final base = makePollingBase(mock);
       final result = await base.pollOnce();
 
-      expect((result as StatusResult).state, equals(SourceState.terminalError));
-      expect(result.fdv1Fallback, isTrue);
+      expect(result, isA<ChangeSetResult>());
+      final cs = result as ChangeSetResult;
+      expect(cs.fdv1Fallback, isTrue);
+      expect(cs.payload.type, equals(PayloadType.none));
     });
 
-    test('fallback header is matched case-insensitively', () async {
+    test('fallback on a non-recoverable 4xx still produces terminalError',
+        () async {
       final mock = MockClient((request) async {
-        return http.Response('', 200, headers: {'x-ld-fd-fallback': 'TRUE'});
+        return http.Response('', 401, headers: {'x-ld-fd-fallback': 'true'});
       });
 
       final base = makePollingBase(mock);
@@ -544,7 +537,47 @@ void main() {
       expect(result.fdv1Fallback, isTrue);
     });
 
-    test('fallback header value other than true is ignored', () async {
+    test('fallback on a recoverable 5xx still produces interrupted', () async {
+      final mock = MockClient((request) async {
+        return http.Response('', 503, headers: {'x-ld-fd-fallback': 'true'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
+      expect(result.fdv1Fallback, isTrue);
+    });
+
+    test('fallback on a malformed body still produces interrupted, tagged',
+        () async {
+      final mock = MockClient((request) async {
+        return http.Response('not json', 200,
+            headers: {'x-ld-fd-fallback': 'true'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.interrupted));
+      expect(result.fdv1Fallback, isTrue);
+    });
+
+    test('fallback header is matched case-insensitively', () async {
+      final mock = MockClient((request) async {
+        return http.Response(buildXferFullBody(), 200,
+            headers: {'x-ld-fd-fallback': 'TRUE'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect(result, isA<ChangeSetResult>());
+      expect(result.fdv1Fallback, isTrue);
+    });
+
+    test('fallback header value other than true does not engage fallback',
+        () async {
       final mock = MockClient((request) async {
         return http.Response(buildXferFullBody(), 200,
             headers: {'x-ld-fd-fallback': 'false'});

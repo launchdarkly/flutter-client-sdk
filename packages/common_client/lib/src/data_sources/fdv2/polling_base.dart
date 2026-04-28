@@ -19,11 +19,6 @@ import 'source_result.dart';
 ///
 /// - Network errors --> [SourceState.interrupted] with a sanitized
 ///   message.
-/// - `x-ld-fd-fallback: true` header --> terminal error with
-///   `fdv1Fallback: true`. This check takes precedence over the body
-///   and over the status code: if the server signals fallback, the
-///   SDK switches to FDv1 regardless of whether a `200`, `304`, or
-///   error response carries the header.
 /// - HTTP `304 Not Modified` --> an empty change set with
 ///   [PayloadType.none], confirming the cached data is current.
 /// - Other 4xx/5xx --> interrupted (recoverable) or terminalError
@@ -31,6 +26,13 @@ import 'source_result.dart';
 /// - `200` --> body is parsed as an [FDv2EventsCollection] and fed
 ///   through an [FDv2ProtocolHandler]. The first emitted action
 ///   determines the result.
+///
+/// `x-ld-fd-fallback: true` is treated as an annotation on whatever
+/// result the response would otherwise produce: the body is still
+/// parsed and used, the 304 is still treated as no-op, errors are
+/// still classified by status code, and `fdv1Fallback: true` is
+/// stamped on the resulting [FDv2SourceResult]. The orchestrator can
+/// consume the data and transition to FDv1 in the same step.
 final class FDv2PollingBase {
   final LDLogger _logger;
   final FDv2Requestor _requestor;
@@ -69,14 +71,6 @@ final class FDv2PollingBase {
         response.headers['x-ld-fd-fallback']?.toLowerCase() == 'true';
     final environmentId = response.headers['x-ld-envid'];
 
-    if (fdv1Fallback) {
-      return FDv2SourceResults.terminalError(
-        statusCode: response.status,
-        message: 'Server requested FDv1 fallback',
-        fdv1Fallback: true,
-      );
-    }
-
     // 304 Not Modified means the SDK's cached data is confirmed current.
     if (response.status == 304) {
       return ChangeSetResult(
@@ -84,6 +78,7 @@ final class FDv2PollingBase {
         environmentId: environmentId,
         freshness: _now(),
         persist: true,
+        fdv1Fallback: fdv1Fallback,
       );
     }
 
@@ -94,21 +89,28 @@ final class FDv2PollingBase {
         return FDv2SourceResults.interrupted(
           statusCode: response.status,
           message: message,
+          fdv1Fallback: fdv1Fallback,
         );
       }
       _logger.error('$message; will not retry');
       return FDv2SourceResults.terminalError(
         statusCode: response.status,
         message: message,
+        fdv1Fallback: fdv1Fallback,
       );
     }
 
-    return _parseBody(response, environmentId: environmentId);
+    return _parseBody(
+      response,
+      environmentId: environmentId,
+      fdv1Fallback: fdv1Fallback,
+    );
   }
 
   FDv2SourceResult _parseBody(
     RequestorResponse response, {
     String? environmentId,
+    required bool fdv1Fallback,
   }) {
     // The whole parse path is wrapped: jsonDecode plus the structural
     // casts inside FDv2EventsCollection.fromJson and the per-event
@@ -120,6 +122,7 @@ final class FDv2PollingBase {
         return FDv2SourceResults.interrupted(
           statusCode: response.status,
           message: 'Polling response was not a JSON object',
+          fdv1Fallback: fdv1Fallback,
         );
       }
 
@@ -138,13 +141,23 @@ final class FDv2PollingBase {
               environmentId: environmentId,
               freshness: _now(),
               persist: true,
+              fdv1Fallback: fdv1Fallback,
             );
           case ActionGoodbye(:final reason):
-            return FDv2SourceResults.goodbyeResult(message: reason);
+            return FDv2SourceResults.goodbyeResult(
+              message: reason,
+              fdv1Fallback: fdv1Fallback,
+            );
           case ActionServerError(:final reason):
-            return FDv2SourceResults.interrupted(message: reason);
+            return FDv2SourceResults.interrupted(
+              message: reason,
+              fdv1Fallback: fdv1Fallback,
+            );
           case ActionError(:final message):
-            return FDv2SourceResults.interrupted(message: message);
+            return FDv2SourceResults.interrupted(
+              message: message,
+              fdv1Fallback: fdv1Fallback,
+            );
           case ActionNone():
             // Continue accumulating events until a payload-transferred or
             // terminal action is reached.
@@ -158,6 +171,7 @@ final class FDv2PollingBase {
       return FDv2SourceResults.interrupted(
         statusCode: response.status,
         message: 'Polling response did not include a complete payload',
+        fdv1Fallback: fdv1Fallback,
       );
     } catch (err, stack) {
       // Log only the type at error level (not the message — `jsonDecode`
@@ -169,6 +183,7 @@ final class FDv2PollingBase {
       return FDv2SourceResults.interrupted(
         statusCode: response.status,
         message: 'Polling response body was malformed',
+        fdv1Fallback: fdv1Fallback,
       );
     }
   }
