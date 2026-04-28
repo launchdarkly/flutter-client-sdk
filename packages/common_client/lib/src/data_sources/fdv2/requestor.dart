@@ -68,8 +68,8 @@ final class FDv2Requestor {
     final uri = _buildUri(basis: basis);
     final method = _usePost ? RequestMethod.post : RequestMethod.get;
     final additionalHeaders = <String, String>{};
-    if (_lastEtag != null) {
-      additionalHeaders['if-none-match'] = _lastEtag!;
+    if (_lastEtag case final etag?) {
+      additionalHeaders['if-none-match'] = etag;
     }
 
     // Avoid logging the full URI -- in GET mode it embeds the
@@ -128,8 +128,8 @@ final class FDv2Requestor {
     if (_withReasons) {
       mergedQuery['withReasons'] = 'true';
     }
-    if (basis.isNotEmpty && basis.state!.isNotEmpty) {
-      mergedQuery['basis'] = basis.state!;
+    if (basis.state case final state? when state.isNotEmpty) {
+      mergedQuery['basis'] = state;
     }
 
     return _baseUri.replace(
