@@ -18,8 +18,8 @@ typedef CachedFlags = ({
 typedef CachedFlagsReader = Future<CachedFlags?> Function(LDContext context);
 
 /// One-shot initializer that brings the SDK up from its persistence
-/// cache. Always returns synchronously (modulo the persistence read);
-/// retries are not meaningful for a local cache.
+/// cache. The cache is read once; retries are not meaningful for a
+/// local read.
 ///
 /// On cache hit, emits a [ChangeSetResult] with `persist: false` (the
 /// data came from the cache; writing it back is a no-op) and an empty
