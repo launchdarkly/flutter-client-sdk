@@ -35,7 +35,12 @@ final class FDv2PollingSynchronizer implements Synchronizer {
 
   late final StreamController<FDv2SourceResult> _controller;
   Timer? _timer;
-  bool _closed = false;
+  // Single source of truth for "stop polling". Completed by either
+  // close() (which also closes the controller and emits shutdown) or
+  // _onCancel() (subscriber-initiated; no shutdown emission). All
+  // event-loop callbacks (_doPoll, _scheduleNext) check this signal
+  // before doing work.
+  final Completer<void> _stoppedSignal = Completer<void>();
   DateTime? _lastFreshness;
 
   FDv2PollingSynchronizer({
@@ -62,33 +67,31 @@ final class FDv2PollingSynchronizer implements Synchronizer {
 
   @override
   void close() {
-    if (_closed) return;
-    _closed = true;
+    if (_stoppedSignal.isCompleted) return;
+    _stoppedSignal.complete();
     _timer?.cancel();
     _timer = null;
-    if (!_controller.isClosed) {
-      _controller.add(
-          FDv2SourceResults.shutdown(message: 'Polling synchronizer closed'));
-      _controller.close();
-    }
+    _controller.add(
+        FDv2SourceResults.shutdown(message: 'Polling synchronizer closed'));
+    _controller.close();
   }
 
   void _onListen() {
-    // Kick off the first poll immediately. Subsequent polls are
-    // scheduled from inside _doPoll via the timer.
-    Future<void>.microtask(_doPoll);
+    // Kick off the first poll. Subsequent polls are scheduled from
+    // inside _doPoll via the timer.
+    unawaited(_doPoll());
   }
 
   Future<void> _onCancel() async {
-    if (_closed) return;
-    _closed = true;
+    if (_stoppedSignal.isCompleted) return;
+    _stoppedSignal.complete();
     _timer?.cancel();
     _timer = null;
     // Don't emit shutdown -- the subscriber asked for cancellation.
   }
 
   Future<void> _doPoll() async {
-    if (_closed) return;
+    if (_stoppedSignal.isCompleted) return;
     final FDv2SourceResult result;
     try {
       result = await _poll(basis: _selectorGetter());
@@ -97,29 +100,26 @@ final class FDv2PollingSynchronizer implements Synchronizer {
       // already converts errors to StatusResult. A throw here means
       // someone wired a non-conforming function; treat defensively.
       _logger.error('Poll function threw unexpectedly: ${err.runtimeType}');
-      if (!_closed && !_controller.isClosed) {
+      if (!_stoppedSignal.isCompleted) {
         _controller.add(FDv2SourceResults.interrupted(
-            message: 'Polling source raised unexpectedly'));
+            message: 'Polling source raised error unexpectedly'));
       }
       _scheduleNext();
       return;
     }
 
-    if (_closed) return;
+    if (_stoppedSignal.isCompleted) return;
 
     if (result is ChangeSetResult && result.freshness != null) {
       _lastFreshness = result.freshness;
     }
 
-    if (!_controller.isClosed) {
-      _controller.add(result);
-    }
-
+    _controller.add(result);
     _scheduleNext();
   }
 
   void _scheduleNext() {
-    if (_closed) return;
+    if (_stoppedSignal.isCompleted) return;
     final delay = calculatePollDelay(
       now: _now(),
       interval: _interval,

@@ -21,9 +21,9 @@ typedef CachedFlagsReader = Future<CachedFlags?> Function(LDContext context);
 /// cache. The cache is read once; retries are not meaningful for a
 /// local read.
 ///
-/// On cache hit, emits a [ChangeSetResult] with `persist: false` (the
-/// data came from the cache; writing it back is a no-op) and an empty
-/// selector (the cache does not track server-side selector state).
+/// On cache hit, emits a [ChangeSetResult] with `persist: false`
+/// (the data is already cached) and an empty selector (the cache
+/// does not track server-side selector state).
 /// The payload type is [PayloadType.full]: a cache load is a complete
 /// snapshot, not a delta.
 ///
