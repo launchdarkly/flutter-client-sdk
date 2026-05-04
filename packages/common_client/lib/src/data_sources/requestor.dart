@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
@@ -57,25 +59,33 @@ final class Requestor {
   Future<DataSourceEvent?> requestAllFlags() async {
     try {
       _logger.debug(
-          'Making polling request, method: $_method, uri: $_uri, etag: $_lastEtag');
+          'Making polling request, method: $_method, hasEtag: ${_lastEtag != null}');
+      final additionalHeaders = switch (_lastEtag) {
+        final etag? => {'if-none-match': etag},
+        null => null,
+      };
       final res = await _client.request(_method, _uri,
-          additionalHeaders: _lastEtag != null ? {'etag': _lastEtag!} : null,
+          additionalHeaders: additionalHeaders,
           body: _method != RequestMethod.get ? _contextString : null);
       return await _handleResponse(res);
     } catch (err) {
-      return StatusEvent(ErrorKind.networkError, null, err.toString());
+      // Don't echo the raw exception. `http.ClientException`'s
+      // `toString()` formats as `'ClientException: <msg>, uri=<full-url>'`,
+      // and the URL embeds the base64url-encoded context in GET mode.
+      // Categorize into a fixed message and use that everywhere.
+      final sanitized = _describeError(err);
+      _logger.warn('Polling request failed: $sanitized');
+      return StatusEvent(ErrorKind.networkError, null, sanitized);
     }
   }
 
   Future<DataSourceEvent?> _handleResponse(http.Response res) async {
-    if (res.statusCode == 200 || res.statusCode == 304) {
-      final etag = res.headers['etag'];
-      if (etag != null && etag == _lastEtag) {
-        // The response has not changed, so we don't need to do the work of
-        // updating the store, calculating changes, or persisting the payload.
-        return null;
-      }
-      _lastEtag = etag;
+    if (res.statusCode == 304) {
+      // Server confirmed our cached payload is still current.
+      return null;
+    }
+    if (res.statusCode == 200) {
+      _lastEtag = res.headers['etag'];
 
       var environmentId = getEnvironmentId(res.headers);
 
@@ -88,15 +98,25 @@ final class Requestor {
       }
 
       return DataEvent('put', res.body, environmentId: environmentId);
-    } else {
-      if (isHttpGloballyRecoverable(res.statusCode)) {
-        return StatusEvent(ErrorKind.errorResponse, res.statusCode,
-            'Received unexpected status code: ${res.statusCode}');
-      } else {
-        return StatusEvent(ErrorKind.errorResponse, res.statusCode,
-            'Received unexpected status code: ${res.statusCode}',
-            shutdown: true);
-      }
     }
+    if (isHttpGloballyRecoverable(res.statusCode)) {
+      return StatusEvent(ErrorKind.errorResponse, res.statusCode,
+          'Received unexpected status code: ${res.statusCode}');
+    }
+    return StatusEvent(ErrorKind.errorResponse, res.statusCode,
+        'Received unexpected status code: ${res.statusCode}',
+        shutdown: true);
+  }
+
+  String _describeError(Object err) {
+    if (err is TimeoutException) return 'Polling request timed out';
+    if (err is http.ClientException) {
+      return 'Network error during polling request';
+    }
+    final type = err.runtimeType.toString();
+    if (type.contains('Tls') || type.contains('Handshake')) {
+      return 'TLS error during polling request';
+    }
+    return 'Polling request failed';
   }
 }

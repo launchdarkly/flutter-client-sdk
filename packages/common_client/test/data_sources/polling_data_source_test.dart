@@ -12,8 +12,11 @@ import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     as ld_common;
 import 'package:http/http.dart' as http;
+import 'package:mocktail/mocktail.dart';
 
 import 'package:test/test.dart';
+
+class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 (PollingDataSource, FlagManager, DataSourceStatusManager) makeDataSourceForTest(
     MockClient innerClient,
@@ -21,12 +24,13 @@ import 'package:test/test.dart';
     HttpProperties? inProperties,
     bool useReport = false,
     bool withReasons = false,
-    Duration? testingInterval}) {
+    Duration? testingInterval,
+    LDLogger? inLogger}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
   // We are not testing the data source status manager here, so we just want a
   // fixed time to make events easy to get.
   final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
-  final logger = LDLogger();
+  final logger = inLogger ?? LDLogger();
   final httpProperties = inProperties ?? HttpProperties();
   const sdkKey = 'dummy-key';
   final flagManager =
@@ -510,5 +514,128 @@ void main() {
     expect(flagManager.environmentId, null);
 
     polling.stop();
+  });
+
+  group('conditional requests', () {
+    setUpAll(() {
+      registerFallbackValue(LDLogRecord(
+          level: LDLogLevel.debug,
+          message: '',
+          time: DateTime.now(),
+          logTag: ''));
+    });
+
+    test(
+        'sends if-none-match on the next request after receiving a 200 with etag',
+        () async {
+      var requestNumber = 0;
+      Map<String, String>? secondRequestHeaders;
+      final innerClient = MockClient((request) async {
+        requestNumber++;
+        if (requestNumber == 1) {
+          return http.Response('{}', 200, headers: {'etag': 'abc-123'});
+        }
+        secondRequestHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final (polling, _, _) = makeDataSourceForTest(innerClient,
+          testingInterval: const Duration(milliseconds: 5));
+      polling.start();
+
+      // Drain to the second request before asserting.
+      while (requestNumber < 2) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      polling.stop();
+
+      expect(secondRequestHeaders, containsPair('if-none-match', 'abc-123'));
+      // The wrong header name (`etag`) must not be sent.
+      expect(secondRequestHeaders!.containsKey('etag'), isFalse);
+    });
+
+    test('304 response is treated as no-change, not as malformed data',
+        () async {
+      // The pre-fix behavior fell through 304 to DataEvent('put', '', ...),
+      // which downstream parsed as empty JSON and surfaced as
+      // `ErrorKind.invalidData`. The fix returns null on 304, so the
+      // status manager should never see an `invalidData` error.
+      var requestCount = 0;
+      final innerClient = MockClient((request) async {
+        requestCount++;
+        return http.Response('', 304);
+      });
+
+      final (polling, flagManager, statusManager) = makeDataSourceForTest(
+          innerClient,
+          testingInterval: const Duration(milliseconds: 5));
+      polling.start();
+
+      while (requestCount < 1) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      // Give the status pipeline a chance to surface anything.
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      polling.stop();
+
+      final lastError = statusManager.status.lastError;
+      expect(lastError?.kind, isNot(equals(ErrorKind.invalidData)));
+      // FlagManager should remain in its initial empty state -- no
+      // attempt was made to parse the empty body.
+      expect(flagManager.environmentId, isNull);
+    });
+  });
+
+  group('network error log content', () {
+    setUpAll(() {
+      registerFallbackValue(LDLogRecord(
+          level: LDLogLevel.debug,
+          message: '',
+          time: DateTime.now(),
+          logTag: ''));
+    });
+
+    test(
+        'warn-level log on a network error does not contain the encoded context',
+        () async {
+      // http.ClientException's toString embeds the request URL, which
+      // in turn embeds the base64url-encoded context. The requestor
+      // must categorize the exception into a fixed string and log
+      // only that.
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+      final logger = LDLogger(adapter: adapter, level: LDLogLevel.debug);
+
+      final secretContext =
+          LDContextBuilder().kind('user', 'secret-key-shibboleth').build();
+      final innerClient = MockClient((request) async {
+        throw http.ClientException('Connection refused', request.url);
+      });
+
+      final (polling, _, statusManager) = makeDataSourceForTest(innerClient,
+          inContext: secretContext,
+          inLogger: logger,
+          testingInterval: const Duration(milliseconds: 1));
+      polling.start();
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      polling.stop();
+
+      final encodedContext = base64UrlEncode(utf8.encode(jsonEncode(
+          ld_common.LDContextSerialization.toJson(secretContext,
+              isEvent: false))));
+      final records = verify(() => adapter.log(captureAny())).captured;
+      for (final record in records) {
+        expect(
+            (record as LDLogRecord).message, isNot(contains(encodedContext)));
+        expect(record.message, isNot(contains('secret-key-shibboleth')));
+      }
+
+      // The user-visible status surface must also not echo the URL.
+      final lastError = statusManager.status.lastError;
+      if (lastError != null) {
+        expect(lastError.message, isNot(contains(encodedContext)));
+        expect(lastError.message, isNot(contains('secret-key-shibboleth')));
+      }
+    });
   });
 }
