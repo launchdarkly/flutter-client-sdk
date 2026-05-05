@@ -554,6 +554,63 @@ void main() {
       expect(secondRequestHeaders!.containsKey('etag'), isFalse);
     });
 
+    test('empty-string etag on a 200 response is not stored', () async {
+      var requestNumber = 0;
+      Map<String, String>? secondRequestHeaders;
+      final innerClient = MockClient((request) async {
+        requestNumber++;
+        if (requestNumber == 1) {
+          return http.Response('{}', 200, headers: {'etag': ''});
+        }
+        secondRequestHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final (polling, _, _) = makeDataSourceForTest(innerClient,
+          testingInterval: const Duration(milliseconds: 5));
+      polling.start();
+
+      while (requestNumber < 2) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      polling.stop();
+
+      // An unquoted empty token is invalid per RFC 7232 and sending
+      // `if-none-match: ` could pin the SDK to permanent 304s on lenient
+      // servers. The empty value must not round-trip.
+      expect(secondRequestHeaders!.containsKey('if-none-match'), isFalse);
+    });
+
+    test('200 without an etag header preserves the previously stored value',
+        () async {
+      var requestNumber = 0;
+      Map<String, String>? thirdRequestHeaders;
+      final innerClient = MockClient((request) async {
+        requestNumber++;
+        if (requestNumber == 1) {
+          return http.Response('{}', 200, headers: {'etag': 'first'});
+        }
+        if (requestNumber == 2) {
+          // 200 without an etag header. Old code would clear `_lastEtag`
+          // to null here; the fix preserves "first".
+          return http.Response('{}', 200);
+        }
+        thirdRequestHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final (polling, _, _) = makeDataSourceForTest(innerClient,
+          testingInterval: const Duration(milliseconds: 5));
+      polling.start();
+
+      while (requestNumber < 3) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      polling.stop();
+
+      expect(thirdRequestHeaders, containsPair('if-none-match', 'first'));
+    });
+
     test('304 response is treated as no-change, not as malformed data',
         () async {
       // The pre-fix behavior fell through 304 to DataEvent('put', '', ...),

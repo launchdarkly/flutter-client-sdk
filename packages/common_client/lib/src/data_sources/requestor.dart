@@ -85,7 +85,16 @@ final class Requestor {
       return null;
     }
     if (res.statusCode == 200) {
-      _lastEtag = res.headers['etag'];
+      // Reject empty-string ETags: an unquoted empty token is invalid
+      // per RFC 7232 §2.1, and sending `if-none-match: ` on the next
+      // request could be interpreted by some servers as "match anything"
+      // and pin the SDK to a permanent 304. Also preserve the previously
+      // stored value when the response simply omits the header rather
+      // than clearing it.
+      final etag = res.headers['etag'];
+      if (etag != null && etag.isNotEmpty) {
+        _lastEtag = etag;
+      }
 
       var environmentId = getEnvironmentId(res.headers);
 
