@@ -72,8 +72,15 @@ final class DartClientAdapter implements ConnectionDestination {
 }
 
 final class ConnectionManagerConfig {
-  /// The initial connection mode the SDK should use.
-  final ConnectionMode initialConnectionMode;
+  /// Configured foreground connection mode used as the automatic resolution
+  /// foreground slot.
+  final ConnectionMode foregroundConnectionMode;
+
+  /// Configured background connection mode used as the automatic resolution
+  /// background slot.
+  ///
+  /// Defaults to [ConnectionMode.offline] per CONNMODE §2.2.1 .
+  final ConnectionMode backgroundConnectionMode;
 
   /// Some platforms (windows, web, mac, linux) can continue executing code
   /// in the background.
@@ -96,16 +103,22 @@ final class ConnectionManagerConfig {
   /// The application will always be treated as in the foreground.
   final bool disableAutomaticBackgroundHandling;
 
-  ConnectionManagerConfig(
-      {this.initialConnectionMode = ConnectionMode.streaming,
-      this.runInBackground = true,
-      this.disableAutomaticBackgroundHandling = false,
-      this.disableAutomaticNetworkHandling = false});
+  ConnectionManagerConfig({
+    this.foregroundConnectionMode = ConnectionMode.streaming,
+    this.backgroundConnectionMode = ConnectionMode.offline,
+    this.runInBackground = true,
+    this.disableAutomaticBackgroundHandling = false,
+    this.disableAutomaticNetworkHandling = false,
+  });
 }
 
 /// This class tracks the state of the application, network, configuration,
 /// and desired network state. It uses this information to request specific
-/// data source configurations.
+/// connection modes.
+///
+/// Automatic [ConnectionMode] selection uses [resolveConnectionMode] with
+/// [flutterDefaultResolutionTable] by default, or [resolutionTable] when
+/// supplied to the constructor.
 ///
 /// This class does not contain any platform specific code. Instead platform
 /// specific code should be implemented in a [StateDetector]. This is primarily
@@ -115,11 +128,15 @@ final class ConnectionManager {
   final ConnectionManagerConfig _config;
   final StateDetector _detector;
   final ConnectionDestination _destination;
+  final List<ModeResolutionEntry> _resolutionTable;
 
   StreamSubscription<ApplicationState>? _applicationStateSub;
   StreamSubscription<NetworkState>? _networkStateSub;
 
-  ConnectionMode _currentConnectionMode;
+  /// When non-null, [resolveConnectionMode] is skipped and this mode is
+  /// applied regardless of lifecycle/network.
+  ConnectionMode? _modeOverride;
+
   ApplicationState _applicationState;
   NetworkState _networkState;
 
@@ -132,21 +149,24 @@ final class ConnectionManager {
     _handleState();
   }
 
-  ConnectionManager(
-      {required LDLogger logger,
-      required ConnectionManagerConfig config,
-      required ConnectionDestination destination,
-      required StateDetector detector})
-      : _logger = logger.subLogger('ConnectionManager'),
+  ConnectionManager({
+    required LDLogger logger,
+    required ConnectionManagerConfig config,
+    required ConnectionDestination destination,
+    required StateDetector detector,
+    List<ModeResolutionEntry>? resolutionTable,
+  })  : _logger = logger.subLogger('ConnectionManager'),
         _config = config,
         _destination = destination,
-        _currentConnectionMode = config.initialConnectionMode,
+        _resolutionTable = resolutionTable ?? flutterDefaultResolutionTable(),
         _applicationState = ApplicationState.foreground,
         _networkState = NetworkState.available,
         _detector = detector {
     if (!_config.disableAutomaticBackgroundHandling) {
       _applicationStateSub =
           detector.applicationState.listen((applicationState) {
+        // TODO (SDK-2187): plumb in debouncer here
+
         _applicationState = applicationState;
         _handleState();
       });
@@ -154,59 +174,48 @@ final class ConnectionManager {
 
     if (!_config.disableAutomaticNetworkHandling) {
       _networkStateSub = detector.networkState.listen((networkState) {
+        // TODO (SDK-2187): plumb in debouncer here
+
         _networkState = networkState;
+        _destination
+            .setNetworkAvailability(networkState == NetworkState.available);
         _handleState();
       });
     }
   }
 
-  void _setForegroundAvailableMode() {
-    if (offline) {
-      _destination.setMode(ConnectionMode.offline);
-      _destination.setEventSendingEnabled(false, flush: false);
-      return;
-    }
-
-    // Currently the foreground mode will always be whatever the last active
-    // connection mode was.
-    _destination.setMode(_currentConnectionMode);
-    _destination.setEventSendingEnabled(true);
-  }
-
-  void _setBackgroundAvailableMode() {
-    // flush on backgrounding as application may be killed and we don't want to lose events.
-    _destination.flush();
-
-    if (!_config.runInBackground) {
-      // TODO: Can we support the backgroundDisabled data source status?
-      // TODO: Is it acceptable for the data source status and `offline` to
-      // report an `offline` status?
-      _destination.setMode(ConnectionMode.offline);
-
-      // no need to flush here, we just did up above
-      _destination.setEventSendingEnabled(false, flush: false);
-      return;
-    }
-
-    // If connections in the background are allowed, then use the same mode
-    // as is configured for the foreground.
-    _setForegroundAvailableMode();
-  }
-
   void _handleState() {
     _logger.debug('Handling state: $_applicationState:$_networkState');
 
-    switch (_networkState) {
-      case NetworkState.unavailable:
-        _destination.setNetworkAvailability(false);
-      case NetworkState.available:
-        _destination.setNetworkAvailability(true);
-        switch (_applicationState) {
-          case ApplicationState.foreground:
-            _setForegroundAvailableMode();
-          case ApplicationState.background:
-            _setBackgroundAvailableMode();
-        }
+    final networkAvailable = _networkState == NetworkState.available;
+    final inForeground = _applicationState == ApplicationState.foreground;
+
+    final ConnectionMode resolved;
+    if (_offline) {
+      resolved = ConnectionMode.offline;
+    } else if (_modeOverride != null) {
+      resolved = _modeOverride!;
+    } else {
+      final modeState = ModeState(
+        networkAvailable: networkAvailable,
+        inForeground: inForeground,
+        runInBackground: _config.runInBackground,
+        foregroundConnectionMode: _config.foregroundConnectionMode,
+        backgroundConnectionMode: _config.backgroundConnectionMode,
+      );
+      resolved = resolveConnectionMode(_resolutionTable, modeState);
+    }
+
+    if (!_offline && !inForeground && networkAvailable) {
+      _destination.flush();
+    }
+
+    _destination.setMode(resolved);
+
+    if (_offline || (!inForeground && !_config.runInBackground)) {
+      _destination.setEventSendingEnabled(false, flush: false);
+    } else {
+      _destination.setEventSendingEnabled(true);
     }
   }
 
@@ -220,8 +229,8 @@ final class ConnectionManager {
   }
 
   /// Set the desired connection mode for the SDK.
-  void setMode(ConnectionMode mode) {
-    _currentConnectionMode = mode;
+  void setMode(ConnectionMode? mode) {
+    _modeOverride = mode;
     _handleState();
   }
 }

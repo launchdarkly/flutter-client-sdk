@@ -13,6 +13,7 @@ import 'context_modifiers/context_modifier.dart';
 import 'context_modifiers/env_context_modifier.dart';
 import 'hooks/hook.dart';
 import 'hooks/hook_runner.dart';
+import 'data_sources/data_source.dart';
 import 'data_sources/data_source_event_handler.dart';
 import 'data_sources/data_source_manager.dart';
 import 'data_sources/data_source_status.dart';
@@ -80,19 +81,21 @@ Map<ConnectionMode, DataSourceFactory> _defaultFactories(
       useReport: config.dataSourceConfig.useReport,
       withReasons: config.dataSourceConfig.evaluationReasons,
       pollingInterval: config.dataSourceConfig.polling.pollingInterval);
+  DataSource streaming(LDContext context) {
+    return StreamingDataSource(
+        credential: config.sdkCredential,
+        context: context,
+        endpoints: config.serviceEndpoints,
+        logger: logger,
+        dataSourceConfig: StreamingDataSourceConfig(
+            useReport: config.dataSourceConfig.useReport,
+            withReasons: config.dataSourceConfig.evaluationReasons),
+        pollingDataSourceConfig: pollingDataSourceConfig,
+        httpProperties: httpProperties);
+  }
+
   return {
-    ConnectionMode.streaming: (LDContext context) {
-      return StreamingDataSource(
-          credential: config.sdkCredential,
-          context: context,
-          endpoints: config.serviceEndpoints,
-          logger: logger,
-          dataSourceConfig: StreamingDataSourceConfig(
-              useReport: config.dataSourceConfig.useReport,
-              withReasons: config.dataSourceConfig.evaluationReasons),
-          pollingDataSourceConfig: pollingDataSourceConfig,
-          httpProperties: httpProperties);
-    },
+    ConnectionMode.streaming: streaming,
     ConnectionMode.polling: (LDContext context) {
       return PollingDataSource(
           credential: config.sdkCredential,
@@ -102,6 +105,7 @@ Map<ConnectionMode, DataSourceFactory> _defaultFactories(
           dataSourceConfig: pollingDataSourceConfig,
           httpProperties: httpProperties);
     },
+    ConnectionMode.background: streaming,
   };
 }
 
@@ -390,6 +394,9 @@ final class LDCommonClient {
           return NullDataSource();
         },
         ConnectionMode.polling: (LDContext context) {
+          return NullDataSource();
+        },
+        ConnectionMode.background: (LDContext context) {
           return NullDataSource();
         },
       });
