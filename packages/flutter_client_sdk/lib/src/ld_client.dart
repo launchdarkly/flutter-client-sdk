@@ -78,7 +78,7 @@ interface class LDClient {
     _connectionManager = ConnectionManager(
         logger: _client.logger,
         config: ConnectionManagerConfig(
-            initialConnectionMode: config.offline
+            foregroundConnectionMode: config.offline
                 ? ConnectionMode.offline
                 : config.dataSourceConfig.initialConnectionMode,
             disableAutomaticBackgroundHandling:

@@ -49,6 +49,12 @@ export 'src/config/common_platform.dart' show CommonPlatform;
 export 'src/config/events_config.dart' show EventsConfig;
 export 'src/config/credential/credential_source.dart' show CredentialSource;
 export 'src/connection_mode.dart' show ConnectionMode;
+export 'src/data_sources/fdv2/mode_resolution.dart'
+    show
+        ModeState,
+        ModeResolutionEntry,
+        resolveConnectionMode,
+        flutterDefaultResolutionTable;
 export 'src/data_sources/data_source_status.dart'
     show DataSourceStatusErrorInfo, DataSourceStatus, DataSourceState;
 

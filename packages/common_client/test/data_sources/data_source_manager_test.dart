@@ -40,9 +40,8 @@ final class MockDataSource implements DataSource {
 }
 
 Map<ConnectionMode, DataSourceFactory> defaultFactories(
-    Map<ConnectionMode, MockDataSource> dataSources,
-    {bool withBackground = false}) {
-  final factories = {
+    Map<ConnectionMode, MockDataSource> dataSources) {
+  return {
     ConnectionMode.streaming: (context) {
       final dataSource = MockDataSource();
       dataSources[ConnectionMode.streaming] = dataSource;
@@ -52,9 +51,13 @@ Map<ConnectionMode, DataSourceFactory> defaultFactories(
       final dataSource = MockDataSource();
       dataSources[ConnectionMode.polling] = dataSource;
       return dataSource;
-    }
+    },
+    ConnectionMode.background: (context) {
+      final dataSource = MockDataSource();
+      dataSources[ConnectionMode.background] = dataSource;
+      return dataSource;
+    },
   };
-  return factories;
 }
 
 DataSourceManager makeManager(

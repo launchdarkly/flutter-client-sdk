@@ -87,7 +87,8 @@ void main() {
   group('given default connection modes', () {
     for (var initialMode in [
       ConnectionMode.streaming,
-      ConnectionMode.polling
+      ConnectionMode.polling,
+      ConnectionMode.background,
     ]) {
       test(
           'it can restore the connection when entering the foreground for mode: $initialMode',
@@ -98,7 +99,7 @@ void main() {
         final logAdapter = MockLogAdapter();
         final logger = LDLogger(adapter: logAdapter);
         final config = ConnectionManagerConfig(
-            runInBackground: false, initialConnectionMode: initialMode);
+            runInBackground: false, foregroundConnectionMode: initialMode);
         final mockDetector = MockStateDetector();
 
         final connectionManager = ConnectionManager(
@@ -127,7 +128,8 @@ void main() {
   });
 
   test(
-      'if runInBackground is true, then it remains online when entering the background',
+      'if runInBackground is true, default background slot is offline '
+      '(CONNMODE §2.2.1)',
       () async {
     registerFallbackValue(ConnectionMode.streaming);
 
@@ -146,6 +148,65 @@ void main() {
     mockDetector.setApplicationState(ApplicationState.background);
 
     // Wait for the state to propagate.
+    await mockDetector.applicationState.first;
+
+    verify(() => destination.flush());
+    verify(() => destination.setMode(ConnectionMode.offline));
+    connectionManager.dispose();
+  });
+
+  test(
+      'if runInBackground is true and backgroundConnectionMode is background, '
+      'it uses that slot in the background', () async {
+    registerFallbackValue(ConnectionMode.streaming);
+    registerFallbackValue(ConnectionMode.background);
+
+    final destination = MockDestination();
+    final logAdapter = MockLogAdapter();
+    final logger = LDLogger(adapter: logAdapter);
+    final config = ConnectionManagerConfig(
+      runInBackground: true,
+      backgroundConnectionMode: ConnectionMode.background,
+    );
+    final mockDetector = MockStateDetector();
+
+    final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector);
+
+    mockDetector.setApplicationState(ApplicationState.background);
+
+    await mockDetector.applicationState.first;
+
+    verify(() => destination.flush());
+    verify(() => destination.setMode(ConnectionMode.background));
+    connectionManager.dispose();
+  });
+
+  test(
+      'if runInBackground is true and backgroundConnectionMode is streaming, '
+      'it uses that slot in the background', () async {
+    registerFallbackValue(ConnectionMode.streaming);
+
+    final destination = MockDestination();
+    final logAdapter = MockLogAdapter();
+    final logger = LDLogger(adapter: logAdapter);
+    final config = ConnectionManagerConfig(
+      runInBackground: true,
+      backgroundConnectionMode: ConnectionMode.streaming,
+    );
+    final mockDetector = MockStateDetector();
+
+    final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector);
+
+    mockDetector.setApplicationState(ApplicationState.background);
+
     await mockDetector.applicationState.first;
 
     verify(() => destination.flush());
@@ -306,10 +367,43 @@ void main() {
     connectionManager.dispose();
   });
 
+  test('setMode override: applies in background, null restores automatic table',
+      () async {
+    registerFallbackValue(ConnectionMode.streaming);
+    registerFallbackValue(ConnectionMode.polling);
+
+    final destination = MockDestination();
+    final logAdapter = MockLogAdapter();
+    final logger = LDLogger(adapter: logAdapter);
+    final config = ConnectionManagerConfig(runInBackground: true);
+    final mockDetector = MockStateDetector();
+
+    final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector);
+
+    mockDetector.setApplicationState(ApplicationState.background);
+    await mockDetector.applicationState.first;
+
+    verify(() => destination.setMode(ConnectionMode.offline));
+    reset(destination);
+
+    connectionManager.setMode(ConnectionMode.polling);
+    verify(() => destination.setMode(ConnectionMode.polling));
+    reset(destination);
+
+    connectionManager.setMode(null);
+    verify(() => destination.setMode(ConnectionMode.offline));
+    connectionManager.dispose();
+  });
+
   group('given requested connection modes', () {
     for (var requestedMode in [
       ConnectionMode.streaming,
       ConnectionMode.polling,
+      ConnectionMode.background,
       ConnectionMode.offline,
     ]) {
       test('it respects changes to the desired connection mode', () {
@@ -323,7 +417,7 @@ void main() {
         final logAdapter = MockLogAdapter();
         final logger = LDLogger(adapter: logAdapter);
         final config = ConnectionManagerConfig(
-            runInBackground: false, initialConnectionMode: initialMode);
+            runInBackground: false, foregroundConnectionMode: initialMode);
         final mockDetector = MockStateDetector();
 
         final connectionManager = ConnectionManager(

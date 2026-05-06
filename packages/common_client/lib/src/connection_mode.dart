@@ -12,4 +12,8 @@ enum ConnectionMode {
 
   /// The SDK will make periodic requests to receive updates from LaunchDarkly.
   polling,
+
+  /// The SDK is in a background state and will use the configured background
+  /// connection mode or default for the platform if not configured.
+  background,
 }

@@ -321,6 +321,9 @@ void main() {
             ConnectionMode.polling: (LDContext context) {
               return dataSource;
             },
+            ConnectionMode.background: (LDContext context) {
+              return dataSource;
+            },
           };
         },
       );

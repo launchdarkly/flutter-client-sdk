@@ -170,6 +170,7 @@ void main() {
       client.setMode(ConnectionMode.offline);
       client.setMode(ConnectionMode.streaming);
       client.setMode(ConnectionMode.polling);
+      client.setMode(ConnectionMode.background);
     });
 
     test('can set event sending on/off', () {
@@ -206,6 +207,9 @@ void main() {
             return TestDataSource();
           },
           ConnectionMode.polling: (LDContext context) {
+            return TestDataSource();
+          },
+          ConnectionMode.background: (LDContext context) {
             return TestDataSource();
           },
         };
@@ -348,6 +352,9 @@ void main() {
               return TestDataSource();
             },
             ConnectionMode.polling: (LDContext context) {
+              return TestDataSource();
+            },
+            ConnectionMode.background: (LDContext context) {
               return TestDataSource();
             },
           };
