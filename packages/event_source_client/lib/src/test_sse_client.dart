@@ -15,6 +15,7 @@ final class TestSseClient implements SSEClient {
   final Duration readTimeout;
   final String? body;
   final SseHttpMethod httpMethod;
+  final Set<SSECapability> _capabilities;
   late final Stream<Event>? _sourceStream;
   StreamSubscription<Event>? _sourceStreamSubscription;
 
@@ -31,6 +32,10 @@ final class TestSseClient implements SSEClient {
 
   @override
   Stream<Event> get stream => _messageEventsController.stream;
+
+  @override
+  bool hasCapability(SSECapability capability) =>
+      _capabilities.contains(capability);
 
   /// Emit an event on the stream.
   /// Has no effect if the client has been closed.
@@ -66,7 +71,8 @@ final class TestSseClient implements SSEClient {
     required this.body,
     required this.httpMethod,
     Stream<Event>? sourceStream,
-  }) {
+    Set<SSECapability>? capabilities,
+  }) : _capabilities = capabilities ?? {SSECapability.requestHeaders} {
     _sourceStream = sourceStream;
     _messageEventsController = StreamController<Event>.broadcast(
       onListen: () {

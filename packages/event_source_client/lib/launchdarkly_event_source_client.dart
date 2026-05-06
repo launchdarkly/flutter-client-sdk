@@ -17,6 +17,17 @@ export 'src/test_sse_client.dart' show TestSseClient;
 export 'src/logging.dart'
     show EventSourceLogger, LogLevel, NoOpLogger, PrintLogger;
 
+/// Optional behaviors that an [SSEClient] implementation may or may not
+/// support. Callers query support with [SSEClient.hasCapability] and
+/// route around missing capabilities (for example, by switching to a
+/// query-parameter form of authentication when the transport cannot
+/// send custom request headers).
+enum SSECapability {
+  /// The transport can send custom request headers. False for the
+  /// browser native `EventSource` API; true for HTTP-based clients.
+  requestHeaders,
+}
+
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
   get('GET'),
@@ -63,6 +74,13 @@ abstract class SSEClient {
   /// establishes a new connection respecting delay/backoff as if this was
   /// an error condition with the connection.
   void restart();
+
+  /// Whether this implementation supports the given [capability]. Lets
+  /// callers detect transport limitations at runtime — for example, the
+  /// browser native `EventSource` does not support
+  /// [SSECapability.requestHeaders], so callers that need to authenticate
+  /// must fall back to a URL-based scheme.
+  bool hasCapability(SSECapability capability);
 
   /// Factory constructor to return the platform implementation.
   ///
@@ -121,6 +139,7 @@ abstract class SSEClient {
     String? body,
     SseHttpMethod httpMethod = SseHttpMethod.get,
     Stream<Event>? sourceStream,
+    Set<SSECapability>? capabilities,
   }) {
     return TestSseClient.internal(
         headers: UnmodifiableMapView(headers),
@@ -128,6 +147,7 @@ abstract class SSEClient {
         readTimeout: readTimeout,
         body: body,
         httpMethod: httpMethod,
-        sourceStream: sourceStream);
+        sourceStream: sourceStream,
+        capabilities: capabilities);
   }
 }

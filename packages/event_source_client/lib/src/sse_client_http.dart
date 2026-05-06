@@ -111,6 +111,13 @@ class HttpSseClient implements SSEClient {
       _resetRequest.sink.add(null);
     }
   }
+
+  @override
+  bool hasCapability(SSECapability capability) {
+    return switch (capability) {
+      SSECapability.requestHeaders => true,
+    };
+  }
 }
 
 /// No op sink.  Exists to accommodate unit testing.
