@@ -95,8 +95,11 @@ final class PollingDataSource implements DataSource {
 
     switch (event) {
       case null:
-        // No change.
-        return;
+        // No change (e.g. 304 Not Modified). Fall through to schedule
+        // the next poll -- returning here would leave the timer
+        // unset and silently stop polling after the first unchanged
+        // response.
+        break;
       case DataEvent():
         _eventController.sink.add(event);
       case StatusEvent():
