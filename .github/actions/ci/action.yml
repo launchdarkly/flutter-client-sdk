@@ -68,19 +68,27 @@ runs:
       run: |
         pushd apps/flutter_client_contract_test_service
         flutter test bin/contract_test_service.dart > test-service.log 2>&1 & disown
-    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1.0.1
+    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1.3.0
       with:
         test_service_port: 8080
         token: ${{ inputs.github_token }}
+        enable_persistence_tests: false
         extra_params: '-status-timeout 100 --skip-from=./apps/flutter_client_contract_test_service/testharness-suppressions.txt'
 
-    - name: SSE Contract Tests
+    - name: SSE Contract Tests Service
       shell: bash
       run: |
         pushd apps/sse_contract_test_service
         dart run bin/sse_contract_test_service.dart > test-service.log 2>&1 & disown
-        curl -s https://raw.githubusercontent.com/launchdarkly/sse-contract-tests/v2.0.0/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -stop-service-at-end" sh
-        popd
+    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1.3.0
+      with:
+        repo: 'sse-contract-tests'
+        branch: 'v2.0.0'
+        version: 'v2'
+        test_service_port: 8080
+        debug_logging: true
+        enable_persistence_tests: false
+        token: ${{ inputs.github_token }}
 
     - name: Upload Test Service Logs
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
