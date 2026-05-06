@@ -27,12 +27,12 @@ final class PollingInitializer extends InitializerEntry {
   /// Per-source endpoint overrides.
   final EndpointConfig? endpoints;
 
-  /// Whether to use the report method for the source.
-  final bool useReport;
+  /// Whether to use the POST semantics for this source.
+  final bool usePost;
 
   const PollingInitializer({
     this.endpoints,
-    this.useReport = false,
+    this.usePost = false,
   });
 }
 
@@ -44,13 +44,13 @@ final class StreamingInitializer extends InitializerEntry {
   /// Per-source endpoint overrides.
   final EndpointConfig? endpoints;
 
-  /// Whether to use the report method for the source.
-  final bool useReport;
+  /// Whether to use the POST semantics for this source.
+  final bool usePost;
 
   const StreamingInitializer({
     this.initialReconnectDelay,
     this.endpoints,
-    this.useReport = false,
+    this.usePost = false,
   });
 }
 
@@ -62,13 +62,13 @@ final class PollingSynchronizer extends SynchronizerEntry {
   /// Per-source endpoint overrides.
   final EndpointConfig? endpoints;
 
-  /// Whether to use the report method for the source.
-  final bool useReport;
+  /// Whether to use the POST semantics for this source.
+  final bool usePost;
 
   const PollingSynchronizer({
     this.pollInterval,
     this.endpoints,
-    this.useReport = false,
+    this.usePost = false,
   });
 }
 
@@ -79,13 +79,13 @@ final class StreamingSynchronizer extends SynchronizerEntry {
   /// Per-source endpoint overrides.
   final EndpointConfig? endpoints;
 
-  /// Whether to use the report method for the source.
-  final bool useReport;
+  /// Whether to use the POST semantics for this source.
+  final bool usePost;
 
   const StreamingSynchronizer({
     this.initialReconnectDelay,
     this.endpoints,
-    this.useReport = false,
+    this.usePost = false,
   });
 }
 
