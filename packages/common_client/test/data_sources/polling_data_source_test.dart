@@ -641,6 +641,29 @@ void main() {
       // attempt was made to parse the empty body.
       expect(flagManager.environmentId, isNull);
     });
+
+    test('a 304 response does not stop polling', () async {
+      // Regression: a previous version of _doPoll early-returned on a
+      // null event without scheduling the next poll, so the first 304
+      // permanently halted the loop. This pins multiple 304s in a row
+      // resulting in multiple requests.
+      var requestCount = 0;
+      final innerClient = MockClient((request) async {
+        requestCount++;
+        return http.Response('', 304);
+      });
+
+      final (polling, _, _) = makeDataSourceForTest(innerClient,
+          testingInterval: const Duration(milliseconds: 5));
+      polling.start();
+
+      while (requestCount < 3) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      polling.stop();
+
+      expect(requestCount, greaterThanOrEqualTo(3));
+    });
   });
 
   group('network error log content', () {
