@@ -112,6 +112,14 @@ class HtmlSseClient implements SSEClient {
       _setupConnection();
     });
   }
+
+  @override
+  bool hasCapability(SSECapability capability) {
+    // The browser native `EventSource` cannot send custom request
+    // headers, only supports `GET`, and silently discards a request
+    // body. None of the FDv2-relevant capabilities are supported here.
+    return false;
+  }
 }
 
 SSEClient getSSEClient(
