@@ -22,10 +22,25 @@ export 'src/logging.dart'
 /// route around missing capabilities (for example, by switching to a
 /// query-parameter form of authentication when the transport cannot
 /// send custom request headers).
-enum SSECapability {
+///
+/// Modeled as a class with private-constructor static-const instances
+/// rather than an enum so adding a new capability is source-compatible
+/// for users -- a `switch (capability)` over an enum becomes
+/// non-exhaustive when a new value is added.
+class SSECapability {
+  /// The capability identifier. Stable across releases and intended
+  /// only for diagnostics; comparisons should use the static const
+  /// members directly (e.g. `cap == SSECapability.requestHeaders`).
+  final String value;
+
+  const SSECapability._(this.value);
+
   /// The transport can send custom request headers. False for the
   /// browser native `EventSource` API; true for HTTP-based clients.
-  requestHeaders,
+  static const SSECapability requestHeaders = SSECapability._('requestHeaders');
+
+  @override
+  String toString() => 'SSECapability.$value';
 }
 
 /// HTTP methods supported by the event source client.
@@ -82,7 +97,7 @@ abstract class SSEClient {
   /// must fall back to a URL-based scheme.
   ///
   /// The default implementation returns `false` for every capability so
-  /// adding new capabilities to the enum (or adding this method to an
+  /// adding a new capability constant (or adding this method to an
   /// existing external implementation) is source-compatible. Concrete
   /// implementations should override and report what they actually
   /// support.
