@@ -80,7 +80,13 @@ abstract class SSEClient {
   /// browser native `EventSource` does not support
   /// [SSECapability.requestHeaders], so callers that need to authenticate
   /// must fall back to a URL-based scheme.
-  bool hasCapability(SSECapability capability);
+  ///
+  /// The default implementation returns `false` for every capability so
+  /// adding new capabilities to the enum (or adding this method to an
+  /// existing external implementation) is source-compatible. Concrete
+  /// implementations should override and report what they actually
+  /// support.
+  bool hasCapability(SSECapability capability) => false;
 
   /// Factory constructor to return the platform implementation.
   ///
