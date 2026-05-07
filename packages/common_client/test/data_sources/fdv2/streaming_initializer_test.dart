@@ -9,39 +9,20 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
-class FakeSseClient implements SSEClient {
-  final StreamController<Event> _controller = StreamController<Event>();
-  bool _closed = false;
+TestSseClient makeSse() => SSEClient.testClient(Uri.parse('/test'), const {});
 
-  void emitMessage(String type, String data) {
-    _controller.add(MessageEvent(type, data, null));
-  }
-
-  void emitOpen({Map<String, String>? headers}) {
-    _controller.add(OpenEvent(
-        headers: headers == null ? null : UnmodifiableMapView(headers)));
-  }
-
-  bool get sseClosed => _closed;
-
-  @override
-  Stream<Event> get stream => _controller.stream;
-
-  @override
-  Future<void> close() async {
-    _closed = true;
-    if (!_controller.isClosed) await _controller.close();
-  }
-
-  @override
-  void restart() {}
-
-  @override
-  bool hasCapability(SSECapability capability) => true;
+void emitMessage(TestSseClient sse, String type, String data) {
+  sse.emitEvent(MessageEvent(type, data, null));
 }
 
-void emitFullPayload(FakeSseClient sse, {String state = 'sel-1'}) {
-  sse.emitMessage(
+void emitOpen(TestSseClient sse, {Map<String, String>? headers}) {
+  sse.emitEvent(OpenEvent(
+      headers: headers == null ? null : UnmodifiableMapView(headers)));
+}
+
+void emitFullPayload(TestSseClient sse, {String state = 'sel-1'}) {
+  emitMessage(
+    sse,
     'server-intent',
     jsonEncode({
       'payloads': [
@@ -54,7 +35,8 @@ void emitFullPayload(FakeSseClient sse, {String state = 'sel-1'}) {
       ]
     }),
   );
-  sse.emitMessage(
+  emitMessage(
+    sse,
     'put-object',
     jsonEncode({
       'kind': 'flag-eval',
@@ -63,13 +45,14 @@ void emitFullPayload(FakeSseClient sse, {String state = 'sel-1'}) {
       'object': {'value': true, 'version': 1, 'variation': 0},
     }),
   );
-  sse.emitMessage(
+  emitMessage(
+    sse,
     'payload-transferred',
     jsonEncode({'state': state, 'version': 1}),
   );
 }
 
-FDv2StreamingBase makeBase(FakeSseClient sse) => FDv2StreamingBase(
+FDv2StreamingBase makeBase(TestSseClient sse) => FDv2StreamingBase(
       sseClient: sse,
       pingHandler: () async =>
           FDv2SourceResults.interrupted(message: 'no ping'),
@@ -79,7 +62,7 @@ FDv2StreamingBase makeBase(FakeSseClient sse) => FDv2StreamingBase(
 void main() {
   test('returns the first ChangeSetResult and tears the connection down',
       () async {
-    final sse = FakeSseClient();
+    final sse = makeSse();
     final init = FDv2StreamingInitializer(base: makeBase(sse));
 
     final future = init.run();
@@ -92,16 +75,17 @@ void main() {
     expect(result, isA<ChangeSetResult>());
     expect(
         (result as ChangeSetResult).payload.selector.state, equals('sel-init'));
-    expect(sse.sseClosed, isTrue);
+    expect(sse.isClosed, isTrue);
   });
 
   test('surfaces a goodbye result as the first emission', () async {
-    final sse = FakeSseClient();
+    final sse = makeSse();
     final init = FDv2StreamingInitializer(base: makeBase(sse));
     final future = init.run();
     await Future<void>.delayed(Duration.zero);
 
-    sse.emitMessage(
+    emitMessage(
+      sse,
       'server-intent',
       jsonEncode({
         'payloads': [
@@ -114,20 +98,20 @@ void main() {
         ]
       }),
     );
-    sse.emitMessage('goodbye', jsonEncode({'reason': 'maintenance'}));
+    emitMessage(sse, 'goodbye', jsonEncode({'reason': 'maintenance'}));
 
     final result = await future;
     expect((result as StatusResult).state, equals(SourceState.goodbye));
-    expect(sse.sseClosed, isTrue);
+    expect(sse.isClosed, isTrue);
   });
 
   test('surfaces FDv1 fallback as terminalError', () async {
-    final sse = FakeSseClient();
+    final sse = makeSse();
     final init = FDv2StreamingInitializer(base: makeBase(sse));
     final future = init.run();
     await Future<void>.delayed(Duration.zero);
 
-    sse.emitOpen(headers: {'x-ld-fd-fallback': 'true'});
+    emitOpen(sse, headers: {'x-ld-fd-fallback': 'true'});
 
     final result = await future;
     final status = result as StatusResult;
@@ -136,7 +120,7 @@ void main() {
   });
 
   test('close before any emission resolves with a shutdown result', () async {
-    final sse = FakeSseClient();
+    final sse = makeSse();
     final init = FDv2StreamingInitializer(base: makeBase(sse));
     final future = init.run();
     await Future<void>.delayed(Duration.zero);
@@ -145,11 +129,11 @@ void main() {
 
     final result = await future;
     expect((result as StatusResult).state, equals(SourceState.shutdown));
-    expect(sse.sseClosed, isTrue);
+    expect(sse.isClosed, isTrue);
   });
 
   test('close after run() returns is idempotent', () async {
-    final sse = FakeSseClient();
+    final sse = makeSse();
     final init = FDv2StreamingInitializer(base: makeBase(sse));
     final future = init.run();
     await Future<void>.delayed(Duration.zero);
@@ -163,7 +147,7 @@ void main() {
 
   test('close() before run() yields a shutdown result without a subscription',
       () async {
-    final sse = FakeSseClient();
+    final sse = makeSse();
     final init = FDv2StreamingInitializer(base: makeBase(sse));
 
     init.close();

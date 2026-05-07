@@ -9,45 +9,16 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
-/// Fake SSE client backed by a controllable [StreamController]. Tests
-/// drive the SSE stream by calling [emitOpen], [emitMessage], or
-/// [emitError]. Calls to [close] complete the [closed] future so tests
-/// can assert teardown happened.
-class FakeSseClient implements SSEClient {
-  final StreamController<Event> _controller = StreamController<Event>();
-  final Completer<void> closed = Completer<void>();
-  int restartCount = 0;
+TestSseClient makeSse() => SSEClient.testClient(Uri.parse('/test'), const {});
 
-  void emitOpen({Map<String, String>? headers}) {
-    _controller.add(OpenEvent(
-      headers: headers == null ? null : UnmodifiableMapView(headers),
-    ));
-  }
+void emitOpen(TestSseClient sse, {Map<String, String>? headers}) {
+  sse.emitEvent(OpenEvent(
+    headers: headers == null ? null : UnmodifiableMapView(headers),
+  ));
+}
 
-  void emitMessage(String type, String data, {String? id}) {
-    _controller.add(MessageEvent(type, data, id));
-  }
-
-  void emitError(Object err) {
-    _controller.addError(err);
-  }
-
-  @override
-  Stream<Event> get stream => _controller.stream;
-
-  @override
-  Future<void> close() async {
-    if (!closed.isCompleted) closed.complete();
-    if (!_controller.isClosed) await _controller.close();
-  }
-
-  @override
-  void restart() {
-    restartCount++;
-  }
-
-  @override
-  bool hasCapability(SSECapability capability) => true;
+void emitMessage(TestSseClient sse, String type, String data, {String? id}) {
+  sse.emitEvent(MessageEvent(type, data, id));
 }
 
 String serverIntent({String intentCode = 'xfer-full', int target = 1}) =>
@@ -79,15 +50,15 @@ String payloadTransferred({String state = 'sel-1', int version = 1}) =>
       'version': version,
     });
 
-void emitFullPayload(FakeSseClient sse,
+void emitFullPayload(TestSseClient sse,
     {String state = 'sel-1', String flagKey = 'flag-a'}) {
-  sse.emitMessage('server-intent', serverIntent());
-  sse.emitMessage('put-object', putObject(key: flagKey));
-  sse.emitMessage('payload-transferred', payloadTransferred(state: state));
+  emitMessage(sse, 'server-intent', serverIntent());
+  emitMessage(sse, 'put-object', putObject(key: flagKey));
+  emitMessage(sse, 'payload-transferred', payloadTransferred(state: state));
 }
 
 FDv2StreamingBase makeBase(
-  FakeSseClient sse, {
+  TestSseClient sse, {
   Future<FDv2SourceResult> Function()? pingHandler,
   DateTime Function()? now,
 }) {
@@ -103,7 +74,7 @@ FDv2StreamingBase makeBase(
 void main() {
   group('connection lifecycle', () {
     test('opens the SSE stream on first listen', () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
 
@@ -127,7 +98,7 @@ void main() {
     test(
         'subscription cancel tears down the SSE client without emitting '
         'shutdown', () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final sub = base.results.listen(emissions.add);
@@ -136,12 +107,12 @@ void main() {
       await sub.cancel();
       await Future<void>.delayed(Duration.zero);
 
-      expect(sse.closed.isCompleted, isTrue);
+      expect(sse.isClosed, isTrue);
       expect(emissions.whereType<StatusResult>(), isEmpty);
     });
 
     test('close() emits shutdown then closes the stream', () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final done = Completer<void>();
@@ -154,11 +125,11 @@ void main() {
       expect(emissions, hasLength(1));
       expect((emissions.single as StatusResult).state,
           equals(SourceState.shutdown));
-      expect(sse.closed.isCompleted, isTrue);
+      expect(sse.isClosed, isTrue);
     });
 
     test('close() is idempotent', () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       base.close();
       expect(() => base.close(), returnsNormally);
@@ -168,7 +139,7 @@ void main() {
   group('event handling', () {
     test('xfer-full sequence produces ChangeSetResult with full payload',
         () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final fixedNow = DateTime.utc(2026, 1, 1);
       final base = makeBase(sse, now: () => fixedNow);
       final emissions = <FDv2SourceResult>[];
@@ -191,13 +162,13 @@ void main() {
 
     test('environmentId from x-ld-envid header rides on the ChangeSetResult',
         () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitOpen(headers: {'x-ld-envid': 'env-abc'});
+      emitOpen(sse, headers: {'x-ld-envid': 'env-abc'});
       emitFullPayload(sse);
       await Future<void>.delayed(Duration.zero);
 
@@ -209,32 +180,32 @@ void main() {
 
     test('goodbye event closes the source and emits a goodbye result',
         () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final done = Completer<void>();
       base.results.listen(emissions.add, onDone: done.complete);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitMessage('server-intent', serverIntent());
-      sse.emitMessage('goodbye', jsonEncode({'reason': 'maintenance'}));
+      emitMessage(sse, 'server-intent', serverIntent());
+      emitMessage(sse, 'goodbye', jsonEncode({'reason': 'maintenance'}));
       await done.future;
 
       expect(emissions, hasLength(1));
       expect((emissions.single as StatusResult).state,
           equals(SourceState.goodbye));
-      expect(sse.closed.isCompleted, isTrue);
+      expect(sse.isClosed, isTrue);
     });
 
     test('unparseable event data is reported as interrupted, no throw',
         () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitMessage('put-object', 'not json');
+      emitMessage(sse, 'put-object', 'not json');
       await Future<void>.delayed(Duration.zero);
 
       expect((emissions.single as StatusResult).state,
@@ -245,13 +216,13 @@ void main() {
 
     test('non-object event data is reported as interrupted, no throw',
         () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitMessage('server-intent', '[1,2,3]');
+      emitMessage(sse, 'server-intent', '[1,2,3]');
       await Future<void>.delayed(Duration.zero);
 
       expect((emissions.single as StatusResult).state,
@@ -261,13 +232,13 @@ void main() {
     });
 
     test('SSE transport error is reported as interrupted', () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitError(Exception('connection dropped'));
+      sse.emitError(error: Exception('connection dropped'));
       await Future<void>.delayed(Duration.zero);
 
       expect((emissions.single as StatusResult).state,
@@ -281,31 +252,31 @@ void main() {
     test(
         'x-ld-fd-fallback: true on the OpenEvent emits terminalError and '
         'closes', () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final done = Completer<void>();
       base.results.listen(emissions.add, onDone: done.complete);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitOpen(headers: {'x-ld-fd-fallback': 'true'});
+      emitOpen(sse, headers: {'x-ld-fd-fallback': 'true'});
       await done.future;
 
       expect(emissions, hasLength(1));
       final status = emissions.single as StatusResult;
       expect(status.state, equals(SourceState.terminalError));
       expect(status.fdv1Fallback, isTrue);
-      expect(sse.closed.isCompleted, isTrue);
+      expect(sse.isClosed, isTrue);
     });
 
     test('fallback header is matched case-insensitively', () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitOpen(headers: {'x-ld-fd-fallback': 'TRUE'});
+      emitOpen(sse, headers: {'x-ld-fd-fallback': 'TRUE'});
       await Future<void>.delayed(Duration.zero);
 
       expect((emissions.single as StatusResult).fdv1Fallback, isTrue);
@@ -314,13 +285,13 @@ void main() {
     });
 
     test('fallback header value other than true is ignored', () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
       final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitOpen(headers: {'x-ld-fd-fallback': 'false'});
+      emitOpen(sse, headers: {'x-ld-fd-fallback': 'false'});
       emitFullPayload(sse);
       await Future<void>.delayed(Duration.zero);
 
@@ -341,7 +312,7 @@ void main() {
         persist: true,
         freshness: DateTime.utc(2026, 1, 1),
       );
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(
         sse,
         pingHandler: () async {
@@ -353,7 +324,7 @@ void main() {
       final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitMessage('ping', '');
+      emitMessage(sse, 'ping', '');
       await Future<void>.delayed(Duration.zero);
 
       expect(pingCallCount, equals(1));
@@ -365,7 +336,7 @@ void main() {
 
     test('PingHandler throwing is treated as interrupted, no propagation',
         () async {
-      final sse = FakeSseClient();
+      final sse = makeSse();
       final base = makeBase(
         sse,
         pingHandler: () async {
@@ -376,7 +347,7 @@ void main() {
       final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
-      sse.emitMessage('ping', '');
+      emitMessage(sse, 'ping', '');
       await Future<void>.delayed(Duration.zero);
 
       expect((emissions.single as StatusResult).state,

@@ -8,34 +8,15 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
-class FakeSseClient implements SSEClient {
-  final StreamController<Event> _controller = StreamController<Event>();
-  bool _closed = false;
+TestSseClient makeSse() => SSEClient.testClient(Uri.parse('/test'), const {});
 
-  bool get sseClosed => _closed;
-
-  void emitMessage(String type, String data) {
-    _controller.add(MessageEvent(type, data, null));
-  }
-
-  @override
-  Stream<Event> get stream => _controller.stream;
-
-  @override
-  Future<void> close() async {
-    _closed = true;
-    if (!_controller.isClosed) await _controller.close();
-  }
-
-  @override
-  void restart() {}
-
-  @override
-  bool hasCapability(SSECapability capability) => true;
+void emitMessage(TestSseClient sse, String type, String data) {
+  sse.emitEvent(MessageEvent(type, data, null));
 }
 
-void emitFullPayload(FakeSseClient sse, {String state = 'sel-1'}) {
-  sse.emitMessage(
+void emitFullPayload(TestSseClient sse, {String state = 'sel-1'}) {
+  emitMessage(
+    sse,
     'server-intent',
     jsonEncode({
       'payloads': [
@@ -48,7 +29,8 @@ void emitFullPayload(FakeSseClient sse, {String state = 'sel-1'}) {
       ]
     }),
   );
-  sse.emitMessage(
+  emitMessage(
+    sse,
     'put-object',
     jsonEncode({
       'kind': 'flag-eval',
@@ -57,13 +39,14 @@ void emitFullPayload(FakeSseClient sse, {String state = 'sel-1'}) {
       'object': {'value': true, 'version': 1, 'variation': 0},
     }),
   );
-  sse.emitMessage(
+  emitMessage(
+    sse,
     'payload-transferred',
     jsonEncode({'state': state, 'version': 1}),
   );
 }
 
-FDv2StreamingBase makeBase(FakeSseClient sse) => FDv2StreamingBase(
+FDv2StreamingBase makeBase(TestSseClient sse) => FDv2StreamingBase(
       sseClient: sse,
       pingHandler: () async =>
           FDv2SourceResults.interrupted(message: 'no ping'),
@@ -72,7 +55,7 @@ FDv2StreamingBase makeBase(FakeSseClient sse) => FDv2StreamingBase(
 
 void main() {
   test('forwards results from the underlying base', () async {
-    final sse = FakeSseClient();
+    final sse = makeSse();
     final sync = FDv2StreamingSynchronizer(base: makeBase(sse));
     final emissions = <FDv2SourceResult>[];
     final sub = sync.results.listen(emissions.add);
@@ -92,7 +75,7 @@ void main() {
   });
 
   test('close forwards to the base, emitting shutdown', () async {
-    final sse = FakeSseClient();
+    final sse = makeSse();
     final sync = FDv2StreamingSynchronizer(base: makeBase(sse));
     final emissions = <FDv2SourceResult>[];
     final done = Completer<void>();
@@ -104,6 +87,6 @@ void main() {
 
     expect(
         (emissions.last as StatusResult).state, equals(SourceState.shutdown));
-    expect(sse.sseClosed, isTrue);
+    expect(sse.isClosed, isTrue);
   });
 }
