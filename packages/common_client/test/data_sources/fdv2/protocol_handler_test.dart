@@ -1,10 +1,21 @@
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/protocol_handler.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/protocol_types.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+class MockLogAdapter extends Mock implements LDLogAdapter {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(LDLogRecord(
+        level: LDLogLevel.debug,
+        message: '',
+        time: DateTime.now(),
+        logTag: ''));
+  });
+
   final logger = LDLogger();
 
   FDv2ProtocolHandler makeHandler() {
@@ -432,6 +443,52 @@ void main() {
       // State should still be full (not reset to inactive),
       // but temp updates should be cleared. New data can follow.
       expect(handler.state, equals(ProtocolState.full));
+    });
+
+    test('logs the spec-mandated message format with payload id and reason',
+        () {
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+      final loggerWithAdapter = LDLogger(adapter: adapter);
+      final handler = FDv2ProtocolHandler(
+        objProcessors: {'flag-eval': (obj) => obj},
+        logger: loggerWithAdapter,
+      );
+      handler.processEvent(serverIntent('xfer-full'));
+
+      handler.processEvent(FDv2Event(
+          event: FDv2EventTypes.error,
+          data: {'payload_id': 'p-7', 'reason': 'oops'}));
+
+      final records = verify(() => adapter.log(captureAny())).captured;
+      final messages = records.map((r) => (r as LDLogRecord).message).toList();
+      expect(
+        messages,
+        contains("An issue was encountered receiving updates for payload 'p-7' "
+            "with reason: 'oops'. Automatic retry will occur."),
+      );
+    });
+
+    test('uses a placeholder for the payload id when the field is missing', () {
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+      final loggerWithAdapter = LDLogger(adapter: adapter);
+      final handler = FDv2ProtocolHandler(
+        objProcessors: {'flag-eval': (obj) => obj},
+        logger: loggerWithAdapter,
+      );
+      handler.processEvent(serverIntent('xfer-full'));
+
+      handler.processEvent(
+          FDv2Event(event: FDv2EventTypes.error, data: {'reason': 'oops'}));
+
+      final records = verify(() => adapter.log(captureAny())).captured;
+      final messages = records.map((r) => (r as LDLogRecord).message).toList();
+      expect(
+        messages.any(
+            (m) => m.contains("for payload '<unknown>' with reason: 'oops'")),
+        isTrue,
+      );
     });
   });
 

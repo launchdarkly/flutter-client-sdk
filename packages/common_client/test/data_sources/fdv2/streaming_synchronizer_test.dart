@@ -89,4 +89,45 @@ void main() {
         (emissions.last as StatusResult).state, equals(SourceState.shutdown));
     expect(sse.isClosed, isTrue);
   });
+
+  test('close() is safe to call from an onData listener reacting to goodbye',
+      () async {
+    // The Synchronizer interface contract documents close() as
+    // idempotent. A close() call from inside the listener's onData
+    // when reacting to a goodbye must not throw.
+    final sse = makeSse();
+    final sync = FDv2StreamingSynchronizer(base: makeBase(sse));
+    Object? caught;
+    runZonedGuarded(() {
+      sync.results.listen((event) {
+        if (event is StatusResult && event.state == SourceState.goodbye) {
+          sync.close();
+        }
+      });
+    }, (err, _) => caught = err);
+
+    await Future<void>.delayed(Duration.zero);
+    emitMessage(
+      sse,
+      'server-intent',
+      jsonEncode({
+        'payloads': [
+          {
+            'id': 'p1',
+            'target': 1,
+            'intentCode': 'xfer-full',
+            'reason': 'test',
+          }
+        ]
+      }),
+    );
+    emitMessage(sse, 'goodbye', jsonEncode({'reason': 'maintenance'}));
+    for (var i = 0; i < 5; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    expect(caught, isNull,
+        reason: 'sync.close() from onData on goodbye must not throw');
+    expect(sse.isClosed, isTrue);
+  });
 }

@@ -263,7 +263,9 @@ final class FDv2ProtocolHandler {
   }
 
   ProtocolAction _processError(ServerErrorEvent data) {
-    _logger.info('Server error encountered receiving updates: ${data.reason}');
+    _logger.info('An issue was encountered receiving updates for payload '
+        "'${data.payloadId ?? '<unknown>'}' with reason: '${data.reason}'. "
+        'Automatic retry will occur.');
     _resetAfterError();
     return ActionServerError(data.reason, id: data.payloadId);
   }

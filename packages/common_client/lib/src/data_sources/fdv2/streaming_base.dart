@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
@@ -40,6 +41,11 @@ import 'source_result.dart';
 /// emits a shutdown [StatusResult] before closing the stream. Both
 /// paths funnel through a `Completer<void> _stoppedSignal` so async
 /// callbacks short-circuit safely.
+///
+/// `SSEClient.restart` is intentionally not surfaced here. The
+/// orchestrator drives connection lifecycle by tearing down a
+/// streaming source and constructing a fresh one (e.g. on credential
+/// rotation or basis change), not by reconnecting an existing one.
 final class FDv2StreamingBase {
   final SSEClient _sseClient;
   final PingHandler _pingHandler;
@@ -51,6 +57,7 @@ final class FDv2StreamingBase {
   StreamSubscription<Event>? _sseSubscription;
   FDv2ProtocolHandler? _handler;
   String? _environmentId;
+  bool _pingInFlight = false;
 
   FDv2StreamingBase({
     required SSEClient sseClient,
@@ -74,25 +81,48 @@ final class FDv2StreamingBase {
   /// Stops the source, emits a shutdown [StatusResult], and closes the
   /// stream. Idempotent.
   void close() {
+    _terminate(
+        finalResult:
+            FDv2SourceResults.shutdown(message: 'Streaming source closed'));
+  }
+
+  /// Terminal-path helper used by [close] and by the in-stream
+  /// terminal paths (goodbye event, fdv1-fallback header). Completes
+  /// [_stoppedSignal] *first* so any subsequent [close] call -- e.g.
+  /// from inside an `onData` listener reacting to the [finalResult]
+  /// we are about to emit -- short-circuits at its guard instead of
+  /// racing into a closed controller. Idempotent.
+  void _terminate({FDv2SourceResult? finalResult}) {
     if (_stoppedSignal.isCompleted) return;
     _stoppedSignal.complete();
     _tearDownConnection();
-    _controller
-        .add(FDv2SourceResults.shutdown(message: 'Streaming source closed'));
-    _controller.close();
+    if (!_controller.isClosed) {
+      if (finalResult != null) {
+        _controller.add(finalResult);
+      }
+      _controller.close();
+    }
   }
 
   void _onListen() {
-    // Build the protocol handler fresh for each connection so a
-    // partial transfer from a previous connection cannot bleed into
-    // the new one.
-    _handler = FDv2ProtocolHandler(
-      objProcessors: {flagEvalKind: processFlagEval},
-      logger: _logger,
-    );
+    _resetHandler();
     _sseSubscription = _sseClient.stream.listen(
       _handleEvent,
       onError: _handleSseError,
+    );
+  }
+
+  /// Builds a fresh [FDv2ProtocolHandler]. Called on initial connect
+  /// and on every subsequent [OpenEvent] (SSE auto-reconnect), so a
+  /// partial transfer from the previous connection cannot bleed into
+  /// the new one regardless of whether the server re-sends
+  /// `server-intent` after a Last-Event-ID resumption. Also called
+  /// after a mid-event throw inside [processEvent] so any
+  /// half-accumulated `_tempUpdates` are discarded.
+  void _resetHandler() {
+    _handler = FDv2ProtocolHandler(
+      objProcessors: {flagEvalKind: processFlagEval},
+      logger: _logger,
     );
   }
 
@@ -123,6 +153,13 @@ final class FDv2StreamingBase {
   }
 
   void _handleOpen(OpenEvent event) {
+    // Every OpenEvent represents a (re)established connection. Rebuild
+    // the protocol handler so a partial transfer from the prior
+    // connection cannot bleed into this one -- the SDK must defend
+    // against this regardless of whether the server respects the
+    // protocol's "re-send server-intent on resume" semantic.
+    _resetHandler();
+
     final headers = event.headers;
     if (headers == null) return;
 
@@ -133,13 +170,14 @@ final class FDv2StreamingBase {
 
     final fallback = headers['x-ld-fd-fallback']?.toLowerCase() == 'true';
     if (fallback) {
-      _emit(FDv2SourceResults.terminalError(
+      // Server told us to fall back; route through the terminal helper
+      // so a close() from the listener's onData -- a natural reaction
+      // to a fallback signal -- doesn't race with our own close.
+      _terminate(
+          finalResult: FDv2SourceResults.terminalError(
         message: 'Server requested FDv1 fallback',
         fdv1Fallback: true,
       ));
-      // Server told us to fall back; don't keep the connection open.
-      _tearDownConnection();
-      _controller.close();
     }
   }
 
@@ -151,7 +189,7 @@ final class FDv2StreamingBase {
       return;
     }
 
-    final Map<String, dynamic> data;
+    final ProtocolAction action;
     try {
       final decoded = jsonDecode(event.data);
       if (decoded is! Map<String, dynamic>) {
@@ -161,17 +199,23 @@ final class FDv2StreamingBase {
             message: 'Streaming event payload was not a JSON object'));
         return;
       }
-      data = decoded;
+      // Wrap the protocol-handler dispatch in the same try/catch as the
+      // jsonDecode: the structural casts inside the per-event fromJson
+      // factories (e.g. PayloadIntent, PutObjectEvent) throw TypeError
+      // on shape mismatch and would otherwise become unhandled async
+      // exceptions.
+      action =
+          _handler!.processEvent(FDv2Event(event: event.type, data: decoded));
     } catch (err) {
-      _logger
-          .warn('Failed to parse SSE event data as JSON (${err.runtimeType})');
+      _logger.warn('Failed to parse or process SSE event (${err.runtimeType})');
+      // Reset the handler -- a mid-event throw can leave it with stale
+      // _tempUpdates from the partially-processed payload.
+      _resetHandler();
       _emit(FDv2SourceResults.interrupted(
-          message: 'Streaming event payload was not valid JSON'));
+          message: 'Streaming event payload was malformed'));
       return;
     }
 
-    final action =
-        _handler!.processEvent(FDv2Event(event: event.type, data: data));
     if (_stoppedSignal.isCompleted) return;
 
     switch (action) {
@@ -183,11 +227,11 @@ final class FDv2StreamingBase {
           persist: true,
         ));
       case ActionGoodbye(:final reason):
-        _emit(FDv2SourceResults.goodbyeResult(message: reason));
-        // Server told us to disconnect; close instead of letting the
-        // SSE client retry into a closed channel.
-        _tearDownConnection();
-        _controller.close();
+        // Server told us to disconnect; route through the terminal
+        // helper so a close() from the listener's onData -- a natural
+        // reaction to a goodbye -- doesn't race with our own close.
+        _terminate(
+            finalResult: FDv2SourceResults.goodbyeResult(message: reason));
       case ActionServerError(:final reason):
         _emit(FDv2SourceResults.interrupted(message: reason));
       case ActionError(:final message):
@@ -200,17 +244,28 @@ final class FDv2StreamingBase {
   }
 
   Future<void> _handlePing() async {
-    final FDv2SourceResult result;
+    // The FDv2 ping semantic is "go re-poll". A single in-flight poll
+    // already satisfies any number of pings that arrive while it is
+    // running, so drop excess pings rather than spawning concurrent
+    // polls (which would race on emit-order and amplify load on the
+    // polling endpoint).
+    if (_pingInFlight) return;
+    _pingInFlight = true;
     try {
-      result = await _pingHandler();
-    } catch (err) {
-      _logger.warn('Ping handler threw unexpectedly: ${err.runtimeType}');
-      _emit(FDv2SourceResults.interrupted(
-          message: 'Ping handler raised error unexpectedly'));
-      return;
+      final FDv2SourceResult result;
+      try {
+        result = await _pingHandler();
+      } catch (err) {
+        _logger.warn('Ping handler threw unexpectedly: ${err.runtimeType}');
+        _emit(FDv2SourceResults.interrupted(
+            message: 'Ping handler raised error unexpectedly'));
+        return;
+      }
+      if (_stoppedSignal.isCompleted) return;
+      _emit(result);
+    } finally {
+      _pingInFlight = false;
     }
-    if (_stoppedSignal.isCompleted) return;
-    _emit(result);
   }
 
   void _handleSseError(Object err, StackTrace stack) {
@@ -218,9 +273,33 @@ final class FDv2StreamingBase {
     // The SSE client's built-in backoff handles reconnection. Surface
     // the disruption as interrupted; the orchestrator decides whether
     // to fall through to a different source after enough time.
+    //
+    // Don't log the raw exception. http.ClientException's toString
+    // formats as 'ClientException: <msg>, uri=<full-url>', and in GET
+    // mode the URL embeds the base64-encoded context. Only the
+    // category and a synthetic stack header go to the log.
     _logger.warn('SSE error (${err.runtimeType}); will retry');
-    _logger.debug('SSE error detail: $err\n$stack');
-    _emit(FDv2SourceResults.interrupted(message: 'Streaming connection error'));
+    _logger.debug('SSE error stack:\n$stack');
+    _emit(FDv2SourceResults.interrupted(message: _describeError(err)));
+  }
+
+  /// Categorizes an exception surfaced on the SSE stream into a fixed
+  /// sanitized message. Mirrors the polling base's helper so neither
+  /// surface (the public StatusResult.message nor the warn log) ever
+  /// echoes a raw http.ClientException -- whose toString carries the
+  /// full request URL.
+  String _describeError(Object err) {
+    if (err is TimeoutException) {
+      return 'Streaming request timed out';
+    }
+    if (err is http.ClientException) {
+      return 'Network error during streaming request';
+    }
+    final type = err.runtimeType.toString();
+    if (type.contains('Tls') || type.contains('Handshake')) {
+      return 'TLS error during streaming request';
+    }
+    return 'Streaming connection error';
   }
 
   void _emit(FDv2SourceResult result) {
