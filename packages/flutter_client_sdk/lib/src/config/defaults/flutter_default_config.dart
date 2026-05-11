@@ -1,3 +1,5 @@
+import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
+
 import 'stub_config.dart'
     if (dart.library.io) 'io_config.dart'
     if (dart.library.js_interop) 'js_config.dart';
@@ -15,6 +17,11 @@ final class DefaultApplicationEventsConfig {
 final class FlutterDefaultConfig {
   static final ConnectionManagerConfig connectionManagerConfig =
       ConnectionManagerConfig();
+
+  /// Default automatic-resolution background slot; aligns with JS FDv2
+  /// platform defaults (mobile `background`, web/desktop `offline`).
+  static ConnectionMode get defaultBackgroundConnectionMode =>
+      connectionManagerConfig.defaultBackgroundConnectionMode;
 
   static final applicationEventsConfig = DefaultApplicationEventsConfig();
 }

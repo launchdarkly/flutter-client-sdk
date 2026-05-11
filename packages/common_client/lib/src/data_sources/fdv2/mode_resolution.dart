@@ -62,10 +62,9 @@ ResolvedConnectionMode resolveMode(
   return _resolvedFromConnectionMode(state.foregroundConnectionMode);
 }
 
-/// Default ordered table for Flutter mobile. When [ModeState.runInBackground]
+/// Default ordered table for Flutter. When [ModeState.runInBackground]
 /// is false while in the background, resolves to offline;
-/// otherwise the background row uses [ModeState.backgroundConnectionMode]
-/// (CONNMODE §2.2.1: Flutter default for that slot is [ConnectionMode.offline]).
+/// otherwise the background row uses [ModeState.backgroundConnectionMode].
 List<ModeResolutionEntry> flutterDefaultResolutionTable() {
   return const [
     ModeResolutionEntry(

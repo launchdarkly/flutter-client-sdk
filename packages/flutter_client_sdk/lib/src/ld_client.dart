@@ -78,9 +78,10 @@ interface class LDClient {
     _connectionManager = ConnectionManager(
         logger: _client.logger,
         config: ConnectionManagerConfig(
-            foregroundConnectionMode: config.offline
-                ? ConnectionMode.offline
-                : config.dataSourceConfig.initialConnectionMode,
+            initialConnectionMode:
+                config.dataSourceConfig.initialConnectionMode,
+            backgroundConnectionMode:
+                FlutterDefaultConfig.defaultBackgroundConnectionMode,
             disableAutomaticBackgroundHandling:
                 config.offline || !config.applicationEvents.backgrounding,
             disableAutomaticNetworkHandling:
@@ -89,6 +90,10 @@ interface class LDClient {
                 FlutterDefaultConfig.connectionManagerConfig.runInBackground),
         destination: DartClientAdapter(_client),
         detector: FlutterStateDetector());
+
+    if (config.offline) {
+      _connectionManager.offline = true;
+    }
 
     final sdkPluginMetadata =
         PluginSdkMetadata(name: sdkName, version: sdkVersion);

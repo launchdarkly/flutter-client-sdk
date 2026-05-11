@@ -74,12 +74,12 @@ final class DartClientAdapter implements ConnectionDestination {
 final class ConnectionManagerConfig {
   /// Configured foreground connection mode used as the automatic resolution
   /// foreground slot.
-  final ConnectionMode foregroundConnectionMode;
+  final ConnectionMode initialConnectionMode;
 
   /// Configured background connection mode used as the automatic resolution
   /// background slot.
   ///
-  /// Defaults to [ConnectionMode.offline] per CONNMODE §2.2.1 .
+  /// Defaults to [ConnectionMode.offline].
   final ConnectionMode backgroundConnectionMode;
 
   /// Some platforms (windows, web, mac, linux) can continue executing code
@@ -104,7 +104,7 @@ final class ConnectionManagerConfig {
   final bool disableAutomaticBackgroundHandling;
 
   ConnectionManagerConfig({
-    this.foregroundConnectionMode = ConnectionMode.streaming,
+    this.initialConnectionMode = ConnectionMode.streaming,
     this.backgroundConnectionMode = ConnectionMode.offline,
     this.runInBackground = true,
     this.disableAutomaticBackgroundHandling = false,
@@ -205,7 +205,7 @@ final class ConnectionManager {
         networkAvailable: networkAvailable,
         inForeground: inForeground,
         runInBackground: _config.runInBackground,
-        foregroundConnectionMode: _config.foregroundConnectionMode,
+        foregroundConnectionMode: _config.initialConnectionMode,
         backgroundConnectionMode: _config.backgroundConnectionMode,
       );
       resolved = resolveMode(_resolutionTable, modeState);
