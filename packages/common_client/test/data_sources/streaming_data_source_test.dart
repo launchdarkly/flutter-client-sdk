@@ -30,6 +30,9 @@ class MockSseClient implements SSEClient {
 
   @override
   Stream<MessageEvent> get stream => mockStream;
+
+  @override
+  bool hasCapability(SSECapability capability) => true;
 }
 
 (

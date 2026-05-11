@@ -17,6 +17,32 @@ export 'src/test_sse_client.dart' show TestSseClient;
 export 'src/logging.dart'
     show EventSourceLogger, LogLevel, NoOpLogger, PrintLogger;
 
+/// Optional behaviors that an [SSEClient] implementation may or may not
+/// support. Callers query support with [SSEClient.hasCapability] and
+/// route around missing capabilities (for example, by switching to a
+/// query-parameter form of authentication when the transport cannot
+/// send custom request headers).
+///
+/// Modeled as a class with private-constructor static-const instances
+/// rather than an enum so adding a new capability is source-compatible
+/// for users -- a `switch (capability)` over an enum becomes
+/// non-exhaustive when a new value is added.
+class SSECapability {
+  /// The capability identifier. Stable across releases and intended
+  /// only for diagnostics; comparisons should use the static const
+  /// members directly (e.g. `cap == SSECapability.requestHeaders`).
+  final String value;
+
+  const SSECapability._(this.value);
+
+  /// The transport can send custom request headers. False for the
+  /// browser native `EventSource` API; true for HTTP-based clients.
+  static const SSECapability requestHeaders = SSECapability._('requestHeaders');
+
+  @override
+  String toString() => 'SSECapability.$value';
+}
+
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
   get('GET'),
@@ -63,6 +89,19 @@ abstract class SSEClient {
   /// establishes a new connection respecting delay/backoff as if this was
   /// an error condition with the connection.
   void restart();
+
+  /// Whether this implementation supports the given [capability]. Lets
+  /// callers detect transport limitations at runtime — for example, the
+  /// browser native `EventSource` does not support
+  /// [SSECapability.requestHeaders], so callers that need to authenticate
+  /// must fall back to a URL-based scheme.
+  ///
+  /// The default implementation returns `false` for every capability so
+  /// adding a new capability constant (or adding this method to an
+  /// existing external implementation) is source-compatible. Concrete
+  /// implementations should override and report what they actually
+  /// support.
+  bool hasCapability(SSECapability capability) => false;
 
   /// Factory constructor to return the platform implementation.
   ///
@@ -121,6 +160,7 @@ abstract class SSEClient {
     String? body,
     SseHttpMethod httpMethod = SseHttpMethod.get,
     Stream<Event>? sourceStream,
+    Set<SSECapability>? capabilities,
   }) {
     return TestSseClient.internal(
         headers: UnmodifiableMapView(headers),
@@ -128,6 +168,7 @@ abstract class SSEClient {
         readTimeout: readTimeout,
         body: body,
         httpMethod: httpMethod,
-        sourceStream: sourceStream);
+        sourceStream: sourceStream,
+        capabilities: capabilities);
   }
 }
