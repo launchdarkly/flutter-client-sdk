@@ -167,10 +167,10 @@ void main() {
 
     test('can set mode', () {
       // No exceptions.
-      client.setMode(ConnectionMode.offline);
-      client.setMode(ConnectionMode.streaming);
-      client.setMode(ConnectionMode.polling);
-      client.setMode(ConnectionMode.background);
+      client.setMode(const ResolvedOffline(OfflineSetOffline()));
+      client.setMode(const ResolvedStreaming());
+      client.setMode(const ResolvedPolling());
+      client.setMode(const ResolvedBackground());
     });
 
     test('can set event sending on/off', () {

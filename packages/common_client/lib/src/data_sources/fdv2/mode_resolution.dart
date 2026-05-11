@@ -1,9 +1,11 @@
 import '../../connection_mode.dart';
+import '../../offline_detail.dart';
+import '../../resolved_connection_mode.dart';
 
 /// Inputs for Layer-2 **automatic** mode resolution (lifecycle, network, mode slots).
 ///
 /// When the client holds a connection mode override, the caller should apply
-/// that mode directly and **not** invoke [resolveConnectionMode].
+/// that mode directly and **not** invoke [resolveMode].
 final class ModeState {
   final bool networkAvailable;
 
@@ -34,18 +36,21 @@ final class ModeState {
 final class ModeResolutionEntry {
   final bool Function(ModeState state) predicate;
 
-  /// Resolved [ConnectionMode] for this row; may read slots from [state].
-  final ConnectionMode Function(ModeState state) resolve;
+  /// Resolved connection mode for this row; may read slots from [state].
+  final ResolvedConnectionMode Function(ModeState state) resolve;
 
-  const ModeResolutionEntry({required this.predicate, required this.resolve});
+  const ModeResolutionEntry({
+    required this.predicate,
+    required this.resolve,
+  });
 }
 
-/// First matching row in [table] wins. If none match, returns
-/// [state.foregroundConnectionMode].
+/// First matching row in [table] wins. If none match, maps
+/// [state.foregroundConnectionMode] to a [ResolvedConnectionMode].
 ///
 /// Only for **automatic** resolution; do not call when an explicit connection
 /// mode override is active (apply the override outside this API).
-ConnectionMode resolveConnectionMode(
+ResolvedConnectionMode resolveMode(
   List<ModeResolutionEntry> table,
   ModeState state,
 ) {
@@ -54,7 +59,7 @@ ConnectionMode resolveConnectionMode(
       return entry.resolve(state);
     }
   }
-  return state.foregroundConnectionMode;
+  return _resolvedFromConnectionMode(state.foregroundConnectionMode);
 }
 
 /// Default ordered table for Flutter mobile. When [ModeState.runInBackground]
@@ -65,24 +70,43 @@ List<ModeResolutionEntry> flutterDefaultResolutionTable() {
   return const [
     ModeResolutionEntry(
       predicate: _networkDown,
-      resolve: _offline,
+      resolve: _offlineNetworkUnavailable,
     ),
     ModeResolutionEntry(
       predicate: _backgroundWithoutUpdates,
-      resolve: _offline,
+      resolve: _offlineBackgroundDisabled,
     ),
     ModeResolutionEntry(
       predicate: _inBackground,
-      resolve: _backgroundSlot,
+      resolve: _backgroundSlotResolved,
     ),
     ModeResolutionEntry(
       predicate: _alwaysTrue,
-      resolve: _foregroundSlot,
+      resolve: _foregroundSlotResolved,
     ),
   ];
 }
 
-ConnectionMode _offline(ModeState s) => ConnectionMode.offline;
+ResolvedConnectionMode _offlineNetworkUnavailable(ModeState _) =>
+    const ResolvedOffline(OfflineNetworkUnavailable());
+
+ResolvedConnectionMode _offlineBackgroundDisabled(ModeState _) =>
+    const ResolvedOffline(OfflineBackgroundDisabled());
+
+ResolvedConnectionMode _backgroundSlotResolved(ModeState s) =>
+    _resolvedFromConnectionMode(s.backgroundConnectionMode);
+
+ResolvedConnectionMode _foregroundSlotResolved(ModeState s) =>
+    _resolvedFromConnectionMode(s.foregroundConnectionMode);
+
+ResolvedConnectionMode _resolvedFromConnectionMode(ConnectionMode mode) {
+  return switch (mode) {
+    ConnectionMode.streaming => const ResolvedStreaming(),
+    ConnectionMode.polling => const ResolvedPolling(),
+    ConnectionMode.background => const ResolvedBackground(),
+    ConnectionMode.offline => const ResolvedOffline(OfflineSetOffline()),
+  };
+}
 
 bool _networkDown(ModeState s) => !s.networkAvailable;
 
@@ -91,8 +115,4 @@ bool _backgroundWithoutUpdates(ModeState s) =>
 
 bool _inBackground(ModeState s) => !s.inForeground;
 
-ConnectionMode _backgroundSlot(ModeState s) => s.backgroundConnectionMode;
-
 bool _alwaysTrue(ModeState s) => true;
-
-ConnectionMode _foregroundSlot(ModeState s) => s.foregroundConnectionMode;

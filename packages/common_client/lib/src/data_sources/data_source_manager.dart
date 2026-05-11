@@ -4,6 +4,8 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     show LDContext, LDLogger;
 
 import '../connection_mode.dart';
+import '../offline_detail.dart';
+import '../resolved_connection_mode.dart';
 import 'data_source.dart';
 import 'data_source_event_handler.dart';
 import 'data_source_status_manager.dart';
@@ -13,16 +15,13 @@ typedef DataSourceFactory = DataSource Function(LDContext context);
 /// The data source manager controls which data source is connected to
 /// the data source status as well as the data source event handler.
 final class DataSourceManager {
-  ConnectionMode _activeMode;
+  ResolvedConnectionMode _activeConnectionMode;
   LDContext? _activeContext;
 
   final LDLogger _logger;
   final DataSourceStatusManager _statusManager;
   final DataSourceEventHandler _dataSourceEventHandler;
   final Map<ConnectionMode, DataSourceFactory> _dataSourceFactories = {};
-
-  // At start we assume the network is available.
-  bool _networkAvailable = true;
 
   DataSource? _activeDataSource;
   StreamSubscription<MessageStatus?>? _subscription;
@@ -35,7 +34,12 @@ final class DataSourceManager {
     required DataSourceStatusManager statusManager,
     required DataSourceEventHandler dataSourceEventHandler,
     required LDLogger logger,
-  })  : _activeMode = startingMode,
+  })  : _activeConnectionMode = switch (startingMode) {
+          ConnectionMode.streaming => const ResolvedStreaming(),
+          ConnectionMode.polling => const ResolvedPolling(),
+          ConnectionMode.background => const ResolvedBackground(),
+          ConnectionMode.offline => const ResolvedOffline(OfflineSetOffline()),
+        },
         _logger = logger.subLogger('DataSourceManager'),
         _statusManager = statusManager,
         _dataSourceEventHandler = dataSourceEventHandler;
@@ -55,25 +59,14 @@ final class DataSourceManager {
     _setupConnection();
   }
 
-  void setMode(ConnectionMode mode) {
-    if (mode == _activeMode) {
-      _logger.debug('Mode already active: $_activeMode');
+  void setMode(ResolvedConnectionMode mode) {
+    if (mode == _activeConnectionMode) {
+      _logger.debug('Mode is already set to: $mode');
       return;
     }
-    _logger.debug('Changing data source mode from: $_activeMode to: $mode');
-    _activeMode = mode;
-    _setupConnection();
-  }
-
-  void setNetworkAvailable(bool available) {
-    if (_networkAvailable == available) {
-      _logger.debug('Network availability set to same value: $available');
-      return;
-    }
-
     _logger.debug(
-        'Network availability changed from: $_networkAvailable to: $available');
-    _networkAvailable = available;
+        'Changing resolved connection mode from: $_activeConnectionMode to: $mode');
+    _activeConnectionMode = mode;
     _setupConnection();
   }
 
@@ -107,34 +100,25 @@ final class DataSourceManager {
 
     _stopConnection();
 
-    // If the active mode is offline, then we do not need to setup
-    // a new connection. Additionally if we are offline, and the network
-    // is not available, our data source status should remain offline.
-    if (_activeMode == ConnectionMode.offline) {
-      _statusManager.setOffline();
-      return;
+    switch (_activeConnectionMode) {
+      case ResolvedOffline(:final detail):
+        switch (detail) {
+          case OfflineSetOffline():
+            _statusManager.setOffline();
+          case OfflineNetworkUnavailable():
+            _statusManager.setNetworkUnavailable();
+          case OfflineBackgroundDisabled():
+            _statusManager.setBackgroundDisabled();
+        }
+        return;
+      case ResolvedStreaming():
+      case ResolvedPolling():
+      case ResolvedBackground():
+        break;
     }
 
-    // We are not offline, but the network is not available, so we are going
-    // to set the status as unavailable and not start a new connection.
-    if (!_networkAvailable) {
-      _statusManager.setNetworkUnavailable();
-      return;
-    }
-
-    switch (_activeMode) {
-      case ConnectionMode.offline:
-        _statusManager.setOffline();
-      case ConnectionMode.streaming:
-      case ConnectionMode.polling:
-      case ConnectionMode.background:
-      // default:
-      // We may want to consider adding another state to the data source state
-      // for the intermediate between switching data sources, or for identifying
-      // a new context.
-    }
-
-    _activeDataSource = _createDataSource(_activeMode);
+    final mode = _activeConnectionMode.connectionMode;
+    _activeDataSource = _createDataSource(mode);
     _subscription = _activeDataSource?.events.asyncMap((event) async {
       if (_activeContext == null) {
         _logger.error(

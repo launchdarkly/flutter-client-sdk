@@ -7,8 +7,7 @@ abstract final class BuiltInModes {
   /// Default foreground poll interval.
   static const Duration _foregroundPollInterval = Duration(seconds: 300);
 
-  /// Default background poll interval.
-  static const Duration _backgroundPollInterval = Duration(seconds: 3600);
+  static const Duration defaultBackgroundPollInterval = Duration(seconds: 3600);
 
   /// Default streaming mode (mobile foreground / desktop).
   static const ModeDefinition streaming = ModeDefinition(
@@ -44,10 +43,10 @@ abstract final class BuiltInModes {
   static const ModeDefinition background = ModeDefinition(
     initializers: [CacheInitializer()],
     synchronizers: [
-      PollingSynchronizer(pollInterval: _backgroundPollInterval),
+      PollingSynchronizer(pollInterval: defaultBackgroundPollInterval),
     ],
     fdv1Fallback: Fdv1FallbackConfig(
-      pollInterval: _backgroundPollInterval,
+      pollInterval: defaultBackgroundPollInterval,
     ),
   );
 }

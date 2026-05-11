@@ -114,18 +114,49 @@ void main() {
 
   test('it can transition to offline and tear-down the previous connection',
       () {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final dataSources = <ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
-    final manager = makeManager(context, defaultFactories(dataSources));
+    final manager = makeManager(context, defaultFactories(dataSources),
+        inStatusManager: statusManager);
     final completer = Completer<void>();
 
     manager.identify(context, completer);
-    manager.setMode(ConnectionMode.offline);
+    manager.setMode(const ResolvedOffline(OfflineSetOffline()));
+    expect(statusManager.status.state, DataSourceState.setOffline);
     final createdDataSource = dataSources[ConnectionMode.streaming];
     expect(createdDataSource, isNotNull);
     expect(createdDataSource!.controller.hasListener, isFalse);
     expect(createdDataSource.startCalled, isTrue);
     expect(createdDataSource.stopCalled, isTrue);
+  });
+
+  test('offline with OfflineNetworkUnavailable sets networkUnavailable status', () {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final dataSources = <ConnectionMode, MockDataSource>{};
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final manager = makeManager(context, defaultFactories(dataSources),
+        inStatusManager: statusManager);
+    final completer = Completer<void>();
+
+    manager.identify(context, completer);
+    manager.setMode(const ResolvedOffline(OfflineNetworkUnavailable()));
+    expect(statusManager.status.state, DataSourceState.networkUnavailable);
+  });
+
+  test('offline with OfflineBackgroundDisabled sets backgroundDisabled',
+      () {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final dataSources = <ConnectionMode, MockDataSource>{};
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final manager = makeManager(context, defaultFactories(dataSources),
+        inStatusManager: statusManager);
+    final completer = Completer<void>();
+
+    manager.identify(context, completer);
+    manager.setMode(
+        const ResolvedOffline(OfflineBackgroundDisabled()));
+    expect(statusManager.status.state, DataSourceState.backgroundDisabled);
   });
 
   test('it can transition from streaming to polling', () {
@@ -135,7 +166,7 @@ void main() {
     final completer = Completer<void>();
 
     manager.identify(context, completer);
-    manager.setMode(ConnectionMode.polling);
+    manager.setMode(const ResolvedPolling());
     final streamingDataSource = dataSources[ConnectionMode.streaming];
     expect(streamingDataSource, isNotNull);
     expect(streamingDataSource!.controller.hasListener, isFalse);
@@ -149,13 +180,19 @@ void main() {
     expect(pollingDataSource.stopCalled, isFalse);
   });
 
-  test('it can transition to network unavailable', () {
+  test(
+      'ResolvedOffline(OfflineNetworkUnavailable) reports networkUnavailable and '
+      'stops the data source',
+      () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final dataSources = <ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources),
         inStatusManager: statusManager);
     final completer = Completer<void>();
+
+    manager.identify(context, completer);
+    await completer.future;
 
     expectLater(
         statusManager.changes,
@@ -164,10 +201,7 @@ void main() {
               state: DataSourceState.networkUnavailable,
               stateSince: DateTime(1)),
         ));
-
-    manager.identify(context, completer);
-
-    manager.setNetworkAvailable(false);
+    manager.setMode(const ResolvedOffline(OfflineNetworkUnavailable()));
     final createdDataSource = dataSources[ConnectionMode.streaming];
     expect(createdDataSource, isNotNull);
     expect(createdDataSource!.controller.hasListener, isFalse);

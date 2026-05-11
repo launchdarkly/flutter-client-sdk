@@ -8,6 +8,7 @@ import 'config/data_source_config.dart';
 import 'config/defaults/credential_type.dart';
 import 'config/defaults/default_config.dart';
 import 'connection_mode.dart';
+import 'resolved_connection_mode.dart';
 import 'context_modifiers/anonymous_context_modifier.dart';
 import 'context_modifiers/context_modifier.dart';
 import 'context_modifiers/env_context_modifier.dart';
@@ -15,6 +16,7 @@ import 'hooks/hook.dart';
 import 'hooks/hook_runner.dart';
 import 'data_sources/data_source.dart';
 import 'data_sources/data_source_event_handler.dart';
+import 'data_sources/fdv2/built_in_modes.dart';
 import 'data_sources/data_source_manager.dart';
 import 'data_sources/data_source_status.dart';
 import 'data_sources/data_source_status_manager.dart';
@@ -77,10 +79,19 @@ typedef DataSourceFactoriesFn = Map<ConnectionMode, DataSourceFactory> Function(
 
 Map<ConnectionMode, DataSourceFactory> _defaultFactories(
     LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
-  final pollingDataSourceConfig = PollingDataSourceConfig(
-      useReport: config.dataSourceConfig.useReport,
-      withReasons: config.dataSourceConfig.evaluationReasons,
+  final useReport = config.dataSourceConfig.useReport;
+  final withReasons = config.dataSourceConfig.evaluationReasons;
+
+  final foregroundPollingConfig = PollingDataSourceConfig(
+      useReport: useReport,
+      withReasons: withReasons,
       pollingInterval: config.dataSourceConfig.polling.pollingInterval);
+
+  final backgroundPollingConfig = PollingDataSourceConfig(
+      useReport: useReport,
+      withReasons: withReasons,
+      pollingInterval: BuiltInModes.defaultBackgroundPollInterval);
+
   DataSource streaming(LDContext context) {
     return StreamingDataSource(
         credential: config.sdkCredential,
@@ -88,9 +99,8 @@ Map<ConnectionMode, DataSourceFactory> _defaultFactories(
         endpoints: config.serviceEndpoints,
         logger: logger,
         dataSourceConfig: StreamingDataSourceConfig(
-            useReport: config.dataSourceConfig.useReport,
-            withReasons: config.dataSourceConfig.evaluationReasons),
-        pollingDataSourceConfig: pollingDataSourceConfig,
+            useReport: useReport, withReasons: withReasons),
+        pollingDataSourceConfig: foregroundPollingConfig,
         httpProperties: httpProperties);
   }
 
@@ -102,10 +112,18 @@ Map<ConnectionMode, DataSourceFactory> _defaultFactories(
           context: context,
           endpoints: config.serviceEndpoints,
           logger: logger,
-          dataSourceConfig: pollingDataSourceConfig,
+          dataSourceConfig: foregroundPollingConfig,
           httpProperties: httpProperties);
     },
-    ConnectionMode.background: streaming,
+    ConnectionMode.background: (LDContext context) {
+      return PollingDataSource(
+          credential: config.sdkCredential,
+          context: context,
+          endpoints: config.serviceEndpoints,
+          logger: logger,
+          dataSourceConfig: backgroundPollingConfig,
+          httpProperties: httpProperties);
+    },
   };
 }
 
@@ -759,8 +777,8 @@ final class LDCommonClient {
     return res;
   }
 
-  /// Set the connection mode the SDK should use.
-  void setMode(ConnectionMode mode) {
+  /// Set the resolved connection mode for the data source.
+  void setMode(ResolvedConnectionMode mode) {
     _dataSourceManager.setMode(mode);
   }
 
@@ -771,7 +789,6 @@ final class LDCommonClient {
       return;
     }
     _networkAvailable = available;
-    _dataSourceManager.setNetworkAvailable(available);
     _updateEventSendingState();
   }
 

@@ -35,7 +35,7 @@ abstract interface class StateDetector {
 /// be tested. The LDCommonClient doesn't implement this, so there is a small
 /// private adapter.
 abstract interface class ConnectionDestination {
-  void setMode(ConnectionMode mode);
+  void setMode(ResolvedConnectionMode mode);
 
   void setNetworkAvailability(bool available);
 
@@ -51,7 +51,7 @@ final class DartClientAdapter implements ConnectionDestination {
   DartClientAdapter(this._client);
 
   @override
-  void setMode(ConnectionMode mode) {
+  void setMode(ResolvedConnectionMode mode) {
     _client.setMode(mode);
   }
 
@@ -116,7 +116,7 @@ final class ConnectionManagerConfig {
 /// and desired network state. It uses this information to request specific
 /// connection modes.
 ///
-/// Automatic [ConnectionMode] selection uses [resolveConnectionMode] with
+/// Automatic resolution uses [resolveMode] with
 /// [flutterDefaultResolutionTable] by default, or [resolutionTable] when
 /// supplied to the constructor.
 ///
@@ -133,7 +133,7 @@ final class ConnectionManager {
   StreamSubscription<ApplicationState>? _applicationStateSub;
   StreamSubscription<NetworkState>? _networkStateSub;
 
-  /// When non-null, [resolveConnectionMode] is skipped and this mode is
+  /// When non-null, [resolveMode] is skipped and this mode is
   /// applied regardless of lifecycle/network.
   ConnectionMode? _modeOverride;
 
@@ -190,11 +190,16 @@ final class ConnectionManager {
     final networkAvailable = _networkState == NetworkState.available;
     final inForeground = _applicationState == ApplicationState.foreground;
 
-    final ConnectionMode resolved;
+    final ResolvedConnectionMode resolved;
     if (_offline) {
-      resolved = ConnectionMode.offline;
-    } else if (_modeOverride != null) {
-      resolved = _modeOverride!;
+      resolved = const ResolvedOffline(OfflineSetOffline());
+    } else if (_modeOverride case final mode?) {
+      resolved = switch (mode) {
+        ConnectionMode.streaming => const ResolvedStreaming(),
+        ConnectionMode.polling => const ResolvedPolling(),
+        ConnectionMode.background => const ResolvedBackground(),
+        ConnectionMode.offline => const ResolvedOffline(OfflineSetOffline()),
+      };
     } else {
       final modeState = ModeState(
         networkAvailable: networkAvailable,
@@ -203,7 +208,7 @@ final class ConnectionManager {
         foregroundConnectionMode: _config.foregroundConnectionMode,
         backgroundConnectionMode: _config.backgroundConnectionMode,
       );
-      resolved = resolveConnectionMode(_resolutionTable, modeState);
+      resolved = resolveMode(_resolutionTable, modeState);
     }
 
     if (!_offline && !inForeground && networkAvailable) {
