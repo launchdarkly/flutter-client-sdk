@@ -95,19 +95,17 @@ final class ConnectionManagerConfig {
   final bool disableAutomaticNetworkHandling;
 
   /// Disable handling associated with transitioning between the foreground
-  /// and background. This means that an application will make no attempt to
-  /// disconnect when entering background state, and it will not attempt
-  /// to re-establish a connection entering the foreground, beyond the standard
+  /// and background. This means that an application will not automatically
+  /// disconnect when entering background state, and it will not automatically
+  /// re-establish a connection entering the foreground, beyond the standard
   /// retry logic.
-  ///
-  /// The application will always be treated as in the foreground.
-  final bool disableAutomaticBackgroundHandling;
+  final bool disableAutomaticAppStateHandling;
 
   ConnectionManagerConfig({
     this.initialConnectionMode = ConnectionMode.streaming,
     this.backgroundConnectionMode = ConnectionMode.offline,
     this.runInBackground = true,
-    this.disableAutomaticBackgroundHandling = false,
+    this.disableAutomaticAppStateHandling = false,
     this.disableAutomaticNetworkHandling = false,
   });
 }
@@ -162,7 +160,7 @@ final class ConnectionManager {
         _applicationState = ApplicationState.foreground,
         _networkState = NetworkState.available,
         _detector = detector {
-    if (!_config.disableAutomaticBackgroundHandling) {
+    if (!_config.disableAutomaticAppStateHandling) {
       _applicationStateSub =
           detector.applicationState.listen((applicationState) {
         // TODO (SDK-2187): plumb in debouncer here

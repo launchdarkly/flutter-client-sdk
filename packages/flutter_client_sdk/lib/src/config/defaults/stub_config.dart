@@ -5,3 +5,10 @@ class ConnectionManagerConfig {
 
   ConnectionMode get defaultBackgroundConnectionMode => ConnectionMode.offline;
 }
+
+/// Stub defaults for tests and unsupported compilation targets.
+final class ApplicationEventsConfig {
+  bool get defaultBackgrounding => false;
+
+  bool get defaultNetworkAvailability => false;
+}

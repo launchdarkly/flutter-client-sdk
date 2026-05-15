@@ -139,8 +139,9 @@ void main() {
   });
 
   test(
-      'if runInBackground is true, default background slot is offline '
-      '(JS FDv2 desktop / default ConnectionManagerConfig)', () async {
+    'if runInBackground is true, default background slot is offline '
+    '(desktop-style automatic resolution / default ConnectionManagerConfig)',
+    () async {
     registerFallbackValue(ConnectionMode.streaming);
 
     final destination = MockDestination();
@@ -475,7 +476,7 @@ void main() {
   });
 
   test(
-      'if disableAutomaticBackgroundHandling is enabled, then it ignores application state changes',
+      'if disableAutomaticAppStateHandling is enabled, then it ignores application state changes',
       () async {
     registerFallbackValue(ConnectionMode.streaming);
 
@@ -483,7 +484,7 @@ void main() {
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
     final config = ConnectionManagerConfig(
-        runInBackground: false, disableAutomaticBackgroundHandling: true);
+        runInBackground: false, disableAutomaticAppStateHandling: true);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(

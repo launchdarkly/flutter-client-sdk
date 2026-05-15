@@ -11,3 +11,16 @@ class ConnectionManagerConfig {
           ? ConnectionMode.background
           : ConnectionMode.offline;
 }
+
+/// Platform defaults for [ApplicationEvents] on native IO targets.
+///
+/// Mobile uses application and network signals for automatic connection
+/// handling; desktop IO targets do not by default.
+final class ApplicationEventsConfig {
+  bool get _isMobile =>
+      Platform.isAndroid || Platform.isIOS || Platform.isFuchsia;
+
+  bool get defaultBackgrounding => _isMobile;
+
+  bool get defaultNetworkAvailability => _isMobile;
+}
