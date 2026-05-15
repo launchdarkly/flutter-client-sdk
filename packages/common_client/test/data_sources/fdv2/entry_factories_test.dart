@@ -5,7 +5,6 @@ import 'package:launchdarkly_common_client/src/data_sources/fdv2/entry_factories
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_factory_context.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/mode_definition.dart'
     hide CacheInitializer;
-import 'package:launchdarkly_common_client/src/data_sources/fdv2/source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/polling_synchronizer.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
@@ -16,7 +15,7 @@ import 'package:test/test.dart';
 
 LDContext _context() => LDContextBuilder().kind('user', 'test-key').build();
 
-final SelectorGetter _selectorGetter = () => Selector.empty;
+Selector _selectorGetter() => Selector.empty;
 
 SourceFactoryContext _testContext({
   CachedFlagsReader? reader,
