@@ -54,7 +54,6 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         ResolvedPolling,
         ResolvedBackground,
         ResolvedOffline,
-        resolveMode,
         Hook,
         HookMetadata,
         IdentifySeriesContext,
