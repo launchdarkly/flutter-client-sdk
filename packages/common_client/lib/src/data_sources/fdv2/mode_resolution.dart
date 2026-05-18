@@ -93,7 +93,9 @@ ResolvedConnectionMode _offlineBackgroundDisabled(ModeState _) =>
     const ResolvedOffline(OfflineBackgroundDisabled());
 
 ResolvedConnectionMode _backgroundSlotResolved(ModeState s) =>
-    _resolvedFromConnectionMode(s.backgroundConnectionMode);
+    s.backgroundConnectionMode == ConnectionMode.offline
+        ? const ResolvedOffline(OfflineBackgroundDisabled())
+        : _resolvedFromConnectionMode(s.backgroundConnectionMode);
 
 ResolvedConnectionMode _foregroundSlotResolved(ModeState s) =>
     _resolvedFromConnectionMode(s.foregroundConnectionMode);

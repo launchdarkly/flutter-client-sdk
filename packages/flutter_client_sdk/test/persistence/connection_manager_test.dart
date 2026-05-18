@@ -163,7 +163,7 @@ void main() {
 
     verify(() => destination.flush());
     verify(
-        () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
+        () => destination.setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
     connectionManager.dispose();
   });
 
@@ -554,7 +554,7 @@ void main() {
     await mockDetector.applicationState.first;
 
     verify(
-        () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
+        () => destination.setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
     reset(destination);
 
     connectionManager.setMode(ConnectionMode.polling);
@@ -563,7 +563,7 @@ void main() {
 
     connectionManager.setMode(null);
     verify(
-        () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
+        () => destination.setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
     connectionManager.dispose();
   });
 

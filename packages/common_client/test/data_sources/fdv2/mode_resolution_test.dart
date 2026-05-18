@@ -39,6 +39,25 @@ void main() {
     expect((r as ResolvedOffline).detail, isA<OfflineBackgroundDisabled>());
   });
 
+  test(
+      'flutter default table: background slot offline yields '
+      'ResolvedOffline(OfflineBackgroundDisabled), not OfflineSetOffline',
+      () {
+    const state = ModeState(
+      networkAvailable: true,
+      inForeground: false,
+      runInBackground: true,
+      foregroundConnectionMode: ConnectionMode.streaming,
+      backgroundConnectionMode: ConnectionMode.offline,
+    );
+    final r = resolveMode(
+      flutterDefaultResolutionTable(),
+      state,
+    );
+    expect(r, isA<ResolvedOffline>());
+    expect((r as ResolvedOffline).detail, isA<OfflineBackgroundDisabled>());
+  });
+
   test('resolveMode foreground slot exposes connectionMode', () {
     const state = ModeState(
       networkAvailable: true,
