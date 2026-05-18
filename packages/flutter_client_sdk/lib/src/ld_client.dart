@@ -82,10 +82,10 @@ interface class LDClient {
                 config.dataSourceConfig.initialConnectionMode,
             backgroundConnectionMode:
                 FlutterDefaultConfig.defaultBackgroundConnectionMode,
-            disableAutomaticAppStateHandling: config.offline ||
-                !config.applicationEvents.backgrounding,
-            disableAutomaticNetworkHandling: config.offline ||
-                !config.applicationEvents.networkAvailability,
+            disableAutomaticAppStateHandling:
+                config.offline || !config.applicationEvents.backgrounding,
+            disableAutomaticNetworkHandling:
+                config.offline || !config.applicationEvents.networkAvailability,
             runInBackground:
                 FlutterDefaultConfig.connectionManagerConfig.runInBackground),
         destination: DartClientAdapter(_client),

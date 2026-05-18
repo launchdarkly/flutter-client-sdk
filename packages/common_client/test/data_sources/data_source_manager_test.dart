@@ -131,7 +131,8 @@ void main() {
     expect(createdDataSource.stopCalled, isTrue);
   });
 
-  test('offline with OfflineNetworkUnavailable sets networkUnavailable status', () {
+  test('offline with OfflineNetworkUnavailable sets networkUnavailable status',
+      () {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final dataSources = <ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
@@ -144,8 +145,7 @@ void main() {
     expect(statusManager.status.state, DataSourceState.networkUnavailable);
   });
 
-  test('offline with OfflineBackgroundDisabled sets backgroundDisabled',
-      () {
+  test('offline with OfflineBackgroundDisabled sets backgroundDisabled', () {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final dataSources = <ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
@@ -154,8 +154,7 @@ void main() {
     final completer = Completer<void>();
 
     manager.identify(context, completer);
-    manager.setMode(
-        const ResolvedOffline(OfflineBackgroundDisabled()));
+    manager.setMode(const ResolvedOffline(OfflineBackgroundDisabled()));
     expect(statusManager.status.state, DataSourceState.backgroundDisabled);
   });
 
@@ -182,8 +181,7 @@ void main() {
 
   test(
       'ResolvedOffline(OfflineNetworkUnavailable) reports networkUnavailable and '
-      'stops the data source',
-      () async {
+      'stops the data source', () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final dataSources = <ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();

@@ -9,7 +9,8 @@ import 'package:test/test.dart';
 
 void main() {
   group('SourceFactoryContext.fromClientConfig', () {
-    test('contextJson matches jsonEncode(LDContextSerialization.toJson '
+    test(
+        'contextJson matches jsonEncode(LDContextSerialization.toJson '
         '(context, isEvent: false))', () {
       final context = LDContextBuilder()
           .kind('user', 'alice')
@@ -37,7 +38,8 @@ void main() {
       expect(ctx.contextJson, expected);
     });
 
-    test('contextJson differs from isEvent: true serialization for anonymous '
+    test(
+        'contextJson differs from isEvent: true serialization for anonymous '
         'context when redaction would apply', () {
       final context = LDContextBuilder()
           .kind('user', 'key1')
@@ -73,12 +75,11 @@ void main() {
       expect(ctx.contextJson, isNot(asEvent));
     });
 
-    test('decoded contextJson is a multi-kind payload when context has '
+    test(
+        'decoded contextJson is a multi-kind payload when context has '
         'multiple kinds', () {
-      final context = LDContextBuilder()
-          .kind('user', 'u1')
-          .kind('org', 'o1')
-          .build();
+      final context =
+          LDContextBuilder().kind('user', 'u1').kind('org', 'o1').build();
       final logger = LDLogger(level: LDLogLevel.error);
       final endpoints = ServiceEndpoints.custom(polling: 'https://poll.test');
       Future<CachedFlags?> reader(LDContext _) async => null;
@@ -99,7 +100,8 @@ void main() {
       expect(decoded['org'], isA<Map<String, dynamic>>());
     });
 
-    test('passes through context, logger, endpoints, flags, and optional '
+    test(
+        'passes through context, logger, endpoints, flags, and optional '
         'httpClientFactory', () {
       final context = LDContextBuilder().kind('user', 'k').build();
       final logger = LDLogger(level: LDLogLevel.warn);

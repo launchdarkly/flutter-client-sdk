@@ -139,9 +139,9 @@ void main() {
   });
 
   test(
-    'if runInBackground is true, default background slot is offline '
-    '(desktop-style automatic resolution / default ConnectionManagerConfig)',
-    () async {
+      'if runInBackground is true, default background slot is offline '
+      '(desktop-style automatic resolution / default ConnectionManagerConfig)',
+      () async {
     registerFallbackValue(ConnectionMode.streaming);
 
     final destination = MockDestination();
@@ -162,8 +162,8 @@ void main() {
     await mockDetector.applicationState.first;
 
     verify(() => destination.flush());
-    verify(
-        () => destination.setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
+    verify(() => destination
+        .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
     connectionManager.dispose();
   });
 
@@ -553,8 +553,8 @@ void main() {
     mockDetector.setApplicationState(ApplicationState.background);
     await mockDetector.applicationState.first;
 
-    verify(
-        () => destination.setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
+    verify(() => destination
+        .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
     reset(destination);
 
     connectionManager.setMode(ConnectionMode.polling);
@@ -562,8 +562,8 @@ void main() {
     reset(destination);
 
     connectionManager.setMode(null);
-    verify(
-        () => destination.setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
+    verify(() => destination
+        .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
     connectionManager.dispose();
   });
 

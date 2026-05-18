@@ -2,7 +2,8 @@ import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('flutter default table: network down yields ResolvedOffline(OfflineNetworkUnavailable)',
+  test(
+      'flutter default table: network down yields ResolvedOffline(OfflineNetworkUnavailable)',
       () {
     const state = ModeState(
       networkAvailable: false,
@@ -22,8 +23,7 @@ void main() {
 
   test(
       'flutter default table: background without updates yields '
-      'ResolvedOffline(OfflineBackgroundDisabled)',
-      () {
+      'ResolvedOffline(OfflineBackgroundDisabled)', () {
     const state = ModeState(
       networkAvailable: true,
       inForeground: false,
@@ -41,8 +41,7 @@ void main() {
 
   test(
       'flutter default table: background slot offline yields '
-      'ResolvedOffline(OfflineBackgroundDisabled), not OfflineSetOffline',
-      () {
+      'ResolvedOffline(OfflineBackgroundDisabled), not OfflineSetOffline', () {
     const state = ModeState(
       networkAvailable: true,
       inForeground: false,
