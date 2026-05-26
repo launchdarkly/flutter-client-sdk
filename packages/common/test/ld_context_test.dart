@@ -52,11 +52,22 @@ void main() {
   });
 
   group('given invalid kinds', () {
-    for (var kind in ['', 'kind', '#*%']) {
-      test('invalid kinds produce invalid contexts', () {
+    for (var kind in ['', 'kind', 'multi', '#*%']) {
+      test('kind "$kind" produces an invalid context', () {
         expect(LDContextBuilder().kind(kind, 'my-key').build().valid, false);
       });
     }
+
+    test('a multi-context containing an individual "multi" kind is invalid',
+        () {
+      final context = LDContextBuilder()
+          .kind('user', 'user-key')
+          .kind('multi', 'other-key')
+          .build();
+      expect(context.valid, false);
+      expect(context.canonicalKey, '');
+      expect(context.keys, isEmpty);
+    });
   });
 
   test('can get the canonical key for an invalid context', () {
