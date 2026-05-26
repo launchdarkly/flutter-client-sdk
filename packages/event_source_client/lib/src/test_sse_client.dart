@@ -37,6 +37,12 @@ final class TestSseClient implements SSEClient {
   bool hasCapability(SSECapability capability) =>
       _capabilities.contains(capability);
 
+  /// Whether [close] has been called on this client. Test-only --
+  /// production [SSEClient] implementations do not expose this state,
+  /// and tests asserting against it are inherently white-box. Use to
+  /// verify that code under test correctly tears the connection down.
+  bool get isClosed => _messageEventsController.isClosed;
+
   /// Emit an event on the stream.
   /// Has no effect if the client has been closed.
   ///
