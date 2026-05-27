@@ -20,7 +20,7 @@ String _encodeKey(String key) {
 }
 
 bool _validKind(String kind) {
-  return kind != 'kind' && _kindExp.hasMatch(kind);
+  return kind != 'kind' && kind != 'multi' && _kindExp.hasMatch(kind);
 }
 
 bool _referenceIs(AttributeReference reference, String value) {
