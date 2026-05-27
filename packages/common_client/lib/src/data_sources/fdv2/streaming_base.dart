@@ -27,25 +27,22 @@ import 'source_result.dart';
 /// - [ActionNone] --> no emission (waiting for more events).
 ///
 /// Legacy `ping` events are routed to the injected [PingHandler] (which
-/// performs a one-shot poll) and the result is forwarded to the
-/// stream. This is the streaming-to-polling bridge for older servers
-/// that pre-date FDv2.
+/// performs a one-shot poll) and the result is forwarded to the stream.
 ///
 /// The `x-ld-fd-fallback` header on the initial connection's response
 /// is detected and produces a terminal-error result with
 /// `fdv1Fallback: true`. The connection is closed.
 ///
 /// Lifecycle: a single-subscription stream. [results] starts the SSE
-/// connection on subscribe; cancelling the subscription tears it down
-/// without emitting a shutdown. [close] both stops the source and
-/// emits a shutdown [StatusResult] before closing the stream. Both
-/// paths funnel through a `Completer<void> _stoppedSignal` so async
-/// callbacks short-circuit safely.
+/// connection on subscribe. [close] stops the source, emits a shutdown
+/// [StatusResult], and closes the stream. Both paths funnel through a
+/// `Completer<void> _stoppedSignal` so async callbacks short-circuit
+/// safely.
 ///
 /// `SSEClient.restart` is intentionally not surfaced here. The
 /// orchestrator drives connection lifecycle by tearing down a
-/// streaming source and constructing a fresh one (e.g. on credential
-/// rotation or basis change), not by reconnecting an existing one.
+/// streaming source and constructing a fresh one, not by reconnecting
+/// an existing one.
 final class FDv2StreamingBase {
   final SSEClient _sseClient;
   final PingHandler _pingHandler;
@@ -58,6 +55,7 @@ final class FDv2StreamingBase {
   FDv2ProtocolHandler? _handler;
   String? _environmentId;
   bool _pingInFlight = false;
+  bool _pingPending = false;
 
   FDv2StreamingBase({
     required SSEClient sseClient,
@@ -115,10 +113,8 @@ final class FDv2StreamingBase {
   /// Builds a fresh [FDv2ProtocolHandler]. Called on initial connect
   /// and on every subsequent [OpenEvent] (SSE auto-reconnect), so a
   /// partial transfer from the previous connection cannot bleed into
-  /// the new one regardless of whether the server re-sends
-  /// `server-intent` after a Last-Event-ID resumption. Also called
-  /// after a mid-event throw inside [processEvent] so any
-  /// half-accumulated `_tempUpdates` are discarded.
+  /// the new one. Also called after a mid-event throw inside
+  /// `processEvent` so any half-accumulated state is discarded.
   void _resetHandler() {
     _handler = FDv2ProtocolHandler(
       objProcessors: {flagEvalKind: processFlagEval},
@@ -130,7 +126,12 @@ final class FDv2StreamingBase {
     if (_stoppedSignal.isCompleted) return;
     _stoppedSignal.complete();
     _tearDownConnection();
-    // No shutdown emission -- the subscriber asked us to stop.
+    // No shutdown emission -- the subscriber asked us to stop. Close
+    // the controller so its internal state is released; we keep no
+    // subscribers and will never emit again.
+    if (!_controller.isClosed) {
+      _controller.close();
+    }
   }
 
   void _tearDownConnection() {
@@ -148,7 +149,7 @@ final class FDv2StreamingBase {
       case OpenEvent open:
         _handleOpen(open);
       case MessageEvent message:
-        _handleMessage(message);
+        unawaited(_handleMessage(message));
     }
   }
 
@@ -189,6 +190,11 @@ final class FDv2StreamingBase {
       return;
     }
 
+    // Capture freshness as close to message arrival as possible, before
+    // any parse/dispatch work, so the timestamp reflects when the SDK
+    // saw the update -- not when it finished processing it.
+    final freshness = _now();
+
     final ProtocolAction action;
     try {
       final decoded = jsonDecode(event.data);
@@ -223,7 +229,7 @@ final class FDv2StreamingBase {
         _emit(ChangeSetResult(
           payload: payload,
           environmentId: _environmentId,
-          freshness: _now(),
+          freshness: freshness,
           persist: true,
         ));
       case ActionGoodbye(:final reason):
@@ -244,25 +250,42 @@ final class FDv2StreamingBase {
   }
 
   Future<void> _handlePing() async {
-    // The FDv2 ping semantic is "go re-poll". A single in-flight poll
-    // already satisfies any number of pings that arrive while it is
-    // running, so drop excess pings rather than spawning concurrent
-    // polls (which would race on emit-order and amplify load on the
-    // polling endpoint).
-    if (_pingInFlight) return;
+    // The FDv2 ping semantic is "go re-poll". Two competing concerns:
+    //
+    // 1. Concurrent polls race on emit-order and amplify load on the
+    //    polling endpoint, so only one poll may be in flight at a time.
+    // 2. Simply dropping pings that arrive during an in-flight poll
+    //    can leave the SDK on a stale snapshot: if server state changed
+    //    between when the in-flight poll captured it and when the
+    //    dropped ping arrived, no further poll fires and the change is
+    //    never seen.
+    //
+    // Coalesce: pings that arrive while a poll is running set a
+    // `_pingPending` flag. When the in-flight poll returns we drain the
+    // flag with one more poll, capturing whatever the latest state is.
+    // Multiple pings during the same in-flight window collapse to a
+    // single follow-up.
+    if (_pingInFlight) {
+      _pingPending = true;
+      return;
+    }
     _pingInFlight = true;
     try {
-      final FDv2SourceResult result;
-      try {
-        result = await _pingHandler();
-      } catch (err) {
-        _logger.warn('Ping handler threw unexpectedly: ${err.runtimeType}');
-        _emit(FDv2SourceResults.interrupted(
-            message: 'Ping handler raised error unexpectedly'));
-        return;
-      }
-      if (_stoppedSignal.isCompleted) return;
-      _emit(result);
+      do {
+        _pingPending = false;
+        final FDv2SourceResult result;
+        try {
+          result = await _pingHandler();
+        } catch (err) {
+          _logger.warn('Ping handler threw unexpectedly: ${err.runtimeType}');
+          if (_stoppedSignal.isCompleted) return;
+          _emit(FDv2SourceResults.interrupted(
+              message: 'Ping handler raised error unexpectedly'));
+          return;
+        }
+        if (_stoppedSignal.isCompleted) return;
+        _emit(result);
+      } while (_pingPending && !_stoppedSignal.isCompleted);
     } finally {
       _pingInFlight = false;
     }

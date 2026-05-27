@@ -522,14 +522,16 @@ void main() {
     });
 
     test(
-        'consecutive ping events do not spawn concurrent PingHandler '
-        'invocations -- excess pings are dropped while one is in flight',
-        () async {
-      // Two pings back-to-back must not result in two concurrent polls.
-      // The slow poll's result could otherwise overwrite the fast one's
-      // (out-of-order) and the polling endpoint sees DoS amplification.
-      // FDv2 ping semantic is "go re-poll" -- a single in-flight poll
-      // already satisfies it.
+        'consecutive ping events coalesce: no concurrent handler invocations, '
+        'and a follow-up poll fires after the in-flight one returns', () async {
+      // Two pings back-to-back must not result in two concurrent polls
+      // (avoids out-of-order races and DoS amplification on the polling
+      // endpoint). But the second ping can't simply be dropped: if the
+      // server's state changed between when the in-flight poll captured
+      // it and when the second ping arrived, dropping leaves the SDK
+      // stuck on the stale snapshot. The coalescing fix runs one
+      // follow-up poll after the in-flight returns, which captures any
+      // state change that arrived during the in-flight window.
       var concurrent = 0;
       var maxConcurrent = 0;
       var totalCalls = 0;
@@ -543,8 +545,11 @@ void main() {
           concurrent++;
           if (concurrent > maxConcurrent) maxConcurrent = concurrent;
           if (!firstCallGate.isCompleted) firstCallGate.complete();
-          // Hold the first call open until the test releases it.
-          await firstCallReleased.future;
+          // Only the first call is gated; subsequent calls return
+          // immediately so the coalesced follow-up can run unimpeded.
+          if (totalCalls == 1) {
+            await firstCallReleased.future;
+          }
           concurrent--;
           return FDv2SourceResults.interrupted(message: 'ok');
         },
@@ -558,15 +563,61 @@ void main() {
       // Fire the second ping while the first is still in flight.
       emitMessage(sse, 'ping', '');
       await Future<void>.delayed(Duration.zero);
-      // Release the held call so it can return.
+      // Release the held call so it can return; the pending flag from
+      // the second ping should trigger a follow-up poll.
       firstCallReleased.complete();
-      await Future<void>.delayed(Duration.zero);
+      // Yield enough times for the follow-up poll to run.
+      for (var i = 0; i < 5; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
 
       expect(maxConcurrent, equals(1),
           reason: 'concurrent ping handler invocations are not allowed');
-      expect(totalCalls, equals(1),
-          reason: 'the second ping must be dropped while the first is '
-              'still in flight');
+      expect(totalCalls, equals(2),
+          reason: 'a ping that arrives while one is in flight must trigger '
+              'exactly one follow-up poll after the in-flight returns');
+
+      await sub.cancel();
+    });
+
+    test(
+        'a burst of pings during one in-flight poll collapses to exactly one '
+        'follow-up poll, not N follow-ups', () async {
+      // Three pings arrive while one is in flight. Coalescing must
+      // collapse them: only one follow-up runs (the latest poll sees the
+      // latest state), not three.
+      var totalCalls = 0;
+      final firstCallGate = Completer<void>();
+      final firstCallReleased = Completer<void>();
+      final sse = makeSse();
+      final base = makeBase(
+        sse,
+        pingHandler: () async {
+          totalCalls++;
+          if (!firstCallGate.isCompleted) firstCallGate.complete();
+          if (totalCalls == 1) {
+            await firstCallReleased.future;
+          }
+          return FDv2SourceResults.interrupted(message: 'ok');
+        },
+      );
+      final sub = base.results.listen((_) {});
+      await Future<void>.delayed(Duration.zero);
+
+      emitMessage(sse, 'ping', '');
+      await firstCallGate.future;
+      emitMessage(sse, 'ping', '');
+      emitMessage(sse, 'ping', '');
+      emitMessage(sse, 'ping', '');
+      await Future<void>.delayed(Duration.zero);
+      firstCallReleased.complete();
+      for (var i = 0; i < 5; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(totalCalls, equals(2),
+          reason: 'multiple pings during one in-flight poll collapse to a '
+              'single follow-up poll');
 
       await sub.cancel();
     });
