@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [2.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v2.0.1...launchdarkly_event_source_client-v2.1.0) (2026-05-26)
+
+
+### Features
+
+* add isClosed observer to TestSseClient ([#271](https://github.com/launchdarkly/flutter-client-sdk/issues/271)) ([2994ce9](https://github.com/launchdarkly/flutter-client-sdk/commit/2994ce9a7095f88760942d5e80f9ca1976e6ebb3))
+* add SSECapability surface to SSEClient ([#266](https://github.com/launchdarkly/flutter-client-sdk/issues/266)) ([c78480c](https://github.com/launchdarkly/flutter-client-sdk/commit/c78480c5cb6a7196d5c3d0e25c75eb56a77b043c))
+
 ## [2.0.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v2.0.0...launchdarkly_event_source_client-v2.0.1) (2025-09-04)
 
 
