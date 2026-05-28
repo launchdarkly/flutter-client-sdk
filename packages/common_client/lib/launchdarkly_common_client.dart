@@ -49,6 +49,26 @@ export 'src/config/common_platform.dart' show CommonPlatform;
 export 'src/config/events_config.dart' show EventsConfig;
 export 'src/config/credential/credential_source.dart' show CredentialSource;
 export 'src/connection_mode.dart' show ConnectionMode;
+export 'src/fdv2_connection_mode.dart' show FDv2ConnectionMode;
+export 'src/resolved_connection_mode.dart'
+    show
+        ResolvedConnectionMode,
+        ResolvedStreaming,
+        ResolvedPolling,
+        ResolvedBackground,
+        ResolvedOffline;
+export 'src/offline_detail.dart'
+    show
+        OfflineDetail,
+        OfflineSetOffline,
+        OfflineNetworkUnavailable,
+        OfflineBackgroundDisabled;
+export 'src/data_sources/fdv2/mode_resolution.dart'
+    show
+        ModeState,
+        ModeResolutionEntry,
+        resolveMode,
+        flutterDefaultResolutionTable;
 export 'src/data_sources/data_source_status.dart'
     show DataSourceStatusErrorInfo, DataSourceStatus, DataSourceState;
 
