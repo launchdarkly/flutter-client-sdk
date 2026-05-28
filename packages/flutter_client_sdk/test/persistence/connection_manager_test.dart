@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_flutter_client_sdk/src/connection_manager.dart';
 import 'package:test/test.dart';
@@ -69,7 +70,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: false);
+    final config = ConnectionManagerConfig(
+        runInBackground: false, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -102,7 +104,9 @@ void main() {
         final logAdapter = MockLogAdapter();
         final logger = LDLogger(adapter: logAdapter);
         final config = ConnectionManagerConfig(
-            runInBackground: false, initialConnectionMode: initialMode);
+            runInBackground: false,
+            initialConnectionMode: initialMode,
+            debounceWindow: Duration.zero);
         final mockDetector = MockStateDetector();
 
         final connectionManager = ConnectionManager(
@@ -145,7 +149,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: true);
+    final config = ConnectionManagerConfig(
+        runInBackground: true, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -177,6 +182,7 @@ void main() {
     final config = ConnectionManagerConfig(
       runInBackground: true,
       backgroundConnectionMode: const FDv2Background(),
+      debounceWindow: Duration.zero,
     );
     final mockDetector = MockStateDetector();
 
@@ -206,6 +212,7 @@ void main() {
     final config = ConnectionManagerConfig(
       runInBackground: true,
       backgroundConnectionMode: const FDv2Streaming(),
+      debounceWindow: Duration.zero,
     );
     final mockDetector = MockStateDetector();
 
@@ -232,7 +239,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: true);
+    final config = ConnectionManagerConfig(
+        runInBackground: true, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -260,7 +268,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: true);
+    final config = ConnectionManagerConfig(
+        runInBackground: true, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -299,6 +308,7 @@ void main() {
       final config = ConnectionManagerConfig(
         runInBackground: true,
         backgroundConnectionMode: const FDv2Background(),
+        debounceWindow: Duration.zero,
       );
       final mockDetector = MockStateDetector();
 
@@ -336,6 +346,7 @@ void main() {
       final config = ConnectionManagerConfig(
         initialConnectionMode: ConnectionMode.polling,
         runInBackground: true,
+        debounceWindow: Duration.zero,
       );
       final mockDetector = MockStateDetector();
 
@@ -373,6 +384,7 @@ void main() {
       final config = ConnectionManagerConfig(
         initialConnectionMode: ConnectionMode.polling,
         runInBackground: true,
+        debounceWindow: Duration.zero,
       );
       final mockDetector = MockStateDetector();
 
@@ -417,6 +429,7 @@ void main() {
       final config = ConnectionManagerConfig(
         initialConnectionMode: ConnectionMode.polling,
         runInBackground: true,
+        debounceWindow: Duration.zero,
       );
       final mockDetector = MockStateDetector();
 
@@ -443,7 +456,7 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig();
+    final config = ConnectionManagerConfig(debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -459,8 +472,11 @@ void main() {
     verify(() => destination.setEventSendingEnabled(false, flush: false));
     reset(destination);
 
-    mockDetector.setApplicationState(ApplicationState.foreground);
-    mockDetector.setNetworkAvailable(true);
+    // Push genuine state changes (defaults are foreground+available); the
+    // SDK should remain offline because the offline flag overrides automatic
+    // resolution.
+    mockDetector.setApplicationState(ApplicationState.background);
+    mockDetector.setNetworkAvailable(false);
 
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
@@ -468,7 +484,7 @@ void main() {
 
     verify(
         () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
-    verify(() => destination.setNetworkAvailability(true));
+    verify(() => destination.setNetworkAvailability(false));
     verify(() => destination.setEventSendingEnabled(false, flush: false));
     connectionManager.dispose();
   });
@@ -482,7 +498,9 @@ void main() {
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
     final config = ConnectionManagerConfig(
-        runInBackground: false, disableAutomaticBackgroundHandling: true);
+        runInBackground: false,
+        disableAutomaticBackgroundHandling: true,
+        debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -511,7 +529,9 @@ void main() {
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
     final config = ConnectionManagerConfig(
-        runInBackground: false, disableAutomaticNetworkHandling: true);
+        runInBackground: false,
+        disableAutomaticNetworkHandling: true,
+        debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -539,7 +559,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: true);
+    final config = ConnectionManagerConfig(
+        runInBackground: true, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -579,7 +600,10 @@ void main() {
         final destination = MockDestination();
         final logAdapter = MockLogAdapter();
         final logger = LDLogger(adapter: logAdapter);
-        final config = ConnectionManagerConfig(runInBackground: false);
+        final config = ConnectionManagerConfig(
+          runInBackground: false,
+          debounceWindow: Duration.zero,
+        );
         final mockDetector = MockStateDetector();
 
         final connectionManager = ConnectionManager(
@@ -597,5 +621,103 @@ void main() {
         connectionManager.dispose();
       });
     }
+  });
+
+  group('debounce window', () {
+    test('rapid network changes settle to one reconcile', () {
+      fakeAsync((async) {
+        registerFallbackValue(ConnectionMode.streaming);
+        registerFallbackValue(const FDv2Streaming());
+
+        final destination = MockDestination();
+        final logAdapter = MockLogAdapter();
+        final logger = LDLogger(adapter: logAdapter);
+        final config = ConnectionManagerConfig(
+          runInBackground: true,
+          debounceWindow: const Duration(seconds: 1),
+        );
+        final mockDetector = MockStateDetector();
+
+        final connectionManager = ConnectionManager(
+            logger: logger,
+            config: config,
+            destination: destination,
+            detector: mockDetector);
+
+        mockDetector.setNetworkAvailable(false);
+        async.flushMicrotasks();
+        async.elapse(const Duration(milliseconds: 200));
+        mockDetector.setNetworkAvailable(true);
+        async.flushMicrotasks();
+        async.elapse(const Duration(milliseconds: 200));
+        mockDetector.setNetworkAvailable(false);
+        async.flushMicrotasks();
+        async.elapse(const Duration(milliseconds: 200));
+
+        verifyNever(() => destination.setMode(any()));
+
+        async.elapse(const Duration(seconds: 1));
+        verify(() => destination.setMode(any())).called(1);
+
+        connectionManager.dispose();
+      });
+    });
+
+    test('background transition flushes immediately, not debounced', () {
+      fakeAsync((async) {
+        registerFallbackValue(ConnectionMode.streaming);
+
+        final destination = MockDestination();
+        final logAdapter = MockLogAdapter();
+        final logger = LDLogger(adapter: logAdapter);
+        final config = ConnectionManagerConfig(
+          runInBackground: false,
+          debounceWindow: const Duration(seconds: 1),
+        );
+        final mockDetector = MockStateDetector();
+
+        final connectionManager = ConnectionManager(
+            logger: logger,
+            config: config,
+            destination: destination,
+            detector: mockDetector);
+
+        mockDetector.setApplicationState(ApplicationState.background);
+        async.flushMicrotasks();
+        // Flush is synchronous on foreground->background transition.
+        verify(() => destination.flush()).called(1);
+
+        connectionManager.dispose();
+      });
+    });
+
+    test('setMode debounces the resolved-mode application', () {
+      fakeAsync((async) {
+        registerFallbackValue(ConnectionMode.streaming);
+
+        final destination = MockDestination();
+        final logAdapter = MockLogAdapter();
+        final logger = LDLogger(adapter: logAdapter);
+        final config = ConnectionManagerConfig(
+          runInBackground: true,
+          debounceWindow: const Duration(seconds: 1),
+        );
+        final mockDetector = MockStateDetector();
+
+        final connectionManager = ConnectionManager(
+            logger: logger,
+            config: config,
+            destination: destination,
+            detector: mockDetector);
+
+        connectionManager.setMode(const FDv2Polling());
+        verifyNever(() => destination.setMode(any()));
+
+        async.elapse(const Duration(seconds: 1));
+        verify(() => destination.setMode(const ResolvedPolling())).called(1);
+
+        connectionManager.dispose();
+      });
+    });
   });
 }

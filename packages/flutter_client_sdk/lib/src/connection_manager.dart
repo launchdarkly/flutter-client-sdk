@@ -101,12 +101,19 @@ final class ConnectionManagerConfig {
   /// retry logic.
   final bool disableAutomaticBackgroundHandling;
 
+  /// Window across which lifecycle, network, and user-mode-override signals
+  /// are debounced before automatic resolution runs. A value of
+  /// [Duration.zero] disables debouncing (signals apply synchronously).
+  /// Defaults to one second, per CSFDV2 CONNMODE specification.
+  final Duration debounceWindow;
+
   ConnectionManagerConfig({
     this.initialConnectionMode = ConnectionMode.streaming,
     this.backgroundConnectionMode = const FDv2Offline(),
     this.runInBackground = true,
     this.disableAutomaticBackgroundHandling = false,
     this.disableAutomaticNetworkHandling = false,
+    this.debounceWindow = const Duration(seconds: 1),
   });
 }
 
@@ -127,6 +134,7 @@ final class ConnectionManager {
   final StateDetector _detector;
   final ConnectionDestination _destination;
   final List<ModeResolutionEntry> _resolutionTable;
+  late final StateDebounceManager _debouncer;
 
   StreamSubscription<ApplicationState>? _applicationStateSub;
   StreamSubscription<NetworkState>? _networkStateSub;
@@ -160,26 +168,51 @@ final class ConnectionManager {
         _applicationState = ApplicationState.foreground,
         _networkState = NetworkState.available,
         _detector = detector {
+    _debouncer = StateDebounceManager(
+      initialState: const DebouncedState(
+        networkAvailable: true,
+        inForeground: true,
+        requestedMode: null,
+      ),
+      debounceWindow: config.debounceWindow,
+      onReconcile: _onDebounceReconcile,
+    );
+
     if (!_config.disableAutomaticBackgroundHandling) {
       _applicationStateSub =
-          detector.applicationState.listen((applicationState) {
-        // TODO (SDK-2187): plumb in debouncer here
-
-        _applicationState = applicationState;
-        _handleState();
-      });
+          detector.applicationState.listen(_onApplicationStateChanged);
     }
 
     if (!_config.disableAutomaticNetworkHandling) {
-      _networkStateSub = detector.networkState.listen((networkState) {
-        // TODO (SDK-2187): plumb in debouncer here
-
-        _networkState = networkState;
-        _destination
-            .setNetworkAvailability(networkState == NetworkState.available);
-        _handleState();
-      });
+      _networkStateSub = detector.networkState.listen(_onNetworkStateChanged);
     }
+  }
+
+  void _onApplicationStateChanged(ApplicationState newState) {
+    // Spec CONNMODE 3.3.1: flushing on transition to background must not be
+    // debounced -- the process may be killed before the window closes.
+    if (newState == ApplicationState.background &&
+        _applicationState == ApplicationState.foreground &&
+        !_offline) {
+      _destination.flush();
+    }
+    _applicationState = newState;
+    _debouncer.setInForeground(newState == ApplicationState.foreground);
+  }
+
+  void _onNetworkStateChanged(NetworkState newState) {
+    _networkState = newState;
+    // Network-availability propagation to the destination is not debounced.
+    // It informs the underlying client's analytics-sending state, separate
+    // from the mode-resolution decision that the debouncer governs.
+    _destination.setNetworkAvailability(newState == NetworkState.available);
+    _debouncer.setNetworkAvailable(newState == NetworkState.available);
+  }
+
+  void _onDebounceReconcile(DebouncedState _) {
+    // The debouncer's snapshot is intentionally ignored; this manager owns
+    // the canonical view of lifecycle, network, override, and offline state.
+    _handleState();
   }
 
   void _handleState() {
@@ -228,14 +261,17 @@ final class ConnectionManager {
   void dispose() {
     _applicationStateSub?.cancel();
     _networkStateSub?.cancel();
+    _debouncer.close();
     _detector.dispose();
   }
 
-  /// Set the desired connection mode for the SDK. Passing null clears the
-  /// override and resumes automatic mode resolution.
+  /// Set the desired connection mode for the SDK. Setting an override takes
+  /// effect synchronously so subsequent automatic transitions are suppressed
+  /// immediately; applying the resolved mode is debounced. Passing null
+  /// clears the override and resumes automatic mode resolution.
   void setMode(FDv2ConnectionMode? mode) {
     _modeOverride = mode;
-    _handleState();
+    _debouncer.setRequestedMode(mode);
   }
 }
 

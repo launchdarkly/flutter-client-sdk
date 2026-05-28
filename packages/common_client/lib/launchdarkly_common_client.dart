@@ -75,6 +75,12 @@ export 'src/data_sources/fdv2/mode_resolution.dart'
         ModeResolutionEntry,
         resolveMode,
         flutterDefaultResolutionTable;
+export 'src/data_sources/fdv2/state_debounce_manager.dart'
+    show
+        DebouncedState,
+        OnDebounceReconcile,
+        DebounceTimerFactory,
+        StateDebounceManager;
 export 'src/data_sources/data_source_status.dart'
     show DataSourceStatusErrorInfo, DataSourceStatus, DataSourceState;
 
