@@ -386,18 +386,8 @@ interface class LDClient {
       return plugin.hooks;
     } catch (err) {
       _client.logger.warn(
-          'Exception thrown getting hooks for plugin ${_safeGetPluginName(plugin)}. Unable to get hooks for plugin.');
+          'Exception thrown getting hooks for plugin ${safeGetPluginName(plugin, _client.logger)}. Unable to get hooks for plugin.');
       return null;
-    }
-  }
-
-  String _safeGetPluginName(Plugin plugin) {
-    try {
-      return plugin.metadata.name;
-    } catch (err) {
-      _client.logger
-          .warn('Exception thrown access the name of a registered plugin.');
-      return 'unknown';
     }
   }
 }
