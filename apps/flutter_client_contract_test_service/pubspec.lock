@@ -109,10 +109,10 @@ packages:
     dependency: transitive
     description:
       name: characters
-      sha256: f71061c654a3380576a52b451dd5532377954cf9dbd272a78fc8479606670803
+      sha256: faf38497bda5ead2a8c7615f4f7939df04333478bf32e4173fcb06d428b5716b
       url: "https://pub.dev"
     source: hosted
-    version: "1.4.0"
+    version: "1.4.1"
   checked_yaml:
     dependency: transitive
     description:
@@ -388,25 +388,28 @@ packages:
     source: hosted
     version: "6.8.0"
   launchdarkly_common_client:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: "../../packages/common_client"
-      relative: true
-    source: path
+      name: launchdarkly_common_client
+      sha256: "02afb127aec6a5e9238005db02cb377ead5902d30207ef58ae8d4afe06aeae63"
+      url: "https://pub.dev"
+    source: hosted
     version: "1.9.0"
   launchdarkly_dart_common:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: "../../packages/common"
-      relative: true
-    source: path
+      name: launchdarkly_dart_common
+      sha256: c25991ffc1ab2c951e31047955448970628c1c2dd09b1197bc527dc7dcdf2595
+      url: "https://pub.dev"
+    source: hosted
     version: "1.8.0"
   launchdarkly_event_source_client:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: "../../packages/event_source_client"
-      relative: true
-    source: path
+      name: launchdarkly_event_source_client
+      sha256: "51c90efe9765bf6908772abd59ea16c193798c1a9f9381475c56299cb553e3b2"
+      url: "https://pub.dev"
+    source: hosted
     version: "2.0.1"
   launchdarkly_flutter_client_sdk:
     dependency: "direct main"
@@ -414,7 +417,7 @@ packages:
       path: "../../packages/flutter_client_sdk"
       relative: true
     source: path
-    version: "4.15.0"
+    version: "4.16.0"
   lints:
     dependency: "direct dev"
     description:
@@ -451,10 +454,10 @@ packages:
     dependency: transitive
     description:
       name: material_color_utilities
-      sha256: f7142bb1154231d7ea5f96bc7bde4bda2a0945d2806bb11670e30b850d56bdec
+      sha256: "9c337007e82b1889149c82ed242ed1cb24a66044e30979c44912381e9be4c48b"
       url: "https://pub.dev"
     source: hosted
-    version: "0.11.1"
+    version: "0.13.0"
   meta:
     dependency: transitive
     description:

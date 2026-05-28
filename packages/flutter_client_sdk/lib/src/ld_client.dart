@@ -6,6 +6,7 @@ import 'connection_manager.dart';
 import 'flutter_state_detector.dart';
 import 'persistence/shared_preferences_persistence.dart';
 import 'platform_env_reporter.dart';
+import 'plugin.dart';
 
 const sdkName = 'FlutterClientSdk';
 const sdkVersion = '4.16.0'; // x-release-please-version
@@ -38,6 +39,7 @@ const sdkVersion = '4.16.0'; // x-release-please-version
 interface class LDClient {
   late final LDCommonClient _client;
   late final ConnectionManager _connectionManager;
+  late final PluginEnvironmentMetadata _pluginEnvironmentMetadata;
 
   /// Stream which emits data source status changes.
   ///
@@ -93,15 +95,14 @@ interface class LDClient {
     final sdkPluginMetadata =
         PluginSdkMetadata(name: sdkName, version: sdkVersion);
 
+    _pluginEnvironmentMetadata = PluginEnvironmentMetadata(
+        sdk: sdkPluginMetadata,
+        application: config.applicationInfo,
+        credential: PluginCredentialInfo(
+            type: _client.credentialType, value: config.sdkCredential));
+
     safeRegisterPlugins(
-        this,
-        PluginEnvironmentMetadata(
-            sdk: sdkPluginMetadata,
-            application: config.applicationInfo,
-            credential: PluginCredentialInfo(
-                type: _client.credentialType, value: config.sdkCredential)),
-        config.plugins,
-        config.logger);
+        this, _pluginEnvironmentMetadata, config.plugins, config.logger);
   }
 
   /// Initialize the SDK.
@@ -357,5 +358,46 @@ interface class LDClient {
   /// of execution.
   void addHook(Hook hook) {
     _client.addHook(hook);
+  }
+
+  /// Registers a plugin with this SDK instance after the client has been
+  /// constructed.
+  ///
+  /// Bundled hooks from the plugin are added before [Plugin.register] is
+  /// invoked. If reading [Plugin.hooks] throws, the plugin is not registered.
+  /// If [Plugin.register] throws, the error is logged and not rethrown.
+  void registerPlugin(Plugin plugin) {
+    final hooks = _getRuntimePluginHooks(plugin);
+    if (hooks == null) {
+      return;
+    }
+
+    for (final hook in hooks) {
+      addHook(hook);
+    }
+
+    safeRegisterPlugins(
+        this, _pluginEnvironmentMetadata, [plugin], _client.logger);
+  }
+
+  /// Returns plugin hooks for runtime registration, or `null` if retrieval failed.
+  List<Hook>? _getRuntimePluginHooks(Plugin plugin) {
+    try {
+      return plugin.hooks;
+    } catch (err) {
+      _client.logger.warn(
+          'Exception thrown getting hooks for plugin ${_safeGetPluginName(plugin)}. Unable to get hooks for plugin.');
+      return null;
+    }
+  }
+
+  String _safeGetPluginName(Plugin plugin) {
+    try {
+      return plugin.metadata.name;
+    } catch (err) {
+      _client.logger
+          .warn('Exception thrown access the name of a registered plugin.');
+      return 'unknown';
+    }
   }
 }

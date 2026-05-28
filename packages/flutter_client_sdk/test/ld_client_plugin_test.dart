@@ -70,20 +70,27 @@ final class TestPlugin extends Plugin {
   final String pluginName;
   final List<Hook> _hooks;
   final bool shouldThrowOnRegister;
+  final bool shouldThrowOnGetHooks;
   final PluginMetadata _metadata;
 
   int registerCallCount = 0;
   LDClient? lastClientReceived;
   PluginEnvironmentMetadata? lastEnvironmentMetadataReceived;
 
-  TestPlugin(this.pluginName, this._hooks, {this.shouldThrowOnRegister = false})
+  TestPlugin(this.pluginName, this._hooks,
+      {this.shouldThrowOnRegister = false, this.shouldThrowOnGetHooks = false})
       : _metadata = PluginMetadata(name: pluginName);
 
   @override
   PluginMetadata get metadata => _metadata;
 
   @override
-  List<Hook> get hooks => _hooks;
+  List<Hook> get hooks {
+    if (shouldThrowOnGetHooks) {
+      throw Exception('Test exception from plugin $pluginName');
+    }
+    return _hooks;
+  }
 
   @override
   void register(
@@ -96,6 +103,29 @@ final class TestPlugin extends Plugin {
       throw Exception(
           'Test exception during registration for plugin $pluginName');
     }
+  }
+}
+
+final class EvaluationOnRegisterPlugin extends Plugin {
+  final TestHook hook;
+  final PluginMetadata _metadata;
+
+  int registerCallCount = 0;
+
+  EvaluationOnRegisterPlugin(this.hook)
+      : _metadata = PluginMetadata(name: 'evaluation-on-register-plugin');
+
+  @override
+  PluginMetadata get metadata => _metadata;
+
+  @override
+  List<Hook> get hooks => [hook];
+
+  @override
+  void register(
+      LDClient client, PluginEnvironmentMetadata environmentMetadata) {
+    registerCallCount++;
+    client.boolVariation('test-flag', false);
   }
 }
 
@@ -389,6 +419,81 @@ void main() {
           isTrue);
       expect(
           hook.callLog.any((call) => call.startsWith('afterIdentify')), isTrue);
+
+      client.close();
+    });
+  });
+
+  group('LDClient registerPlugin', () {
+    test('registers plugin with environment metadata', () {
+      final plugin = TestPlugin('runtime-plugin', []);
+      final client = createTestClient();
+
+      client.registerPlugin(plugin);
+
+      expect(plugin.registerCallCount, equals(1));
+      expect(plugin.lastClientReceived, same(client));
+      expect(plugin.lastEnvironmentMetadataReceived, isNotNull);
+      expect(plugin.lastEnvironmentMetadataReceived!.sdk.name,
+          equals('FlutterClientSdk'));
+      expect(plugin.lastEnvironmentMetadataReceived!.credential.value,
+          equals('test-mobile-key'));
+
+      client.close();
+    });
+
+    test('activates bundled hooks after registerPlugin', () {
+      final hook = TestHook('runtime-plugin-hook');
+      final plugin = TestPlugin('runtime-plugin', [hook]);
+      final client = createTestClient();
+
+      client.registerPlugin(plugin);
+      hook.callLog.clear();
+      client.boolVariation('test-flag', false);
+
+      expect(hook.callLog.any((call) => call.startsWith('beforeEvaluation')),
+          isTrue);
+      expect(hook.callLog.any((call) => call.startsWith('afterEvaluation')),
+          isTrue);
+
+      client.close();
+    });
+
+    test('adds hooks before plugin register is invoked', () {
+      final hook = TestHook('runtime-order-hook');
+      final plugin = EvaluationOnRegisterPlugin(hook);
+      final client = createTestClient();
+
+      client.registerPlugin(plugin);
+
+      expect(plugin.registerCallCount, equals(1));
+      expect(hook.callLog.any((call) => call.startsWith('beforeEvaluation')),
+          isTrue);
+      expect(hook.callLog.any((call) => call.startsWith('afterEvaluation')),
+          isTrue);
+
+      client.close();
+    });
+
+    test('does not register plugin when hooks getter throws', () {
+      final plugin = TestPlugin('bad-hooks-plugin', [],
+          shouldThrowOnGetHooks: true);
+      final client = createTestClient();
+
+      client.registerPlugin(plugin);
+
+      expect(plugin.registerCallCount, equals(0));
+
+      client.close();
+    });
+
+    test('does not throw when plugin register throws', () {
+      final plugin =
+          TestPlugin('bad-register-plugin', [], shouldThrowOnRegister: true);
+      final client = createTestClient();
+
+      expect(() => client.registerPlugin(plugin), returnsNormally);
+      expect(plugin.registerCallCount, equals(1));
 
       client.close();
     });
