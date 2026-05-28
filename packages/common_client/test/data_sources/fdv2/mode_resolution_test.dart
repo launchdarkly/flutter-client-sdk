@@ -43,8 +43,8 @@ void main() {
   });
 
   test(
-      'flutter default table: background slot offline yields '
-      'ResolvedOffline(OfflineBackgroundDisabled), not OfflineSetOffline', () {
+      'flutter default table: background slot configured offline yields '
+      'ResolvedOffline(OfflineSetOffline)', () {
     const state = ModeState(
       networkAvailable: true,
       inForeground: false,
@@ -57,7 +57,7 @@ void main() {
       state,
     );
     expect(r, isA<ResolvedOffline>());
-    expect((r as ResolvedOffline).detail, isA<OfflineBackgroundDisabled>());
+    expect((r as ResolvedOffline).detail, isA<OfflineSetOffline>());
   });
 
   test('resolveMode foreground slot exposes connectionMode', () {
