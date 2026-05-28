@@ -20,8 +20,7 @@
 final class FDv2ConnectionMode {
   /// Foreground streaming mode. Cache + polling initializers, then streaming
   /// with polling fallback. Suitable for mobile foreground and desktop use.
-  static const FDv2ConnectionMode streaming =
-      FDv2ConnectionMode._('streaming');
+  static const FDv2ConnectionMode streaming = FDv2ConnectionMode._('streaming');
 
   /// Polling-only mode at the configured polling interval.
   static const FDv2ConnectionMode polling = FDv2ConnectionMode._('polling');
