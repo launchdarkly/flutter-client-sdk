@@ -23,8 +23,6 @@ final class SourceFactoryContext {
 
   final bool withReasons;
 
-  /// Default synchronizer poll interval when a [PollingSynchronizer] entry
-  /// omits [PollingSynchronizer.pollInterval].
   final Duration defaultPollingInterval;
 
   final CachedFlagsReader cachedFlagsReader;

@@ -7,9 +7,10 @@ abstract final class BuiltInModes {
   /// Default foreground poll interval.
   static const Duration _foregroundPollInterval = Duration(seconds: 300);
 
+  /// Default background poll interval.
   static const Duration defaultBackgroundPollInterval = Duration(seconds: 3600);
 
-  /// Default streaming mode (mobile foreground / desktop).
+  /// Streaming: combination of cache and polling initializers, and streaming and fallback polling synchronizer.
   static const ModeDefinition streaming = ModeDefinition(
     initializers: [
       CacheInitializer(),
@@ -39,7 +40,7 @@ abstract final class BuiltInModes {
     synchronizers: [],
   );
 
-  /// Mobile background: cache initializer, reduced-rate polling synchronizer (CSFDV2 §5.2.3).
+  /// Background: cache initializer, reduced-rate polling synchronizer
   static const ModeDefinition background = ModeDefinition(
     initializers: [CacheInitializer()],
     synchronizers: [

@@ -22,7 +22,7 @@ final class CacheInitializer extends InitializerEntry {
   const CacheInitializer();
 }
 
-/// Initializer that will make fetch data from polling endpoints.
+/// Initializer that will fetch data from polling endpoints.
 final class PollingInitializer extends InitializerEntry {
   /// Per-source endpoint overrides.
   final EndpointConfig? endpoints;

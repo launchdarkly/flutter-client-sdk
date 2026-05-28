@@ -14,7 +14,7 @@ import 'requestor.dart';
 import 'selector.dart';
 import 'source.dart';
 
-/// Merges optional per-entry [mode.EndpointConfig] overrides into [base].
+/// Merges per-entry [mode.EndpointConfig] overrides into [base].
 ServiceEndpoints mergeServiceEndpoints(
   ServiceEndpoints base,
   mode.EndpointConfig? override,
@@ -61,7 +61,7 @@ HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
 
 /// A factory for creating [Initializer] instances.
 final class InitializerFactory {
-  /// True for cache initializers ([CONNMODE] / CSFDv2 cache-miss success rule).
+  /// True for cache initializers.
   final bool isCache;
 
   final Initializer Function(SelectorGetter selectorGetter) _create;
@@ -71,8 +71,6 @@ final class InitializerFactory {
     this.isCache = false,
   }) : _create = create;
 
-  /// Returns a **new** [Initializer] bound to [selectorGetter] (or ignores it
-  /// for cache, matching JS).
   Initializer create(SelectorGetter selectorGetter) => _create(selectorGetter);
 }
 

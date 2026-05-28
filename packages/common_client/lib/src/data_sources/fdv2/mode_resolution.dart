@@ -2,19 +2,16 @@ import '../../fdv2_connection_mode.dart';
 import '../../offline_detail.dart';
 import '../../resolved_connection_mode.dart';
 
-/// Inputs for Layer-2 **automatic** mode resolution (lifecycle, network, mode slots).
-///
-/// When the client holds a connection mode override, the caller should apply
-/// that mode directly and **not** invoke [resolveMode].
+/// Inputs for automatic mode resolution (lifecycle, network, mode slots).
 final class ModeState {
+  /// Whether the network is available.
   final bool networkAvailable;
 
   /// Application lifecycle: true in foreground, false in background.
   final bool inForeground;
 
   /// When false, the app is treated as not allowed to receive updates while
-  /// backgrounded (Flutter `ConnectionManagerConfig.runInBackground` uses the
-  /// same flag name and semantics).
+  /// backgrounded.
   final bool runInBackground;
 
   /// Configured foreground mode slot.
@@ -36,7 +33,6 @@ final class ModeState {
 final class ModeResolutionEntry {
   final bool Function(ModeState state) predicate;
 
-  /// Resolved connection mode for this row; may read slots from [state].
   final ResolvedConnectionMode Function(ModeState state) resolve;
 
   const ModeResolutionEntry({
@@ -48,8 +44,7 @@ final class ModeResolutionEntry {
 /// First matching row in [table] wins. If none match, maps
 /// [state.foregroundConnectionMode] to a [ResolvedConnectionMode].
 ///
-/// Only for **automatic** resolution; do not call when an explicit connection
-/// mode override is active (apply the override outside this API).
+/// When written, this was used for automatic resolution.
 ResolvedConnectionMode resolveMode(
   List<ModeResolutionEntry> table,
   ModeState state,
@@ -62,9 +57,7 @@ ResolvedConnectionMode resolveMode(
   return _resolvedFromConnectionMode(state.foregroundConnectionMode);
 }
 
-/// Default ordered table for Flutter. When [ModeState.runInBackground]
-/// is false while in the background, resolves to offline;
-/// otherwise the background row uses [ModeState.backgroundConnectionMode].
+/// Default ordered table for Flutter.
 List<ModeResolutionEntry> flutterDefaultResolutionTable() {
   return const [
     ModeResolutionEntry(
