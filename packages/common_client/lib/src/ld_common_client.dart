@@ -8,12 +8,17 @@ import 'config/data_source_config.dart';
 import 'config/defaults/credential_type.dart';
 import 'config/defaults/default_config.dart';
 import 'connection_mode.dart';
+import 'fdv2_connection_mode.dart';
+import 'offline_detail.dart';
+import 'resolved_connection_mode.dart';
 import 'context_modifiers/anonymous_context_modifier.dart';
 import 'context_modifiers/context_modifier.dart';
 import 'context_modifiers/env_context_modifier.dart';
 import 'hooks/hook.dart';
 import 'hooks/hook_runner.dart';
+import 'data_sources/data_source.dart';
 import 'data_sources/data_source_event_handler.dart';
+import 'data_sources/fdv2/built_in_modes.dart';
 import 'data_sources/data_source_manager.dart';
 import 'data_sources/data_source_status.dart';
 import 'data_sources/data_source_status_manager.dart';
@@ -76,32 +81,73 @@ typedef DataSourceFactoriesFn = Map<ConnectionMode, DataSourceFactory> Function(
 
 Map<ConnectionMode, DataSourceFactory> _defaultFactories(
     LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
-  final pollingDataSourceConfig = PollingDataSourceConfig(
-      useReport: config.dataSourceConfig.useReport,
-      withReasons: config.dataSourceConfig.evaluationReasons,
+  final useReport = config.dataSourceConfig.useReport;
+  final withReasons = config.dataSourceConfig.evaluationReasons;
+
+  final foregroundPollingConfig = PollingDataSourceConfig(
+      useReport: useReport,
+      withReasons: withReasons,
       pollingInterval: config.dataSourceConfig.polling.pollingInterval);
+
+  DataSource streaming(LDContext context) {
+    return StreamingDataSource(
+        credential: config.sdkCredential,
+        context: context,
+        endpoints: config.serviceEndpoints,
+        logger: logger,
+        dataSourceConfig: StreamingDataSourceConfig(
+            useReport: useReport, withReasons: withReasons),
+        pollingDataSourceConfig: foregroundPollingConfig,
+        httpProperties: httpProperties);
+  }
+
   return {
-    ConnectionMode.streaming: (LDContext context) {
-      return StreamingDataSource(
-          credential: config.sdkCredential,
-          context: context,
-          endpoints: config.serviceEndpoints,
-          logger: logger,
-          dataSourceConfig: StreamingDataSourceConfig(
-              useReport: config.dataSourceConfig.useReport,
-              withReasons: config.dataSourceConfig.evaluationReasons),
-          pollingDataSourceConfig: pollingDataSourceConfig,
-          httpProperties: httpProperties);
-    },
+    ConnectionMode.streaming: streaming,
     ConnectionMode.polling: (LDContext context) {
       return PollingDataSource(
           credential: config.sdkCredential,
           context: context,
           endpoints: config.serviceEndpoints,
           logger: logger,
-          dataSourceConfig: pollingDataSourceConfig,
+          dataSourceConfig: foregroundPollingConfig,
           httpProperties: httpProperties);
     },
+  };
+}
+
+/// Background factory is SDK-managed; it always uses the built-in
+/// reduced-frequency polling configuration. Customizing the background
+/// factory is intentionally not exposed via [DataSourceFactoriesFn].
+DataSourceFactory _backgroundFactory(
+    LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
+  final backgroundPollingConfig = PollingDataSourceConfig(
+      useReport: config.dataSourceConfig.useReport,
+      withReasons: config.dataSourceConfig.evaluationReasons,
+      pollingInterval: BuiltInModes.defaultBackgroundPollInterval);
+  return (LDContext context) {
+    return PollingDataSource(
+        credential: config.sdkCredential,
+        context: context,
+        endpoints: config.serviceEndpoints,
+        logger: logger,
+        dataSourceConfig: backgroundPollingConfig,
+        httpProperties: httpProperties);
+  };
+}
+
+/// Translate the public, FDv1-keyed factory map (optionally with a custom
+/// override via [DataSourceFactoriesFn]) into the FDv2-keyed map consumed by
+/// [DataSourceManager], adding the SDK-managed background factory.
+Map<FDv2ConnectionMode, DataSourceFactory> _composeFactoriesForManager({
+  required Map<ConnectionMode, DataSourceFactory> fdv1Factories,
+  required DataSourceFactory backgroundFactory,
+}) {
+  return {
+    if (fdv1Factories[ConnectionMode.streaming] case final f?)
+      const FDv2Streaming(): f,
+    if (fdv1Factories[ConnectionMode.polling] case final f?)
+      const FDv2Polling(): f,
+    const FDv2Background(): backgroundFactory,
   };
 }
 
@@ -382,16 +428,16 @@ final class LDCommonClient {
     _updateEventSendingState();
 
     if (!_config.offline) {
-      _dataSourceManager
-          .setFactories(_dataSourceFactories(_config, _logger, httpProperties));
+      _dataSourceManager.setFactories(_composeFactoriesForManager(
+        fdv1Factories: _dataSourceFactories(_config, _logger, httpProperties),
+        backgroundFactory: _backgroundFactory(_config, _logger, httpProperties),
+      ));
     } else {
+      DataSource nullSource(LDContext _) => NullDataSource();
       _dataSourceManager.setFactories({
-        ConnectionMode.streaming: (LDContext context) {
-          return NullDataSource();
-        },
-        ConnectionMode.polling: (LDContext context) {
-          return NullDataSource();
-        },
+        const FDv2Streaming(): nullSource,
+        const FDv2Polling(): nullSource,
+        const FDv2Background(): nullSource,
       });
     }
   }
@@ -754,6 +800,22 @@ final class LDCommonClient {
 
   /// Set the connection mode the SDK should use.
   void setMode(ConnectionMode mode) {
+    _dataSourceManager.setMode(switch (mode) {
+      ConnectionMode.streaming => const ResolvedStreaming(),
+      ConnectionMode.polling => const ResolvedPolling(),
+      ConnectionMode.offline => const ResolvedOffline(OfflineSetOffline()),
+    });
+  }
+
+  /// Set a resolved FDv2 connection mode directly. This is the advanced entry
+  /// point used by the FDv2 connection-management layer and bypasses the
+  /// FDv1 [ConnectionMode] mapping done by [setMode].
+  ///
+  /// This method is not stable, and not subject to any backwards compatibility
+  /// guarantees or semantic versioning. It is in early access. If you want
+  /// access to this feature please join the EAP.
+  /// https://launchdarkly.com/docs/sdk/features/data-saving-mode
+  void setResolvedMode(ResolvedConnectionMode mode) {
     _dataSourceManager.setMode(mode);
   }
 
@@ -764,7 +826,6 @@ final class LDCommonClient {
       return;
     }
     _networkAvailable = available;
-    _dataSourceManager.setNetworkAvailable(available);
     _updateEventSendingState();
   }
 

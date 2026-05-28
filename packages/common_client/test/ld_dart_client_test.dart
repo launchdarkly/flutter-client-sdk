@@ -172,6 +172,14 @@ void main() {
       client.setMode(ConnectionMode.polling);
     });
 
+    test('can set resolved FDv2 mode', () {
+      // No exceptions.
+      client.setResolvedMode(const ResolvedOffline(OfflineSetOffline()));
+      client.setResolvedMode(const ResolvedStreaming());
+      client.setResolvedMode(const ResolvedPolling());
+      client.setResolvedMode(const ResolvedBackground());
+    });
+
     test('can set event sending on/off', () {
       // No exceptions.
       client.setEventSendingEnabled(true);
