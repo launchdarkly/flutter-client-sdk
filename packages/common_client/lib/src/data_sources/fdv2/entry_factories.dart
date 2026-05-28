@@ -32,7 +32,11 @@ ServiceEndpoints mergeServiceEndpoints(
   );
 }
 
-FDv2PollingBase _sharedPollingBase({
+/// Builds a fresh [FDv2PollingBase] (and its underlying [FDv2Requestor]) per
+/// call. Must be invoked inside the factory's `create` lambda so each
+/// produced instance owns its own requestor; the requestor holds mutable
+/// per-call state (e.g. ETag) and cannot be safely shared across instances.
+FDv2PollingBase _buildPollingBase({
   required mode.EndpointConfig? endpoints,
   required bool usePost,
   required SourceFactoryContext ctx,
@@ -103,18 +107,20 @@ InitializerFactory createInitializerFactoryFromEntry(
         ),
       );
     case final mode.PollingInitializer e:
-      final base = _sharedPollingBase(
-        endpoints: e.endpoints,
-        usePost: e.usePost,
-        ctx: ctx,
-      );
       return InitializerFactory(
-        create: (SelectorGetter selectorGetter) => FDv2PollingInitializer(
-          poll: ({Selector basis = Selector.empty}) =>
-              base.pollOnce(basis: basis),
-          selectorGetter: selectorGetter,
-          logger: ctx.logger,
-        ),
+        create: (SelectorGetter selectorGetter) {
+          final base = _buildPollingBase(
+            endpoints: e.endpoints,
+            usePost: e.usePost,
+            ctx: ctx,
+          );
+          return FDv2PollingInitializer(
+            poll: ({Selector basis = Selector.empty}) =>
+                base.pollOnce(basis: basis),
+            selectorGetter: selectorGetter,
+            logger: ctx.logger,
+          );
+        },
       );
     case mode.StreamingInitializer():
       throw UnsupportedError(
@@ -132,20 +138,22 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
 ) {
   switch (entry) {
     case final mode.PollingSynchronizer e:
-      final base = _sharedPollingBase(
-        endpoints: e.endpoints,
-        usePost: e.usePost,
-        ctx: ctx,
-      );
       final interval = e.pollInterval ?? ctx.defaultPollingInterval;
       return SynchronizerFactory(
-        create: (SelectorGetter selectorGetter) => FDv2PollingSynchronizer(
-          poll: ({Selector basis = Selector.empty}) =>
-              base.pollOnce(basis: basis),
-          selectorGetter: selectorGetter,
-          interval: interval,
-          logger: ctx.logger,
-        ),
+        create: (SelectorGetter selectorGetter) {
+          final base = _buildPollingBase(
+            endpoints: e.endpoints,
+            usePost: e.usePost,
+            ctx: ctx,
+          );
+          return FDv2PollingSynchronizer(
+            poll: ({Selector basis = Selector.empty}) =>
+                base.pollOnce(basis: basis),
+            selectorGetter: selectorGetter,
+            interval: interval,
+            logger: ctx.logger,
+          );
+        },
       );
     case mode.StreamingSynchronizer():
       throw UnsupportedError(
