@@ -49,7 +49,13 @@ export 'src/config/common_platform.dart' show CommonPlatform;
 export 'src/config/events_config.dart' show EventsConfig;
 export 'src/config/credential/credential_source.dart' show CredentialSource;
 export 'src/connection_mode.dart' show ConnectionMode;
-export 'src/fdv2_connection_mode.dart' show FDv2ConnectionMode;
+export 'src/fdv2_connection_mode.dart'
+    show
+        FDv2ConnectionMode,
+        FDv2Streaming,
+        FDv2Polling,
+        FDv2Offline,
+        FDv2Background;
 export 'src/resolved_connection_mode.dart'
     show
         ResolvedConnectionMode,

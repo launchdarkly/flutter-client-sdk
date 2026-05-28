@@ -12,8 +12,8 @@ void main() {
       networkAvailable: false,
       inForeground: true,
       runInBackground: true,
-      foregroundConnectionMode: FDv2ConnectionMode.streaming,
-      backgroundConnectionMode: FDv2ConnectionMode.offline,
+      foregroundConnectionMode: FDv2Streaming(),
+      backgroundConnectionMode: FDv2Offline(),
     );
     final r = resolveMode(
       flutterDefaultResolutionTable(),
@@ -21,7 +21,7 @@ void main() {
     );
     expect(r, isA<ResolvedOffline>());
     expect((r as ResolvedOffline).detail, isA<OfflineNetworkUnavailable>());
-    expect(r.connectionMode, FDv2ConnectionMode.offline);
+    expect(r.connectionMode, const FDv2Offline());
   });
 
   test(
@@ -31,8 +31,8 @@ void main() {
       networkAvailable: true,
       inForeground: false,
       runInBackground: false,
-      foregroundConnectionMode: FDv2ConnectionMode.streaming,
-      backgroundConnectionMode: FDv2ConnectionMode.offline,
+      foregroundConnectionMode: FDv2Streaming(),
+      backgroundConnectionMode: FDv2Offline(),
     );
     final r = resolveMode(
       flutterDefaultResolutionTable(),
@@ -49,8 +49,8 @@ void main() {
       networkAvailable: true,
       inForeground: false,
       runInBackground: true,
-      foregroundConnectionMode: FDv2ConnectionMode.streaming,
-      backgroundConnectionMode: FDv2ConnectionMode.offline,
+      foregroundConnectionMode: FDv2Streaming(),
+      backgroundConnectionMode: FDv2Offline(),
     );
     final r = resolveMode(
       flutterDefaultResolutionTable(),
@@ -65,12 +65,12 @@ void main() {
       networkAvailable: true,
       inForeground: true,
       runInBackground: true,
-      foregroundConnectionMode: FDv2ConnectionMode.polling,
-      backgroundConnectionMode: FDv2ConnectionMode.offline,
+      foregroundConnectionMode: FDv2Polling(),
+      backgroundConnectionMode: FDv2Offline(),
     );
     final table = flutterDefaultResolutionTable();
     final resolved = resolveMode(table, state);
     expect(resolved, isA<ResolvedPolling>());
-    expect(resolved.connectionMode, FDv2ConnectionMode.polling);
+    expect(resolved.connectionMode, const FDv2Polling());
   });
 }

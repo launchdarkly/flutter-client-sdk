@@ -38,21 +38,21 @@ final class ResolvedStreaming extends ResolvedConnectionMode {
   const ResolvedStreaming();
 
   @override
-  FDv2ConnectionMode get connectionMode => FDv2ConnectionMode.streaming;
+  FDv2ConnectionMode get connectionMode => const FDv2Streaming();
 }
 
 final class ResolvedPolling extends ResolvedConnectionMode {
   const ResolvedPolling();
 
   @override
-  FDv2ConnectionMode get connectionMode => FDv2ConnectionMode.polling;
+  FDv2ConnectionMode get connectionMode => const FDv2Polling();
 }
 
 final class ResolvedBackground extends ResolvedConnectionMode {
   const ResolvedBackground();
 
   @override
-  FDv2ConnectionMode get connectionMode => FDv2ConnectionMode.background;
+  FDv2ConnectionMode get connectionMode => const FDv2Background();
 }
 
 final class ResolvedOffline extends ResolvedConnectionMode {
@@ -61,5 +61,5 @@ final class ResolvedOffline extends ResolvedConnectionMode {
   const ResolvedOffline(this.detail);
 
   @override
-  FDv2ConnectionMode get connectionMode => FDv2ConnectionMode.offline;
+  FDv2ConnectionMode get connectionMode => const FDv2Offline();
 }

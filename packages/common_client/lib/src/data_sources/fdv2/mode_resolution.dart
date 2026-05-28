@@ -91,18 +91,13 @@ ResolvedConnectionMode _backgroundSlotResolved(ModeState s) =>
 ResolvedConnectionMode _foregroundSlotResolved(ModeState s) =>
     _resolvedFromConnectionMode(s.foregroundConnectionMode);
 
-ResolvedConnectionMode _resolvedFromConnectionMode(FDv2ConnectionMode mode) {
-  if (mode == FDv2ConnectionMode.streaming) {
-    return const ResolvedStreaming();
-  }
-  if (mode == FDv2ConnectionMode.polling) {
-    return const ResolvedPolling();
-  }
-  if (mode == FDv2ConnectionMode.background) {
-    return const ResolvedBackground();
-  }
-  return const ResolvedOffline(OfflineSetOffline());
-}
+ResolvedConnectionMode _resolvedFromConnectionMode(FDv2ConnectionMode mode) =>
+    switch (mode) {
+      FDv2Streaming() => const ResolvedStreaming(),
+      FDv2Polling() => const ResolvedPolling(),
+      FDv2Background() => const ResolvedBackground(),
+      FDv2Offline() => const ResolvedOffline(OfflineSetOffline()),
+    };
 
 bool _networkDown(ModeState s) => !s.networkAvailable;
 
