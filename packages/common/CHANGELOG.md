@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.8.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.8.0...launchdarkly_dart_common-v1.8.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* Reject "multi" as the kind of an individual context ([#272](https://github.com/launchdarkly/flutter-client-sdk/issues/272)) ([f46679a](https://github.com/launchdarkly/flutter-client-sdk/commit/f46679a0b925ab359c3f190d17f6bd79da87ed24))
+
 ## [1.8.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.7.0...launchdarkly_dart_common-v1.8.0) (2026-02-10)
 
 
