@@ -96,6 +96,7 @@ export 'src/plugins/plugin.dart'
         PluginMetadata,
         PluginSdkMetadata;
 
-export 'src/plugins/operations.dart' show safeGetHooks, safeRegisterPlugins;
+export 'src/plugins/operations.dart'
+    show safeGetHooks, safeGetPluginHooks, safeGetPluginName, safeRegisterPlugins;
 
 export 'src/config/defaults/credential_type.dart' show CredentialType;
