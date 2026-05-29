@@ -16,7 +16,15 @@ typedef DataSourceFactory = DataSource Function(LDContext context);
 /// The data source manager controls which data source is connected to
 /// the data source status as well as the data source event handler.
 final class DataSourceManager {
-  ResolvedConnectionMode _activeConnectionMode;
+  /// The mode that drives factory lookup and status dispatch.
+  FDv2ConnectionMode _activeConnectionMode;
+
+  /// Semantically meaningful only when [_activeConnectionMode] is
+  /// [FDv2Offline]. Otherwise carries a stale value from the last time the
+  /// SDK was offline (or the construction-time default), and is intentionally
+  /// only read inside the [FDv2Offline] arm of [_setupConnection].
+  OfflineDetail _offlineDetail;
+
   LDContext? _activeContext;
 
   final LDLogger _logger;
@@ -36,10 +44,11 @@ final class DataSourceManager {
     required DataSourceEventHandler dataSourceEventHandler,
     required LDLogger logger,
   })  : _activeConnectionMode = switch (startingMode) {
-          ConnectionMode.streaming => const ResolvedStreaming(),
-          ConnectionMode.polling => const ResolvedPolling(),
-          ConnectionMode.offline => const ResolvedOffline(OfflineSetOffline()),
+          ConnectionMode.streaming => const FDv2Streaming(),
+          ConnectionMode.polling => const FDv2Polling(),
+          ConnectionMode.offline => const FDv2Offline(),
         },
+        _offlineDetail = const OfflineSetOffline(),
         _logger = logger.subLogger('DataSourceManager'),
         _statusManager = statusManager,
         _dataSourceEventHandler = dataSourceEventHandler;
@@ -60,13 +69,20 @@ final class DataSourceManager {
   }
 
   void setMode(ResolvedConnectionMode mode) {
-    if (mode == _activeConnectionMode) {
+    final newConnectionMode = mode.connectionMode;
+    final newDetail = mode is ResolvedOffline ? mode.detail : null;
+    final isOffline = newConnectionMode is FDv2Offline;
+    if (newConnectionMode == _activeConnectionMode &&
+        (!isOffline || newDetail == _offlineDetail)) {
       _logger.debug('Mode is already set to: $mode');
       return;
     }
     _logger.debug(
-        'Changing resolved connection mode from: $_activeConnectionMode to: $mode');
-    _activeConnectionMode = mode;
+        'Changing connection mode from: $_activeConnectionMode to: $mode');
+    _activeConnectionMode = newConnectionMode;
+    if (newDetail != null) {
+      _offlineDetail = newDetail;
+    }
     _setupConnection();
   }
 
@@ -101,8 +117,8 @@ final class DataSourceManager {
     _stopConnection();
 
     switch (_activeConnectionMode) {
-      case ResolvedOffline(:final detail):
-        switch (detail) {
+      case FDv2Offline():
+        switch (_offlineDetail) {
           case OfflineSetOffline():
             _statusManager.setOffline();
           case OfflineNetworkUnavailable():
@@ -111,14 +127,13 @@ final class DataSourceManager {
             _statusManager.setBackgroundDisabled();
         }
         return;
-      case ResolvedStreaming():
-      case ResolvedPolling():
-      case ResolvedBackground():
+      case FDv2Streaming():
+      case FDv2Polling():
+      case FDv2Background():
         break;
     }
 
-    final mode = _activeConnectionMode.connectionMode;
-    _activeDataSource = _createDataSource(mode);
+    _activeDataSource = _createDataSource(_activeConnectionMode);
     _subscription = _activeDataSource?.events.asyncMap((event) async {
       if (_activeContext == null) {
         _logger.error(
