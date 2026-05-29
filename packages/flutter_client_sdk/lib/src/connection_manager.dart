@@ -133,7 +133,7 @@ final class ConnectionManager {
 
   /// When non-null, [resolveMode] is skipped and this mode is
   /// applied regardless of lifecycle/network.
-  ConnectionMode? _modeOverride;
+  FDv2ConnectionMode? _modeOverride;
 
   ApplicationState _applicationState;
   NetworkState _networkState;
@@ -193,9 +193,10 @@ final class ConnectionManager {
       resolved = const ResolvedOffline(OfflineSetOffline());
     } else if (_modeOverride case final mode?) {
       resolved = switch (mode) {
-        ConnectionMode.streaming => const ResolvedStreaming(),
-        ConnectionMode.polling => const ResolvedPolling(),
-        ConnectionMode.offline => const ResolvedOffline(OfflineSetOffline()),
+        FDv2Streaming() => const ResolvedStreaming(),
+        FDv2Polling() => const ResolvedPolling(),
+        FDv2Background() => const ResolvedBackground(),
+        FDv2Offline() => const ResolvedOffline(OfflineSetOffline()),
       };
     } else {
       final modeState = ModeState(
@@ -230,8 +231,9 @@ final class ConnectionManager {
     _detector.dispose();
   }
 
-  /// Set the desired connection mode for the SDK.
-  void setMode(ConnectionMode? mode) {
+  /// Set the desired connection mode for the SDK. Passing null clears the
+  /// override and resumes automatic mode resolution.
+  void setMode(FDv2ConnectionMode? mode) {
     _modeOverride = mode;
     _handleState();
   }

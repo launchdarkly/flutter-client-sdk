@@ -555,7 +555,7 @@ void main() {
         () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
     reset(destination);
 
-    connectionManager.setMode(ConnectionMode.polling);
+    connectionManager.setMode(const FDv2Polling());
     verify(() => destination.setMode(const ResolvedPolling()));
     reset(destination);
 
@@ -566,23 +566,20 @@ void main() {
   });
 
   group('given requested connection modes', () {
-    for (var requestedMode in [
-      ConnectionMode.streaming,
-      ConnectionMode.polling,
-      ConnectionMode.offline,
+    for (var entry in <(FDv2ConnectionMode, ResolvedConnectionMode)>[
+      (const FDv2Streaming(), const ResolvedStreaming()),
+      (const FDv2Polling(), const ResolvedPolling()),
+      (const FDv2Background(), const ResolvedBackground()),
+      (const FDv2Offline(), const ResolvedOffline(OfflineSetOffline())),
     ]) {
-      test('it respects changes to the desired connection mode', () {
-        // Get an initial mode that will be different than the requested mode.
-        final initialMode =
-            ConnectionMode.values.firstWhere((mode) => mode != requestedMode);
-
+      final (requestedMode, expectedResolved) = entry;
+      test('it respects setMode($requestedMode)', () {
         registerFallbackValue(ConnectionMode.streaming);
 
         final destination = MockDestination();
         final logAdapter = MockLogAdapter();
         final logger = LDLogger(adapter: logAdapter);
-        final config = ConnectionManagerConfig(
-            runInBackground: false, initialConnectionMode: initialMode);
+        final config = ConnectionManagerConfig(runInBackground: false);
         final mockDetector = MockStateDetector();
 
         final connectionManager = ConnectionManager(
@@ -594,12 +591,7 @@ void main() {
         reset(destination);
         connectionManager.setMode(requestedMode);
 
-        verify(() => destination.setMode(switch (requestedMode) {
-              ConnectionMode.streaming => const ResolvedStreaming(),
-              ConnectionMode.polling => const ResolvedPolling(),
-              ConnectionMode.offline =>
-                const ResolvedOffline(OfflineSetOffline()),
-            }));
+        verify(() => destination.setMode(expectedResolved));
         verifyNever(
             () => destination.setEventSendingEnabled(true, flush: false));
         connectionManager.dispose();
