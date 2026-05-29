@@ -33,8 +33,7 @@ List<Hook>? safeGetHooks<TClient>(
   if (plugins == null) return null;
 
   return plugins
-      .map<List<Hook>>(
-          (plugin) => safeGetPluginHooks(plugin, logger) ?? [])
+      .map<List<Hook>>((plugin) => safeGetPluginHooks(plugin, logger) ?? [])
       .expand<Hook>((hooks) => hooks)
       .toList();
 }
