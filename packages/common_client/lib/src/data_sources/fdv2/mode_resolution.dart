@@ -44,7 +44,6 @@ final class ModeResolutionEntry {
 /// First matching row in [table] wins. If none match, maps
 /// [state.foregroundConnectionMode] to a [ResolvedConnectionMode].
 ///
-/// When written, this was used for automatic resolution.
 ResolvedConnectionMode resolveMode(
   List<ModeResolutionEntry> table,
   ModeState state,
