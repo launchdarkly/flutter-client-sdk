@@ -807,9 +807,7 @@ final class LDCommonClient {
     });
   }
 
-  /// Set a resolved FDv2 connection mode directly. This is the advanced entry
-  /// point used by the FDv2 connection-management layer and bypasses the
-  /// FDv1 [ConnectionMode] mapping done by [setMode].
+  /// Set a resolved FDv2 connection mode the SDK should use.
   ///
   /// This method is not stable, and not subject to any backwards compatibility
   /// guarantees or semantic versioning. It is in early access. If you want
