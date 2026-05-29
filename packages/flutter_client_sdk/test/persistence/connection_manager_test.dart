@@ -57,6 +57,9 @@ void main() {
         message: '',
         time: DateTime.now(),
         logTag: ''));
+    registerFallbackValue(const OfflineSetOffline());
+    registerFallbackValue(const ResolvedStreaming());
+    registerFallbackValue(const ResolvedOffline(OfflineSetOffline()));
   });
 
   test('it can set the connection offline when entering the background',
@@ -80,14 +83,15 @@ void main() {
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
 
-    verify(() => destination.setMode(ConnectionMode.offline));
+    verify(() => destination
+        .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
     connectionManager.dispose();
   });
 
   group('given default connection modes', () {
     for (var initialMode in [
       ConnectionMode.streaming,
-      ConnectionMode.polling
+      ConnectionMode.polling,
     ]) {
       test(
           'it can restore the connection when entering the foreground for mode: $initialMode',
@@ -112,7 +116,8 @@ void main() {
         // Wait for the state to propagate.
         await mockDetector.applicationState.first;
 
-        verify(() => destination.setMode(ConnectionMode.offline));
+        verify(() => destination
+            .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
         reset(destination);
 
         mockDetector.setApplicationState(ApplicationState.foreground);
@@ -120,14 +125,20 @@ void main() {
         // Wait for the state to propagate.
         await mockDetector.applicationState.first;
 
-        verify(() => destination.setMode(initialMode));
+        verify(() => destination.setMode(switch (initialMode) {
+              ConnectionMode.streaming => const ResolvedStreaming(),
+              ConnectionMode.polling => const ResolvedPolling(),
+              ConnectionMode.offline =>
+                const ResolvedOffline(OfflineSetOffline()),
+            }));
         connectionManager.dispose();
       });
     }
   });
 
   test(
-      'if runInBackground is true, then it remains online when entering the background',
+      'if runInBackground is true, default background slot is offline '
+      '(desktop-style automatic resolution / default ConnectionManagerConfig)',
       () async {
     registerFallbackValue(ConnectionMode.streaming);
 
@@ -149,7 +160,67 @@ void main() {
     await mockDetector.applicationState.first;
 
     verify(() => destination.flush());
-    verify(() => destination.setMode(ConnectionMode.streaming));
+    verify(
+        () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
+    connectionManager.dispose();
+  });
+
+  test(
+      'if runInBackground is true and backgroundConnectionMode is background, '
+      'it uses that slot in the background', () async {
+    registerFallbackValue(ConnectionMode.streaming);
+    registerFallbackValue(const FDv2Background());
+
+    final destination = MockDestination();
+    final logAdapter = MockLogAdapter();
+    final logger = LDLogger(adapter: logAdapter);
+    final config = ConnectionManagerConfig(
+      runInBackground: true,
+      backgroundConnectionMode: const FDv2Background(),
+    );
+    final mockDetector = MockStateDetector();
+
+    final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector);
+
+    mockDetector.setApplicationState(ApplicationState.background);
+
+    await mockDetector.applicationState.first;
+
+    verify(() => destination.flush());
+    verify(() => destination.setMode(const ResolvedBackground()));
+    connectionManager.dispose();
+  });
+
+  test(
+      'if runInBackground is true and backgroundConnectionMode is streaming, '
+      'it uses that slot in the background', () async {
+    registerFallbackValue(ConnectionMode.streaming);
+
+    final destination = MockDestination();
+    final logAdapter = MockLogAdapter();
+    final logger = LDLogger(adapter: logAdapter);
+    final config = ConnectionManagerConfig(
+      runInBackground: true,
+      backgroundConnectionMode: const FDv2Streaming(),
+    );
+    final mockDetector = MockStateDetector();
+
+    final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector);
+
+    mockDetector.setApplicationState(ApplicationState.background);
+
+    await mockDetector.applicationState.first;
+
+    verify(() => destination.flush());
+    verify(() => destination.setMode(const ResolvedStreaming()));
     connectionManager.dispose();
   });
 
@@ -176,6 +247,8 @@ void main() {
     await mockDetector.networkState.first;
 
     verify(() => destination.setNetworkAvailability(false));
+    verify(() => destination
+        .setMode(const ResolvedOffline(OfflineNetworkUnavailable())));
     connectionManager.dispose();
   });
 
@@ -213,6 +286,156 @@ void main() {
     connectionManager.dispose();
   });
 
+  group('network drives mode resolution and custom resolution tables', () {
+    test(
+        'when network is unavailable in the background, mode is offline '
+        'not the background slot (first table row wins)', () async {
+      registerFallbackValue(ConnectionMode.streaming);
+      registerFallbackValue(const FDv2Background());
+
+      final destination = MockDestination();
+      final logAdapter = MockLogAdapter();
+      final logger = LDLogger(adapter: logAdapter);
+      final config = ConnectionManagerConfig(
+        runInBackground: true,
+        backgroundConnectionMode: const FDv2Background(),
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      mockDetector.setApplicationState(ApplicationState.background);
+      await mockDetector.applicationState.first;
+
+      verify(() => destination.setMode(const ResolvedBackground()));
+      reset(destination);
+
+      mockDetector.setNetworkAvailable(false);
+      await mockDetector.networkState.first;
+
+      verify(() => destination.setNetworkAvailability(false));
+      verify(() => destination
+          .setMode(const ResolvedOffline(OfflineNetworkUnavailable())));
+      connectionManager.dispose();
+    });
+
+    test(
+        'when network returns while foreground, restores '
+        'initialConnectionMode from automatic resolution', () async {
+      registerFallbackValue(ConnectionMode.streaming);
+      registerFallbackValue(ConnectionMode.polling);
+
+      final destination = MockDestination();
+      final logAdapter = MockLogAdapter();
+      final logger = LDLogger(adapter: logAdapter);
+      final config = ConnectionManagerConfig(
+        initialConnectionMode: ConnectionMode.polling,
+        runInBackground: true,
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      mockDetector.setNetworkAvailable(false);
+      await mockDetector.networkState.first;
+
+      verify(() => destination
+          .setMode(const ResolvedOffline(OfflineNetworkUnavailable())));
+      reset(destination);
+
+      mockDetector.setNetworkAvailable(true);
+      await mockDetector.networkState.first;
+
+      verify(() => destination.setNetworkAvailability(true));
+      verify(() => destination.setMode(const ResolvedPolling()));
+      connectionManager.dispose();
+    });
+
+    test(
+        'custom resolution table: network row only then fallback to '
+        'initialConnectionMode when network is available', () async {
+      registerFallbackValue(ConnectionMode.streaming);
+      registerFallbackValue(ConnectionMode.polling);
+
+      final destination = MockDestination();
+      final logAdapter = MockLogAdapter();
+      final logger = LDLogger(adapter: logAdapter);
+      final config = ConnectionManagerConfig(
+        initialConnectionMode: ConnectionMode.polling,
+        runInBackground: true,
+      );
+      final mockDetector = MockStateDetector();
+
+      final customTable = <ModeResolutionEntry>[
+        ModeResolutionEntry(
+          predicate: (ModeState s) => !s.networkAvailable,
+          resolve: (_) => const ResolvedOffline(OfflineNetworkUnavailable()),
+        ),
+      ];
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+        resolutionTable: customTable,
+      );
+
+      mockDetector.setNetworkAvailable(false);
+      await mockDetector.networkState.first;
+
+      verify(() => destination
+          .setMode(const ResolvedOffline(OfflineNetworkUnavailable())));
+      reset(destination);
+
+      mockDetector.setNetworkAvailable(true);
+      await mockDetector.networkState.first;
+
+      verify(() => destination.setMode(const ResolvedPolling()));
+      connectionManager.dispose();
+    });
+
+    test(
+        'custom empty resolution table falls back to initialConnectionMode '
+        'for all automatic states', () async {
+      registerFallbackValue(ConnectionMode.streaming);
+      registerFallbackValue(ConnectionMode.polling);
+
+      final destination = MockDestination();
+      final logAdapter = MockLogAdapter();
+      final logger = LDLogger(adapter: logAdapter);
+      final config = ConnectionManagerConfig(
+        initialConnectionMode: ConnectionMode.polling,
+        runInBackground: true,
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+        resolutionTable: const <ModeResolutionEntry>[],
+      );
+
+      mockDetector.setNetworkAvailable(false);
+      await mockDetector.networkState.first;
+
+      verify(() => destination.setMode(const ResolvedPolling()));
+      connectionManager.dispose();
+    });
+  });
+
   test('when temporarily offline it ignores state changes and remains offline',
       () async {
     registerFallbackValue(ConnectionMode.streaming);
@@ -231,7 +454,8 @@ void main() {
 
     connectionManager.offline = true;
 
-    verify(() => destination.setMode(ConnectionMode.offline));
+    verify(
+        () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
     verify(() => destination.setEventSendingEnabled(false, flush: false));
     reset(destination);
 
@@ -242,7 +466,8 @@ void main() {
     await mockDetector.applicationState.first;
     await mockDetector.networkState.first;
 
-    verify(() => destination.setMode(ConnectionMode.offline));
+    verify(
+        () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
     verify(() => destination.setNetworkAvailability(true));
     verify(() => destination.setEventSendingEnabled(false, flush: false));
     connectionManager.dispose();
@@ -306,6 +531,40 @@ void main() {
     connectionManager.dispose();
   });
 
+  test('setMode override: applies in background, null restores automatic table',
+      () async {
+    registerFallbackValue(ConnectionMode.streaming);
+    registerFallbackValue(ConnectionMode.polling);
+
+    final destination = MockDestination();
+    final logAdapter = MockLogAdapter();
+    final logger = LDLogger(adapter: logAdapter);
+    final config = ConnectionManagerConfig(runInBackground: true);
+    final mockDetector = MockStateDetector();
+
+    final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector);
+
+    mockDetector.setApplicationState(ApplicationState.background);
+    await mockDetector.applicationState.first;
+
+    verify(
+        () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
+    reset(destination);
+
+    connectionManager.setMode(ConnectionMode.polling);
+    verify(() => destination.setMode(const ResolvedPolling()));
+    reset(destination);
+
+    connectionManager.setMode(null);
+    verify(
+        () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
+    connectionManager.dispose();
+  });
+
   group('given requested connection modes', () {
     for (var requestedMode in [
       ConnectionMode.streaming,
@@ -335,7 +594,12 @@ void main() {
         reset(destination);
         connectionManager.setMode(requestedMode);
 
-        verify(() => destination.setMode(requestedMode));
+        verify(() => destination.setMode(switch (requestedMode) {
+              ConnectionMode.streaming => const ResolvedStreaming(),
+              ConnectionMode.polling => const ResolvedPolling(),
+              ConnectionMode.offline =>
+                const ResolvedOffline(OfflineSetOffline()),
+            }));
         verifyNever(
             () => destination.setEventSendingEnabled(true, flush: false));
         connectionManager.dispose();
