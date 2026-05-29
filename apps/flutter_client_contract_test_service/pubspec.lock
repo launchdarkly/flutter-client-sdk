@@ -391,26 +391,26 @@ packages:
     dependency: transitive
     description:
       name: launchdarkly_common_client
-      sha256: "02afb127aec6a5e9238005db02cb377ead5902d30207ef58ae8d4afe06aeae63"
+      sha256: aeefe7bc4b7bf995fa23a5165846a7320aa1eaa48089f19d150a0144fbf5bfad
       url: "https://pub.dev"
     source: hosted
-    version: "1.9.0"
+    version: "1.10.0"
   launchdarkly_dart_common:
     dependency: transitive
     description:
       name: launchdarkly_dart_common
-      sha256: c25991ffc1ab2c951e31047955448970628c1c2dd09b1197bc527dc7dcdf2595
+      sha256: e36fb8d943ea7a5b99e7ecdc361174ca95e05533904dd92175816ae5c9723eee
       url: "https://pub.dev"
     source: hosted
-    version: "1.8.0"
+    version: "1.8.1"
   launchdarkly_event_source_client:
     dependency: transitive
     description:
       name: launchdarkly_event_source_client
-      sha256: "51c90efe9765bf6908772abd59ea16c193798c1a9f9381475c56299cb553e3b2"
+      sha256: c248a81bc353d44f7f18803ff625d784d640265bf8bbc32c63f1d2d91911b88f
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.1"
+    version: "2.1.0"
   launchdarkly_flutter_client_sdk:
     dependency: "direct main"
     description:
