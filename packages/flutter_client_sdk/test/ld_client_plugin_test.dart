@@ -476,8 +476,8 @@ void main() {
     });
 
     test('does not register plugin when hooks getter throws', () {
-      final plugin = TestPlugin('bad-hooks-plugin', [],
-          shouldThrowOnGetHooks: true);
+      final plugin =
+          TestPlugin('bad-hooks-plugin', [], shouldThrowOnGetHooks: true);
       final client = createTestClient();
 
       client.registerPlugin(plugin);
