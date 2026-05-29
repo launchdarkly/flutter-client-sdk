@@ -15,20 +15,26 @@ String safeGetPluginName<TClient>(PluginBase<TClient> plugin, LDLogger logger) {
   }
 }
 
+/// Returns the hooks for a single [plugin], or `null` if reading
+/// [PluginBase.hooks] throws.
+List<Hook>? safeGetPluginHooks<TClient>(
+    PluginBase<TClient> plugin, LDLogger logger) {
+  try {
+    return plugin.hooks;
+  } catch (err) {
+    logger.warn(
+        'Exception thrown getting hooks for plugin ${safeGetPluginName(plugin, logger)}. Unable to get hooks for plugin.');
+    return null;
+  }
+}
+
 List<Hook>? safeGetHooks<TClient>(
     List<PluginBase<TClient>>? plugins, LDLogger logger) {
   if (plugins == null) return null;
 
   return plugins
-      .map<List<Hook>>((plugin) {
-        try {
-          return plugin.hooks;
-        } catch (err) {
-          logger.warn(
-              'Exception thrown getting hooks for plugin ${safeGetPluginName(plugin, logger)}. Unable to get hooks for plugin.');
-        }
-        return [];
-      })
+      .map<List<Hook>>(
+          (plugin) => safeGetPluginHooks(plugin, logger) ?? [])
       .expand<Hook>((hooks) => hooks)
       .toList();
 }

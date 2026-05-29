@@ -367,7 +367,7 @@ interface class LDClient {
   /// invoked. If reading [Plugin.hooks] throws, the plugin is not registered.
   /// If [Plugin.register] throws, the error is logged and not rethrown.
   void registerPlugin(Plugin plugin) {
-    final hooks = _getRuntimePluginHooks(plugin);
+    final hooks = safeGetPluginHooks(plugin, _client.logger);
     if (hooks == null) {
       return;
     }
@@ -378,16 +378,5 @@ interface class LDClient {
 
     safeRegisterPlugins(
         this, _pluginEnvironmentMetadata, [plugin], _client.logger);
-  }
-
-  /// Returns plugin hooks for runtime registration, or `null` if retrieval failed.
-  List<Hook>? _getRuntimePluginHooks(Plugin plugin) {
-    try {
-      return plugin.hooks;
-    } catch (err) {
-      _client.logger.warn(
-          'Exception thrown getting hooks for plugin ${safeGetPluginName(plugin, _client.logger)}. Unable to get hooks for plugin.');
-      return null;
-    }
   }
 }
