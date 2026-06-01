@@ -104,7 +104,7 @@ final class ConnectionManagerConfig {
   /// Window across which lifecycle, network, and user-mode-override signals
   /// are debounced before automatic resolution runs. A value of
   /// [Duration.zero] disables debouncing (signals apply synchronously).
-  /// Defaults to one second, per CSFDV2 CONNMODE specification.
+  /// Defaults to one second.
   final Duration debounceWindow;
 
   ConnectionManagerConfig({
@@ -148,6 +148,12 @@ final class ConnectionManager {
 
   bool _offline = false;
 
+  /// Set to true when [_onApplicationStateChanged] performs a synchronous
+  /// flush on a foreground->background transition. Cleared on the next
+  /// [_handleState] invocation so the debounced reconcile does not flush a
+  /// second time for the same transition.
+  bool _pendingSyncFlush = false;
+
   bool get offline => _offline;
 
   set offline(bool offline) {
@@ -176,6 +182,7 @@ final class ConnectionManager {
       ),
       debounceWindow: config.debounceWindow,
       onReconcile: _onDebounceReconcile,
+      logger: _logger,
     );
 
     if (!_config.disableAutomaticBackgroundHandling) {
@@ -189,12 +196,12 @@ final class ConnectionManager {
   }
 
   void _onApplicationStateChanged(ApplicationState newState) {
-    // Spec CONNMODE 3.3.1: flushing on transition to background must not be
-    // debounced -- the process may be killed before the window closes.
+    // Flushing on transition to background must not be debounced
     if (newState == ApplicationState.background &&
         _applicationState == ApplicationState.foreground &&
         !_offline) {
       _destination.flush();
+      _pendingSyncFlush = true;
     }
     _applicationState = newState;
     _debouncer.setInForeground(newState == ApplicationState.foreground);
@@ -242,9 +249,10 @@ final class ConnectionManager {
       resolved = resolveMode(_resolutionTable, modeState);
     }
 
-    if (!_offline && !inForeground && networkAvailable) {
+    if (!_offline && !inForeground && networkAvailable && !_pendingSyncFlush) {
       _destination.flush();
     }
+    _pendingSyncFlush = false;
 
     _destination.setMode(resolved);
 

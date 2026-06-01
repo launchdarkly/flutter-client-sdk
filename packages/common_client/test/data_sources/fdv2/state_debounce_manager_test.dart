@@ -211,4 +211,34 @@ void main() {
       manager.close();
     });
   });
+
+  group('reconcile error handling', () {
+    test('exception in onReconcile is swallowed; subsequent fires continue',
+        () {
+      fakeAsync((async) {
+        var callCount = 0;
+        final manager = StateDebounceManager(
+          initialState: _initial,
+          debounceWindow: _debounceWindow,
+          onReconcile: (_) {
+            callCount++;
+            if (callCount == 1) {
+              throw StateError('first reconcile failed');
+            }
+          },
+        );
+
+        manager.setNetworkAvailable(false);
+        async.elapse(_debounceWindow);
+        expect(callCount, 1);
+
+        // A second change must still drive a reconcile after a failed one.
+        manager.setInForeground(false);
+        async.elapse(_debounceWindow);
+        expect(callCount, 2);
+
+        manager.close();
+      });
+    });
+  });
 }

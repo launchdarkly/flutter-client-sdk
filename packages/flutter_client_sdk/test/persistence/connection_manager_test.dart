@@ -719,5 +719,52 @@ void main() {
         connectionManager.dispose();
       });
     });
+
+    test(
+        'setMode override wins over a network event arriving mid-debounce-window',
+        () {
+      fakeAsync((async) {
+        registerFallbackValue(ConnectionMode.streaming);
+
+        final destination = MockDestination();
+        final logAdapter = MockLogAdapter();
+        final logger = LDLogger(adapter: logAdapter);
+        final config = ConnectionManagerConfig(
+          runInBackground: true,
+          debounceWindow: const Duration(seconds: 1),
+        );
+        final mockDetector = MockStateDetector();
+
+        final connectionManager = ConnectionManager(
+            logger: logger,
+            config: config,
+            destination: destination,
+            detector: mockDetector);
+
+        // t=0: user sets override.
+        connectionManager.setMode(const FDv2Streaming());
+
+        // t=500ms: network drops mid-window.
+        async.elapse(const Duration(milliseconds: 500));
+        mockDetector.setNetworkAvailable(false);
+        async.flushMicrotasks();
+
+        // Network availability propagates to the destination synchronously
+        // (not debounced) so the underlying client knows.
+        verify(() => destination.setNetworkAvailability(false)).called(1);
+
+        // But the resolved mode has not been applied yet -- still inside the
+        // debounce window.
+        verifyNever(() => destination.setMode(any()));
+
+        // After the window closes, the override wins -- ResolvedStreaming is
+        // applied. (ResolvedOffline would have been applied if the network
+        // event drove resolution; the override suppresses that.)
+        async.elapse(const Duration(seconds: 1));
+        verify(() => destination.setMode(const ResolvedStreaming())).called(1);
+
+        connectionManager.dispose();
+      });
+    });
   });
 }
