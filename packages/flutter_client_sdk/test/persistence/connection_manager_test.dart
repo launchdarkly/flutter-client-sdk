@@ -766,5 +766,44 @@ void main() {
         connectionManager.dispose();
       });
     });
+
+    test(
+        'initialApplicationState seeds the lifecycle assumption so the SDK '
+        'does not default to foreground when launched in background', () {
+      // The manager is constructed with `initialApplicationState: background`.
+      // Toggling `offline` forces a synchronous `_handleState` -- with the
+      // seed in effect, the resolved automatic mode reflects the
+      // background + runInBackground=false state and yields
+      // ResolvedOffline(OfflineBackgroundDisabled). Without the seed
+      // (i.e., defaulted to foreground) the result would fall through to
+      // the foreground slot and yield ResolvedStreaming.
+      registerFallbackValue(ConnectionMode.streaming);
+
+      final destination = MockDestination();
+      final logAdapter = MockLogAdapter();
+      final logger = LDLogger(adapter: logAdapter);
+      final config = ConnectionManagerConfig(
+        runInBackground: false,
+        debounceWindow: const Duration(seconds: 1),
+        initialApplicationState: ApplicationState.background,
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      connectionManager.offline = true;
+      reset(destination);
+      connectionManager.offline = false;
+
+      verify(() => destination.setMode(
+          const ResolvedOffline(OfflineBackgroundDisabled()))).called(1);
+
+      connectionManager.dispose();
+    });
   });
 }

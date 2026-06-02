@@ -107,6 +107,17 @@ final class ConnectionManagerConfig {
   /// Defaults to one second.
   final Duration debounceWindow;
 
+  /// The application's lifecycle state at construction time. Used to seed
+  /// the manager's initial lifecycle assumption so the SDK doesn't default
+  /// to foreground when the host platform already knows the app launched
+  /// into the background. Callers that can query the platform synchronously
+  /// (e.g. via [SchedulerBinding.instance.lifecycleState]) should pass the
+  /// resolved value here; callers without that information should leave
+  /// the default.
+  ///
+  /// Defaults to [ApplicationState.foreground].
+  final ApplicationState initialApplicationState;
+
   ConnectionManagerConfig({
     this.initialConnectionMode = ConnectionMode.streaming,
     this.backgroundConnectionMode = const FDv2Offline(),
@@ -114,6 +125,7 @@ final class ConnectionManagerConfig {
     this.disableAutomaticBackgroundHandling = false,
     this.disableAutomaticNetworkHandling = false,
     this.debounceWindow = const Duration(seconds: 1),
+    this.initialApplicationState = ApplicationState.foreground,
   });
 }
 
@@ -154,6 +166,11 @@ final class ConnectionManager {
   /// second time for the same transition.
   bool _pendingSyncFlush = false;
 
+  /// Whether the SDK has been explicitly placed in the offline state.
+  ///
+  /// Assigning this property synchronously drives the resolved mode to
+  /// offline (or back to automatic resolution when set to `false`). It
+  /// intentionally bypasses the debounce window.
   bool get offline => _offline;
 
   set offline(bool offline) {
@@ -171,13 +188,18 @@ final class ConnectionManager {
         _config = config,
         _destination = destination,
         _resolutionTable = resolutionTable ?? flutterDefaultResolutionTable(),
-        _applicationState = ApplicationState.foreground,
+        _applicationState = config.initialApplicationState,
+        // Network has no synchronous platform API; start optimistic. If
+        // the network is actually unavailable, the first detector emission
+        // will trigger a debounced reconcile that flips us to offline.
+        // The common case (network available) is the best performing default.
         _networkState = NetworkState.available,
         _detector = detector {
     _debouncer = StateDebounceManager(
-      initialState: const DebouncedState(
+      initialState: DebouncedState(
         networkAvailable: true,
-        inForeground: true,
+        inForeground:
+            config.initialApplicationState == ApplicationState.foreground,
         requestedMode: null,
       ),
       debounceWindow: config.debounceWindow,

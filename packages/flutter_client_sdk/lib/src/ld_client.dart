@@ -75,6 +75,7 @@ interface class LDClient {
     _client = LDCommonClient(config, platformImplementation, context,
         DiagnosticSdkData(name: sdkName, version: sdkVersion),
         hooks: combined);
+    final stateDetector = FlutterStateDetector();
     _connectionManager = ConnectionManager(
         logger: _client.logger,
         config: ConnectionManagerConfig(
@@ -87,9 +88,10 @@ interface class LDClient {
             disableAutomaticNetworkHandling:
                 config.offline || !config.applicationEvents.networkAvailability,
             runInBackground:
-                FlutterDefaultConfig.connectionManagerConfig.runInBackground),
+                FlutterDefaultConfig.connectionManagerConfig.runInBackground,
+            initialApplicationState: stateDetector.initialApplicationState),
         destination: DartClientAdapter(_client),
-        detector: FlutterStateDetector());
+        detector: stateDetector);
 
     if (config.offline) {
       _connectionManager.offline = true;

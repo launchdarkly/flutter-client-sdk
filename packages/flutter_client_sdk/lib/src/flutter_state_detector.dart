@@ -22,10 +22,22 @@ final class FlutterStateDetector implements StateDetector {
   @override
   Stream<NetworkState> get networkState => _networkStateController.stream;
 
+  /// The application lifecycle state read synchronously at construction
+  /// time. Suitable for seeding [ConnectionManagerConfig.initialApplicationState].
+  ///
+  /// [SchedulerBinding.instance.lifecycleState] returns a cached value
+  /// populated by the framework when the OS pushes lifecycle messages.
+  /// The read is synchronous and depends only on
+  /// [WidgetsFlutterBinding.ensureInitialized] having been called -- which
+  /// the SDK already requires for [FlutterStateDetector] to function.
+  final ApplicationState initialApplicationState;
+
   late final LDAppLifecycleListener _lifecycleListener;
   late final StreamSubscription<dynamic> _connectivitySubscription;
 
-  FlutterStateDetector() {
+  FlutterStateDetector()
+      : initialApplicationState =
+            _resolveLifecycleState(SchedulerBinding.instance.lifecycleState) {
     final initialState = SchedulerBinding.instance.lifecycleState;
     if (initialState != null) {
       _handleApplicationLifecycle(initialState);
@@ -40,6 +52,18 @@ final class FlutterStateDetector implements StateDetector {
     _connectivitySubscription =
         Connectivity().onConnectivityChanged.listen(_setConnectivity);
   }
+
+  static ApplicationState _resolveLifecycleState(AppLifecycleState? state) =>
+      switch (state) {
+        AppLifecycleState.resumed => ApplicationState.foreground,
+        AppLifecycleState.hidden ||
+        AppLifecycleState.paused =>
+          ApplicationState.background,
+        AppLifecycleState.detached ||
+        AppLifecycleState.inactive ||
+        null =>
+          ApplicationState.foreground,
+      };
 
   void _setConnectivity(dynamic connectivityResult) {
     // TODO: This is a temporary fix to handle the breaking change in
