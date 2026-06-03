@@ -64,10 +64,9 @@ final class LDConfig extends LDCommonConfig {
   ///
   /// [events] defines configuration for analytics and diagnostic events.
   ///
-  /// [offline] is used to disable all network calls from the LaunchDarkly
-  /// client. Setting offline here will make the SDK permanently offline.
-  /// You can temporarily make the SDK offline using the offline property
-  /// of the client.
+  /// [offline] is used to start the SDK with all network calls disabled.
+  /// The offline state can later be toggled at runtime using the offline
+  /// property of the client.
   ///
   /// [logger] can be used to customize the logging done by the SDK.
   ///
