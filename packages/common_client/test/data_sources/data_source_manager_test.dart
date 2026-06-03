@@ -39,26 +39,29 @@ final class MockDataSource implements DataSource {
   }
 }
 
-Map<ConnectionMode, DataSourceFactory> defaultFactories(
-    Map<ConnectionMode, MockDataSource> dataSources,
-    {bool withBackground = false}) {
-  final factories = {
-    ConnectionMode.streaming: (context) {
+Map<FDv2ConnectionMode, DataSourceFactory> defaultFactories(
+    Map<FDv2ConnectionMode, MockDataSource> dataSources) {
+  return {
+    const FDv2Streaming(): (context) {
       final dataSource = MockDataSource();
-      dataSources[ConnectionMode.streaming] = dataSource;
+      dataSources[const FDv2Streaming()] = dataSource;
       return dataSource;
     },
-    ConnectionMode.polling: (context) {
+    const FDv2Polling(): (context) {
       final dataSource = MockDataSource();
-      dataSources[ConnectionMode.polling] = dataSource;
+      dataSources[const FDv2Polling()] = dataSource;
       return dataSource;
-    }
+    },
+    const FDv2Background(): (context) {
+      final dataSource = MockDataSource();
+      dataSources[const FDv2Background()] = dataSource;
+      return dataSource;
+    },
   };
-  return factories;
 }
 
 DataSourceManager makeManager(
-    LDContext context, Map<ConnectionMode, DataSourceFactory> factories,
+    LDContext context, Map<FDv2ConnectionMode, DataSourceFactory> factories,
     {DataSourceStatusManager? inStatusManager}) {
   final statusManager = inStatusManager ?? DataSourceStatusManager();
   final logger = LDLogger();
@@ -77,13 +80,13 @@ DataSourceManager makeManager(
 
 void main() {
   test('it sets up an initial connection on start', () async {
-    final dataSources = <ConnectionMode, MockDataSource>{};
+    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources));
     final completer = Completer<void>();
 
     manager.identify(context, completer);
-    final createdDataSource = dataSources[ConnectionMode.streaming];
+    final createdDataSource = dataSources[const FDv2Streaming()];
     expect(createdDataSource, isNotNull);
     expect(createdDataSource!.controller.hasListener, isTrue);
     expect(createdDataSource.startCalled, isTrue);
@@ -93,7 +96,7 @@ void main() {
 
   test('it forwards events to the data source event handler', () {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
-    final dataSources = <ConnectionMode, MockDataSource>{};
+    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources),
         inStatusManager: statusManager);
@@ -111,48 +114,83 @@ void main() {
 
   test('it can transition to offline and tear-down the previous connection',
       () {
-    final dataSources = <ConnectionMode, MockDataSource>{};
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
-    final manager = makeManager(context, defaultFactories(dataSources));
+    final manager = makeManager(context, defaultFactories(dataSources),
+        inStatusManager: statusManager);
     final completer = Completer<void>();
 
     manager.identify(context, completer);
-    manager.setMode(ConnectionMode.offline);
-    final createdDataSource = dataSources[ConnectionMode.streaming];
+    manager.setMode(const ResolvedOffline(OfflineSetOffline()));
+    expect(statusManager.status.state, DataSourceState.setOffline);
+    final createdDataSource = dataSources[const FDv2Streaming()];
     expect(createdDataSource, isNotNull);
     expect(createdDataSource!.controller.hasListener, isFalse);
     expect(createdDataSource.startCalled, isTrue);
     expect(createdDataSource.stopCalled, isTrue);
   });
 
+  test('offline with OfflineNetworkUnavailable sets networkUnavailable status',
+      () {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final manager = makeManager(context, defaultFactories(dataSources),
+        inStatusManager: statusManager);
+    final completer = Completer<void>();
+
+    manager.identify(context, completer);
+    manager.setMode(const ResolvedOffline(OfflineNetworkUnavailable()));
+    expect(statusManager.status.state, DataSourceState.networkUnavailable);
+  });
+
+  test('offline with OfflineBackgroundDisabled sets backgroundDisabled', () {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final manager = makeManager(context, defaultFactories(dataSources),
+        inStatusManager: statusManager);
+    final completer = Completer<void>();
+
+    manager.identify(context, completer);
+    manager.setMode(const ResolvedOffline(OfflineBackgroundDisabled()));
+    expect(statusManager.status.state, DataSourceState.backgroundDisabled);
+  });
+
   test('it can transition from streaming to polling', () {
-    final dataSources = <ConnectionMode, MockDataSource>{};
+    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources));
     final completer = Completer<void>();
 
     manager.identify(context, completer);
-    manager.setMode(ConnectionMode.polling);
-    final streamingDataSource = dataSources[ConnectionMode.streaming];
+    manager.setMode(const ResolvedPolling());
+    final streamingDataSource = dataSources[const FDv2Streaming()];
     expect(streamingDataSource, isNotNull);
     expect(streamingDataSource!.controller.hasListener, isFalse);
     expect(streamingDataSource.startCalled, isTrue);
     expect(streamingDataSource.stopCalled, isTrue);
 
-    final pollingDataSource = dataSources[ConnectionMode.polling];
+    final pollingDataSource = dataSources[const FDv2Polling()];
     expect(pollingDataSource, isNotNull);
     expect(pollingDataSource!.controller.hasListener, isTrue);
     expect(pollingDataSource.startCalled, isTrue);
     expect(pollingDataSource.stopCalled, isFalse);
   });
 
-  test('it can transition to network unavailable', () {
+  test(
+      'ResolvedOffline(OfflineNetworkUnavailable) reports networkUnavailable and '
+      'stops the data source', () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
-    final dataSources = <ConnectionMode, MockDataSource>{};
+    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources),
         inStatusManager: statusManager);
     final completer = Completer<void>();
+
+    manager.identify(context, completer);
+    await completer.future;
 
     expectLater(
         statusManager.changes,
@@ -161,11 +199,8 @@ void main() {
               state: DataSourceState.networkUnavailable,
               stateSince: DateTime(1)),
         ));
-
-    manager.identify(context, completer);
-
-    manager.setNetworkAvailable(false);
-    final createdDataSource = dataSources[ConnectionMode.streaming];
+    manager.setMode(const ResolvedOffline(OfflineNetworkUnavailable()));
+    final createdDataSource = dataSources[const FDv2Streaming()];
     expect(createdDataSource, isNotNull);
     expect(createdDataSource!.controller.hasListener, isFalse);
     expect(createdDataSource.startCalled, isTrue);
@@ -174,14 +209,14 @@ void main() {
 
   test('it restarts the data source on bad data', () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
-    final dataSources = <ConnectionMode, MockDataSource>{};
+    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
     final context = LDContextBuilder().kind('user', 'bob').build();
     final manager = makeManager(context, defaultFactories(dataSources),
         inStatusManager: statusManager);
     final completer = Completer<void>();
 
     manager.identify(context, completer);
-    final createdDataSource = dataSources[ConnectionMode.streaming];
+    final createdDataSource = dataSources[const FDv2Streaming()];
 
     expect(
         await statusManager.changes.first,
