@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.17.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.16.0...4.17.0) (2026-06-04)
+
+
+### Features
+
+* Wire FDv2 connection-mode resolution in flutter SDK ([#280](https://github.com/launchdarkly/flutter-client-sdk/issues/280)) ([ef8ad39](https://github.com/launchdarkly/flutter-client-sdk/commit/ef8ad391173d5c657b4535e77b1af8ef698c75ae))
+
 ## [4.16.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.15.0...4.16.0) (2026-04-23)
 
 
