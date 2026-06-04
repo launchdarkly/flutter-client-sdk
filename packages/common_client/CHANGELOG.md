@@ -2,6 +2,41 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.12.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.11.0...launchdarkly_common_client-v1.12.0) (2026-06-04)
+
+
+### Features
+
+* Wire FDv2 connection-mode resolution in flutter SDK ([#280](https://github.com/launchdarkly/flutter-client-sdk/issues/280)) ([ef8ad39](https://github.com/launchdarkly/flutter-client-sdk/commit/ef8ad391173d5c657b4535e77b1af8ef698c75ae))
+
+## [1.11.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.10.0...launchdarkly_common_client-v1.11.0) (2026-06-03)
+
+
+### Features
+
+* Wire FDv2 connection-mode resolution in common_client ([#279](https://github.com/launchdarkly/flutter-client-sdk/issues/279)) ([ceb931f](https://github.com/launchdarkly/flutter-client-sdk/commit/ceb931fdbe108fc52eeabc48ababd5727e09f8be))
+
+## [1.10.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.9.0...launchdarkly_common_client-v1.10.0) (2026-05-29)
+
+
+### Features
+
+* Add FDv2 connection mode, resolved-mode, and resolution types ([#274](https://github.com/launchdarkly/flutter-client-sdk/issues/274)) ([bf5b165](https://github.com/launchdarkly/flutter-client-sdk/commit/bf5b165727ed87994ee01ed41fc8b876bf6003fb))
+* add FDv2 protocol foundation types and state machine ([#253](https://github.com/launchdarkly/flutter-client-sdk/issues/253)) ([543fc65](https://github.com/launchdarkly/flutter-client-sdk/commit/543fc65d4505a8dcbc4e9671a54e3061f0d98807))
+* add FDv2 requestor and polling base ([9ce5fdf](https://github.com/launchdarkly/flutter-client-sdk/commit/9ce5fdf2d86a26fe6536663033c08f1a7249a802))
+* add Initializer and Synchronizer source contracts  ([9ce5fdf](https://github.com/launchdarkly/flutter-client-sdk/commit/9ce5fdf2d86a26fe6536663033c08f1a7249a802))
+* add polling and cache sources for FDv2 ([#261](https://github.com/launchdarkly/flutter-client-sdk/issues/261)) ([2841cc6](https://github.com/launchdarkly/flutter-client-sdk/commit/2841cc63a758f6deb7e41c0ea4d0151352587b1a))
+* add SSECapability surface to SSEClient ([#266](https://github.com/launchdarkly/flutter-client-sdk/issues/266)) ([c78480c](https://github.com/launchdarkly/flutter-client-sdk/commit/c78480c5cb6a7196d5c3d0e25c75eb56a77b043c))
+* FDv2 streaming base, initializer, and synchronizer ([#267](https://github.com/launchdarkly/flutter-client-sdk/issues/267)) ([2d2f223](https://github.com/launchdarkly/flutter-client-sdk/commit/2d2f2235fccb3bce1f3e4e82c4b6b85cfdf3357c))
+* safeGetPluginHooks helper in common_client ([#282](https://github.com/launchdarkly/flutter-client-sdk/issues/282)) ([08f0538](https://github.com/launchdarkly/flutter-client-sdk/commit/08f0538cfe01c22d0119fe6d5798fb7799ccda85))
+* Update launchdarkly_event_source_client to version 2.1.0 ([#276](https://github.com/launchdarkly/flutter-client-sdk/issues/276)) ([52455aa](https://github.com/launchdarkly/flutter-client-sdk/commit/52455aa9987750388b7c6c4d86b76e15ebe54059))
+
+
+### Bug Fixes
+
+* Correct conditional-request header and sanitize network error log in FDv1 polling requestor ([#263](https://github.com/launchdarkly/flutter-client-sdk/issues/263)) ([18d78ce](https://github.com/launchdarkly/flutter-client-sdk/commit/18d78ce9ae724aa6af40aeffffed4e441fdbfe47))
+* Update launchdarkly_dart_common to version 1.8.1 ([#277](https://github.com/launchdarkly/flutter-client-sdk/issues/277)) ([0e5301d](https://github.com/launchdarkly/flutter-client-sdk/commit/0e5301d1b61830b0fb3892932aaca0b1b1609014))
+
 ## [1.9.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.8.0...launchdarkly_common_client-v1.9.0) (2026-02-10)
 
 

@@ -97,6 +97,10 @@ interface class LDClient {
       _connectionManager.offline = true;
     }
 
+    if (config.offline) {
+      _connectionManager.offline = true;
+    }
+
     final sdkPluginMetadata =
         PluginSdkMetadata(name: sdkName, version: sdkVersion);
 
