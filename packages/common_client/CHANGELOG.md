@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.12.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.11.0...launchdarkly_common_client-v1.12.0) (2026-06-04)
+
+
+### Features
+
+* Wire FDv2 connection-mode resolution in flutter SDK ([#280](https://github.com/launchdarkly/flutter-client-sdk/issues/280)) ([ef8ad39](https://github.com/launchdarkly/flutter-client-sdk/commit/ef8ad391173d5c657b4535e77b1af8ef698c75ae))
+
 ## [1.11.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.10.0...launchdarkly_common_client-v1.11.0) (2026-06-03)
 
 
