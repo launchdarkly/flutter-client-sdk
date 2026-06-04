@@ -51,6 +51,12 @@ final class MockStateDetector implements StateDetector {
   }
 }
 
+/// Drains one extra microtask after a detector event has propagated, so
+/// the debouncer's stream delivery (one async hop past
+/// `_onApplicationStateChanged` / `_onNetworkStateChanged`) reaches
+/// `_handleState` before assertions run.
+Future<void> _pumpDebouncerHop() => Future<void>.microtask(() {});
+
 void main() {
   setUpAll(() {
     registerFallbackValue(LDLogRecord(
@@ -84,6 +90,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination
         .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
@@ -119,6 +126,7 @@ void main() {
 
         // Wait for the state to propagate.
         await mockDetector.applicationState.first;
+        await _pumpDebouncerHop();
 
         verify(() => destination
             .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
@@ -128,6 +136,7 @@ void main() {
 
         // Wait for the state to propagate.
         await mockDetector.applicationState.first;
+        await _pumpDebouncerHop();
 
         verify(() => destination.setMode(switch (initialMode) {
               ConnectionMode.streaming => const ResolvedStreaming(),
@@ -163,6 +172,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.flush());
     verify(
@@ -195,6 +205,7 @@ void main() {
     mockDetector.setApplicationState(ApplicationState.background);
 
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.flush());
     verify(() => destination.setMode(const ResolvedBackground()));
@@ -225,6 +236,7 @@ void main() {
     mockDetector.setApplicationState(ApplicationState.background);
 
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.flush());
     verify(() => destination.setMode(const ResolvedStreaming()));
@@ -253,6 +265,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.setNetworkAvailability(false));
     verify(() => destination
@@ -282,6 +295,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.setNetworkAvailability(false));
     reset(destination);
@@ -290,6 +304,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.setNetworkAvailability(true));
     connectionManager.dispose();
@@ -321,12 +336,14 @@ void main() {
 
       mockDetector.setApplicationState(ApplicationState.background);
       await mockDetector.applicationState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setMode(const ResolvedBackground()));
       reset(destination);
 
       mockDetector.setNetworkAvailable(false);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setNetworkAvailability(false));
       verify(() => destination
@@ -359,6 +376,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(false);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination
           .setMode(const ResolvedOffline(OfflineNetworkUnavailable())));
@@ -366,6 +384,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(true);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setNetworkAvailability(true));
       verify(() => destination.setMode(const ResolvedPolling()));
@@ -405,6 +424,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(false);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination
           .setMode(const ResolvedOffline(OfflineNetworkUnavailable())));
@@ -412,6 +432,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(true);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setMode(const ResolvedPolling()));
       connectionManager.dispose();
@@ -443,6 +464,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(false);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setMode(const ResolvedPolling()));
       connectionManager.dispose();
@@ -481,6 +503,7 @@ void main() {
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verify(
         () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
@@ -509,10 +532,16 @@ void main() {
         destination: destination,
         detector: mockDetector);
 
+    // Drain the debouncer's initial reconcile microtask before asserting,
+    // so the verifyNever checks only apply to events pushed after startup.
+    await Future<void>.microtask(() {});
+    reset(destination);
+
     mockDetector.setApplicationState(ApplicationState.background);
 
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verifyNever(() => destination.setMode(any()));
     verifyNever(() =>
@@ -540,10 +569,15 @@ void main() {
         destination: destination,
         detector: mockDetector);
 
+    // Drain the debouncer's initial reconcile microtask before asserting.
+    await Future<void>.microtask(() {});
+    reset(destination);
+
     mockDetector.setNetworkAvailable(false);
 
     // Wait for the state to propagate.
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verifyNever(() => destination.setNetworkAvailability(any()));
     verifyNever(() =>
@@ -571,16 +605,19 @@ void main() {
 
     mockDetector.setApplicationState(ApplicationState.background);
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(
         () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
     reset(destination);
 
     connectionManager.setMode(const FDv2Polling());
+    await _pumpDebouncerHop();
     verify(() => destination.setMode(const ResolvedPolling()));
     reset(destination);
 
     connectionManager.setMode(null);
+    await _pumpDebouncerHop();
     verify(
         () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
     connectionManager.dispose();
@@ -594,7 +631,7 @@ void main() {
       (const FDv2Offline(), const ResolvedOffline(OfflineSetOffline())),
     ]) {
       final (requestedMode, expectedResolved) = entry;
-      test('it respects setMode($requestedMode)', () {
+      test('it respects setMode($requestedMode)', () async {
         registerFallbackValue(ConnectionMode.streaming);
 
         final destination = MockDestination();
@@ -612,8 +649,13 @@ void main() {
             destination: destination,
             detector: mockDetector);
 
+        // Drain the buffered initial reconcile before exercising setMode.
+        await Future<void>.microtask(() {});
         reset(destination);
         connectionManager.setMode(requestedMode);
+        // The setter's event also delivers asynchronously through the
+        // stream, so let that drain before verifying.
+        await Future<void>.microtask(() {});
 
         verify(() => destination.setMode(expectedResolved));
         verifyNever(
@@ -644,14 +686,16 @@ void main() {
             destination: destination,
             detector: mockDetector);
 
-        mockDetector.setNetworkAvailable(false);
+        // Drain the debouncer's initial reconcile so the burst-debounce
+        // assertions only see events pushed after startup.
         async.flushMicrotasks();
+        reset(destination);
+
+        mockDetector.setNetworkAvailable(false);
         async.elapse(const Duration(milliseconds: 200));
         mockDetector.setNetworkAvailable(true);
-        async.flushMicrotasks();
         async.elapse(const Duration(milliseconds: 200));
         mockDetector.setNetworkAvailable(false);
-        async.flushMicrotasks();
         async.elapse(const Duration(milliseconds: 200));
 
         verifyNever(() => destination.setMode(any()));
@@ -710,6 +754,10 @@ void main() {
             destination: destination,
             detector: mockDetector);
 
+        // Drain the debouncer's initial reconcile microtask.
+        async.flushMicrotasks();
+        reset(destination);
+
         connectionManager.setMode(const FDv2Polling());
         verifyNever(() => destination.setMode(any()));
 
@@ -740,6 +788,11 @@ void main() {
             config: config,
             destination: destination,
             detector: mockDetector);
+
+        // Drain the debouncer's initial reconcile microtask before the
+        // override-vs-network race begins.
+        async.flushMicrotasks();
+        reset(destination);
 
         // t=0: user sets override.
         connectionManager.setMode(const FDv2Streaming());

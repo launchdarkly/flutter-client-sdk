@@ -12,6 +12,63 @@ const _initial = DebouncedState(
 const _debounceWindow = Duration(seconds: 1);
 
 void main() {
+  group('initial reconcile', () {
+    test('is buffered on the stream and delivered to the first subscriber',
+        () {
+      fakeAsync((async) {
+        final calls = <DebouncedState>[];
+        final manager = StateDebounceManager(
+          initialState: _initial,
+          debounceWindow: _debounceWindow,
+        );
+        final sub = manager.stream.listen(calls.add);
+
+        expect(calls, isEmpty,
+            reason: 'must not deliver synchronously inside subscribe');
+        async.flushMicrotasks();
+        expect(calls, hasLength(1));
+        expect(calls.single, same(_initial));
+
+        sub.cancel();
+        manager.close();
+      });
+    });
+
+    test('arrives asynchronously even when debounceWindow is zero', () {
+      // The deferred delivery is part of the contract: subscribers must
+      // never see the initial reconcile arrive inside subscribe().
+      final calls = <DebouncedState>[];
+      final manager = StateDebounceManager(
+        initialState: _initial,
+        debounceWindow: Duration.zero,
+      );
+      final sub = manager.stream.listen(calls.add);
+      expect(calls, isEmpty);
+
+      sub.cancel();
+      manager.close();
+    });
+
+    test(
+        'is dropped if the subscription is cancelled before delivery drains',
+        () {
+      fakeAsync((async) {
+        final calls = <DebouncedState>[];
+        final manager = StateDebounceManager(
+          initialState: _initial,
+          debounceWindow: _debounceWindow,
+        );
+        final sub = manager.stream.listen(calls.add);
+
+        sub.cancel();
+        async.elapse(const Duration(seconds: 1));
+        expect(calls, isEmpty);
+
+        manager.close();
+      });
+    });
+  });
+
   group('default window', () {
     test('does not fire when state never changes', () {
       fakeAsync((async) {
@@ -19,14 +76,18 @@ void main() {
         final manager = StateDebounceManager(
           initialState: _initial,
           debounceWindow: _debounceWindow,
-          onReconcile: calls.add,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
         manager.setNetworkAvailable(true);
         manager.setInForeground(true);
 
         async.elapse(const Duration(seconds: 5));
         expect(calls, isEmpty);
+
+        sub.cancel();
         manager.close();
       });
     });
@@ -37,14 +98,18 @@ void main() {
         final manager = StateDebounceManager(
           initialState: _initial,
           debounceWindow: _debounceWindow,
-          onReconcile: calls.add,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
         manager.setNetworkAvailable(false);
         async.elapse(_debounceWindow);
 
         expect(calls, hasLength(1));
         expect(calls.single.networkAvailable, isFalse);
+
+        sub.cancel();
         manager.close();
       });
     });
@@ -55,8 +120,10 @@ void main() {
         final manager = StateDebounceManager(
           initialState: _initial,
           debounceWindow: _debounceWindow,
-          onReconcile: calls.add,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
         manager.setNetworkAvailable(false);
         async.elapse(const Duration(milliseconds: 500));
@@ -70,22 +137,26 @@ void main() {
         async.elapse(_debounceWindow);
         expect(calls, hasLength(1));
         expect(calls.single.networkAvailable, isFalse);
+
+        sub.cancel();
         manager.close();
       });
     });
 
     test('flap-and-return fires the resolved (matching-actual) state', () {
-      // Spec 3.5 example 1: starting from {online,...}, network flaps offline
-      // and back to online; resolved state matches the starting actual state.
-      // The debouncer still fires (its job is to deliver the resolved tuple);
-      // the consumer is responsible for the no-op-if-no-change check.
+      // Starting from {online,...}, network flaps offline and back to online;
+      // the resolved state matches the starting actual state. The debouncer
+      // still fires (its job is to deliver the resolved tuple); the consumer
+      // is responsible for the no-op-if-no-change check.
       fakeAsync((async) {
         final calls = <DebouncedState>[];
         final manager = StateDebounceManager(
           initialState: _initial,
           debounceWindow: _debounceWindow,
-          onReconcile: calls.add,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
         manager.setNetworkAvailable(false);
         manager.setNetworkAvailable(true);
@@ -95,6 +166,8 @@ void main() {
         async.elapse(_debounceWindow);
         expect(calls, hasLength(1));
         expect(calls.single.networkAvailable, isTrue);
+
+        sub.cancel();
         manager.close();
       });
     });
@@ -105,8 +178,10 @@ void main() {
         final manager = StateDebounceManager(
           initialState: _initial,
           debounceWindow: _debounceWindow,
-          onReconcile: calls.add,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
         manager.setNetworkAvailable(false);
         async.elapse(const Duration(milliseconds: 100));
@@ -116,6 +191,8 @@ void main() {
         expect(calls, hasLength(1));
         expect(calls.single.networkAvailable, isFalse);
         expect(calls.single.inForeground, isFalse);
+
+        sub.cancel();
         manager.close();
       });
     });
@@ -126,14 +203,18 @@ void main() {
         final manager = StateDebounceManager(
           initialState: _initial,
           debounceWindow: _debounceWindow,
-          onReconcile: calls.add,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
         manager.setRequestedMode(const FDv2Polling());
         async.elapse(_debounceWindow);
 
         expect(calls, hasLength(1));
         expect(calls.single.requestedMode, const FDv2Polling());
+
+        sub.cancel();
         manager.close();
       });
     });
@@ -144,14 +225,18 @@ void main() {
         final manager = StateDebounceManager(
           initialState: _initial,
           debounceWindow: _debounceWindow,
-          onReconcile: calls.add,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
         manager.setNetworkAvailable(false);
         manager.close();
 
         async.elapse(const Duration(seconds: 5));
         expect(calls, isEmpty);
+
+        sub.cancel();
       });
     });
 
@@ -161,8 +246,10 @@ void main() {
         final manager = StateDebounceManager(
           initialState: _initial,
           debounceWindow: _debounceWindow,
-          onReconcile: calls.add,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
         manager.close();
         manager.setNetworkAvailable(false);
@@ -171,72 +258,60 @@ void main() {
 
         async.elapse(const Duration(seconds: 5));
         expect(calls, isEmpty);
+
+        sub.cancel();
       });
     });
   });
 
   group('zero window (immediate mode)', () {
-    test('changes fire synchronously without a timer', () {
-      final calls = <DebouncedState>[];
-      final manager = StateDebounceManager(
-        initialState: _initial,
-        debounceWindow: Duration.zero,
-        onReconcile: calls.add,
-      );
+    test('setter-driven changes deliver on the next microtask', () {
+      fakeAsync((async) {
+        final calls = <DebouncedState>[];
+        final manager = StateDebounceManager(
+          initialState: _initial,
+          debounceWindow: Duration.zero,
+        );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
-      manager.setNetworkAvailable(false);
-      expect(calls, hasLength(1));
-      expect(calls.single.networkAvailable, isFalse);
+        manager.setNetworkAvailable(false);
+        expect(calls, isEmpty,
+            reason: 'must not deliver synchronously inside setter');
+        async.flushMicrotasks();
+        expect(calls, hasLength(1));
+        expect(calls.single.networkAvailable, isFalse);
 
-      manager.setInForeground(false);
-      expect(calls, hasLength(2));
-      expect(calls.last.inForeground, isFalse);
+        manager.setInForeground(false);
+        async.flushMicrotasks();
+        expect(calls, hasLength(2));
+        expect(calls.last.inForeground, isFalse);
 
-      manager.close();
+        sub.cancel();
+        manager.close();
+      });
     });
 
     test('unchanged setters do not fire even in immediate mode', () {
-      final calls = <DebouncedState>[];
-      final manager = StateDebounceManager(
-        initialState: _initial,
-        debounceWindow: Duration.zero,
-        onReconcile: calls.add,
-      );
-
-      manager.setNetworkAvailable(true);
-      manager.setInForeground(true);
-      manager.setRequestedMode(null);
-
-      expect(calls, isEmpty);
-      manager.close();
-    });
-  });
-
-  group('reconcile error handling', () {
-    test('exception in onReconcile is swallowed; subsequent fires continue',
-        () {
       fakeAsync((async) {
-        var callCount = 0;
+        final calls = <DebouncedState>[];
         final manager = StateDebounceManager(
           initialState: _initial,
-          debounceWindow: _debounceWindow,
-          onReconcile: (_) {
-            callCount++;
-            if (callCount == 1) {
-              throw StateError('first reconcile failed');
-            }
-          },
+          debounceWindow: Duration.zero,
         );
+        final sub = manager.stream.listen(calls.add);
+        async.flushMicrotasks();
+        calls.clear();
 
-        manager.setNetworkAvailable(false);
-        async.elapse(_debounceWindow);
-        expect(callCount, 1);
+        manager.setNetworkAvailable(true);
+        manager.setInForeground(true);
+        manager.setRequestedMode(null);
 
-        // A second change must still drive a reconcile after a failed one.
-        manager.setInForeground(false);
-        async.elapse(_debounceWindow);
-        expect(callCount, 2);
+        async.flushMicrotasks();
+        expect(calls, isEmpty);
 
+        sub.cancel();
         manager.close();
       });
     });

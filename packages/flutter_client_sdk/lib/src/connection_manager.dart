@@ -147,6 +147,7 @@ final class ConnectionManager {
   final ConnectionDestination _destination;
   final List<ModeResolutionEntry> _resolutionTable;
   late final StateDebounceManager _debouncer;
+  late final StreamSubscription<DebouncedState> _debounceSub;
 
   StreamSubscription<ApplicationState>? _applicationStateSub;
   StreamSubscription<NetworkState>? _networkStateSub;
@@ -197,9 +198,8 @@ final class ConnectionManager {
         requestedMode: null,
       ),
       debounceWindow: config.debounceWindow,
-      onReconcile: _onDebounceReconcile,
-      logger: _logger,
     );
+    _debounceSub = _debouncer.stream.listen(_onDebounceReconcile);
 
     if (!_config.disableAutomaticBackgroundHandling) {
       _applicationStateSub =
@@ -283,6 +283,7 @@ final class ConnectionManager {
   void dispose() {
     _applicationStateSub?.cancel();
     _networkStateSub?.cancel();
+    _debounceSub.cancel();
     _debouncer.close();
     _detector.dispose();
   }
