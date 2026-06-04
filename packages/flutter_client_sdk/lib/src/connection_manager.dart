@@ -160,12 +160,6 @@ final class ConnectionManager {
 
   bool _offline = false;
 
-  /// Set to true when [_onApplicationStateChanged] performs a synchronous
-  /// flush on a foreground->background transition. Cleared on the next
-  /// [_handleState] invocation so the debounced reconcile does not flush a
-  /// second time for the same transition.
-  bool _pendingSyncFlush = false;
-
   /// Whether the SDK has been explicitly placed in the offline state.
   ///
   /// Assigning this property synchronously drives the resolved mode to
@@ -223,7 +217,6 @@ final class ConnectionManager {
         _applicationState == ApplicationState.foreground &&
         !_offline) {
       _destination.flush();
-      _pendingSyncFlush = true;
     }
     _applicationState = newState;
     _debouncer.setInForeground(newState == ApplicationState.foreground);
@@ -271,10 +264,9 @@ final class ConnectionManager {
       resolved = resolveMode(_resolutionTable, modeState);
     }
 
-    if (!_offline && !inForeground && networkAvailable && !_pendingSyncFlush) {
+    if (!_offline && !inForeground && networkAvailable) {
       _destination.flush();
     }
-    _pendingSyncFlush = false;
 
     _destination.setMode(resolved);
 
