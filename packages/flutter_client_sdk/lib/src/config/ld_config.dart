@@ -16,13 +16,15 @@ final class ApplicationEvents {
   bool networkAvailability;
 
   /// Setting [backgrounding] to true allows the SDK to detect and react to
-  /// the application entering the background or foreground. The default
-  /// value is `true`.
+  /// the application entering the background or the foreground. The default
+  /// depends on the platform (typically enabled on mobile and disabled on
+  /// desktop and web); see [FlutterDefaultConfig.applicationEventsConfig].
   ///
   /// Setting [networkAvailability] to true allows the SDK to detect and react
   /// to network connectivity changes. For instance the SDK may not try to send
-  /// events if it detects the network is not available. The default value is
-  /// `true`.
+  /// events if it detects the network is not available. The default depends on
+  /// the platform (typically enabled on mobile and disabled on desktop and web);
+  /// see [FlutterDefaultConfig.applicationEventsConfig].
   ApplicationEvents({bool? backgrounding, bool? networkAvailability})
       : backgrounding = backgrounding ??
             FlutterDefaultConfig.applicationEventsConfig.defaultBackgrounding,
@@ -62,10 +64,9 @@ final class LDConfig extends LDCommonConfig {
   ///
   /// [events] defines configuration for analytics and diagnostic events.
   ///
-  /// [offline] is used to disable all network calls from the LaunchDarkly
-  /// client. Setting offline here will make the SDK permanently offline.
-  /// You can temporarily make the SDK offline using the offline property
-  /// of the client.
+  /// [offline] is used to start the SDK with all network calls disabled.
+  /// The offline state can later be toggled at runtime using the offline
+  /// property of the client.
   ///
   /// [logger] can be used to customize the logging done by the SDK.
   ///
