@@ -858,5 +858,45 @@ void main() {
 
       connectionManager.dispose();
     });
+
+    test(
+        'initialApplicationState seeded to background drives the buffered '
+        'initial reconcile to the correct mode without any external trigger '
+        '(round-1 background-launch regression)', () async {
+      // Regression for the round-1 bug: a background-launched SDK whose
+      // initial lifecycle state is known synchronously should have the
+      // correct resolved mode applied to the destination via the
+      // debouncer's buffered initial reconcile -- no offline toggle, no
+      // detector emission, no waiting on the debounce window.
+      registerFallbackValue(ConnectionMode.streaming);
+
+      final destination = MockDestination();
+      final logAdapter = MockLogAdapter();
+      final logger = LDLogger(adapter: logAdapter);
+      final config = ConnectionManagerConfig(
+        runInBackground: false,
+        debounceWindow: const Duration(seconds: 1),
+        initialApplicationState: ApplicationState.background,
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      // The buffered initial reconcile fires on the next microtask after
+      // construction.
+      await Future<void>.microtask(() {});
+
+      verify(() => destination
+          .setMode(const ResolvedOffline(OfflineBackgroundDisabled()))).called(1);
+      verify(() => destination.setEventSendingEnabled(false, flush: false))
+          .called(1);
+
+      connectionManager.dispose();
+    });
   });
 }
