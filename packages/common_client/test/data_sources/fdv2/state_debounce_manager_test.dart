@@ -13,8 +13,7 @@ const _debounceWindow = Duration(seconds: 1);
 
 void main() {
   group('initial reconcile', () {
-    test('is buffered on the stream and delivered to the first subscriber',
-        () {
+    test('is buffered on the stream and delivered to the first subscriber', () {
       fakeAsync((async) {
         final calls = <DebouncedState>[];
         final manager = StateDebounceManager(
@@ -49,8 +48,7 @@ void main() {
       manager.close();
     });
 
-    test(
-        'is dropped if the subscription is cancelled before delivery drains',
+    test('is dropped if the subscription is cancelled before delivery drains',
         () {
       fakeAsync((async) {
         final calls = <DebouncedState>[];

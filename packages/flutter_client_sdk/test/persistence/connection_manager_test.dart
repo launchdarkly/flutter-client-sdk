@@ -891,8 +891,8 @@ void main() {
       // construction.
       await Future<void>.microtask(() {});
 
-      verify(() => destination
-          .setMode(const ResolvedOffline(OfflineBackgroundDisabled()))).called(1);
+      verify(() => destination.setMode(
+          const ResolvedOffline(OfflineBackgroundDisabled()))).called(1);
       verify(() => destination.setEventSendingEnabled(false, flush: false))
           .called(1);
 
