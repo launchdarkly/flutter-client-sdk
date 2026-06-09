@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_flutter_client_sdk/src/connection_manager.dart';
 import 'package:test/test.dart';
@@ -50,6 +51,12 @@ final class MockStateDetector implements StateDetector {
   }
 }
 
+/// Drains one extra microtask after a detector event has propagated, so
+/// the debouncer's stream delivery (one async hop past
+/// `_onApplicationStateChanged` / `_onNetworkStateChanged`) reaches
+/// `_handleState` before assertions run.
+Future<void> _pumpDebouncerHop() => Future<void>.microtask(() {});
+
 void main() {
   setUpAll(() {
     registerFallbackValue(LDLogRecord(
@@ -69,7 +76,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: false);
+    final config = ConnectionManagerConfig(
+        runInBackground: false, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -82,6 +90,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination
         .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
@@ -102,7 +111,9 @@ void main() {
         final logAdapter = MockLogAdapter();
         final logger = LDLogger(adapter: logAdapter);
         final config = ConnectionManagerConfig(
-            runInBackground: false, initialConnectionMode: initialMode);
+            runInBackground: false,
+            initialConnectionMode: initialMode,
+            debounceWindow: Duration.zero);
         final mockDetector = MockStateDetector();
 
         final connectionManager = ConnectionManager(
@@ -115,6 +126,7 @@ void main() {
 
         // Wait for the state to propagate.
         await mockDetector.applicationState.first;
+        await _pumpDebouncerHop();
 
         verify(() => destination
             .setMode(const ResolvedOffline(OfflineBackgroundDisabled())));
@@ -124,6 +136,7 @@ void main() {
 
         // Wait for the state to propagate.
         await mockDetector.applicationState.first;
+        await _pumpDebouncerHop();
 
         verify(() => destination.setMode(switch (initialMode) {
               ConnectionMode.streaming => const ResolvedStreaming(),
@@ -145,7 +158,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: true);
+    final config = ConnectionManagerConfig(
+        runInBackground: true, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -158,6 +172,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.flush());
     verify(
@@ -177,6 +192,7 @@ void main() {
     final config = ConnectionManagerConfig(
       runInBackground: true,
       backgroundConnectionMode: const FDv2Background(),
+      debounceWindow: Duration.zero,
     );
     final mockDetector = MockStateDetector();
 
@@ -189,6 +205,7 @@ void main() {
     mockDetector.setApplicationState(ApplicationState.background);
 
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.flush());
     verify(() => destination.setMode(const ResolvedBackground()));
@@ -206,6 +223,7 @@ void main() {
     final config = ConnectionManagerConfig(
       runInBackground: true,
       backgroundConnectionMode: const FDv2Streaming(),
+      debounceWindow: Duration.zero,
     );
     final mockDetector = MockStateDetector();
 
@@ -218,6 +236,7 @@ void main() {
     mockDetector.setApplicationState(ApplicationState.background);
 
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.flush());
     verify(() => destination.setMode(const ResolvedStreaming()));
@@ -232,7 +251,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: true);
+    final config = ConnectionManagerConfig(
+        runInBackground: true, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -245,6 +265,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.setNetworkAvailability(false));
     verify(() => destination
@@ -260,7 +281,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: true);
+    final config = ConnectionManagerConfig(
+        runInBackground: true, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -273,6 +295,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.setNetworkAvailability(false));
     reset(destination);
@@ -281,6 +304,7 @@ void main() {
 
     // Wait for the state to propagate.
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verify(() => destination.setNetworkAvailability(true));
     connectionManager.dispose();
@@ -299,6 +323,7 @@ void main() {
       final config = ConnectionManagerConfig(
         runInBackground: true,
         backgroundConnectionMode: const FDv2Background(),
+        debounceWindow: Duration.zero,
       );
       final mockDetector = MockStateDetector();
 
@@ -311,12 +336,14 @@ void main() {
 
       mockDetector.setApplicationState(ApplicationState.background);
       await mockDetector.applicationState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setMode(const ResolvedBackground()));
       reset(destination);
 
       mockDetector.setNetworkAvailable(false);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setNetworkAvailability(false));
       verify(() => destination
@@ -336,6 +363,7 @@ void main() {
       final config = ConnectionManagerConfig(
         initialConnectionMode: ConnectionMode.polling,
         runInBackground: true,
+        debounceWindow: Duration.zero,
       );
       final mockDetector = MockStateDetector();
 
@@ -348,6 +376,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(false);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination
           .setMode(const ResolvedOffline(OfflineNetworkUnavailable())));
@@ -355,6 +384,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(true);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setNetworkAvailability(true));
       verify(() => destination.setMode(const ResolvedPolling()));
@@ -373,6 +403,7 @@ void main() {
       final config = ConnectionManagerConfig(
         initialConnectionMode: ConnectionMode.polling,
         runInBackground: true,
+        debounceWindow: Duration.zero,
       );
       final mockDetector = MockStateDetector();
 
@@ -393,6 +424,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(false);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination
           .setMode(const ResolvedOffline(OfflineNetworkUnavailable())));
@@ -400,6 +432,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(true);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setMode(const ResolvedPolling()));
       connectionManager.dispose();
@@ -417,6 +450,7 @@ void main() {
       final config = ConnectionManagerConfig(
         initialConnectionMode: ConnectionMode.polling,
         runInBackground: true,
+        debounceWindow: Duration.zero,
       );
       final mockDetector = MockStateDetector();
 
@@ -430,6 +464,7 @@ void main() {
 
       mockDetector.setNetworkAvailable(false);
       await mockDetector.networkState.first;
+      await _pumpDebouncerHop();
 
       verify(() => destination.setMode(const ResolvedPolling()));
       connectionManager.dispose();
@@ -443,7 +478,7 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig();
+    final config = ConnectionManagerConfig(debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -459,16 +494,20 @@ void main() {
     verify(() => destination.setEventSendingEnabled(false, flush: false));
     reset(destination);
 
-    mockDetector.setApplicationState(ApplicationState.foreground);
-    mockDetector.setNetworkAvailable(true);
+    // Push genuine state changes (defaults are foreground+available); the
+    // SDK should remain offline because the offline flag overrides automatic
+    // resolution.
+    mockDetector.setApplicationState(ApplicationState.background);
+    mockDetector.setNetworkAvailable(false);
 
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verify(
         () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
-    verify(() => destination.setNetworkAvailability(true));
+    verify(() => destination.setNetworkAvailability(false));
     verify(() => destination.setEventSendingEnabled(false, flush: false));
     connectionManager.dispose();
   });
@@ -482,7 +521,9 @@ void main() {
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
     final config = ConnectionManagerConfig(
-        runInBackground: false, disableAutomaticBackgroundHandling: true);
+        runInBackground: false,
+        disableAutomaticBackgroundHandling: true,
+        debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -491,10 +532,16 @@ void main() {
         destination: destination,
         detector: mockDetector);
 
+    // Drain the debouncer's initial reconcile microtask before asserting,
+    // so the verifyNever checks only apply to events pushed after startup.
+    await Future<void>.microtask(() {});
+    reset(destination);
+
     mockDetector.setApplicationState(ApplicationState.background);
 
     // Wait for the state to propagate.
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verifyNever(() => destination.setMode(any()));
     verifyNever(() =>
@@ -511,7 +558,9 @@ void main() {
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
     final config = ConnectionManagerConfig(
-        runInBackground: false, disableAutomaticNetworkHandling: true);
+        runInBackground: false,
+        disableAutomaticNetworkHandling: true,
+        debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -520,10 +569,15 @@ void main() {
         destination: destination,
         detector: mockDetector);
 
+    // Drain the debouncer's initial reconcile microtask before asserting.
+    await Future<void>.microtask(() {});
+    reset(destination);
+
     mockDetector.setNetworkAvailable(false);
 
     // Wait for the state to propagate.
     await mockDetector.networkState.first;
+    await _pumpDebouncerHop();
 
     verifyNever(() => destination.setNetworkAvailability(any()));
     verifyNever(() =>
@@ -539,7 +593,8 @@ void main() {
     final destination = MockDestination();
     final logAdapter = MockLogAdapter();
     final logger = LDLogger(adapter: logAdapter);
-    final config = ConnectionManagerConfig(runInBackground: true);
+    final config = ConnectionManagerConfig(
+        runInBackground: true, debounceWindow: Duration.zero);
     final mockDetector = MockStateDetector();
 
     final connectionManager = ConnectionManager(
@@ -550,16 +605,19 @@ void main() {
 
     mockDetector.setApplicationState(ApplicationState.background);
     await mockDetector.applicationState.first;
+    await _pumpDebouncerHop();
 
     verify(
         () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
     reset(destination);
 
     connectionManager.setMode(const FDv2Polling());
+    await _pumpDebouncerHop();
     verify(() => destination.setMode(const ResolvedPolling()));
     reset(destination);
 
     connectionManager.setMode(null);
+    await _pumpDebouncerHop();
     verify(
         () => destination.setMode(const ResolvedOffline(OfflineSetOffline())));
     connectionManager.dispose();
@@ -573,13 +631,16 @@ void main() {
       (const FDv2Offline(), const ResolvedOffline(OfflineSetOffline())),
     ]) {
       final (requestedMode, expectedResolved) = entry;
-      test('it respects setMode($requestedMode)', () {
+      test('it respects setMode($requestedMode)', () async {
         registerFallbackValue(ConnectionMode.streaming);
 
         final destination = MockDestination();
         final logAdapter = MockLogAdapter();
         final logger = LDLogger(adapter: logAdapter);
-        final config = ConnectionManagerConfig(runInBackground: false);
+        final config = ConnectionManagerConfig(
+          runInBackground: false,
+          debounceWindow: Duration.zero,
+        );
         final mockDetector = MockStateDetector();
 
         final connectionManager = ConnectionManager(
@@ -588,8 +649,13 @@ void main() {
             destination: destination,
             detector: mockDetector);
 
+        // Drain the buffered initial reconcile before exercising setMode.
+        await Future<void>.microtask(() {});
         reset(destination);
         connectionManager.setMode(requestedMode);
+        // The setter's event also delivers asynchronously through the
+        // stream, so let that drain before verifying.
+        await Future<void>.microtask(() {});
 
         verify(() => destination.setMode(expectedResolved));
         verifyNever(
@@ -597,5 +663,240 @@ void main() {
         connectionManager.dispose();
       });
     }
+  });
+
+  group('debounce window', () {
+    test('rapid network changes settle to one reconcile', () {
+      fakeAsync((async) {
+        registerFallbackValue(ConnectionMode.streaming);
+        registerFallbackValue(const FDv2Streaming());
+
+        final destination = MockDestination();
+        final logAdapter = MockLogAdapter();
+        final logger = LDLogger(adapter: logAdapter);
+        final config = ConnectionManagerConfig(
+          runInBackground: true,
+          debounceWindow: const Duration(seconds: 1),
+        );
+        final mockDetector = MockStateDetector();
+
+        final connectionManager = ConnectionManager(
+            logger: logger,
+            config: config,
+            destination: destination,
+            detector: mockDetector);
+
+        // Drain the debouncer's initial reconcile so the burst-debounce
+        // assertions only see events pushed after startup.
+        async.flushMicrotasks();
+        reset(destination);
+
+        mockDetector.setNetworkAvailable(false);
+        async.elapse(const Duration(milliseconds: 200));
+        mockDetector.setNetworkAvailable(true);
+        async.elapse(const Duration(milliseconds: 200));
+        mockDetector.setNetworkAvailable(false);
+        async.elapse(const Duration(milliseconds: 200));
+
+        verifyNever(() => destination.setMode(any()));
+
+        async.elapse(const Duration(seconds: 1));
+        verify(() => destination.setMode(any())).called(1);
+
+        connectionManager.dispose();
+      });
+    });
+
+    test('background transition flushes immediately, not debounced', () {
+      fakeAsync((async) {
+        registerFallbackValue(ConnectionMode.streaming);
+
+        final destination = MockDestination();
+        final logAdapter = MockLogAdapter();
+        final logger = LDLogger(adapter: logAdapter);
+        final config = ConnectionManagerConfig(
+          runInBackground: false,
+          debounceWindow: const Duration(seconds: 1),
+        );
+        final mockDetector = MockStateDetector();
+
+        final connectionManager = ConnectionManager(
+            logger: logger,
+            config: config,
+            destination: destination,
+            detector: mockDetector);
+
+        mockDetector.setApplicationState(ApplicationState.background);
+        async.flushMicrotasks();
+        // Flush is synchronous on foreground->background transition.
+        verify(() => destination.flush()).called(1);
+
+        connectionManager.dispose();
+      });
+    });
+
+    test('setMode debounces the resolved-mode application', () {
+      fakeAsync((async) {
+        registerFallbackValue(ConnectionMode.streaming);
+
+        final destination = MockDestination();
+        final logAdapter = MockLogAdapter();
+        final logger = LDLogger(adapter: logAdapter);
+        final config = ConnectionManagerConfig(
+          runInBackground: true,
+          debounceWindow: const Duration(seconds: 1),
+        );
+        final mockDetector = MockStateDetector();
+
+        final connectionManager = ConnectionManager(
+            logger: logger,
+            config: config,
+            destination: destination,
+            detector: mockDetector);
+
+        // Drain the debouncer's initial reconcile microtask.
+        async.flushMicrotasks();
+        reset(destination);
+
+        connectionManager.setMode(const FDv2Polling());
+        verifyNever(() => destination.setMode(any()));
+
+        async.elapse(const Duration(seconds: 1));
+        verify(() => destination.setMode(const ResolvedPolling())).called(1);
+
+        connectionManager.dispose();
+      });
+    });
+
+    test(
+        'setMode override wins over a network event arriving mid-debounce-window',
+        () {
+      fakeAsync((async) {
+        registerFallbackValue(ConnectionMode.streaming);
+
+        final destination = MockDestination();
+        final logAdapter = MockLogAdapter();
+        final logger = LDLogger(adapter: logAdapter);
+        final config = ConnectionManagerConfig(
+          runInBackground: true,
+          debounceWindow: const Duration(seconds: 1),
+        );
+        final mockDetector = MockStateDetector();
+
+        final connectionManager = ConnectionManager(
+            logger: logger,
+            config: config,
+            destination: destination,
+            detector: mockDetector);
+
+        // Drain the debouncer's initial reconcile microtask before the
+        // override-vs-network race begins.
+        async.flushMicrotasks();
+        reset(destination);
+
+        // t=0: user sets override.
+        connectionManager.setMode(const FDv2Streaming());
+
+        // t=500ms: network drops mid-window.
+        async.elapse(const Duration(milliseconds: 500));
+        mockDetector.setNetworkAvailable(false);
+        async.flushMicrotasks();
+
+        // Network availability propagates to the destination synchronously
+        // (not debounced) so the underlying client knows.
+        verify(() => destination.setNetworkAvailability(false)).called(1);
+
+        // But the resolved mode has not been applied yet -- still inside the
+        // debounce window.
+        verifyNever(() => destination.setMode(any()));
+
+        // After the window closes, the override wins -- ResolvedStreaming is
+        // applied. (ResolvedOffline would have been applied if the network
+        // event drove resolution; the override suppresses that.)
+        async.elapse(const Duration(seconds: 1));
+        verify(() => destination.setMode(const ResolvedStreaming())).called(1);
+
+        connectionManager.dispose();
+      });
+    });
+
+    test(
+        'initialApplicationState seeds the lifecycle assumption so the SDK '
+        'does not default to foreground when launched in background', () {
+      // The manager is constructed with `initialApplicationState: background`.
+      // Toggling `offline` forces a synchronous `_handleState` -- with the
+      // seed in effect, the resolved automatic mode reflects the
+      // background + runInBackground=false state and yields
+      // ResolvedOffline(OfflineBackgroundDisabled). Without the seed
+      // (i.e., defaulted to foreground) the result would fall through to
+      // the foreground slot and yield ResolvedStreaming.
+      registerFallbackValue(ConnectionMode.streaming);
+
+      final destination = MockDestination();
+      final logAdapter = MockLogAdapter();
+      final logger = LDLogger(adapter: logAdapter);
+      final config = ConnectionManagerConfig(
+        runInBackground: false,
+        debounceWindow: const Duration(seconds: 1),
+        initialApplicationState: ApplicationState.background,
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      connectionManager.offline = true;
+      reset(destination);
+      connectionManager.offline = false;
+
+      verify(() => destination.setMode(
+          const ResolvedOffline(OfflineBackgroundDisabled()))).called(1);
+
+      connectionManager.dispose();
+    });
+
+    test(
+        'initialApplicationState seeded to background drives the buffered '
+        'initial reconcile to the correct mode without any external trigger '
+        '(round-1 background-launch regression)', () async {
+      // Regression for the round-1 bug: a background-launched SDK whose
+      // initial lifecycle state is known synchronously should have the
+      // correct resolved mode applied to the destination via the
+      // debouncer's buffered initial reconcile -- no offline toggle, no
+      // detector emission, no waiting on the debounce window.
+      registerFallbackValue(ConnectionMode.streaming);
+
+      final destination = MockDestination();
+      final logAdapter = MockLogAdapter();
+      final logger = LDLogger(adapter: logAdapter);
+      final config = ConnectionManagerConfig(
+        runInBackground: false,
+        debounceWindow: const Duration(seconds: 1),
+        initialApplicationState: ApplicationState.background,
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      // The buffered initial reconcile fires on the next microtask after
+      // construction.
+      await Future<void>.microtask(() {});
+
+      verify(() => destination.setMode(
+          const ResolvedOffline(OfflineBackgroundDisabled()))).called(1);
+      verify(() => destination.setEventSendingEnabled(false, flush: false))
+          .called(1);
+
+      connectionManager.dispose();
+    });
   });
 }
