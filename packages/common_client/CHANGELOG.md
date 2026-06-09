@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.13.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.12.0...launchdarkly_common_client-v1.13.0) (2026-06-09)
+
+
+### Features
+
+* Add StateDebounceManager to common_client ([#291](https://github.com/launchdarkly/flutter-client-sdk/issues/291)) ([e9f8183](https://github.com/launchdarkly/flutter-client-sdk/commit/e9f81839a7d077860e986cf2de415c0ae577cad9))
+
 ## [1.12.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.11.0...launchdarkly_common_client-v1.12.0) (2026-06-04)
 
 
