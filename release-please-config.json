@@ -17,7 +17,10 @@
       "include-component-in-tag": false,
       "extra-files": [
         "lib/src/ld_client.dart",
-        "example/pubspec.yaml"
+        {
+          "type": "generic",
+          "path": "example/pubspec.yaml"
+        }
       ]
     }
   },

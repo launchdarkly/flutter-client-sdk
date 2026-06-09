@@ -4,6 +4,9 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     show LDContext, LDLogger;
 
 import '../connection_mode.dart';
+import '../fdv2_connection_mode.dart';
+import '../offline_detail.dart';
+import '../resolved_connection_mode.dart';
 import 'data_source.dart';
 import 'data_source_event_handler.dart';
 import 'data_source_status_manager.dart';
@@ -13,16 +16,21 @@ typedef DataSourceFactory = DataSource Function(LDContext context);
 /// The data source manager controls which data source is connected to
 /// the data source status as well as the data source event handler.
 final class DataSourceManager {
-  ConnectionMode _activeMode;
+  /// The mode that drives factory lookup and status dispatch.
+  FDv2ConnectionMode _activeConnectionMode;
+
+  /// Semantically meaningful only when [_activeConnectionMode] is
+  /// [FDv2Offline]. Otherwise carries a stale value from the last time the
+  /// SDK was offline (or the construction-time default), and is intentionally
+  /// only read inside the [FDv2Offline] arm of [_setupConnection].
+  OfflineDetail _offlineDetail;
+
   LDContext? _activeContext;
 
   final LDLogger _logger;
   final DataSourceStatusManager _statusManager;
   final DataSourceEventHandler _dataSourceEventHandler;
-  final Map<ConnectionMode, DataSourceFactory> _dataSourceFactories = {};
-
-  // At start we assume the network is available.
-  bool _networkAvailable = true;
+  final Map<FDv2ConnectionMode, DataSourceFactory> _dataSourceFactories = {};
 
   DataSource? _activeDataSource;
   StreamSubscription<MessageStatus?>? _subscription;
@@ -35,7 +43,12 @@ final class DataSourceManager {
     required DataSourceStatusManager statusManager,
     required DataSourceEventHandler dataSourceEventHandler,
     required LDLogger logger,
-  })  : _activeMode = startingMode,
+  })  : _activeConnectionMode = switch (startingMode) {
+          ConnectionMode.streaming => const FDv2Streaming(),
+          ConnectionMode.polling => const FDv2Polling(),
+          ConnectionMode.offline => const FDv2Offline(),
+        },
+        _offlineDetail = const OfflineSetOffline(),
         _logger = logger.subLogger('DataSourceManager'),
         _statusManager = statusManager,
         _dataSourceEventHandler = dataSourceEventHandler;
@@ -43,7 +56,7 @@ final class DataSourceManager {
   /// Set the available data source factories. These factories will not apply
   /// until the next identify call. Currently factories will be set once during
   /// startup and before the first identify.
-  void setFactories(Map<ConnectionMode, DataSourceFactory> factories) {
+  void setFactories(Map<FDv2ConnectionMode, DataSourceFactory> factories) {
     _dataSourceFactories.clear();
     _dataSourceFactories.addAll(factories);
   }
@@ -55,25 +68,21 @@ final class DataSourceManager {
     _setupConnection();
   }
 
-  void setMode(ConnectionMode mode) {
-    if (mode == _activeMode) {
-      _logger.debug('Mode already active: $_activeMode');
+  void setMode(ResolvedConnectionMode mode) {
+    final newConnectionMode = mode.connectionMode;
+    final newDetail = mode is ResolvedOffline ? mode.detail : null;
+    final isOffline = newConnectionMode is FDv2Offline;
+    if (newConnectionMode == _activeConnectionMode &&
+        (!isOffline || newDetail == _offlineDetail)) {
+      _logger.debug('Mode is already set to: $mode');
       return;
     }
-    _logger.debug('Changing data source mode from: $_activeMode to: $mode');
-    _activeMode = mode;
-    _setupConnection();
-  }
-
-  void setNetworkAvailable(bool available) {
-    if (_networkAvailable == available) {
-      _logger.debug('Network availability set to same value: $available');
-      return;
-    }
-
     _logger.debug(
-        'Network availability changed from: $_networkAvailable to: $available');
-    _networkAvailable = available;
+        'Changing connection mode from: $_activeConnectionMode to: $mode');
+    _activeConnectionMode = newConnectionMode;
+    if (newDetail != null) {
+      _offlineDetail = newDetail;
+    }
     _setupConnection();
   }
 
@@ -83,7 +92,7 @@ final class DataSourceManager {
     _activeDataSource = null;
   }
 
-  DataSource? _createDataSource(ConnectionMode mode) {
+  DataSource? _createDataSource(FDv2ConnectionMode mode) {
     if (_activeContext != null) {
       if (_dataSourceFactories[mode] == null) {
         _logger.debug('No data source factory exists for mode: $mode');
@@ -107,33 +116,24 @@ final class DataSourceManager {
 
     _stopConnection();
 
-    // If the active mode is offline, then we do not need to setup
-    // a new connection. Additionally if we are offline, and the network
-    // is not available, our data source status should remain offline.
-    if (_activeMode == ConnectionMode.offline) {
-      _statusManager.setOffline();
-      return;
+    switch (_activeConnectionMode) {
+      case FDv2Offline():
+        switch (_offlineDetail) {
+          case OfflineSetOffline():
+            _statusManager.setOffline();
+          case OfflineNetworkUnavailable():
+            _statusManager.setNetworkUnavailable();
+          case OfflineBackgroundDisabled():
+            _statusManager.setBackgroundDisabled();
+        }
+        return;
+      case FDv2Streaming():
+      case FDv2Polling():
+      case FDv2Background():
+        break;
     }
 
-    // We are not offline, but the network is not available, so we are going
-    // to set the status as unavailable and not start a new connection.
-    if (!_networkAvailable) {
-      _statusManager.setNetworkUnavailable();
-      return;
-    }
-
-    switch (_activeMode) {
-      case ConnectionMode.offline:
-        _statusManager.setOffline();
-      case ConnectionMode.streaming:
-      case ConnectionMode.polling:
-      // default:
-      // We may want to consider adding another state to the data source state
-      // for the intermediate between switching data sources, or for identifying
-      // a new context.
-    }
-
-    _activeDataSource = _createDataSource(_activeMode);
+    _activeDataSource = _createDataSource(_activeConnectionMode);
     _subscription = _activeDataSource?.events.asyncMap((event) async {
       if (_activeContext == null) {
         _logger.error(
