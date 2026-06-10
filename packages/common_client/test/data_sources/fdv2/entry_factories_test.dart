@@ -7,8 +7,10 @@ import 'package:launchdarkly_common_client/src/data_sources/fdv2/mode_definition
     hide CacheInitializer;
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/polling_synchronizer.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/streaming_synchronizer.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_result.dart';
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
 import 'package:test/test.dart';
@@ -22,6 +24,7 @@ SourceFactoryContext _testContext({
   Duration? defaultPollingInterval,
 }) {
   return SourceFactoryContext.fromClientConfig(
+    credential: 'test-credential',
     context: _context(),
     logger: LDLogger(level: LDLogLevel.error),
     httpProperties: HttpProperties(),
@@ -113,12 +116,63 @@ void main() {
       sync.close();
     });
 
-    test('streaming synchronizer is unsupported', () {
+    test('builds factory whose create returns FDv2StreamingSynchronizer', () {
       final ctx = _testContext();
-      expect(
-        () => createSynchronizerFactoryFromEntry(StreamingSynchronizer(), ctx),
-        throwsA(isA<UnsupportedError>()),
+      final factory =
+          createSynchronizerFactoryFromEntry(StreamingSynchronizer(), ctx);
+      final sync = factory.create(_selectorGetter);
+      expect(sync, isA<FDv2StreamingSynchronizer>());
+      sync.close();
+    });
+
+    test(
+        'streaming URI carries the auth query parameters and the current '
+        'basis', () {
+      final ctx = SourceFactoryContext(
+        context: _context(),
+        credential: 'the-client-side-id',
+        authQueryParameters: const {'auth': 'the-client-side-id'},
+        logger: LDLogger(level: LDLogLevel.error),
+        httpProperties: HttpProperties(),
+        serviceEndpoints: ServiceEndpoints.custom(
+            polling: 'https://poll.test', streaming: 'https://stream.test'),
+        contextJson: '{"key":"test","kind":"user"}',
+        withReasons: false,
+        defaultPollingInterval: const Duration(seconds: 300),
+        cachedFlagsReader: (_) async => null,
       );
+
+      var selector = Selector.empty;
+      late Uri Function() capturedUriProvider;
+      final factory = createSynchronizerFactoryFromEntry(
+        StreamingSynchronizer(),
+        ctx,
+        sseClientFactory: ({
+          required Uri Function() uriProvider,
+          required HttpProperties httpProperties,
+          required String? body,
+          required SseHttpMethod method,
+          required EventSourceLogger logger,
+        }) {
+          capturedUriProvider = uriProvider;
+          return SSEClient.testClient(uriProvider(), const {});
+        },
+      );
+      final sync = factory.create(() => selector);
+
+      final initialUri = capturedUriProvider();
+      expect(initialUri.host, equals('stream.test'));
+      expect(initialUri.path, startsWith('/sdk/stream/eval/'));
+      expect(initialUri.queryParameters['auth'], equals('the-client-side-id'));
+      expect(initialUri.queryParameters.containsKey('basis'), isFalse);
+
+      selector = const Selector(state: '(p:abc:1)', version: 1);
+      final reconnectUri = capturedUriProvider();
+      expect(
+          reconnectUri.queryParameters['auth'], equals('the-client-side-id'));
+      expect(reconnectUri.queryParameters['basis'], equals('(p:abc:1)'));
+
+      sync.close();
     });
   });
 

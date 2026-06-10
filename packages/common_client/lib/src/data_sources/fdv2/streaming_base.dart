@@ -61,9 +61,11 @@ final class FDv2StreamingBase {
     required SSEClient sseClient,
     required PingHandler pingHandler,
     required LDLogger logger,
+    String? defaultEnvironmentId,
     DateTime Function()? now,
   })  : _sseClient = sseClient,
         _pingHandler = pingHandler,
+        _environmentId = defaultEnvironmentId,
         _logger = logger.subLogger('FDv2StreamingBase'),
         _now = now ?? DateTime.now {
     _controller = StreamController<FDv2SourceResult>(
@@ -293,6 +295,24 @@ final class FDv2StreamingBase {
 
   void _handleSseError(Object err, StackTrace stack) {
     if (_stoppedSignal.isCompleted) return;
+
+    if (err is UnrecoverableStatusError) {
+      // The SSE client stops reconnecting for these status codes, so the
+      // source cannot recover on its own. Surface a terminal error so the
+      // orchestrator moves to another source. The error response may also
+      // carry the FDv1 fallback directive.
+      final fallback = err.headers['x-ld-fd-fallback']?.toLowerCase() == 'true';
+      _logger.warn(
+          'Streaming request failed with status ${err.statusCode}; giving up');
+      _terminate(
+          finalResult: FDv2SourceResults.terminalError(
+        message: 'Streaming request failed with status ${err.statusCode}',
+        statusCode: err.statusCode,
+        fdv1Fallback: fallback,
+      ));
+      return;
+    }
+
     // The SSE client's built-in backoff handles reconnection. Surface
     // the disruption as interrupted; the orchestrator decides whether
     // to fall through to a different source after enough time.

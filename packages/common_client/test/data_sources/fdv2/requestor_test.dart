@@ -20,6 +20,7 @@ FDv2Requestor makeRequestor(
 }) {
   return FDv2Requestor(
     logger: LDLogger(),
+    credential: 'test-credential',
     endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
     contextEncoded: contextEncoded,
     contextJson: contextJson,
@@ -56,6 +57,19 @@ void main() {
       expect(capturedMethod, equals('GET'));
       expect(capturedUri.path, equals('/sdk/poll/eval/ENC123'));
       expect(capturedUri.host, equals('example.test'));
+    });
+
+    test('sends the authorization header on every request', () async {
+      Map<String, String>? capturedHeaders;
+      final mock = MockClient((request) async {
+        capturedHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock);
+      await requestor.request();
+
+      expect(capturedHeaders, containsPair('authorization', 'test-credential'));
     });
 
     test('does not send a body on GET', () async {
@@ -361,6 +375,7 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
+        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/prefix?token=abc123'),
@@ -437,6 +452,7 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
+        credential: 'test-credential',
         logger: logger,
         endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
         contextEncoded: 'SECRET-ENCODED-CONTEXT',
@@ -514,6 +530,7 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
+        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/prefix/'),
@@ -540,6 +557,7 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
+        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/?tag=a&tag=b'),

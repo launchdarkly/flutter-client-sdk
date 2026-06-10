@@ -644,4 +644,98 @@ void main() {
       await sub.cancel();
     });
   });
+
+  group('unrecoverable status errors', () {
+    test('produces a terminal error carrying the status code', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      sse.emitError(error: const UnrecoverableStatusError(401));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      final result = emissions.single as StatusResult;
+      expect(result.state, SourceState.terminalError);
+      expect(result.statusCode, 401);
+      expect(result.fdv1Fallback, isFalse);
+
+      await sub.cancel();
+    });
+
+    test('reads the FDv1 fallback directive from error response headers',
+        () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      sse.emitError(
+          error: const UnrecoverableStatusError(
+              401, {'x-ld-fd-fallback': 'true'}));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      final result = emissions.single as StatusResult;
+      expect(result.state, SourceState.terminalError);
+      expect(result.fdv1Fallback, isTrue);
+
+      await sub.cancel();
+    });
+  });
+
+  group('default environment ID', () {
+    test('is used when the connection provides no response headers', () async {
+      final sse = makeSse();
+      final base = FDv2StreamingBase(
+        sseClient: sse,
+        pingHandler: () async =>
+            FDv2SourceResults.interrupted(message: 'no ping handler'),
+        logger: LDLogger(level: LDLogLevel.error),
+        defaultEnvironmentId: 'default-env-id',
+      );
+      final emissions = <FDv2SourceResult>[];
+
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      emitOpen(sse);
+      emitFullPayload(sse);
+      await Future<void>.delayed(Duration.zero);
+
+      final result = emissions.single as ChangeSetResult;
+      expect(result.environmentId, 'default-env-id');
+
+      await sub.cancel();
+    });
+
+    test('is replaced by the environment ID response header', () async {
+      final sse = makeSse();
+      final base = FDv2StreamingBase(
+        sseClient: sse,
+        pingHandler: () async =>
+            FDv2SourceResults.interrupted(message: 'no ping handler'),
+        logger: LDLogger(level: LDLogLevel.error),
+        defaultEnvironmentId: 'default-env-id',
+      );
+      final emissions = <FDv2SourceResult>[];
+
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      emitOpen(sse, headers: {'x-ld-envid': 'env-from-header'});
+      emitFullPayload(sse);
+      await Future<void>.delayed(Duration.zero);
+
+      final result = emissions.single as ChangeSetResult;
+      expect(result.environmentId, 'env-from-header');
+
+      await sub.cancel();
+    });
+  });
 }

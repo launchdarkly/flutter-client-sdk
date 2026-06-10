@@ -1,9 +1,8 @@
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
-    hide ServiceEndpoints;
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
-import '../../config/service_endpoints.dart';
+import '../../config/defaults/default_config.dart';
 import 'cache_initializer.dart';
 import 'requestor.dart';
 
@@ -29,6 +28,15 @@ final class SourceFactoryContext {
 
   final HttpClientFactory? httpClientFactory;
 
+  /// The SDK credential. Used as the environment identifier when the
+  /// platform's credential is a client-side ID.
+  final String credential;
+
+  /// Authentication query parameters for requests whose transport cannot
+  /// carry custom headers (the browser's native EventSource). Empty on
+  /// platforms where every transport supports the authorization header.
+  final Map<String, String> authQueryParameters;
+
   const SourceFactoryContext({
     required this.context,
     required this.logger,
@@ -38,6 +46,8 @@ final class SourceFactoryContext {
     required this.withReasons,
     required this.defaultPollingInterval,
     required this.cachedFlagsReader,
+    required this.credential,
+    this.authQueryParameters = const {},
     this.httpClientFactory,
   });
 
@@ -49,6 +59,7 @@ final class SourceFactoryContext {
     required bool withReasons,
     required Duration defaultPollingInterval,
     required CachedFlagsReader cachedFlagsReader,
+    required String credential,
     HttpClientFactory? httpClientFactory,
   }) {
     final plainContextString =
@@ -62,6 +73,9 @@ final class SourceFactoryContext {
       withReasons: withReasons,
       defaultPollingInterval: defaultPollingInterval,
       cachedFlagsReader: cachedFlagsReader,
+      credential: credential,
+      authQueryParameters:
+          DefaultConfig.credentialConfig.authQueryParameters(credential),
       httpClientFactory: httpClientFactory,
     );
   }

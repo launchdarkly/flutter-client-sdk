@@ -39,6 +39,7 @@ final class FDv2Requestor {
   final String _contextJson;
   final bool _usePost;
   final bool _withReasons;
+  final String _credential;
   String? _lastEtag;
 
   FDv2Requestor({
@@ -48,6 +49,7 @@ final class FDv2Requestor {
     required String contextJson,
     required bool usePost,
     required bool withReasons,
+    required String credential,
     required HttpProperties httpProperties,
     HttpClientFactory httpClientFactory = _defaultHttpClientFactory,
   })  : _logger = logger.subLogger('FDv2Requestor'),
@@ -56,6 +58,7 @@ final class FDv2Requestor {
         _contextJson = contextJson,
         _usePost = usePost,
         _withReasons = withReasons,
+        _credential = credential,
         _client = httpClientFactory(usePost
             ? httpProperties.withHeaders({'content-type': 'application/json'})
             : httpProperties);
@@ -68,6 +71,11 @@ final class FDv2Requestor {
     final uri = _buildUri(basis: basis);
     final method = _usePost ? RequestMethod.post : RequestMethod.get;
     final additionalHeaders = <String, String>{};
+    // Header authentication is preferred wherever the transport supports
+    // custom headers, and the polling transport supports them on every
+    // platform. On platforms whose base headers already authenticate
+    // (mobile keys) this is the same value again.
+    additionalHeaders['authorization'] = _credential;
     if (_lastEtag case final etag?) {
       additionalHeaders['if-none-match'] = etag;
     }
