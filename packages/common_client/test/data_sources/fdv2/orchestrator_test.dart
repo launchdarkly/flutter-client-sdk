@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
@@ -372,5 +373,58 @@ void main() {
     expect(synchronizers.single.closed, isTrue);
     expect(synchronizers, hasLength(1),
         reason: 'no replacement source is created after stop');
+  });
+
+  test('memory stays bounded while a healthy synchronizer streams results',
+      () async {
+    // A healthy primary that streams change sets indefinitely is the
+    // steady state of a stable connection. Consumption must not attach
+    // anything per-result to long-lived futures or streams: listeners
+    // on a never-completing future cannot be removed, so a per-result
+    // attachment grows for the synchronizer's entire tenure
+    // (measured at roughly 3 KB per result before consumption became
+    // subscription-driven, roughly 100 MB over this soak).
+    Future<int> soak(FakeSynchronizer synchronizer, int results) async {
+      const healthyResult = ChangeSetResult(
+          payload: Payload(type: PayloadType.partial, updates: []),
+          persist: true);
+      final baseline = ProcessInfo.currentRss;
+      for (var i = 0; i < results; i++) {
+        synchronizer.controller.add(healthyResult);
+        await Future<void>.delayed(Duration.zero);
+      }
+      return ProcessInfo.currentRss - baseline;
+    }
+
+    // Two slots so the primary carries a fallback condition; this is
+    // the configuration with the most per-result machinery. The
+    // orchestrator is constructed directly so the emitted payload
+    // events can be discarded instead of retained.
+    final synchronizers = <FakeSynchronizer>[];
+    final orchestrator = FDv2DataSourceOrchestrator(
+      initializerFactories: const [],
+      synchronizerSlots: [
+        synchronizerSlot(synchronizers),
+        synchronizerSlot(synchronizers),
+      ],
+      selectorGetter: () => Selector.empty,
+      selectorUpdater: (_) {},
+      statusManager: DataSourceStatusManager(),
+      logger: LDLogger(level: LDLogLevel.none),
+    );
+    final subscription = orchestrator.events.listen((_) {});
+    orchestrator.start();
+    await Future<void>.delayed(Duration.zero);
+
+    // Warm up allocators before measuring.
+    await soak(synchronizers.single, 2000);
+    final growth = await soak(synchronizers.single, 30000);
+
+    expect(growth, lessThan(25 * 1024 * 1024),
+        reason: 'memory grew ${(growth / 1024 / 1024).toStringAsFixed(1)} MB '
+            'over 30000 results; per-result state is accumulating');
+
+    orchestrator.stop();
+    await subscription.cancel();
   });
 }

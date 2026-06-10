@@ -20,19 +20,26 @@ enum ConditionType {
   recovery,
 }
 
-/// A timed condition raced against the active synchronizer's results.
-/// When the condition fires, its [future] completes with a
-/// [ConditionType] that the orchestration loop uses to decide what to do.
+/// A timed condition observed alongside the active synchronizer's
+/// results. When the condition fires, its [events] stream emits a
+/// [ConditionType] that the orchestration loop uses to decide what to
+/// do.
+///
+/// Conditions are streams rather than futures so a consumer can detach:
+/// cancelling a stream subscription releases the consumer's listener,
+/// whereas a listener on a never-completing future can never be
+/// removed and would be retained for the condition's whole lifetime.
 abstract interface class Condition {
-  /// Completes when the condition fires. Never completes if the condition
-  /// is closed first.
-  Future<ConditionType> get future;
+  /// Single-subscription stream that emits at most one [ConditionType]
+  /// when the condition fires and then closes. Closes without emitting
+  /// if the condition is closed first.
+  Stream<ConditionType> get events;
 
   /// Inform the condition about a synchronizer result. Some conditions
   /// use this to start or cancel their timers.
   void inform(FDv2SourceResult result);
 
-  /// Cancel any pending timers. After closing, [future] never completes.
+  /// Cancel any pending timers and close [events]. Idempotent.
   void close();
 }
 
@@ -52,7 +59,8 @@ final class _TimedCondition implements Condition {
       required void Function() cancel})? _informHandler;
   final ConditionTimerFactory _timerFactory;
 
-  final Completer<ConditionType> _completer = Completer<ConditionType>();
+  final StreamController<ConditionType> _controller =
+      StreamController<ConditionType>();
   Timer? _timer;
   bool _closed = false;
 
@@ -78,9 +86,12 @@ final class _TimedCondition implements Condition {
     if (_timer != null || _closed) return;
     _timer = _timerFactory(_timeout, () {
       _timer = null;
-      if (!_closed && !_completer.isCompleted) {
-        _completer.complete(_type);
-      }
+      if (_closed) return;
+      _closed = true;
+      // The controller buffers the event if the subscription has not
+      // started yet, so firing before listen is not lost.
+      _controller.add(_type);
+      _controller.close();
     });
   }
 
@@ -90,7 +101,7 @@ final class _TimedCondition implements Condition {
   }
 
   @override
-  Future<ConditionType> get future => _completer.future;
+  Stream<ConditionType> get events => _controller.stream;
 
   @override
   void inform(FDv2SourceResult result) {
@@ -100,14 +111,16 @@ final class _TimedCondition implements Condition {
 
   @override
   void close() {
+    if (_closed) return;
     _closed = true;
     _cancelTimer();
+    _controller.close();
   }
 }
 
 /// Creates a fallback condition. The condition starts its timer when an
 /// interrupted status is received and cancels it when a change set is
-/// received. If the timer fires, the condition resolves with
+/// received. If the timer fires, the condition emits
 /// [ConditionType.fallback].
 Condition createFallbackCondition(Duration timeout,
     {ConditionTimerFactory? timerFactory}) {
@@ -129,8 +142,8 @@ Condition createFallbackCondition(Duration timeout,
 }
 
 /// Creates a recovery condition. The timer starts immediately and the
-/// condition resolves with [ConditionType.recovery] when it fires.
-/// Results do not affect it.
+/// condition emits [ConditionType.recovery] when it fires. Results do
+/// not affect it.
 Condition createRecoveryCondition(Duration timeout,
     {ConditionTimerFactory? timerFactory}) {
   return _TimedCondition(
@@ -140,17 +153,41 @@ Condition createRecoveryCondition(Duration timeout,
   );
 }
 
-/// A group of conditions managed together. The group races all conditions
-/// and broadcasts results to all of them.
+/// A group of conditions managed together. The group merges the member
+/// streams and broadcasts results to all of them.
 final class ConditionGroup {
   final List<Condition> _conditions;
+  final List<StreamSubscription<ConditionType>> _subscriptions = [];
 
-  ConditionGroup(this._conditions);
+  late final StreamController<ConditionType> _controller =
+      StreamController<ConditionType>(onListen: _subscribe);
+  bool _fired = false;
+  bool _closed = false;
 
-  /// Completes when the first condition fires. Null when the group is
-  /// empty.
-  Future<ConditionType>? get future =>
-      _conditions.isEmpty ? null : Future.any(_conditions.map((c) => c.future));
+  ConditionGroup(List<Condition> conditions) : _conditions = conditions;
+
+  /// Single-subscription stream that emits at most one [ConditionType]
+  /// (the first member condition to fire) and then closes. Closes
+  /// without emitting if the group is empty or closed first.
+  Stream<ConditionType> get events => _controller.stream;
+
+  void _subscribe() {
+    if (_closed) return;
+    if (_conditions.isEmpty) {
+      _controller.close();
+      return;
+    }
+    for (final condition in _conditions) {
+      _subscriptions.add(condition.events.listen((type) {
+        // First member to fire wins; member timers firing in the same
+        // event-loop turn cannot produce a second emission.
+        if (_fired || _closed) return;
+        _fired = true;
+        _controller.add(type);
+        _finish();
+      }));
+    }
+  }
 
   /// Broadcast a result to all conditions.
   void inform(FDv2SourceResult result) {
@@ -159,10 +196,23 @@ final class ConditionGroup {
     }
   }
 
-  /// Close all conditions.
+  /// Close all conditions and the merged stream. Idempotent.
   void close() {
+    if (_closed) return;
+    _finish();
+  }
+
+  void _finish() {
+    _closed = true;
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
     for (final condition in _conditions) {
       condition.close();
+    }
+    if (!_controller.isClosed) {
+      _controller.close();
     }
   }
 }

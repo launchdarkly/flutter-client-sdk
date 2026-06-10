@@ -34,20 +34,6 @@ enum _SynchronizerOutcome {
   stop,
 }
 
-sealed class _RaceResult {}
-
-final class _SourceResult extends _RaceResult {
-  final FDv2SourceResult? result;
-  _SourceResult(this.result);
-}
-
-final class _ConditionFired extends _RaceResult {
-  final ConditionType type;
-  _ConditionFired(this.type);
-}
-
-final class _RecycleRequested extends _RaceResult {}
-
 /// The FDv2 data source orchestrator.
 ///
 /// Runs the initializer chain to bring the SDK to a usable state, then
@@ -78,10 +64,10 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   bool _closed = false;
   bool _dataEmitted = false;
 
-  /// Completed by [restart] to ask the active synchronizer loop to drop
-  /// its connection and re-establish it. Re-armed for each synchronizer
-  /// iteration.
-  Completer<void> _recycleSignal = Completer<void>();
+  /// Decides the outcome of the active synchronizer run. Set while a
+  /// synchronizer is running; [restart] and [stop] use it to interrupt
+  /// the run.
+  void Function(_SynchronizerOutcome outcome)? _decideActiveRun;
 
   FDv2DataSourceOrchestrator({
     required List<InitializerFactory> initializerFactories,
@@ -126,10 +112,9 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     if (_closed) return;
     _closed = true;
     _sourceManager.close();
-    if (!_recycleSignal.isCompleted) {
-      // Wake the synchronizer loop so it can observe the closed state.
-      _recycleSignal.complete();
-    }
+    // Wake the active synchronizer run so it can observe the closed
+    // state.
+    _decideActiveRun?.call(_SynchronizerOutcome.stop);
     if (!_controller.isClosed) {
       _controller.close();
     }
@@ -139,9 +124,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   void restart() {
     if (_closed) return;
     _logger.debug('Restart requested; recycling the active synchronizer.');
-    if (!_recycleSignal.isCompleted) {
-      _recycleSignal.complete();
-    }
+    _decideActiveRun?.call(_SynchronizerOutcome.recycle);
   }
 
   Future<void> _run() async {
@@ -316,6 +299,16 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     }
   }
 
+  /// Runs a single synchronizer instance until something decides its
+  /// outcome.
+  ///
+  /// Consumption is subscription-driven: one listener on the
+  /// synchronizer's results, one on the merged condition stream, and a
+  /// decide hook for [restart] and [stop]. Nothing is attached
+  /// per-result, so a healthy synchronizer that streams change sets
+  /// indefinitely holds constant memory. (Racing long-lived futures per
+  /// result would attach an irremovable listener to them each
+  /// iteration; future listeners are only released on completion.)
   Future<_SynchronizerOutcome> _runSynchronizer(
       Synchronizer synchronizer) async {
     final conditions = getConditions(
@@ -326,92 +319,85 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       timerFactory: _conditionTimerFactory,
     );
 
-    // Arm the recycle signal for this synchronizer instance.
-    if (_recycleSignal.isCompleted) {
-      _recycleSignal = Completer<void>();
+    final outcome = Completer<_SynchronizerOutcome>();
+    void decide(_SynchronizerOutcome decision) {
+      if (!outcome.isCompleted) {
+        outcome.complete(decision);
+      }
     }
 
-    final iterator = StreamIterator(synchronizer.results);
-    try {
-      while (!_closed) {
-        final racers = <Future<_RaceResult>>[
-          iterator.moveNext().then(
-              (hasNext) => _SourceResult(hasNext ? iterator.current : null)),
-          _recycleSignal.future.then((_) => _RecycleRequested()),
-          if (conditions.future case final conditionFuture?)
-            conditionFuture.then(_ConditionFired.new),
-        ];
+    _decideActiveRun = decide;
 
-        final winner = await Future.any(racers);
-        if (_closed) return _SynchronizerOutcome.stop;
-
-        switch (winner) {
-          case _RecycleRequested():
-            // Either restart() was called or stop() raced us; stop() was
-            // checked above, so this is a restart request.
-            return _SynchronizerOutcome.recycle;
-
-          case _ConditionFired(:final type):
-            switch (type) {
-              case ConditionType.fallback:
-                _logger.warn('Fallback condition fired; moving to the next '
-                    'synchronizer.');
-                return _SynchronizerOutcome.advance;
-              case ConditionType.recovery:
-                _logger.info('Recovery condition fired; returning to the '
-                    'primary synchronizer.');
-                return _SynchronizerOutcome.recover;
-            }
-
-          case _SourceResult(:final result):
-            if (result == null) {
-              // The stream ended without a directive. Terminal paths emit
-              // a final result first, which is handled below before the
-              // next moveNext, so this indicates the source shut itself
-              // down unexpectedly. Re-establish it.
-              _logger.warn('Synchronizer stream ended unexpectedly; '
-                  're-establishing.');
-              return _SynchronizerOutcome.recycle;
-            }
-
-            conditions.inform(result);
-
-            switch (result) {
-              case ChangeSetResult():
-                _emitPayload(result);
-              case StatusResult():
-                switch (result.state) {
-                  case SourceState.interrupted:
-                    _logger.warn('Synchronizer interrupted: '
-                        '${result.message ?? 'unknown error'}');
-                    _reportTransientError(result);
-                  case SourceState.terminalError:
-                    _logger.warn('Synchronizer terminal error: '
-                        '${result.message ?? 'unknown error'}');
-                    _reportTransientError(result);
-                    if (_handleFdv1Fallback(result)) {
-                      return _SynchronizerOutcome.advance;
-                    }
-                    _sourceManager.blockCurrentSynchronizer();
-                    return _SynchronizerOutcome.advance;
-                  case SourceState.shutdown:
-                    return _SynchronizerOutcome.stop;
-                  case SourceState.goodbye:
-                    _logger.info('Server requested disconnect (goodbye); '
-                        're-establishing the synchronizer.');
-                    return _SynchronizerOutcome.recycle;
-                }
-            }
-
-            if (_handleFdv1Fallback(result)) {
-              return _SynchronizerOutcome.advance;
-            }
-        }
+    final conditionSubscription = conditions.events.listen((type) {
+      switch (type) {
+        case ConditionType.fallback:
+          _logger.warn('Fallback condition fired; moving to the next '
+              'synchronizer.');
+          decide(_SynchronizerOutcome.advance);
+        case ConditionType.recovery:
+          _logger.info('Recovery condition fired; returning to the '
+              'primary synchronizer.');
+          decide(_SynchronizerOutcome.recover);
       }
-      return _SynchronizerOutcome.stop;
+    });
+
+    final resultSubscription = synchronizer.results.listen((result) {
+      if (outcome.isCompleted || _closed) return;
+
+      conditions.inform(result);
+
+      switch (result) {
+        case ChangeSetResult():
+          _emitPayload(result);
+        case StatusResult():
+          switch (result.state) {
+            case SourceState.interrupted:
+              _logger.warn('Synchronizer interrupted: '
+                  '${result.message ?? 'unknown error'}');
+              _reportTransientError(result);
+            case SourceState.terminalError:
+              _logger.warn('Synchronizer terminal error: '
+                  '${result.message ?? 'unknown error'}');
+              _reportTransientError(result);
+              if (_handleFdv1Fallback(result)) {
+                decide(_SynchronizerOutcome.advance);
+                return;
+              }
+              _sourceManager.blockCurrentSynchronizer();
+              decide(_SynchronizerOutcome.advance);
+              return;
+            case SourceState.shutdown:
+              decide(_SynchronizerOutcome.stop);
+              return;
+            case SourceState.goodbye:
+              _logger.info('Server requested disconnect (goodbye); '
+                  're-establishing the synchronizer.');
+              decide(_SynchronizerOutcome.recycle);
+              return;
+          }
+      }
+
+      if (_handleFdv1Fallback(result)) {
+        decide(_SynchronizerOutcome.advance);
+      }
+    }, onDone: () {
+      if (outcome.isCompleted || _closed) return;
+      // The stream ended without a directive. Terminal paths emit a
+      // final result first, which is handled above, so this indicates
+      // the source shut itself down unexpectedly. Re-establish it.
+      _logger.warn('Synchronizer stream ended unexpectedly; '
+          're-establishing.');
+      decide(_SynchronizerOutcome.recycle);
+    });
+
+    try {
+      final decision = await outcome.future;
+      return _closed ? _SynchronizerOutcome.stop : decision;
     } finally {
+      _decideActiveRun = null;
       conditions.close();
-      await iterator.cancel();
+      await conditionSubscription.cancel();
+      await resultSubscription.cancel();
       synchronizer.close();
     }
   }
