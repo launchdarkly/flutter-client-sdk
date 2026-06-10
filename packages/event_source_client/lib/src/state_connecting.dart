@@ -62,8 +62,8 @@ class StateConnecting {
           // looks like the error wasn't recoverable, go to idle and wait
           // for something to change
           return () => StateIdle.run(svo,
-              errorCause: UnrecoverableStatusError(response.statusCode,
-                  response.headers));
+              errorCause: UnrecoverableStatusError(
+                  response.statusCode, response.headers));
         }
 
         // the error is recoverable, backoff then we'll try again
