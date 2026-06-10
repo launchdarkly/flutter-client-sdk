@@ -31,6 +31,92 @@ void main() {
   };
 
   group('with persistence', () {
+    test('it stores cache on applyUpdates', () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      await flagPersistence.init(context, basicData);
+
+      final updated = LDEvaluationResult(
+          version: 3,
+          detail: LDEvaluationDetail(
+              LDValue.ofString('updated'), 0, LDEvaluationReason.off()));
+      expect(
+          await flagPersistence.applyUpdates(
+              context, {'flagA': ItemDescriptor(version: 3, flag: updated)}),
+          true);
+
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
+      final cached =
+          mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey]!;
+      expect(cached, contains('updated'),
+          reason: 'a successful apply writes through to the cache');
+    });
+
+    test('it does not store cache for an inactive context on applyUpdates',
+        () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      final otherContext =
+          LDContextBuilder().kind('user', 'other-user-key').build();
+      await flagPersistence.init(context, basicData);
+
+      final updated = LDEvaluationResult(
+          version: 3,
+          detail: LDEvaluationDetail(
+              LDValue.ofString('updated'), 0, LDEvaluationReason.off()));
+      expect(
+          await flagPersistence.applyUpdates(otherContext,
+              {'flagA': ItemDescriptor(version: 3, flag: updated)}),
+          false);
+
+      final otherPersistenceKey =
+          sha256.convert(utf8.encode(otherContext.canonicalKey)).toString();
+      expect(mockPersistence.storage[sdkKeyPersistence],
+          isNot(contains(otherPersistenceKey)),
+          reason: 'a rejected apply must not write the cache');
+    });
+
+    test('it skips the cache write for an empty applyUpdates', () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      await flagPersistence.init(context, basicData);
+      final writesAfterInit = mockPersistence.setCallCount;
+
+      expect(await flagPersistence.applyUpdates(context, {}), true);
+      expect(mockPersistence.setCallCount, writesAfterInit,
+          reason: 'an empty payload changes nothing');
+    });
     test('it stores cache on init', () async {
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();

@@ -266,6 +266,25 @@ void main() {
     });
   });
 
+  test('applyUpdates applies a tombstone and emits a change event', () async {
+    final flagStore = FlagStore();
+    final flagUpdater = FlagUpdater(flagStore: flagStore, logger: logger);
+
+    final context = LDContextBuilder().kind('user', 'user-key').build();
+
+    flagUpdater.init(context, basicData);
+
+    expectLater(flagUpdater.changes, emits(FlagsChangedEvent(keys: ['flagB'])));
+
+    expect(
+        flagUpdater
+            .applyUpdates(context, {'flagB': ItemDescriptor(version: 3)}),
+        true);
+    expect(flagStore.get('flagB')?.flag, isNull,
+        reason: 'the entry becomes a tombstone');
+    expect(flagStore.get('flagB')?.version, 3);
+  });
+
   test('applyUpdates rejects updates for an inactive context', () async {
     final flagStore = FlagStore();
     final flagUpdater = FlagUpdater(flagStore: flagStore, logger: logger);

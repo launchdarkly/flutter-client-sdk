@@ -66,7 +66,10 @@ final class FlagPersistence {
   Future<bool> applyUpdates(
       LDContext context, Map<String, ItemDescriptor> updates) async {
     if (_updater.applyUpdates(context, updates)) {
-      await _storeCache(context);
+      // An empty payload changes nothing, so the cache write is skipped.
+      if (updates.isNotEmpty) {
+        await _storeCache(context);
+      }
       return true;
     }
     return false;
