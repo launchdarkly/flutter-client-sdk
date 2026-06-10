@@ -21,6 +21,7 @@ FDv2PollingBase makePollingBase(
 }) {
   final requestor = FDv2Requestor(
     logger: LDLogger(),
+    credential: 'test-credential',
     endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
     contextEncoded: 'CTX',
     contextJson: '{"key":"test"}',
@@ -631,6 +632,7 @@ void main() {
 
       final requestor = FDv2Requestor(
         logger: logger,
+        credential: 'test-credential',
         endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
         contextEncoded: 'SECRET-ENCODED-CONTEXT',
         contextJson: '{"key":"x"}',

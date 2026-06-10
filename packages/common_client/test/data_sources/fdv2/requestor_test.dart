@@ -17,17 +17,16 @@ FDv2Requestor makeRequestor(
   String contextEncoded = 'eyJrZXkiOiJ0ZXN0In0=',
   String contextJson = '{"key":"test"}',
   HttpProperties? httpProperties,
-  Map<String, String> additionalQueryParameters = const {},
 }) {
   return FDv2Requestor(
     logger: LDLogger(),
+    credential: 'test-credential',
     endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
     contextEncoded: contextEncoded,
     contextJson: contextJson,
     usePost: usePost,
     withReasons: withReasons,
     httpProperties: httpProperties ?? HttpProperties(),
-    additionalQueryParameters: additionalQueryParameters,
     httpClientFactory: (props) =>
         HttpClient(client: innerClient, httpProperties: props),
   );
@@ -60,21 +59,17 @@ void main() {
       expect(capturedUri.host, equals('example.test'));
     });
 
-    test('includes additional query parameters (auth for client-side IDs)',
-        () async {
-      late Uri capturedUri;
+    test('sends the authorization header on every request', () async {
+      Map<String, String>? capturedHeaders;
       final mock = MockClient((request) async {
-        capturedUri = request.url;
+        capturedHeaders = request.headers;
         return http.Response('{}', 200);
       });
 
-      final requestor = makeRequestor(mock,
-          additionalQueryParameters: {'auth': 'client-side-id'});
-      await requestor.request(
-          basis: const Selector(state: 'state-1', version: 1));
+      final requestor = makeRequestor(mock);
+      await requestor.request();
 
-      expect(capturedUri.queryParameters['auth'], equals('client-side-id'));
-      expect(capturedUri.queryParameters['basis'], equals('state-1'));
+      expect(capturedHeaders, containsPair('authorization', 'test-credential'));
     });
 
     test('does not send a body on GET', () async {
@@ -380,6 +375,7 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
+        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/prefix?token=abc123'),
@@ -456,6 +452,7 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
+        credential: 'test-credential',
         logger: logger,
         endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
         contextEncoded: 'SECRET-ENCODED-CONTEXT',
@@ -533,6 +530,7 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
+        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/prefix/'),
@@ -559,6 +557,7 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
+        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/?tag=a&tag=b'),

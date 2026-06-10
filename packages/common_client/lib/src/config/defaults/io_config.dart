@@ -43,6 +43,19 @@ final class DefaultEndpoints {
 
 final class CredentialConfig {
   CredentialType get credentialType => CredentialType.mobileKey;
+
+  /// Headers applied to every request. Every service on this platform
+  /// authenticates with the authorization header.
+  Map<String, String> baseHeaders(String credential, String userAgent) =>
+      {'user-agent': userAgent, 'authorization': credential};
+
+  /// Every transport on this platform supports custom headers, so no
+  /// query parameter authentication is needed.
+  Map<String, String> authQueryParameters(String credential) => const {};
+
+  /// A mobile key does not identify an environment; the environment ID
+  /// comes only from response headers.
+  String? environmentIdFallback(String credential) => null;
 }
 
 final class DefaultDataSourceConfig {

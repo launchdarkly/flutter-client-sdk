@@ -32,7 +32,14 @@ class DefaultEventPaths {
 }
 
 class NetworkConfig {
-  Set<String> get restrictedHeaders => {'user-agent', 'authorization'};
+  /// Browsers forbid setting the `user-agent` header. The authorization
+  /// header is not restricted: the data acquisition services' CORS
+  /// configuration allows it, and header authentication is preferred
+  /// wherever the transport supports custom headers. It must not be
+  /// added to the base headers, though -- the events service CORS
+  /// configuration does not allow it (see
+  /// [CredentialConfig.baseHeaders]).
+  Set<String> get restrictedHeaders => {'user-agent'};
 }
 
 final class DefaultEndpoints {
@@ -43,6 +50,25 @@ final class DefaultEndpoints {
 
 final class CredentialConfig {
   CredentialType get credentialType => CredentialType.clientSideId;
+
+  /// Headers applied to every request. The user agent is sent under a
+  /// vendor header because browsers forbid setting `user-agent`. The
+  /// authorization header is intentionally absent: the events service
+  /// CORS configuration does not permit it from browsers. Data
+  /// acquisition requests whose service allows it add the header
+  /// per-request instead.
+  Map<String, String> baseHeaders(String credential, String userAgent) =>
+      {'x-launchdarkly-user-agent': userAgent};
+
+  /// Authentication for requests whose transport cannot carry custom
+  /// headers. The browser's native EventSource cannot send headers, so
+  /// streaming requests authenticate with the `auth` query parameter.
+  Map<String, String> authQueryParameters(String credential) =>
+      {'auth': credential};
+
+  /// A client-side ID identifies the environment directly, so it serves
+  /// as the environment ID when response headers are unavailable.
+  String? environmentIdFallback(String credential) => credential;
 }
 
 final class DefaultDataSourceConfig {

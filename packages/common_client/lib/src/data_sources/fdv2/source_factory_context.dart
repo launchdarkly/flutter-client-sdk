@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
-import '../../config/defaults/credential_type.dart';
 import '../../config/defaults/default_config.dart';
 import 'cache_initializer.dart';
 import 'requestor.dart';
@@ -33,10 +32,9 @@ final class SourceFactoryContext {
   /// platform's credential is a client-side ID.
   final String credential;
 
-  /// Query parameters added to every FDv2 request for authentication.
-  /// Empty when the credential is carried in the authorization header
-  /// (mobile keys). For client-side IDs this carries `auth=<credential>`,
-  /// since the browser's native EventSource cannot send custom headers.
+  /// Authentication query parameters for requests whose transport cannot
+  /// carry custom headers (the browser's native EventSource). Empty on
+  /// platforms where every transport supports the authorization header.
   final Map<String, String> authQueryParameters;
 
   const SourceFactoryContext({
@@ -76,16 +74,8 @@ final class SourceFactoryContext {
       defaultPollingInterval: defaultPollingInterval,
       cachedFlagsReader: cachedFlagsReader,
       credential: credential,
-      authQueryParameters: switch (
-          DefaultConfig.credentialConfig.credentialType) {
-        // A mobile key is sent in the authorization header on every
-        // request via the configured HTTP properties.
-        CredentialType.mobileKey => const {},
-        // A client-side ID authenticates via the auth query parameter:
-        // FDv2 paths do not embed the credential, and the browser's
-        // native EventSource cannot send custom headers.
-        CredentialType.clientSideId => {'auth': credential},
-      },
+      authQueryParameters:
+          DefaultConfig.credentialConfig.authQueryParameters(credential),
       httpClientFactory: httpClientFactory,
     );
   }

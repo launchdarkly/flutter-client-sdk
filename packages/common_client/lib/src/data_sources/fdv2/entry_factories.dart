@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
-import '../../config/defaults/credential_type.dart';
 import '../../config/defaults/default_config.dart';
 import '../../config/service_endpoints.dart' as client_endpoints;
 import '../streaming_data_source.dart' show LDLoggerToEventSourceAdapter;
@@ -57,8 +56,8 @@ FDv2PollingBase _buildPollingBase({
     contextJson: ctx.contextJson,
     usePost: usePost,
     withReasons: ctx.withReasons,
+    credential: ctx.credential,
     httpProperties: ctx.httpProperties,
-    additionalQueryParameters: ctx.authQueryParameters,
     httpClientFactory: ctx.httpClientFactory ?? _defaultHttpClientFactory,
   );
   return FDv2PollingBase(
@@ -274,14 +273,10 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
               pingHandler: () =>
                   pingPollingBase.pollOnce(basis: selectorGetter()),
               logger: ctx.logger,
-              // A client-side ID identifies the environment directly;
-              // useful when the transport exposes no response headers
-              // (the browser EventSource) to read x-ld-envid from.
-              defaultEnvironmentId:
-                  DefaultConfig.credentialConfig.credentialType ==
-                          CredentialType.clientSideId
-                      ? ctx.credential
-                      : null,
+              // Used when the transport exposes no response headers (the
+              // browser EventSource) to read x-ld-envid from.
+              defaultEnvironmentId: DefaultConfig.credentialConfig
+                  .environmentIdFallback(ctx.credential),
             ),
           );
         },
