@@ -54,7 +54,6 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   final Duration _fallbackTimeout;
   final Duration _recoveryTimeout;
   final Duration _recycleDelay;
-  final ConditionTimerFactory? _conditionTimerFactory;
   final LDLogger _logger;
 
   final StreamController<DataSourceEvent> _controller =
@@ -79,7 +78,6 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     Duration fallbackTimeout = defaultFallbackTimeout,
     Duration recoveryTimeout = defaultRecoveryTimeout,
     Duration recycleDelay = const Duration(seconds: 1),
-    ConditionTimerFactory? conditionTimerFactory,
   })  : _initializerFactories = initializerFactories,
         _synchronizerSlots = synchronizerSlots,
         _selectorUpdater = selectorUpdater,
@@ -87,7 +85,6 @@ final class FDv2DataSourceOrchestrator implements DataSource {
         _fallbackTimeout = fallbackTimeout,
         _recoveryTimeout = recoveryTimeout,
         _recycleDelay = recycleDelay,
-        _conditionTimerFactory = conditionTimerFactory,
         _logger = logger.subLogger('FDv2Orchestrator'),
         _sourceManager = SourceManager(
           initializerFactories: initializerFactories,
@@ -316,7 +313,6 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       isPrimary: _sourceManager.isPrimarySynchronizer,
       fallbackTimeout: _fallbackTimeout,
       recoveryTimeout: _recoveryTimeout,
-      timerFactory: _conditionTimerFactory,
     );
 
     final outcome = Completer<_SynchronizerOutcome>();

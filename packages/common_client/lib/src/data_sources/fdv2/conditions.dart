@@ -43,21 +43,12 @@ abstract interface class Condition {
   void close();
 }
 
-/// Constructs a [Timer] that fires once after a duration. Tests inject a
-/// fake to control time.
-typedef ConditionTimerFactory = Timer Function(
-    Duration duration, void Function() callback);
-
-Timer _defaultTimerFactory(Duration duration, void Function() callback) =>
-    Timer(duration, callback);
-
 final class _TimedCondition implements Condition {
   final Duration _timeout;
   final ConditionType _type;
   final void Function(FDv2SourceResult result,
       {required void Function() start,
       required void Function() cancel})? _informHandler;
-  final ConditionTimerFactory _timerFactory;
 
   final StreamController<ConditionType> _controller =
       StreamController<ConditionType>();
@@ -70,11 +61,9 @@ final class _TimedCondition implements Condition {
     void Function(FDv2SourceResult result,
             {required void Function() start, required void Function() cancel})?
         informHandler,
-    ConditionTimerFactory? timerFactory,
   })  : _timeout = timeout,
         _type = type,
-        _informHandler = informHandler,
-        _timerFactory = timerFactory ?? _defaultTimerFactory {
+        _informHandler = informHandler {
     // Without an inform handler the timer starts immediately (recovery
     // behavior). With one, the handler decides when to start it.
     if (_informHandler == null) {
@@ -84,7 +73,7 @@ final class _TimedCondition implements Condition {
 
   void _startTimer() {
     if (_timer != null || _closed) return;
-    _timer = _timerFactory(_timeout, () {
+    _timer = Timer(_timeout, () {
       _timer = null;
       if (_closed) return;
       _closed = true;
@@ -122,12 +111,10 @@ final class _TimedCondition implements Condition {
 /// interrupted status is received and cancels it when a change set is
 /// received. If the timer fires, the condition emits
 /// [ConditionType.fallback].
-Condition createFallbackCondition(Duration timeout,
-    {ConditionTimerFactory? timerFactory}) {
+Condition createFallbackCondition(Duration timeout) {
   return _TimedCondition(
     timeout: timeout,
     type: ConditionType.fallback,
-    timerFactory: timerFactory,
     informHandler: (result, {required start, required cancel}) {
       switch (result) {
         case ChangeSetResult():
@@ -144,12 +131,10 @@ Condition createFallbackCondition(Duration timeout,
 /// Creates a recovery condition. The timer starts immediately and the
 /// condition emits [ConditionType.recovery] when it fires. Results do
 /// not affect it.
-Condition createRecoveryCondition(Duration timeout,
-    {ConditionTimerFactory? timerFactory}) {
+Condition createRecoveryCondition(Duration timeout) {
   return _TimedCondition(
     timeout: timeout,
     type: ConditionType.recovery,
-    timerFactory: timerFactory,
   );
 }
 
@@ -230,19 +215,17 @@ ConditionGroup getConditions({
   required bool isPrimary,
   Duration fallbackTimeout = defaultFallbackTimeout,
   Duration recoveryTimeout = defaultRecoveryTimeout,
-  ConditionTimerFactory? timerFactory,
 }) {
   if (availableSynchronizerCount <= 1) {
     return ConditionGroup(const []);
   }
 
   if (isPrimary) {
-    return ConditionGroup(
-        [createFallbackCondition(fallbackTimeout, timerFactory: timerFactory)]);
+    return ConditionGroup([createFallbackCondition(fallbackTimeout)]);
   }
 
   return ConditionGroup([
-    createFallbackCondition(fallbackTimeout, timerFactory: timerFactory),
-    createRecoveryCondition(recoveryTimeout, timerFactory: timerFactory),
+    createFallbackCondition(fallbackTimeout),
+    createRecoveryCondition(recoveryTimeout),
   ]);
 }

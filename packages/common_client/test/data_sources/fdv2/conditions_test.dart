@@ -1,52 +1,8 @@
-import 'dart:async';
-
+import 'package:fake_async/fake_async.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/conditions.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_result.dart';
 import 'package:test/test.dart';
-
-class FakeTimer implements Timer {
-  final Duration duration;
-  void Function()? _callback;
-
-  FakeTimer(this.duration, this._callback);
-
-  void fire() {
-    final callback = _callback;
-    _callback = null;
-    callback?.call();
-  }
-
-  @override
-  void cancel() {
-    _callback = null;
-  }
-
-  @override
-  bool get isActive => _callback != null;
-
-  @override
-  int get tick => 0;
-}
-
-class FakeTimerFactory {
-  final List<FakeTimer> timers = [];
-
-  Timer call(Duration duration, void Function() callback) {
-    final timer = FakeTimer(duration, callback);
-    timers.add(timer);
-    return timer;
-  }
-
-  FakeTimer? get activeTimer {
-    for (var i = timers.length - 1; i >= 0; i--) {
-      if (timers[i].isActive) {
-        return timers[i];
-      }
-    }
-    return null;
-  }
-}
 
 ChangeSetResult _changeSet() => const ChangeSetResult(
       payload: Payload(type: PayloadType.full, updates: []),
@@ -54,180 +10,213 @@ ChangeSetResult _changeSet() => const ChangeSetResult(
     );
 
 void main() {
-  test('fallback condition starts its timer on interrupted and emits',
-      () async {
-    final timers = FakeTimerFactory();
-    final condition = createFallbackCondition(const Duration(seconds: 120),
-        timerFactory: timers.call);
-    final emissions = <ConditionType>[];
-    condition.events.listen(emissions.add);
+  test('fallback condition starts its timer on interrupted and emits', () {
+    fakeAsync((async) {
+      final condition = createFallbackCondition(const Duration(seconds: 120));
+      final emissions = <ConditionType>[];
+      condition.events.listen(emissions.add);
 
-    expect(timers.activeTimer, isNull,
-        reason: 'the timer does not start until an interruption');
+      expect(async.pendingTimers, isEmpty,
+          reason: 'the timer does not start until an interruption');
 
-    condition.inform(FDv2SourceResults.interrupted(message: 'down'));
-    expect(timers.activeTimer, isNotNull);
-    expect(timers.activeTimer!.duration, const Duration(seconds: 120));
+      condition.inform(FDv2SourceResults.interrupted(message: 'down'));
+      expect(async.pendingTimers, hasLength(1));
+      expect(async.pendingTimers.single.duration, const Duration(seconds: 120));
 
-    timers.activeTimer!.fire();
-    await Future<void>.delayed(Duration.zero);
-    expect(emissions, equals([ConditionType.fallback]));
+      async.elapse(const Duration(seconds: 120));
+      expect(emissions, equals([ConditionType.fallback]));
+    });
   });
 
   test('fallback condition cancels its timer when data arrives', () {
-    final timers = FakeTimerFactory();
-    final condition = createFallbackCondition(const Duration(seconds: 120),
-        timerFactory: timers.call);
+    fakeAsync((async) {
+      final condition = createFallbackCondition(const Duration(seconds: 120));
+      final emissions = <ConditionType>[];
+      condition.events.listen(emissions.add);
 
-    condition.inform(FDv2SourceResults.interrupted(message: 'down'));
-    expect(timers.activeTimer, isNotNull);
+      condition.inform(FDv2SourceResults.interrupted(message: 'down'));
+      expect(async.pendingTimers, hasLength(1));
 
-    condition.inform(_changeSet());
-    expect(timers.activeTimer, isNull);
+      condition.inform(_changeSet());
+      expect(async.pendingTimers, isEmpty);
+
+      async.elapse(const Duration(seconds: 300));
+      expect(emissions, isEmpty);
+    });
   });
 
-  test('recovery condition starts immediately and ignores results', () async {
-    final timers = FakeTimerFactory();
-    final condition = createRecoveryCondition(const Duration(seconds: 300),
-        timerFactory: timers.call);
-    final emissions = <ConditionType>[];
-    condition.events.listen(emissions.add);
+  test('recovery condition starts immediately and ignores results', () {
+    fakeAsync((async) {
+      final condition = createRecoveryCondition(const Duration(seconds: 300));
+      final emissions = <ConditionType>[];
+      condition.events.listen(emissions.add);
 
-    expect(timers.activeTimer, isNotNull);
-    condition.inform(_changeSet());
-    expect(timers.activeTimer, isNotNull,
-        reason: 'data does not cancel recovery');
+      expect(async.pendingTimers, hasLength(1));
+      condition.inform(_changeSet());
+      expect(async.pendingTimers, hasLength(1),
+          reason: 'data does not cancel recovery');
 
-    timers.activeTimer!.fire();
-    await Future<void>.delayed(Duration.zero);
-    expect(emissions, equals([ConditionType.recovery]));
+      async.elapse(const Duration(seconds: 300));
+      expect(emissions, equals([ConditionType.recovery]));
+    });
   });
 
-  test('a fired condition emits exactly once and closes its stream', () async {
-    final timers = FakeTimerFactory();
-    final condition = createFallbackCondition(const Duration(seconds: 120),
-        timerFactory: timers.call);
+  test('a fired condition emits exactly once and closes its stream', () {
+    fakeAsync((async) {
+      final condition = createFallbackCondition(const Duration(seconds: 120));
+      final emissions = <ConditionType>[];
+      var done = false;
+      condition.events.listen(emissions.add, onDone: () => done = true);
 
-    final expectation = expectLater(
-        condition.events, emitsInOrder([ConditionType.fallback, emitsDone]));
+      condition.inform(FDv2SourceResults.interrupted(message: 'down'));
+      async.elapse(const Duration(seconds: 120));
 
-    condition.inform(FDv2SourceResults.interrupted(message: 'down'));
-    timers.activeTimer!.fire();
-    // After firing, further informs cannot re-arm the timer.
-    condition.inform(FDv2SourceResults.interrupted(message: 'down again'));
-    expect(timers.activeTimer, isNull);
+      // After firing, further informs cannot re-arm the timer.
+      condition.inform(FDv2SourceResults.interrupted(message: 'down again'));
+      expect(async.pendingTimers, isEmpty);
 
-    await expectation;
+      async.flushMicrotasks();
+      expect(emissions, equals([ConditionType.fallback]));
+      expect(done, isTrue);
+    });
   });
 
-  test('a closed condition closes its stream without emitting', () async {
-    final timers = FakeTimerFactory();
-    final condition = createRecoveryCondition(const Duration(seconds: 300),
-        timerFactory: timers.call);
+  test('a closed condition closes its stream without emitting', () {
+    fakeAsync((async) {
+      final condition = createRecoveryCondition(const Duration(seconds: 300));
+      final emissions = <ConditionType>[];
+      var done = false;
+      condition.events.listen(emissions.add, onDone: () => done = true);
 
-    final expectation = expectLater(condition.events, emitsDone);
-    condition.close();
-    expect(timers.activeTimer, isNull);
-    await expectation;
+      condition.close();
+      expect(async.pendingTimers, isEmpty);
+
+      async.elapse(const Duration(seconds: 300));
+      expect(emissions, isEmpty);
+      expect(done, isTrue);
+    });
   });
 
-  test('cancelling a subscription detaches the consumer', () async {
-    final timers = FakeTimerFactory();
-    final condition = createRecoveryCondition(const Duration(seconds: 300),
-        timerFactory: timers.call);
-    final emissions = <ConditionType>[];
+  test('cancelling a subscription detaches the consumer', () {
+    fakeAsync((async) {
+      final condition = createRecoveryCondition(const Duration(seconds: 300));
+      final emissions = <ConditionType>[];
 
-    final subscription = condition.events.listen(emissions.add);
-    await subscription.cancel();
+      final subscription = condition.events.listen(emissions.add);
+      subscription.cancel();
 
-    timers.activeTimer?.fire();
-    await Future<void>.delayed(Duration.zero);
-    expect(emissions, isEmpty);
-    condition.close();
+      async.elapse(const Duration(seconds: 300));
+      expect(emissions, isEmpty);
+      condition.close();
+    });
   });
 
   group('ConditionGroup', () {
-    test('emits the first member condition to fire, then closes', () async {
-      final timers = FakeTimerFactory();
-      final fallback = createFallbackCondition(const Duration(seconds: 120),
-          timerFactory: timers.call);
-      final recovery = createRecoveryCondition(const Duration(seconds: 300),
-          timerFactory: timers.call);
-      final group = ConditionGroup([fallback, recovery]);
+    test('emits the first member condition to fire, then closes', () {
+      fakeAsync((async) {
+        final group = ConditionGroup([
+          createFallbackCondition(const Duration(seconds: 120)),
+          createRecoveryCondition(const Duration(seconds: 300)),
+        ]);
+        final emissions = <ConditionType>[];
+        var done = false;
+        group.events.listen(emissions.add, onDone: () => done = true);
 
-      final expectation = expectLater(
-          group.events, emitsInOrder([ConditionType.recovery, emitsDone]));
-
-      // Only the recovery timer is running; fire it.
-      timers.activeTimer!.fire();
-      await expectation;
+        // Only the recovery timer is running; fire it.
+        async.elapse(const Duration(seconds: 300));
+        expect(emissions, equals([ConditionType.recovery]));
+        expect(done, isTrue);
+      });
     });
 
     test('inform reaches every member condition', () {
-      final timers = FakeTimerFactory();
-      final fallback = createFallbackCondition(const Duration(seconds: 120),
-          timerFactory: timers.call);
-      final group = ConditionGroup([fallback]);
+      fakeAsync((async) {
+        final group = ConditionGroup(
+            [createFallbackCondition(const Duration(seconds: 120))]);
+        group.events.listen((_) {});
 
-      expect(timers.activeTimer, isNull);
-      group.inform(FDv2SourceResults.interrupted(message: 'down'));
-      expect(timers.activeTimer, isNotNull);
-      group.close();
+        expect(async.pendingTimers, isEmpty);
+        group.inform(FDv2SourceResults.interrupted(message: 'down'));
+        expect(async.pendingTimers, hasLength(1));
+        group.close();
+      });
     });
 
-    test('an empty group closes without emitting', () async {
-      final group = ConditionGroup(const []);
-      await expectLater(group.events, emitsDone);
+    test('an empty group closes without emitting', () {
+      fakeAsync((async) {
+        final group = ConditionGroup(const []);
+        final emissions = <ConditionType>[];
+        var done = false;
+        group.events.listen(emissions.add, onDone: () => done = true);
+
+        async.flushMicrotasks();
+        expect(emissions, isEmpty);
+        expect(done, isTrue);
+      });
     });
 
-    test('close closes the members and the merged stream without emitting',
-        () async {
-      final timers = FakeTimerFactory();
-      final recovery = createRecoveryCondition(const Duration(seconds: 300),
-          timerFactory: timers.call);
-      final group = ConditionGroup([recovery]);
+    test('close closes the members and the merged stream without emitting', () {
+      fakeAsync((async) {
+        final group = ConditionGroup(
+            [createRecoveryCondition(const Duration(seconds: 300))]);
+        final emissions = <ConditionType>[];
+        var done = false;
+        group.events.listen(emissions.add, onDone: () => done = true);
 
-      final expectation = expectLater(group.events, emitsDone);
-      group.close();
-      expect(timers.activeTimer, isNull,
-          reason: 'closing the group cancels member timers');
-      await expectation;
+        group.close();
+        expect(async.pendingTimers, isEmpty,
+            reason: 'closing the group cancels member timers');
+
+        async.elapse(const Duration(seconds: 300));
+        expect(emissions, isEmpty);
+        expect(done, isTrue);
+      });
     });
   });
 
   group('getConditions', () {
-    test('no conditions with a single available synchronizer', () async {
-      final group = getConditions(
-        availableSynchronizerCount: 1,
-        isPrimary: true,
-      );
-      await expectLater(group.events, emitsDone);
+    test('no conditions with a single available synchronizer', () {
+      fakeAsync((async) {
+        final group = getConditions(
+          availableSynchronizerCount: 1,
+          isPrimary: true,
+        );
+        var done = false;
+        group.events.listen((_) {}, onDone: () => done = true);
+
+        async.flushMicrotasks();
+        expect(done, isTrue);
+      });
     });
 
     test('primary synchronizer gets only a fallback condition', () {
-      final timers = FakeTimerFactory();
-      final group = getConditions(
-        availableSynchronizerCount: 2,
-        isPrimary: true,
-        timerFactory: timers.call,
-      );
-      group.events.listen((_) {});
-      expect(timers.activeTimer, isNull,
-          reason: 'a recovery condition would have started a timer');
-      group.close();
+      fakeAsync((async) {
+        final group = getConditions(
+          availableSynchronizerCount: 2,
+          isPrimary: true,
+        );
+        group.events.listen((_) {});
+
+        expect(async.pendingTimers, isEmpty,
+            reason: 'a recovery condition would have started a timer');
+        group.close();
+      });
     });
 
     test('non-primary synchronizer also gets a recovery condition', () {
-      final timers = FakeTimerFactory();
-      final group = getConditions(
-        availableSynchronizerCount: 2,
-        isPrimary: false,
-        timerFactory: timers.call,
-      );
-      group.events.listen((_) {});
-      expect(timers.activeTimer, isNotNull,
-          reason: 'the recovery timer starts immediately');
-      group.close();
+      fakeAsync((async) {
+        final group = getConditions(
+          availableSynchronizerCount: 2,
+          isPrimary: false,
+        );
+        final emissions = <ConditionType>[];
+        group.events.listen(emissions.add);
+
+        expect(async.pendingTimers, hasLength(1),
+            reason: 'the recovery timer starts immediately');
+        async.elapse(const Duration(seconds: 300));
+        expect(emissions, equals([ConditionType.recovery]));
+      });
     });
   });
 }
