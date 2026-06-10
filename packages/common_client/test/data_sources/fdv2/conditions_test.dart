@@ -45,10 +45,13 @@ void main() {
     });
   });
 
-  test('recovery condition starts immediately and ignores results', () {
+  test('recovery condition starts when listened to and ignores results', () {
     fakeAsync((async) {
       final condition = createRecoveryCondition(const Duration(seconds: 300));
       final emissions = <ConditionType>[];
+
+      expect(async.pendingTimers, isEmpty,
+          reason: 'the recovery clock starts when the condition is observed');
       condition.events.listen(emissions.add);
 
       expect(async.pendingTimers, hasLength(1));
@@ -97,17 +100,53 @@ void main() {
     });
   });
 
-  test('cancelling a subscription detaches the consumer', () {
+  test('cancelling a subscription closes the condition and its timer', () {
     fakeAsync((async) {
       final condition = createRecoveryCondition(const Duration(seconds: 300));
       final emissions = <ConditionType>[];
 
       final subscription = condition.events.listen(emissions.add);
+      expect(async.pendingTimers, hasLength(1));
+
       subscription.cancel();
+      async.flushMicrotasks();
+      expect(async.pendingTimers, isEmpty,
+          reason: 'the condition lifetime is scoped to the subscription');
 
       async.elapse(const Duration(seconds: 300));
       expect(emissions, isEmpty);
+    });
+  });
+
+  test('terminal statuses do not arm the fallback timer', () {
+    fakeAsync((async) {
+      final condition = createFallbackCondition(const Duration(seconds: 120));
+      condition.events.listen((_) {});
+
+      condition.inform(FDv2SourceResults.terminalError(message: 'denied'));
+      condition.inform(FDv2SourceResults.shutdown(message: 'closed'));
+      condition.inform(FDv2SourceResults.goodbyeResult(message: 'bye'));
+
+      expect(async.pendingTimers, isEmpty,
+          reason: 'the orchestrator reacts to terminal statuses '
+              'immediately rather than waiting out a fallback period');
       condition.close();
+    });
+  });
+
+  test('a second interruption does not extend the fallback deadline', () {
+    fakeAsync((async) {
+      final condition = createFallbackCondition(const Duration(seconds: 120));
+      final emissions = <ConditionType>[];
+      condition.events.listen(emissions.add);
+
+      condition.inform(FDv2SourceResults.interrupted(message: 'down'));
+      async.elapse(const Duration(seconds: 60));
+      condition.inform(FDv2SourceResults.interrupted(message: 'still down'));
+      async.elapse(const Duration(seconds: 60));
+
+      expect(emissions, equals([ConditionType.fallback]),
+          reason: 'the fallback period counts from the first interruption');
     });
   });
 
@@ -126,6 +165,54 @@ void main() {
         async.elapse(const Duration(seconds: 300));
         expect(emissions, equals([ConditionType.recovery]));
         expect(done, isTrue);
+      });
+    });
+
+    test('emits exactly once when two member timers contend', () {
+      fakeAsync((async) {
+        final group = ConditionGroup([
+          createFallbackCondition(const Duration(seconds: 120)),
+          createRecoveryCondition(const Duration(seconds: 120)),
+        ]);
+        final emissions = <ConditionType>[];
+        var done = false;
+        group.events.listen(emissions.add, onDone: () => done = true);
+
+        // Arm the fallback timer so both members are due at the same
+        // instant.
+        group.inform(FDv2SourceResults.interrupted(message: 'down'));
+        expect(async.pendingTimers, hasLength(2));
+
+        async.elapse(const Duration(seconds: 120));
+        expect(emissions, hasLength(1),
+            reason: 'the first member to fire wins; the loser must not '
+                'produce a second emission');
+        expect(done, isTrue);
+      });
+    });
+
+    test('cancelling the subscription closes the group and member timers', () {
+      fakeAsync((async) {
+        final group = ConditionGroup([
+          createFallbackCondition(const Duration(seconds: 120)),
+          createRecoveryCondition(const Duration(seconds: 300)),
+        ]);
+        final emissions = <ConditionType>[];
+        final subscription = group.events.listen(emissions.add);
+        group.inform(FDv2SourceResults.interrupted(message: 'down'));
+        expect(async.pendingTimers, hasLength(2));
+
+        subscription.cancel();
+        async.flushMicrotasks();
+        expect(async.pendingTimers, isEmpty,
+            reason: 'the group lifetime is scoped to the subscription');
+
+        group.inform(FDv2SourceResults.interrupted(message: 'down again'));
+        expect(async.pendingTimers, isEmpty,
+            reason: 'a closed group does not forward informs');
+
+        async.elapse(const Duration(seconds: 300));
+        expect(emissions, isEmpty);
       });
     });
 

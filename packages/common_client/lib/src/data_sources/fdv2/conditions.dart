@@ -33,6 +33,12 @@ abstract interface class Condition {
   /// Single-subscription stream that emits at most one [ConditionType]
   /// when the condition fires and then closes. Closes without emitting
   /// if the condition is closed first.
+  ///
+  /// The condition's lifetime is scoped to the subscription: timers that
+  /// start on their own start when the stream is listened to, and
+  /// cancelling the subscription closes the condition. A condition that
+  /// is informed but never listened to can hold a timer until its
+  /// timeout elapses; call [close] to release it early.
   Stream<ConditionType> get events;
 
   /// Inform the condition about a synchronizer result. Some conditions
@@ -50,8 +56,11 @@ final class _TimedCondition implements Condition {
       {required void Function() start,
       required void Function() cancel})? _informHandler;
 
-  final StreamController<ConditionType> _controller =
-      StreamController<ConditionType>();
+  late final StreamController<ConditionType> _controller =
+      StreamController<ConditionType>(
+    onListen: _onListen,
+    onCancel: close,
+  );
   Timer? _timer;
   bool _closed = false;
 
@@ -61,11 +70,15 @@ final class _TimedCondition implements Condition {
     void Function(FDv2SourceResult result,
             {required void Function() start, required void Function() cancel})?
         informHandler,
-  })  : _timeout = timeout,
+  })  : assert(timeout > Duration.zero),
+        _timeout = timeout,
         _type = type,
-        _informHandler = informHandler {
-    // Without an inform handler the timer starts immediately (recovery
-    // behavior). With one, the handler decides when to start it.
+        _informHandler = informHandler;
+
+  void _onListen() {
+    // Without an inform handler the timer starts as soon as the
+    // condition is observed (recovery behavior). With one, the handler
+    // decides when to start it.
     if (_informHandler == null) {
       _startTimer();
     }
@@ -111,6 +124,12 @@ final class _TimedCondition implements Condition {
 /// interrupted status is received and cancels it when a change set is
 /// received. If the timer fires, the condition emits
 /// [ConditionType.fallback].
+///
+/// Terminal statuses (shutdown, terminal error, goodbye) do not arm the
+/// timer: the orchestrator reacts to those immediately, out of band,
+/// rather than waiting out a fallback period. The timer is also not
+/// re-armed by repeated interruptions; the fallback period counts from
+/// the first interruption.
 Condition createFallbackCondition(Duration timeout) {
   return _TimedCondition(
     timeout: timeout,
@@ -145,7 +164,10 @@ final class ConditionGroup {
   final List<StreamSubscription<ConditionType>> _subscriptions = [];
 
   late final StreamController<ConditionType> _controller =
-      StreamController<ConditionType>(onListen: _subscribe);
+      StreamController<ConditionType>(
+    onListen: _subscribe,
+    onCancel: close,
+  );
   bool _fired = false;
   bool _closed = false;
 
@@ -154,6 +176,12 @@ final class ConditionGroup {
   /// Single-subscription stream that emits at most one [ConditionType]
   /// (the first member condition to fire) and then closes. Closes
   /// without emitting if the group is empty or closed first.
+  ///
+  /// The group's lifetime is scoped to the subscription: member timers
+  /// that start on their own start when the stream is listened to, and
+  /// cancelling the subscription closes the group and its members. A
+  /// group that is informed but never listened to can hold a timer
+  /// until its timeout elapses; call [close] to release it early.
   Stream<ConditionType> get events => _controller.stream;
 
   void _subscribe() {
@@ -176,6 +204,7 @@ final class ConditionGroup {
 
   /// Broadcast a result to all conditions.
   void inform(FDv2SourceResult result) {
+    if (_closed) return;
     for (final condition in _conditions) {
       condition.inform(result);
     }
