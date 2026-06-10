@@ -171,7 +171,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   /// True when the source indicated an FDv1 fallback directive and a
   /// fallback tier exists to engage.
   bool _handleFdv1Fallback(FDv2SourceResult result) {
-    if (result.fdv1Fallback && _sourceManager.hasFdv1Fallback) {
+    if (result.fdv1Fallback && _sourceManager.hasFdv1FallbackConfigured) {
       _logger.warn('Server directed fallback to FDv1; engaging the FDv1 '
           'fallback synchronizer.');
       _sourceManager.engageFdv1Fallback();
