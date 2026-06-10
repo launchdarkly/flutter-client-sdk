@@ -314,15 +314,8 @@ final class LDCommonClient {
 
     final userAgentString = '${_sdkData.name}/${_sdkData.version}';
 
-    switch (DefaultConfig.credentialConfig.credentialType) {
-      case CredentialType.mobileKey:
-        additionalHeaders['user-agent'] = userAgentString;
-        // When using a mobile key the credential appears in the headers. For
-        // a client-side ID the credential is in the URL.
-        additionalHeaders['authorization'] = _config.sdkCredential;
-      case CredentialType.clientSideId:
-        additionalHeaders['x-launchdarkly-user-agent'] = userAgentString;
-    }
+    additionalHeaders.addAll(DefaultConfig.credentialConfig
+        .baseHeaders(_config.sdkCredential, userAgentString));
 
     return _config.httpProperties.withHeaders(additionalHeaders);
   }
