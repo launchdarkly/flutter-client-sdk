@@ -101,12 +101,31 @@ final class ConnectionManagerConfig {
   /// retry logic.
   final bool disableAutomaticBackgroundHandling;
 
+  /// Window across which lifecycle, network, and user-mode-override signals
+  /// are debounced before automatic resolution runs. A value of
+  /// [Duration.zero] disables debouncing (signals apply synchronously).
+  /// Defaults to one second.
+  final Duration debounceWindow;
+
+  /// The application's lifecycle state at construction time. Used to seed
+  /// the manager's initial lifecycle assumption so the SDK doesn't default
+  /// to foreground when the host platform already knows the app launched
+  /// into the background. Callers that can query the platform synchronously
+  /// (e.g. via [SchedulerBinding.instance.lifecycleState]) should pass the
+  /// resolved value here; callers without that information should leave
+  /// the default.
+  ///
+  /// Defaults to [ApplicationState.foreground].
+  final ApplicationState initialApplicationState;
+
   ConnectionManagerConfig({
     this.initialConnectionMode = ConnectionMode.streaming,
     this.backgroundConnectionMode = const FDv2Offline(),
     this.runInBackground = true,
     this.disableAutomaticBackgroundHandling = false,
     this.disableAutomaticNetworkHandling = false,
+    this.debounceWindow = const Duration(seconds: 1),
+    this.initialApplicationState = ApplicationState.foreground,
   });
 }
 
@@ -127,6 +146,8 @@ final class ConnectionManager {
   final StateDetector _detector;
   final ConnectionDestination _destination;
   final List<ModeResolutionEntry> _resolutionTable;
+  late final StateDebounceManager _debouncer;
+  late final StreamSubscription<DebouncedState> _debounceSub;
 
   StreamSubscription<ApplicationState>? _applicationStateSub;
   StreamSubscription<NetworkState>? _networkStateSub;
@@ -140,6 +161,11 @@ final class ConnectionManager {
 
   bool _offline = false;
 
+  /// Whether the SDK has been explicitly placed in the offline state.
+  ///
+  /// Assigning this property synchronously drives the resolved mode to
+  /// offline (or back to automatic resolution when set to `false`). It
+  /// intentionally bypasses the debounce window.
   bool get offline => _offline;
 
   set offline(bool offline) {
@@ -157,29 +183,58 @@ final class ConnectionManager {
         _config = config,
         _destination = destination,
         _resolutionTable = resolutionTable ?? flutterDefaultResolutionTable(),
-        _applicationState = ApplicationState.foreground,
+        _applicationState = config.initialApplicationState,
+        // Network has no synchronous platform API; start optimistic. If
+        // the network is actually unavailable, the first detector emission
+        // will trigger a debounced reconcile that flips us to offline.
+        // The common case (network available) is the best performing default.
         _networkState = NetworkState.available,
         _detector = detector {
+    _debouncer = StateDebounceManager(
+      initialState: DebouncedState(
+        networkAvailable: true,
+        inForeground:
+            config.initialApplicationState == ApplicationState.foreground,
+        requestedMode: null,
+      ),
+      debounceWindow: config.debounceWindow,
+    );
+    _debounceSub = _debouncer.stream.listen(_onDebounceReconcile);
+
     if (!_config.disableAutomaticBackgroundHandling) {
       _applicationStateSub =
-          detector.applicationState.listen((applicationState) {
-        // TODO (SDK-2187): plumb in debouncer here
-
-        _applicationState = applicationState;
-        _handleState();
-      });
+          detector.applicationState.listen(_onApplicationStateChanged);
     }
 
     if (!_config.disableAutomaticNetworkHandling) {
-      _networkStateSub = detector.networkState.listen((networkState) {
-        // TODO (SDK-2187): plumb in debouncer here
-
-        _networkState = networkState;
-        _destination
-            .setNetworkAvailability(networkState == NetworkState.available);
-        _handleState();
-      });
+      _networkStateSub = detector.networkState.listen(_onNetworkStateChanged);
     }
+  }
+
+  void _onApplicationStateChanged(ApplicationState newState) {
+    // Flushing on transition to background must not be debounced
+    if (newState == ApplicationState.background &&
+        _applicationState == ApplicationState.foreground &&
+        !_offline) {
+      _destination.flush();
+    }
+    _applicationState = newState;
+    _debouncer.setInForeground(newState == ApplicationState.foreground);
+  }
+
+  void _onNetworkStateChanged(NetworkState newState) {
+    _networkState = newState;
+    // Network-availability propagation to the destination is not debounced.
+    // It informs the underlying client's analytics-sending state, separate
+    // from the mode-resolution decision that the debouncer governs.
+    _destination.setNetworkAvailability(newState == NetworkState.available);
+    _debouncer.setNetworkAvailable(newState == NetworkState.available);
+  }
+
+  void _onDebounceReconcile(DebouncedState _) {
+    // The debouncer's snapshot is intentionally ignored; this manager owns
+    // the canonical view of lifecycle, network, override, and offline state.
+    _handleState();
   }
 
   void _handleState() {
@@ -228,14 +283,18 @@ final class ConnectionManager {
   void dispose() {
     _applicationStateSub?.cancel();
     _networkStateSub?.cancel();
+    _debounceSub.cancel();
+    _debouncer.close();
     _detector.dispose();
   }
 
-  /// Set the desired connection mode for the SDK. Passing null clears the
-  /// override and resumes automatic mode resolution.
+  /// Set the desired connection mode for the SDK. Setting an override takes
+  /// effect synchronously so subsequent automatic transitions are suppressed
+  /// immediately; applying the resolved mode is debounced. Passing null
+  /// clears the override and resumes automatic mode resolution.
   void setMode(FDv2ConnectionMode? mode) {
     _modeOverride = mode;
-    _handleState();
+    _debouncer.setRequestedMode(mode);
   }
 }
 
