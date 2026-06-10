@@ -68,6 +68,12 @@ enum SseHttpMethod {
 /// In certain cases, unrecoverable errors will be reported on the [stream] at
 /// which point the stream will be done.
 ///
+/// On `html` platforms the client is incapable of reporting unrecoverable
+/// errors: the browser's native `EventSource` exposes no HTTP status codes
+/// or response headers, so every failure is treated as recoverable and
+/// retried with backoff indefinitely, and no error is ever reported on the
+/// [stream].
+///
 /// The [SSEClient] will make best effort to maintain the streaming connection.
 abstract class SSEClient {
   static const defaultHeaders = <String, String>{
@@ -107,8 +113,10 @@ abstract class SSEClient {
   /// Factory constructor to return the platform implementation.
   ///
   /// On all platforms, the [uri] and [eventTypes] arguments are required.
-  /// On majority of platforms, the optional arguments are used.
-  /// On web, the optional arguments are not used.
+  /// On majority of platforms, the optional arguments are used. On web,
+  /// the [headers], [connectTimeout], [readTimeout], [body], and
+  /// [httpMethod] arguments are not used; the standard `EventSource`
+  /// does not support them.
   ///
   /// The [uri] specifies where to connect.  The [eventTypes] determines which
   /// event types will be emitted.  For non-web platforms, pass in [headers] to
@@ -132,8 +140,8 @@ abstract class SSEClient {
   /// connection attempt (including automatic reconnects) and its result is
   /// used in place of [uri]. This allows query parameters to vary between
   /// attempts (e.g. a state selector that advances as data is received).
-  /// On `html` platforms the provider is ignored; the standard `EventSource`
-  /// reconnects to its original URL.
+  /// Supported on all platforms; every implementation constructs each
+  /// connection attempt from the provider's result.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,
