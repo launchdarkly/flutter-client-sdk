@@ -12,6 +12,7 @@ import 'src/sse_client_stub.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
 import 'src/test_sse_client.dart';
 
+export 'src/errors.dart' show UnrecoverableStatusError;
 export 'src/events.dart' show Event, MessageEvent, OpenEvent;
 export 'src/test_sse_client.dart' show TestSseClient;
 export 'src/logging.dart'
@@ -126,19 +127,27 @@ abstract class SSEClient {
   ///
   /// An optional [logger] for controlling logging output from the SSE client.
   /// If not provided, a [NoOpLogger] will be used.
+  ///
+  /// An optional [uriProvider]. When provided, it is invoked before every
+  /// connection attempt (including automatic reconnects) and its result is
+  /// used in place of [uri]. This allows query parameters to vary between
+  /// attempts (e.g. a state selector that advances as data is received).
+  /// On `html` platforms the provider is ignored; the standard `EventSource`
+  /// reconnects to its original URL.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,
       Duration readTimeout = defaultReadTimeout,
       String? body,
       SseHttpMethod httpMethod = SseHttpMethod.get,
-      EventSourceLogger? logger}) {
+      EventSourceLogger? logger,
+      Uri Function()? uriProvider}) {
     // merge headers so consumer gets reasonable defaults
     var mergedHeaders = <String, String>{};
     mergedHeaders.addAll(defaultHeaders);
     mergedHeaders.addAll(headers);
     return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
-        readTimeout, body, httpMethod.toString(), logger);
+        readTimeout, body, httpMethod.toString(), logger, uriProvider);
   }
 
   /// Get an SSE client for use in unit tests.

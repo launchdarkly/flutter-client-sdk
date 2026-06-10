@@ -19,6 +19,11 @@ typedef ClientFactory = http.Client Function();
 class StateValues {
   // Non-transient configuration data
   final Uri uri;
+
+  /// When provided, produces the URI for each connection attempt. Invoked
+  /// on every (re)connect so callers can vary query parameters between
+  /// attempts (e.g. a state selector that advances as data is received).
+  final Uri Function()? uriProvider;
   final Set<String> eventTypes;
   final Map<String, String> headers;
   final Duration connectTimeout;
@@ -50,6 +55,9 @@ class StateValues {
   /// Headers received from the connection.
   Map<String, String>? connectHeaders;
 
+  /// The URI to use for the next connection attempt.
+  Uri get connectUri => uriProvider?.call() ?? uri;
+
   /// Creates a [_StateValues] instance.  Used by the state machine.
   StateValues(
       this.uri,
@@ -65,6 +73,7 @@ class StateValues {
       this.body,
       this.httpMethod,
       this.resetRequest,
-      this.logger)
+      this.logger,
+      {this.uriProvider})
       : backoff = Backoff(random);
 }
