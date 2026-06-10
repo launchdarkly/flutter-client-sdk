@@ -1,9 +1,7 @@
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
-    hide ServiceEndpoints;
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
-import '../../config/service_endpoints.dart';
 import 'cache_initializer.dart';
 import 'requestor.dart';
 

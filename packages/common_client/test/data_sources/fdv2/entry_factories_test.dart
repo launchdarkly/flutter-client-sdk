@@ -7,6 +7,7 @@ import 'package:launchdarkly_common_client/src/data_sources/fdv2/mode_definition
     hide CacheInitializer;
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/polling_synchronizer.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/streaming_synchronizer.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_result.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
@@ -113,12 +114,13 @@ void main() {
       sync.close();
     });
 
-    test('streaming synchronizer is unsupported', () {
+    test('builds factory whose create returns FDv2StreamingSynchronizer', () {
       final ctx = _testContext();
-      expect(
-        () => createSynchronizerFactoryFromEntry(StreamingSynchronizer(), ctx),
-        throwsA(isA<UnsupportedError>()),
-      );
+      final factory =
+          createSynchronizerFactoryFromEntry(StreamingSynchronizer(), ctx);
+      final sync = factory.create(_selectorGetter);
+      expect(sync, isA<FDv2StreamingSynchronizer>());
+      sync.close();
     });
   });
 

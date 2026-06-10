@@ -1,0 +1,1 @@
+- [FDv2 implementation state](project_fdv2_implementation_state.md) — phases 1-4,6 merged; orchestrator (phase 5) MISSING; no DataSystem config; runtime still FDv1

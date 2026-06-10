@@ -39,7 +39,8 @@ class HttpSseClient implements SSEClient {
       Duration readTimeout,
       String? body,
       String httpMethod,
-      EventSourceLogger? logger)
+      EventSourceLogger? logger,
+      {Uri Function()? uriProvider})
       : this.internal(
             uri,
             eventTypes,
@@ -51,7 +52,8 @@ class HttpSseClient implements SSEClient {
             math.Random(),
             body,
             httpMethod,
-            logger);
+            logger,
+            uriProvider: uriProvider);
 
   /// An internal constructor for injecting necessary dependencies for testing.
   HttpSseClient.internal(
@@ -65,7 +67,8 @@ class HttpSseClient implements SSEClient {
       math.Random random,
       String? body,
       String httpMethod,
-      EventSourceLogger? logger) {
+      EventSourceLogger? logger,
+      {Uri Function()? uriProvider}) {
     _logger = logger ?? NoOpLogger();
     _messageEventsController = StreamController<Event>.broadcast(
       // this is triggered when first listener subscribes
@@ -88,7 +91,8 @@ class HttpSseClient implements SSEClient {
         body,
         httpMethod,
         _resetRequest.stream,
-        logger ?? NoOpLogger()));
+        logger ?? NoOpLogger(),
+        uriProvider: uriProvider));
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
@@ -134,6 +138,8 @@ SSEClient getSSEClient(
         Duration readTimeout,
         String? body,
         String method,
-        EventSourceLogger? logger) =>
+        EventSourceLogger? logger,
+        Uri Function()? uriProvider) =>
     HttpSseClient(uri, eventTypes, headers, connectTimeout, readTimeout, body,
-        method, logger);
+        method, logger,
+        uriProvider: uriProvider);

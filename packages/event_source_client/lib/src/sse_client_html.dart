@@ -130,6 +130,7 @@ SSEClient getSSEClient(
         Duration readTimeout,
         String? body,
         String method,
-        EventSourceLogger? logger) =>
+        EventSourceLogger? logger,
+        Uri Function()? uriProvider) =>
     // dropping unsupported configuration options
     HtmlSseClient(uri, eventTypes, logger);

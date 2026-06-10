@@ -19,6 +19,7 @@ import 'hooks/hook_runner.dart';
 import 'data_sources/data_source.dart';
 import 'data_sources/data_source_event_handler.dart';
 import 'data_sources/fdv2/built_in_modes.dart';
+import 'data_sources/fdv2/data_system.dart';
 import 'data_sources/data_source_manager.dart';
 import 'data_sources/data_source_status.dart';
 import 'data_sources/data_source_status_manager.dart';
@@ -428,10 +429,25 @@ final class LDCommonClient {
     _updateEventSendingState();
 
     if (!_config.offline) {
-      _dataSourceManager.setFactories(_composeFactoriesForManager(
-        fdv1Factories: _dataSourceFactories(_config, _logger, httpProperties),
-        backgroundFactory: _backgroundFactory(_config, _logger, httpProperties),
-      ));
+      if (_config.dataSystem case final dataSystemConfig?) {
+        final dataSystem = FDv2DataSystem(
+          config: dataSystemConfig,
+          logger: _logger,
+          httpProperties: httpProperties,
+          serviceEndpoints: _config.serviceEndpoints,
+          withReasons: _config.dataSourceConfig.evaluationReasons,
+          defaultPollingInterval:
+              _config.dataSourceConfig.polling.pollingInterval,
+          statusManager: _dataSourceStatusManager,
+        );
+        _dataSourceManager.setFactories(dataSystem.buildFactories());
+      } else {
+        _dataSourceManager.setFactories(_composeFactoriesForManager(
+          fdv1Factories: _dataSourceFactories(_config, _logger, httpProperties),
+          backgroundFactory:
+              _backgroundFactory(_config, _logger, httpProperties),
+        ));
+      }
     } else {
       DataSource nullSource(LDContext _) => NullDataSource();
       _dataSourceManager.setFactories({
