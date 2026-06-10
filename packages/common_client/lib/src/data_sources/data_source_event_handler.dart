@@ -111,12 +111,8 @@ final class DataSourceEventHandler {
           final flags = mapUpdatesToItemDescriptors(payload.updates);
           await _flagManager.init(context, flags, environmentId: environmentId);
         case PayloadType.partial:
-          for (final update in payload.updates) {
-            final flags = mapUpdatesToItemDescriptors([update]);
-            for (final entry in flags.entries) {
-              await _flagManager.upsert(context, entry.key, entry.value);
-            }
-          }
+          final updates = mapUpdatesToItemDescriptors(payload.updates);
+          await _flagManager.applyUpdates(context, updates);
         case PayloadType.none:
           break;
       }

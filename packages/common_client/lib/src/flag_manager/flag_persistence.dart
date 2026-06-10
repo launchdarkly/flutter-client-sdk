@@ -63,6 +63,15 @@ final class FlagPersistence {
     return false;
   }
 
+  Future<bool> applyUpdates(
+      LDContext context, Map<String, ItemDescriptor> updates) async {
+    if (_updater.applyUpdates(context, updates)) {
+      await _storeCache(context);
+      return true;
+    }
+    return false;
+  }
+
   Future<bool> loadCached(LDContext context) async {
     final json = await _persistence?.read(
         _environmentKey, encodePersistenceKey(context.canonicalKey));

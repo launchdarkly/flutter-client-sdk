@@ -28,6 +28,7 @@ class TestApiImpl extends SdkTestApi {
     'client-per-context-summaries',
     'client-prereq-events',
     'auto-env-attributes',
+    'client-event-source-http-errors',
   ];
 
   static const clientUrlPrefix = '/client/';
@@ -469,7 +470,12 @@ class TestApiImpl extends SdkTestApi {
 
   Response _responseFromEvaluation(LDValue value) {
     final response = Response();
-    response['value'] = common.LDValueSerialization.toJson(value);
+    // A null evaluation result is omitted rather than set: the response
+    // map rejects null values, and an absent key deserializes the same
+    // as an explicit null on the harness side.
+    if (common.LDValueSerialization.toJson(value) case final Object json) {
+      response['value'] = json;
+    }
     return response;
   }
 
@@ -558,7 +564,7 @@ final class _WifiConnected extends ConnectivityPlatform {
 }
 
 void main() async {
-  test('Run contract tests', () async {
+  test(timeout: Timeout.none, 'Run contract tests', () async {
     ConnectivityPlatform.instance = _WifiConnected();
     widgets.WidgetsFlutterBinding.ensureInitialized(); // needed before mocking
     // ignore: invalid_use_of_visible_for_testing_member
