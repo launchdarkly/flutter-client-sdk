@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.19.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.18.1...4.19.0) (2026-06-10)
+
+
+### Features
+
+* Debounce lifecycle, network, and setMode signals in flutter SDK ([#292](https://github.com/launchdarkly/flutter-client-sdk/issues/292)) ([4805e78](https://github.com/launchdarkly/flutter-client-sdk/commit/4805e78e4fc77254d2c02567c82ca59a6eb47b22))
+
 ## [4.18.1](https://github.com/launchdarkly/flutter-client-sdk/compare/4.18.0...4.18.1) (2026-06-09)
 
 
