@@ -2,6 +2,8 @@ import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/flag_eval_mapper.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:test/test.dart';
 
@@ -283,6 +285,106 @@ void main() {
         expect(updated.version, 681);
         expect(updated.flag, isNull);
       });
+    });
+
+    test('it applies a full FDv2 payload and reports valid', () async {
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.valid, stateSince: DateTime(2))));
+      expectLater(
+          flagManager!.changes, emits(FlagsChangedEvent(keys: ['flag-a'])));
+
+      final status = await eventHandler!.handlePayload(
+          context,
+          Payload(type: PayloadType.full, updates: [
+            Update(
+                kind: flagEvalKind,
+                key: 'flag-a',
+                version: 7,
+                object: {'flagVersion': 2, 'value': true, 'variation': 0}),
+          ]),
+          environmentId: 'env-id');
+
+      expect(status, MessageStatus.messageHandled);
+      final flag = flagManager!.get('flag-a')!.flag!;
+      expect(flag.version, 7);
+      expect(flag.detail.value, LDValue.ofBool(true));
+      expect(flagManager!.environmentId, 'env-id');
+    });
+
+    test('it applies a partial FDv2 payload without version comparison',
+        () async {
+      await eventHandler!.handlePayload(
+          context,
+          Payload(type: PayloadType.full, updates: [
+            Update(
+                kind: flagEvalKind,
+                key: 'flag-a',
+                version: 7,
+                object: {'value': true, 'variation': 0}),
+          ]));
+
+      final status = await eventHandler!.handlePayload(
+          context,
+          Payload(type: PayloadType.partial, updates: [
+            Update(
+                kind: flagEvalKind,
+                key: 'flag-a',
+                version: 3,
+                object: {'value': false, 'variation': 1}),
+            Update(
+                kind: flagEvalKind, key: 'flag-b', version: 1, deleted: true),
+          ]));
+
+      expect(status, MessageStatus.messageHandled);
+      final flag = flagManager!.get('flag-a')!.flag!;
+      expect(flag.version, 3,
+          reason: 'FDv2 orders data at the payload level; a lower envelope '
+              'version still applies');
+      expect(flag.detail.value, LDValue.ofBool(false));
+      expect(flagManager!.get('flag-b')!.flag, isNull);
+    });
+
+    test('it reports valid without data changes for a payload of type none',
+        () async {
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.valid, stateSince: DateTime(2))));
+
+      final status = await eventHandler!
+          .handlePayload(context, Payload(type: PayloadType.none, updates: []));
+
+      expect(status, MessageStatus.messageHandled);
+      expect(flagManager!.getAll(), isEmpty);
+    });
+
+    test('it reports invalid data for an unparseable FDv2 payload', () async {
+      // An error before the data source has ever been valid leaves the
+      // state at initializing while recording the error detail.
+      expectLater(
+          statusManager!.changes,
+          emits(DataSourceStatus(
+              state: DataSourceState.initializing,
+              stateSince: DateTime(1),
+              lastError: DataSourceStatusErrorInfo(
+                  kind: ErrorKind.invalidData,
+                  statusCode: null,
+                  message: 'FDv2 payload contained invalid data',
+                  time: DateTime(2)))));
+
+      final status = await eventHandler!.handlePayload(
+          context,
+          Payload(type: PayloadType.full, updates: [
+            Update(
+                kind: flagEvalKind,
+                key: 'flag-a',
+                version: 7,
+                object: {'value': true, 'variation': 'not-a-number'}),
+          ]));
+
+      expect(status, MessageStatus.invalidMessage);
     });
   });
 }

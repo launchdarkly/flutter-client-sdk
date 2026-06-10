@@ -94,6 +94,8 @@ class MockSseClient implements SSEClient {
           statusManager.setErrorByKind(event.kind, event.message,
               shutdown: event.shutdown);
         }
+      case PayloadEvent():
+        break;
     }
   }).listen((_) {});
 
