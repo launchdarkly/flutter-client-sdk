@@ -343,6 +343,20 @@ interface class LDClient {
     _connectionManager.offline = offline;
   }
 
+  /// Set the connection mode the SDK uses for data acquisition.
+  ///
+  /// Automatic state detection (backgrounding, network availability) may
+  /// subsequently change the mode; disable those behaviors via
+  /// [ApplicationEvents] when full manual control is desired.
+  ///
+  /// This method is not stable, and not subject to any backwards
+  /// compatibility guarantees or semantic versioning. It is in early
+  /// access. If you want access to this feature please join the EAP.
+  /// https://launchdarkly.com/docs/sdk/features/data-saving-mode
+  void setConnectionMode(ConnectionMode mode) {
+    _client.setMode(mode);
+  }
+
   /// Check if the SDK has finished initialization.
   ///
   /// This does not indicate that initialization was successful, but that it is
