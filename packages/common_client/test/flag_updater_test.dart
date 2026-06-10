@@ -219,4 +219,71 @@ void main() {
 
     flagUpdater.close();
   });
+
+  test('applyUpdates applies updates without version comparison', () async {
+    final flagStore = FlagStore();
+    final flagUpdater = FlagUpdater(flagStore: flagStore, logger: logger);
+
+    final context = LDContextBuilder().kind('user', 'user-key').build();
+
+    flagUpdater.init(context, basicData);
+    final olderFlagB = LDEvaluationResult(
+        version: 1,
+        detail: LDEvaluationDetail(
+            LDValue.ofString('test3'), 2, LDEvaluationReason.fallthrough()));
+
+    expect(
+        flagUpdater.applyUpdates(
+            context, {'flagB': ItemDescriptor(version: 1, flag: olderFlagB)}),
+        true);
+
+    expect(
+        flagStore.get('flagB')?.flag?.detail.value, LDValue.ofString('test3'));
+  });
+
+  test('applyUpdates emits a single event for the changed keys', () async {
+    final flagStore = FlagStore();
+    final flagUpdater = FlagUpdater(flagStore: flagStore, logger: logger);
+
+    final context = LDContextBuilder().kind('user', 'user-key').build();
+
+    flagUpdater.init(context, basicData);
+
+    expectLater(flagUpdater.changes,
+        emits(FlagsChangedEvent(keys: ['flagA', 'flagB'])));
+
+    final updatedA = LDEvaluationResult(
+        version: 3,
+        detail: LDEvaluationDetail(
+            LDValue.ofString('newA'), 0, LDEvaluationReason.off()));
+    final updatedB = LDEvaluationResult(
+        version: 3,
+        detail: LDEvaluationDetail(
+            LDValue.ofString('newB'), 1, LDEvaluationReason.off()));
+    flagUpdater.applyUpdates(context, {
+      'flagA': ItemDescriptor(version: 3, flag: updatedA),
+      'flagB': ItemDescriptor(version: 3, flag: updatedB),
+    });
+  });
+
+  test('applyUpdates rejects updates for an inactive context', () async {
+    final flagStore = FlagStore();
+    final flagUpdater = FlagUpdater(flagStore: flagStore, logger: logger);
+
+    final context = LDContextBuilder().kind('user', 'user-key').build();
+    final otherContext =
+        LDContextBuilder().kind('user', 'other-user-key').build();
+
+    flagUpdater.init(context, basicData);
+
+    final updated = LDEvaluationResult(
+        version: 3,
+        detail: LDEvaluationDetail(
+            LDValue.ofString('newA'), 0, LDEvaluationReason.off()));
+    expect(
+        flagUpdater.applyUpdates(
+            otherContext, {'flagA': ItemDescriptor(version: 3, flag: updated)}),
+        false);
+    expect(flagStore.getAll().equals(basicData), true);
+  });
 }

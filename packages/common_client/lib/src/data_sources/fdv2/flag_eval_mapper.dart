@@ -22,15 +22,22 @@ Map<String, ItemDescriptor> mapUpdatesToItemDescriptors(List<Update> updates) {
       result[update.key] = ItemDescriptor(version: update.version);
     } else if (update.object case final object?) {
       try {
-        final evalResult = LDEvaluationResultSerialization.fromJson(object);
+        final evalResult = LDEvaluationResultSerialization.fromJson({
+          ...object,
+          // The envelope version is authoritative for FDv2 objects. The
+          // flag-eval object itself carries only flagVersion -- there is
+          // no in-object version on the wire -- so the envelope version
+          // becomes the result's version, replacing any present.
+          'version': update.version,
+        });
         result[update.key] = ItemDescriptor(
           version: update.version,
           flag: evalResult,
         );
       } catch (_) {
-        // Per spec 4.1.2.1: treat unparseable flag_eval as a data source
-        // error. Rethrow so the caller can discard the in-progress payload
-        // and reconnect.
+        // Treat an unparseable flag_eval as a data source error. Rethrow
+        // so the caller can discard the in-progress payload and
+        // reconnect.
         rethrow;
       }
     }

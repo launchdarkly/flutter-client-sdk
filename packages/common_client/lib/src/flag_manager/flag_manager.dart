@@ -55,6 +55,13 @@ final class FlagManager {
           LDContext context, String key, ItemDescriptor item) async =>
       _flagPersistence.upsert(context, key, item);
 
+  /// Applies a set of updates from an FDv2 partial payload. Updates are
+  /// applied without per-item version comparison; FDv2 orders data at
+  /// the payload level.
+  Future<bool> applyUpdates(
+          LDContext context, Map<String, ItemDescriptor> updates) async =>
+      _flagPersistence.applyUpdates(context, updates);
+
   /// Asynchronously load cached values from persistence.
   Future<bool> loadCached(LDContext context) async {
     return _flagPersistence.loadCached(context);
