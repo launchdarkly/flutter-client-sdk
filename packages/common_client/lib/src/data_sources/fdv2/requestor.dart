@@ -39,6 +39,7 @@ final class FDv2Requestor {
   final String _contextJson;
   final bool _usePost;
   final bool _withReasons;
+  final Map<String, String> _additionalQueryParameters;
   String? _lastEtag;
 
   FDv2Requestor({
@@ -49,6 +50,7 @@ final class FDv2Requestor {
     required bool usePost,
     required bool withReasons,
     required HttpProperties httpProperties,
+    Map<String, String> additionalQueryParameters = const {},
     HttpClientFactory httpClientFactory = _defaultHttpClientFactory,
   })  : _logger = logger.subLogger('FDv2Requestor'),
         _baseUri = Uri.parse(endpoints.polling),
@@ -56,6 +58,7 @@ final class FDv2Requestor {
         _contextJson = contextJson,
         _usePost = usePost,
         _withReasons = withReasons,
+        _additionalQueryParameters = additionalQueryParameters,
         _client = httpClientFactory(usePost
             ? httpProperties.withHeaders({'content-type': 'application/json'})
             : httpProperties);
@@ -125,6 +128,7 @@ final class FDv2Requestor {
     // both values; the simpler `queryParameters` map collapses duplicates.
     final mergedQuery = <String, dynamic>{};
     mergedQuery.addAll(_baseUri.queryParametersAll);
+    mergedQuery.addAll(_additionalQueryParameters);
     if (_withReasons) {
       mergedQuery['withReasons'] = 'true';
     }

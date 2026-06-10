@@ -23,6 +23,7 @@ SourceFactoryContext _testContext({
   Duration? defaultPollingInterval,
 }) {
   return SourceFactoryContext.fromClientConfig(
+    credential: 'test-credential',
     context: _context(),
     logger: LDLogger(level: LDLogLevel.error),
     httpProperties: HttpProperties(),

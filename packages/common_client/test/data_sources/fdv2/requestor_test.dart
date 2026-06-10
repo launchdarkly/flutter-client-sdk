@@ -17,6 +17,7 @@ FDv2Requestor makeRequestor(
   String contextEncoded = 'eyJrZXkiOiJ0ZXN0In0=',
   String contextJson = '{"key":"test"}',
   HttpProperties? httpProperties,
+  Map<String, String> additionalQueryParameters = const {},
 }) {
   return FDv2Requestor(
     logger: LDLogger(),
@@ -26,6 +27,7 @@ FDv2Requestor makeRequestor(
     usePost: usePost,
     withReasons: withReasons,
     httpProperties: httpProperties ?? HttpProperties(),
+    additionalQueryParameters: additionalQueryParameters,
     httpClientFactory: (props) =>
         HttpClient(client: innerClient, httpProperties: props),
   );
@@ -56,6 +58,23 @@ void main() {
       expect(capturedMethod, equals('GET'));
       expect(capturedUri.path, equals('/sdk/poll/eval/ENC123'));
       expect(capturedUri.host, equals('example.test'));
+    });
+
+    test('includes additional query parameters (auth for client-side IDs)',
+        () async {
+      late Uri capturedUri;
+      final mock = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock,
+          additionalQueryParameters: {'auth': 'client-side-id'});
+      await requestor.request(
+          basis: const Selector(state: 'state-1', version: 1));
+
+      expect(capturedUri.queryParameters['auth'], equals('client-side-id'));
+      expect(capturedUri.queryParameters['basis'], equals('state-1'));
     });
 
     test('does not send a body on GET', () async {

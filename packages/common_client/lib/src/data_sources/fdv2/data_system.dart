@@ -23,6 +23,7 @@ import 'source_manager.dart';
 /// skipped when a selector is held) but is reset whenever the context
 /// changes, since a selector is specific to a single context.
 final class FDv2DataSystem {
+  final String _credential;
   final LDLogger _logger;
   final HttpProperties _httpProperties;
   final ServiceEndpoints _serviceEndpoints;
@@ -38,6 +39,7 @@ final class FDv2DataSystem {
 
   FDv2DataSystem({
     required DataSystemConfig config,
+    required String credential,
     required LDLogger logger,
     required HttpProperties httpProperties,
     required ServiceEndpoints serviceEndpoints,
@@ -46,7 +48,8 @@ final class FDv2DataSystem {
     required DataSourceStatusManager statusManager,
     FDv2SseClientFactory? sseClientFactory,
     HttpClientFactory? httpClientFactory,
-  })  : _logger = logger,
+  })  : _credential = credential,
+        _logger = logger,
         _httpProperties = httpProperties,
         _serviceEndpoints = serviceEndpoints,
         _withReasons = withReasons,
@@ -83,6 +86,7 @@ final class FDv2DataSystem {
 
       final factoryContext = SourceFactoryContext.fromClientConfig(
         context: context,
+        credential: _credential,
         logger: _logger,
         httpProperties: _httpProperties,
         serviceEndpoints: _serviceEndpoints,

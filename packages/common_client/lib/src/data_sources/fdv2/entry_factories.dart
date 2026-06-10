@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
+import '../../config/defaults/credential_type.dart';
+import '../../config/defaults/default_config.dart';
 import '../../config/service_endpoints.dart' as client_endpoints;
 import '../streaming_data_source.dart' show LDLoggerToEventSourceAdapter;
 import 'cache_initializer.dart' as cache_src;
@@ -56,6 +58,7 @@ FDv2PollingBase _buildPollingBase({
     usePost: usePost,
     withReasons: ctx.withReasons,
     httpProperties: ctx.httpProperties,
+    additionalQueryParameters: ctx.authQueryParameters,
     httpClientFactory: ctx.httpClientFactory ?? _defaultHttpClientFactory,
   );
   return FDv2PollingBase(
@@ -115,6 +118,7 @@ Uri _buildStreamingUri({
   required bool usePost,
   required bool withReasons,
   required Selector basis,
+  Map<String, String> additionalQueryParameters = const {},
 }) {
   final baseUri = Uri.parse(endpoints.streaming);
   final addedPath = usePost
@@ -129,6 +133,7 @@ Uri _buildStreamingUri({
   final mergedPath = '$basePath$addedPath';
 
   final mergedQuery = Map<String, String>.of(baseUri.queryParameters);
+  mergedQuery.addAll(additionalQueryParameters);
   if (withReasons) {
     mergedQuery['withReasons'] = 'true';
   }
@@ -244,6 +249,7 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
                 usePost: e.usePost,
                 withReasons: ctx.withReasons,
                 basis: selectorGetter(),
+                additionalQueryParameters: ctx.authQueryParameters,
               );
           final sseClient = (sseClientFactory ?? _defaultSseClientFactory)(
             uriProvider: uriProvider,
@@ -268,6 +274,14 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
               pingHandler: () =>
                   pingPollingBase.pollOnce(basis: selectorGetter()),
               logger: ctx.logger,
+              // A client-side ID identifies the environment directly;
+              // useful when the transport exposes no response headers
+              // (the browser EventSource) to read x-ld-envid from.
+              defaultEnvironmentId:
+                  DefaultConfig.credentialConfig.credentialType ==
+                          CredentialType.clientSideId
+                      ? ctx.credential
+                      : null,
             ),
           );
         },

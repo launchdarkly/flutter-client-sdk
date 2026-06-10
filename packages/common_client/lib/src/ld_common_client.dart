@@ -432,6 +432,7 @@ final class LDCommonClient {
       if (_config.dataSystem case final dataSystemConfig?) {
         final dataSystem = FDv2DataSystem(
           config: dataSystemConfig,
+          credential: _config.sdkCredential,
           logger: _logger,
           httpProperties: httpProperties,
           serviceEndpoints: _config.serviceEndpoints,

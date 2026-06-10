@@ -61,9 +61,11 @@ final class FDv2StreamingBase {
     required SSEClient sseClient,
     required PingHandler pingHandler,
     required LDLogger logger,
+    String? defaultEnvironmentId,
     DateTime Function()? now,
   })  : _sseClient = sseClient,
         _pingHandler = pingHandler,
+        _environmentId = defaultEnvironmentId,
         _logger = logger.subLogger('FDv2StreamingBase'),
         _now = now ?? DateTime.now {
     _controller = StreamController<FDv2SourceResult>(
