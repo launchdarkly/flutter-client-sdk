@@ -35,10 +35,12 @@ class HtmlSseClient implements SSEClient {
   int? _activeSince;
   Timer? _retryTimer;
 
-  /// Creates an instance of an SSEClient that will connect in the future
-  /// to the [uri] provided, or to the [uriProvider] result when one is
-  /// given. Every connection attempt constructs a fresh `EventSource`,
-  /// so the provider is consulted on each reconnect.
+  /// Creates an instance of an SSEClient that will connect in the future.
+  ///
+  /// Every connection attempt -- the first connect and each reconnect --
+  /// constructs a fresh `EventSource` from the [uriProvider] result when
+  /// a provider is given. The fixed [uri] is used only when no provider
+  /// is given.
   HtmlSseClient(Uri uri, Set<String> eventTypes, EventSourceLogger? logger,
       {Uri Function()? uriProvider})
       : _uri = uri,
