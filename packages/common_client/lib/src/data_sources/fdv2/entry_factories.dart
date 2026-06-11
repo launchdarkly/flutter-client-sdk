@@ -56,7 +56,7 @@ FDv2PollingBase _buildPollingBase({
     contextJson: ctx.contextJson,
     usePost: usePost,
     withReasons: ctx.withReasons,
-    credential: ctx.credential,
+    authQueryParameters: ctx.authQueryParameters,
     httpProperties: ctx.httpProperties,
     httpClientFactory: ctx.httpClientFactory ?? _defaultHttpClientFactory,
   );

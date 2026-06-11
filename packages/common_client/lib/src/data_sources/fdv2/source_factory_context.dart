@@ -32,9 +32,10 @@ final class SourceFactoryContext {
   /// platform's credential is a client-side ID.
   final String credential;
 
-  /// Authentication query parameters for requests whose transport cannot
-  /// carry custom headers (the browser's native EventSource). Empty on
-  /// platforms where every transport supports the authorization header.
+  /// Authentication query parameters, applied to every data acquisition
+  /// request on platforms that authenticate with the `auth` query
+  /// parameter (browsers). Empty on platforms that authenticate with the
+  /// authorization header in the base headers (mobile keys).
   final Map<String, String> authQueryParameters;
 
   const SourceFactoryContext({

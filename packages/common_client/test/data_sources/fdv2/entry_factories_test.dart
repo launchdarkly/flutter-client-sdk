@@ -1,3 +1,5 @@
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:launchdarkly_common_client/src/config/service_endpoints.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/built_in_modes.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/cache_initializer.dart';
@@ -183,6 +185,37 @@ void main() {
         () => createInitializerFactoryFromEntry(StreamingInitializer(), ctx),
         throwsA(isA<UnsupportedError>()),
       );
+    });
+
+    test('polling request carries the auth query parameters', () async {
+      late Uri capturedUri;
+      final mock = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response('{"events":[]}', 200);
+      });
+      final ctx = SourceFactoryContext(
+        context: _context(),
+        credential: 'the-client-side-id',
+        authQueryParameters: const {'auth': 'the-client-side-id'},
+        logger: LDLogger(level: LDLogLevel.error),
+        httpProperties: HttpProperties(),
+        serviceEndpoints:
+            ServiceEndpoints.custom(polling: 'https://example.test'),
+        contextJson: '{"key":"test","kind":"user"}',
+        withReasons: false,
+        defaultPollingInterval: const Duration(seconds: 300),
+        cachedFlagsReader: (_) async => null,
+        httpClientFactory: (props) =>
+            HttpClient(client: mock, httpProperties: props),
+      );
+
+      final factory =
+          createInitializerFactoryFromEntry(PollingInitializer(), ctx);
+      final init = factory.create(_selectorGetter);
+      await init.run();
+
+      expect(capturedUri.queryParameters,
+          containsPair('auth', 'the-client-side-id'));
     });
   });
 

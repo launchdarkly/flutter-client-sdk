@@ -16,16 +16,17 @@ FDv2Requestor makeRequestor(
   bool withReasons = false,
   String contextEncoded = 'eyJrZXkiOiJ0ZXN0In0=',
   String contextJson = '{"key":"test"}',
+  Map<String, String> authQueryParameters = const {},
   HttpProperties? httpProperties,
 }) {
   return FDv2Requestor(
     logger: LDLogger(),
-    credential: 'test-credential',
     endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
     contextEncoded: contextEncoded,
     contextJson: contextJson,
     usePost: usePost,
     withReasons: withReasons,
+    authQueryParameters: authQueryParameters,
     httpProperties: httpProperties ?? HttpProperties(),
     httpClientFactory: (props) =>
         HttpClient(client: innerClient, httpProperties: props),
@@ -59,7 +60,7 @@ void main() {
       expect(capturedUri.host, equals('example.test'));
     });
 
-    test('sends the authorization header on every request', () async {
+    test('does not add an authorization header', () async {
       Map<String, String>? capturedHeaders;
       final mock = MockClient((request) async {
         capturedHeaders = request.headers;
@@ -69,7 +70,28 @@ void main() {
       final requestor = makeRequestor(mock);
       await requestor.request();
 
-      expect(capturedHeaders, containsPair('authorization', 'test-credential'));
+      // Authentication comes from the base headers (mobile keys) or the
+      // auth query parameters (browsers), never per-request.
+      expect(capturedHeaders, isNot(contains('authorization')));
+    });
+
+    test('includes the auth query parameters in every request URL', () async {
+      final capturedUris = <Uri>[];
+      final mock = MockClient((request) async {
+        capturedUris.add(request.url);
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock,
+          authQueryParameters: {'auth': 'the-client-side-id'});
+      await requestor.request();
+      await requestor.request(basis: Selector(state: 'st', version: 1));
+
+      expect(capturedUris, hasLength(2));
+      for (final uri in capturedUris) {
+        expect(uri.queryParameters, containsPair('auth', 'the-client-side-id'));
+      }
+      expect(capturedUris[1].queryParameters, containsPair('basis', 'st'));
     });
 
     test('does not send a body on GET', () async {
@@ -375,7 +397,6 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
-        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/prefix?token=abc123'),
@@ -452,7 +473,6 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
-        credential: 'test-credential',
         logger: logger,
         endpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
         contextEncoded: 'SECRET-ENCODED-CONTEXT',
@@ -530,7 +550,6 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
-        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/prefix/'),
@@ -557,7 +576,6 @@ void main() {
       });
 
       final requestor = FDv2Requestor(
-        credential: 'test-credential',
         logger: LDLogger(),
         endpoints: ServiceEndpoints.custom(
             polling: 'https://relay.example.com/?tag=a&tag=b'),

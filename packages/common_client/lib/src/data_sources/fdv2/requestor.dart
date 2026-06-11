@@ -39,7 +39,7 @@ final class FDv2Requestor {
   final String _contextJson;
   final bool _usePost;
   final bool _withReasons;
-  final String _credential;
+  final Map<String, String> _authQueryParameters;
   String? _lastEtag;
 
   FDv2Requestor({
@@ -49,8 +49,8 @@ final class FDv2Requestor {
     required String contextJson,
     required bool usePost,
     required bool withReasons,
-    required String credential,
     required HttpProperties httpProperties,
+    Map<String, String> authQueryParameters = const {},
     HttpClientFactory httpClientFactory = _defaultHttpClientFactory,
   })  : _logger = logger.subLogger('FDv2Requestor'),
         _baseUri = Uri.parse(endpoints.polling),
@@ -58,7 +58,7 @@ final class FDv2Requestor {
         _contextJson = contextJson,
         _usePost = usePost,
         _withReasons = withReasons,
-        _credential = credential,
+        _authQueryParameters = authQueryParameters,
         _client = httpClientFactory(usePost
             ? httpProperties.withHeaders({'content-type': 'application/json'})
             : httpProperties);
@@ -70,12 +70,10 @@ final class FDv2Requestor {
   Future<RequestorResponse> request({Selector basis = Selector.empty}) async {
     final uri = _buildUri(basis: basis);
     final method = _usePost ? RequestMethod.post : RequestMethod.get;
+    // Authentication is carried by the base headers (mobile keys) or by
+    // the auth query parameters (browsers); the requestor adds neither
+    // per-request.
     final additionalHeaders = <String, String>{};
-    // Header authentication is preferred wherever the transport supports
-    // custom headers, and the polling transport supports them on every
-    // platform. On platforms whose base headers already authenticate
-    // (mobile keys) this is the same value again.
-    additionalHeaders['authorization'] = _credential;
     if (_lastEtag case final etag?) {
       additionalHeaders['if-none-match'] = etag;
     }
@@ -133,6 +131,7 @@ final class FDv2Requestor {
     // both values; the simpler `queryParameters` map collapses duplicates.
     final mergedQuery = <String, dynamic>{};
     mergedQuery.addAll(_baseUri.queryParametersAll);
+    mergedQuery.addAll(_authQueryParameters);
     if (_withReasons) {
       mergedQuery['withReasons'] = 'true';
     }
