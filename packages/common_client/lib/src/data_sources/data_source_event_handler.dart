@@ -6,6 +6,8 @@ import '../flag_manager/flag_manager.dart';
 import '../item_descriptor.dart';
 import 'data_source_status.dart';
 import 'data_source_status_manager.dart';
+import 'fdv2/flag_eval_mapper.dart';
+import 'fdv2/payload.dart';
 
 enum MessageStatus { messageHandled, invalidMessage, unhandledVerb }
 
@@ -93,6 +95,28 @@ final class DataSourceEventHandler {
         {
           return MessageStatus.unhandledVerb;
         }
+    }
+  }
+
+  /// Applies an FDv2 payload to the flag store.
+  ///
+  /// Full payloads replace the stored flags, partial payloads apply each
+  /// update, and a payload of type none confirms the SDK is up to date
+  /// without changing data. All three mark the data source valid.
+  Future<MessageStatus> handlePayload(LDContext context, Payload payload,
+      {String? environmentId}) async {
+    try {
+      final updates = mapUpdatesToItemDescriptors(payload.updates);
+      await _flagManager.applyChanges(context, updates, payload.type,
+          environmentId: environmentId);
+      _statusManager.setValid();
+      return MessageStatus.messageHandled;
+    } catch (err) {
+      _logger.error('FDv2 payload contained invalid flag data: '
+          '${err.runtimeType}');
+      _statusManager.setErrorByKind(
+          ErrorKind.invalidData, 'FDv2 payload contained invalid data');
+      return MessageStatus.invalidMessage;
     }
   }
 
