@@ -42,16 +42,19 @@ final class CredentialConfig {
 
   /// Headers applied to every request. The user agent is sent under a
   /// vendor header because browsers forbid setting `user-agent`. The
-  /// authorization header is intentionally absent: the events service
-  /// CORS configuration does not permit it from browsers. Data
-  /// acquisition requests whose service allows it add the header
-  /// per-request instead.
+  /// authorization header is intentionally absent: a browser only
+  /// delivers it when the service's CORS pre-flight response lists it
+  /// as an allowed header, so authentication uses the `auth` query
+  /// parameter instead, which is not subject to that allow-list.
   Map<String, String> baseHeaders(String credential, String userAgent) =>
       {'x-launchdarkly-user-agent': userAgent};
 
-  /// Authentication for requests whose transport cannot carry custom
-  /// headers. The browser's native EventSource cannot send headers, so
-  /// streaming requests authenticate with the `auth` query parameter.
+  /// Authentication for every data acquisition request in the browser.
+  /// The `auth` query parameter is used at all times rather than the
+  /// authorization header: the header depends on each service's CORS
+  /// pre-flight allowing it (a missed allow-list entry silently breaks
+  /// authentication), and the browser's native EventSource cannot send
+  /// custom headers at all.
   Map<String, String> authQueryParameters(String credential) =>
       {'auth': credential};
 
