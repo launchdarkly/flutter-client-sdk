@@ -45,6 +45,25 @@ void main() {
     });
   });
 
+  test('fallback condition re-arms for an interruption after a cancel', () {
+    fakeAsync((async) {
+      final condition = createFallbackCondition(const Duration(seconds: 120));
+      final emissions = <ConditionType>[];
+      condition.events.listen(emissions.add);
+
+      condition.inform(FDv2SourceResults.interrupted(message: 'down'));
+      condition.inform(_changeSet());
+      expect(async.pendingTimers, isEmpty);
+
+      // A fresh interruption begins a new fallback period.
+      condition.inform(FDv2SourceResults.interrupted(message: 'down again'));
+      expect(async.pendingTimers, hasLength(1));
+
+      async.elapse(const Duration(seconds: 120));
+      expect(emissions, [ConditionType.fallback]);
+    });
+  });
+
   test('recovery condition starts when listened to and ignores results', () {
     fakeAsync((async) {
       final condition = createRecoveryCondition(const Duration(seconds: 300));
@@ -229,13 +248,22 @@ void main() {
       });
     });
 
-    test('an empty group closes without emitting', () {
+    test('an empty group never emits and closes when closed', () {
       fakeAsync((async) {
         final group = ConditionGroup(const []);
         final emissions = <ConditionType>[];
         var done = false;
         group.events.listen(emissions.add, onDone: () => done = true);
 
+        group.inform(FDv2SourceResults.interrupted(message: 'down'));
+        async.flushMicrotasks();
+        expect(async.pendingTimers, isEmpty);
+        expect(emissions, isEmpty);
+        expect(done, isFalse,
+            reason: 'no member conditions exist, so nothing can fire and '
+                'the stream stays open until the group is closed');
+
+        group.close();
         async.flushMicrotasks();
         expect(emissions, isEmpty);
         expect(done, isTrue);
@@ -268,11 +296,15 @@ void main() {
           availableSynchronizerCount: 1,
           isPrimary: true,
         );
-        var done = false;
-        group.events.listen((_) {}, onDone: () => done = true);
+        final emissions = <ConditionType>[];
+        group.events.listen(emissions.add);
 
-        async.flushMicrotasks();
-        expect(done, isTrue);
+        group.inform(FDv2SourceResults.interrupted(message: 'down'));
+        async.elapse(const Duration(hours: 1));
+        expect(async.pendingTimers, isEmpty,
+            reason: 'there is nowhere to fall back to, so no timers arm');
+        expect(emissions, isEmpty);
+        group.close();
       });
     });
 
