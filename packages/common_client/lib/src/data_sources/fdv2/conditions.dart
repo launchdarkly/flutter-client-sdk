@@ -87,7 +87,6 @@ final class _TimedCondition implements Condition {
   void _startTimer() {
     if (_timer != null || _closed) return;
     _timer = Timer(_timeout, () {
-      _timer = null;
       if (_closed) return;
       _closed = true;
       // The controller buffers the event if the subscription has not
@@ -175,7 +174,8 @@ final class ConditionGroup {
 
   /// Single-subscription stream that emits at most one [ConditionType]
   /// (the first member condition to fire) and then closes. Closes
-  /// without emitting if the group is empty or closed first.
+  /// without emitting if the group is closed first; a group with no
+  /// member conditions never emits.
   ///
   /// The group's lifetime is scoped to the subscription: member timers
   /// that start on their own start when the stream is listened to, and
@@ -186,10 +186,6 @@ final class ConditionGroup {
 
   void _subscribe() {
     if (_closed) return;
-    if (_conditions.isEmpty) {
-      _controller.close();
-      return;
-    }
     for (final condition in _conditions) {
       _subscriptions.add(condition.events.listen((type) {
         // First member to fire wins; member timers firing in the same
