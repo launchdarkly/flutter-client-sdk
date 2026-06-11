@@ -137,11 +137,11 @@ abstract class SSEClient {
   /// If not provided, a [NoOpLogger] will be used.
   ///
   /// An optional [uriProvider]. When provided, it is invoked before every
-  /// connection attempt (including automatic reconnects) and its result is
-  /// used in place of [uri]. This allows query parameters to vary between
-  /// attempts (e.g. a state selector that advances as data is received).
-  /// Supported on all platforms; every implementation constructs each
-  /// connection attempt from the provider's result.
+  /// connection attempt -- the first connect and each automatic
+  /// reconnect -- and its result is used for that attempt; [uri] is used
+  /// only when no provider is given. This allows query parameters to
+  /// vary between attempts (e.g. a state selector that advances as data
+  /// is received). Supported on all platforms.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,

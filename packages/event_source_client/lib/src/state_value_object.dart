@@ -20,9 +20,10 @@ class StateValues {
   // Non-transient configuration data
   final Uri uri;
 
-  /// When provided, produces the URI for each connection attempt. Invoked
-  /// on every (re)connect so callers can vary query parameters between
-  /// attempts (e.g. a state selector that advances as data is received).
+  /// When provided, produces the URI for every connection attempt -- the
+  /// first connect and each reconnect -- in place of [uri], so callers
+  /// can vary query parameters between attempts (e.g. a state selector
+  /// that advances as data is received).
   final Uri Function()? uriProvider;
   final Set<String> eventTypes;
   final Map<String, String> headers;
