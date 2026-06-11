@@ -5,7 +5,6 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
 import '../config/data_source_config.dart';
-import '../config/defaults/credential_type.dart';
 import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
@@ -184,11 +183,9 @@ final class StreamingDataSource implements DataSource {
           _logger.debug('Received connect event, data: ${event.headers}');
           if (event.headers != null) {
             _environmentId = getEnvironmentId(event.headers);
-          } else if (DefaultConfig.credentialConfig.credentialType ==
-              CredentialType.clientSideId) {
-            // When using a client-side ID we can use it to represent the
-            // environment.
-            _environmentId = _credential;
+          } else {
+            _environmentId = DefaultConfig.credentialConfig
+                .environmentIdFallback(_credential);
           }
       }
     })

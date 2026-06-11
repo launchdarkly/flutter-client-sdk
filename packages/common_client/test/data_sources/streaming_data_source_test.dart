@@ -1,6 +1,7 @@
 // ignore_for_file: close_sinks
 
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:http/testing.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
@@ -18,7 +19,7 @@ import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
 class MockSseClient implements SSEClient {
-  final Stream<MessageEvent> mockStream;
+  final Stream<Event> mockStream;
 
   MockSseClient(this.mockStream);
 
@@ -29,7 +30,7 @@ class MockSseClient implements SSEClient {
   void restart() {}
 
   @override
-  Stream<MessageEvent> get stream => mockStream;
+  Stream<Event> get stream => mockStream;
 
   @override
   bool hasCapability(SSECapability capability) => true;
@@ -39,7 +40,7 @@ class MockSseClient implements SSEClient {
   StreamingDataSource,
   FlagManager,
   DataSourceStatusManager
-) makeDataSourceForTest(Stream<MessageEvent> mockStream,
+) makeDataSourceForTest(Stream<Event> mockStream,
     {LDContext? inContext,
     HttpProperties? inProperties,
     bool useReport = false,
@@ -85,7 +86,8 @@ class MockSseClient implements SSEClient {
   streaming.events.asyncMap((event) async {
     switch (event) {
       case DataEvent():
-        return eventHandler.handleMessage(context, event.type, event.data);
+        return eventHandler.handleMessage(context, event.type, event.data,
+            environmentId: event.environmentId);
       case StatusEvent():
         if (event.statusCode != null) {
           statusManager.setErrorResponse(event.statusCode!, event.message,
@@ -496,6 +498,51 @@ void main() {
       await Future.delayed(Duration(milliseconds: 50));
 
       expect(actualMethod, 'REPORT');
+    });
+  });
+
+  group('environment ID from the stream connection', () {
+    test('it uses the environment ID response header', () async {
+      final controller = StreamController<Event>();
+      final (dataSource, flagManager, _) =
+          makeDataSourceForTest(controller.stream);
+      dataSource.start();
+
+      controller.sink.add(OpenEvent(
+          headers: UnmodifiableMapView({'x-ld-envid': 'env-from-header'})));
+      controller.sink.add(MessageEvent(
+          'put',
+          '{"my-boolean-flag": '
+              '{"version":11,"value":true,"variation":0,"trackEvents":false}}',
+          null));
+      for (var i = 0; i < 5; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(flagManager.environmentId, 'env-from-header');
+    });
+
+    test(
+        'it uses the platform environment ID fallback when the connection '
+        'provides no headers', () async {
+      final controller = StreamController<Event>();
+      final (dataSource, flagManager, _) =
+          makeDataSourceForTest(controller.stream);
+      dataSource.start();
+
+      controller.sink.add(OpenEvent(headers: null));
+      controller.sink.add(MessageEvent(
+          'put',
+          '{"my-boolean-flag": '
+              '{"version":11,"value":true,"variation":0,"trackEvents":false}}',
+          null));
+      for (var i = 0; i < 5; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      // A mobile key does not identify an environment, so the fallback
+      // is null on this platform.
+      expect(flagManager.environmentId, isNull);
     });
   });
 }
