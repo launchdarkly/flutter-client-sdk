@@ -1,5 +1,6 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
+import '../data_sources/fdv2/payload.dart';
 import '../item_descriptor.dart';
 import 'flag_store.dart';
 import 'flag_persistence.dart';
@@ -54,6 +55,17 @@ final class FlagManager {
   Future<bool> upsert(
           LDContext context, String key, ItemDescriptor item) async =>
       _flagPersistence.upsert(context, key, item);
+
+  /// Applies a changeset from an FDv2 payload. A full transfer replaces all
+  /// stored flags, a partial transfer applies the individual updates without
+  /// per-item version comparison (FDv2 orders data at the payload level),
+  /// and a transfer of none takes no action. [environmentId] applies only
+  /// to full transfers.
+  Future<bool> applyChanges(LDContext context,
+          Map<String, ItemDescriptor> updates, PayloadType type,
+          {String? environmentId}) async =>
+      _flagPersistence.applyChanges(context, updates, type,
+          environmentId: environmentId);
 
   /// Asynchronously load cached values from persistence.
   Future<bool> loadCached(LDContext context) async {
