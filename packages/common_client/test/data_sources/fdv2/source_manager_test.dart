@@ -76,6 +76,23 @@ void main() {
         reason: 'starting the second source closes the first');
   });
 
+  test('initializer exhaustion closes the final initializer', () {
+    final created = <RecordingInitializer>[];
+    final factory = InitializerFactory(create: (_) {
+      final initializer = RecordingInitializer();
+      created.add(initializer);
+      return initializer;
+    });
+
+    final manager = _manager(initializers: [factory]);
+
+    expect(manager.nextInitializer(), isNotNull);
+    expect(created.single.closed, isFalse);
+    expect(manager.nextInitializer(), isNull);
+    expect(created.single.closed, isTrue,
+        reason: 'a terminal null must leave no source running');
+  });
+
   test('synchronizers cycle through available slots and wrap around', () {
     final created = <RecordingSynchronizer>[];
     final manager = _manager(slots: [_slot(0, created), _slot(1, created)]);
@@ -150,7 +167,7 @@ void main() {
       _slot(1, fdv1Created, isFdv1Fallback: true),
     ]);
 
-    expect(manager.hasFdv1Fallback, isTrue);
+    expect(manager.hasFdv1FallbackConfigured, isTrue);
     expect(manager.availableSynchronizerCount, 1);
 
     manager.nextAvailableSynchronizer();
@@ -163,6 +180,19 @@ void main() {
     expect(fdv1Created, hasLength(1));
     expect(fdv2Created, hasLength(1),
         reason: 'the FDv2 tier is disabled after fallback');
+  });
+
+  test('engaging FDv1 fallback without a configured slot does nothing', () {
+    final created = <RecordingSynchronizer>[];
+    final manager = _manager(slots: [_slot(0, created), _slot(1, created)]);
+
+    expect(manager.hasFdv1FallbackConfigured, isFalse);
+    manager.engageFdv1Fallback();
+
+    expect(manager.availableSynchronizerCount, 2,
+        reason: 'blocking every slot without unblocking a fallback would '
+            'leave nothing to activate');
+    expect(manager.nextAvailableSynchronizer(), isNotNull);
   });
 
   test('close prevents further source creation', () {
