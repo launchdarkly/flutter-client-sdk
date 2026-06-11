@@ -9,6 +9,14 @@ import 'backoff.dart';
 import 'events.dart' as ld_message_event;
 
 /// An [SSEClient] that uses the [web.EventSource] available on most browsers for web platform support.
+///
+/// The native `EventSource` API does not expose HTTP status codes or
+/// response headers, so this implementation is incapable of reporting
+/// terminal errors: every failure is treated as recoverable and retried
+/// with backoff indefinitely, and no error is ever reported on the
+/// [stream]. Consumers that need to react to unrecoverable statuses
+/// (e.g. invalid credentials) must detect them through a transport that
+/// can observe HTTP responses, such as a polling request.
 class HtmlSseClient implements SSEClient {
   /// The underlying eventsource
   web.EventSource? _eventSource;
@@ -21,15 +29,22 @@ class HtmlSseClient implements SSEClient {
   Backoff _backoff = Backoff(math.Random());
 
   final Uri _uri;
+  final Uri Function()? _uriProvider;
   final Set<String> _eventTypes;
 
   int? _activeSince;
   Timer? _retryTimer;
 
-  /// Creates an instance of an SSEClient that will connect in the future
-  /// to the [uri] provided.
-  HtmlSseClient(Uri uri, Set<String> eventTypes, EventSourceLogger? logger)
+  /// Creates an instance of an SSEClient that will connect in the future.
+  ///
+  /// Every connection attempt -- the first connect and each reconnect --
+  /// constructs a fresh `EventSource` from the [uriProvider] result when
+  /// a provider is given. The fixed [uri] is used only when no provider
+  /// is given.
+  HtmlSseClient(Uri uri, Set<String> eventTypes, EventSourceLogger? logger,
+      {Uri Function()? uriProvider})
       : _uri = uri,
+        _uriProvider = uriProvider,
         _eventTypes = eventTypes {
     _logger = logger ?? NoOpLogger();
     _messageEventsController =
@@ -56,7 +71,8 @@ class HtmlSseClient implements SSEClient {
   }
 
   void _setupConnection() {
-    _eventSource = web.EventSource(_uri.toString());
+    final connectUri = _uriProvider?.call() ?? _uri;
+    _eventSource = web.EventSource(connectUri.toString());
 
     for (var eventType in _eventTypes) {
       _eventSource?.addEventListener(eventType, _handleMessageEvent.toJS);
@@ -130,6 +146,7 @@ SSEClient getSSEClient(
         Duration readTimeout,
         String? body,
         String method,
-        EventSourceLogger? logger) =>
+        EventSourceLogger? logger,
+        Uri Function()? uriProvider) =>
     // dropping unsupported configuration options
-    HtmlSseClient(uri, eventTypes, logger);
+    HtmlSseClient(uri, eventTypes, logger, uriProvider: uriProvider);
