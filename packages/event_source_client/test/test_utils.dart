@@ -20,6 +20,7 @@ class TestUtils {
 
   static StateValues makeMockStateValues(
       {Uri? uri,
+      Uri Function()? uriProvider,
       Set<String>? eventTypes,
       Map<String, String>? headers,
       Duration? connectTimeout,
@@ -45,15 +46,18 @@ class TestUtils {
         null,
         'GET',
         resetStream ?? StreamController<void>.broadcast().stream,
-        logger ?? NoOpLogger());
+        logger ?? NoOpLogger(),
+        uriProvider: uriProvider);
   }
 
   static MockClient makeMockHttpClient(
       {int httpStatusCode = HttpStatusCodes.okStatus,
       Map<String, String> headers = defaultHeaders,
-      bool blocking = false}) {
+      bool blocking = false,
+      void Function(BaseRequest)? onRequest}) {
     return MockClient.streaming((request, bodyStream) async {
       return bodyStream.bytesToString().then((bodyString) async {
+        onRequest?.call(request);
         if (blocking) {
           await Completer().future; // blocks indefinitely
         }

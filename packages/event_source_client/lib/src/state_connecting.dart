@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import 'error_utils.dart';
+import 'errors.dart';
 import 'http_consts.dart';
 import 'state_backoff.dart';
 import 'state_connected.dart';
@@ -35,7 +36,7 @@ class StateConnecting {
   /// to connect.  The returned function will run the next state.
   static Future<Function> _tryGetConnected(
       StateValues svo, http.Client client) async {
-    final request = http.Request(svo.httpMethod, svo.uri);
+    final request = http.Request(svo.httpMethod, svo.connectUri);
     request.headers.addAll(svo.headers);
     if (svo.body != null) {
       request.body = svo.body!;
@@ -50,7 +51,7 @@ class StateConnecting {
     }
 
     try {
-      svo.logger.debug('Sending HTTP request to ${svo.uri}');
+      svo.logger.debug('Sending HTTP request to ${request.url}');
       final response = await client.send(request).timeout(svo.connectTimeout);
 
       // anything besides OK is bad, but some may be recoverable with a retry.
@@ -61,8 +62,8 @@ class StateConnecting {
           // looks like the error wasn't recoverable, go to idle and wait
           // for something to change
           return () => StateIdle.run(svo,
-              errorCause: http.ClientException(
-                  'Got unrecoverable status code ${response.statusCode}'));
+              errorCause: UnrecoverableStatusError(
+                  response.statusCode, response.headers));
         }
 
         // the error is recoverable, backoff then we'll try again
