@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [2.2.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v2.1.0...launchdarkly_event_source_client-v2.2.0) (2026-06-11)
+
+
+### Features
+
+* Support per-attempt URIs and typed unrecoverable status errors in the SSE client ([#296](https://github.com/launchdarkly/flutter-client-sdk/issues/296)) ([a97e9af](https://github.com/launchdarkly/flutter-client-sdk/commit/a97e9aff72b3bef65541025a3bff767bcecceaef))
+
 ## [2.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v2.0.1...launchdarkly_event_source_client-v2.1.0) (2026-05-26)
 
 

@@ -12,6 +12,7 @@ import 'src/sse_client_stub.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
 import 'src/test_sse_client.dart';
 
+export 'src/errors.dart' show UnrecoverableStatusError;
 export 'src/events.dart' show Event, MessageEvent, OpenEvent;
 export 'src/test_sse_client.dart' show TestSseClient;
 export 'src/logging.dart'
@@ -67,6 +68,12 @@ enum SseHttpMethod {
 /// In certain cases, unrecoverable errors will be reported on the [stream] at
 /// which point the stream will be done.
 ///
+/// On `html` platforms the client is incapable of reporting unrecoverable
+/// errors: the browser's native `EventSource` exposes no HTTP status codes
+/// or response headers, so every failure is treated as recoverable and
+/// retried with backoff indefinitely, and no error is ever reported on the
+/// [stream].
+///
 /// The [SSEClient] will make best effort to maintain the streaming connection.
 abstract class SSEClient {
   static const defaultHeaders = <String, String>{
@@ -106,8 +113,10 @@ abstract class SSEClient {
   /// Factory constructor to return the platform implementation.
   ///
   /// On all platforms, the [uri] and [eventTypes] arguments are required.
-  /// On majority of platforms, the optional arguments are used.
-  /// On web, the optional arguments are not used.
+  /// On majority of platforms, the optional arguments are used. On web,
+  /// the [headers], [connectTimeout], [readTimeout], [body], and
+  /// [httpMethod] arguments are not used; the standard `EventSource`
+  /// does not support them.
   ///
   /// The [uri] specifies where to connect.  The [eventTypes] determines which
   /// event types will be emitted.  For non-web platforms, pass in [headers] to
@@ -126,19 +135,27 @@ abstract class SSEClient {
   ///
   /// An optional [logger] for controlling logging output from the SSE client.
   /// If not provided, a [NoOpLogger] will be used.
+  ///
+  /// An optional [uriProvider]. When provided, it is invoked before every
+  /// connection attempt -- the first connect and each automatic
+  /// reconnect -- and its result is used for that attempt; [uri] is used
+  /// only when no provider is given. This allows query parameters to
+  /// vary between attempts (e.g. a state selector that advances as data
+  /// is received). Supported on all platforms.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,
       Duration readTimeout = defaultReadTimeout,
       String? body,
       SseHttpMethod httpMethod = SseHttpMethod.get,
-      EventSourceLogger? logger}) {
+      EventSourceLogger? logger,
+      Uri Function()? uriProvider}) {
     // merge headers so consumer gets reasonable defaults
     var mergedHeaders = <String, String>{};
     mergedHeaders.addAll(defaultHeaders);
     mergedHeaders.addAll(headers);
     return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
-        readTimeout, body, httpMethod.toString(), logger);
+        readTimeout, body, httpMethod.toString(), logger, uriProvider);
   }
 
   /// Get an SSE client for use in unit tests.
