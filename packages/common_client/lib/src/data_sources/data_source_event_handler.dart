@@ -100,22 +100,15 @@ final class DataSourceEventHandler {
 
   /// Applies an FDv2 payload to the flag store.
   ///
-  /// Full payloads replace the stored flags, partial payloads upsert each
+  /// Full payloads replace the stored flags, partial payloads apply each
   /// update, and a payload of type none confirms the SDK is up to date
   /// without changing data. All three mark the data source valid.
   Future<MessageStatus> handlePayload(LDContext context, Payload payload,
       {String? environmentId}) async {
     try {
-      switch (payload.type) {
-        case PayloadType.full:
-          final flags = mapUpdatesToItemDescriptors(payload.updates);
-          await _flagManager.init(context, flags, environmentId: environmentId);
-        case PayloadType.partial:
-          final updates = mapUpdatesToItemDescriptors(payload.updates);
-          await _flagManager.applyUpdates(context, updates);
-        case PayloadType.none:
-          break;
-      }
+      final updates = mapUpdatesToItemDescriptors(payload.updates);
+      await _flagManager.applyChanges(context, updates, payload.type,
+          environmentId: environmentId);
       _statusManager.setValid();
       return MessageStatus.messageHandled;
     } catch (err) {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import '../data_sources/fdv2/payload.dart';
 import '../item_descriptor.dart';
 import '../persistence/persistence.dart';
 import 'context_index.dart';
@@ -63,11 +64,16 @@ final class FlagPersistence {
     return false;
   }
 
-  Future<bool> applyUpdates(
-      LDContext context, Map<String, ItemDescriptor> updates) async {
-    if (_updater.applyUpdates(context, updates)) {
-      // An empty payload changes nothing, so the cache write is skipped.
-      if (updates.isNotEmpty) {
+  Future<bool> applyChanges(
+      LDContext context, Map<String, ItemDescriptor> updates, PayloadType type,
+      {String? environmentId}) async {
+    if (_updater.applyChanges(context, updates, type,
+        environmentId: environmentId)) {
+      // A transfer of none, or a partial transfer with no updates, changes
+      // nothing, so the cache write is skipped. A full transfer always
+      // writes; replacing the stored flags with an empty set is a change.
+      if (type == PayloadType.full ||
+          (type == PayloadType.partial && updates.isNotEmpty)) {
         await _storeCache(context);
       }
       return true;

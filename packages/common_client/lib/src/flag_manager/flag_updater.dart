@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import '../data_sources/fdv2/payload.dart';
 import '../item_descriptor.dart';
 import 'flag_store.dart';
 
@@ -101,27 +102,42 @@ final class FlagUpdater {
     return true;
   }
 
-  /// Applies a set of updates from an FDv2 partial payload. FDv2 orders
-  /// data at the payload level, so unlike [upsert] there is no per-item
-  /// version comparison; every update is applied as given.
-  bool applyUpdates(LDContext context, Map<String, ItemDescriptor> updates) {
-    if (_activeContextKey != context.canonicalKey) {
-      _logger.warn('Received an update for an inactive context.');
-      return false;
-    }
+  /// Applies a changeset from an FDv2 payload. A full transfer replaces all
+  /// stored flags, a partial transfer applies the individual updates, and a
+  /// transfer of none takes no action. FDv2 orders data at the payload
+  /// level, so unlike [upsert] there is no per-item version comparison.
+  ///
+  /// A full transfer makes [context] the active context; a partial transfer
+  /// is rejected when [context] is not the active context. [environmentId]
+  /// applies only to full transfers.
+  bool applyChanges(
+      LDContext context, Map<String, ItemDescriptor> updates, PayloadType type,
+      {String? environmentId}) {
+    switch (type) {
+      case PayloadType.full:
+        init(context, updates, environmentId: environmentId);
+        return true;
+      case PayloadType.partial:
+        if (_activeContextKey != context.canonicalKey) {
+          _logger.warn('Received an update for an inactive context.');
+          return false;
+        }
 
-    final changedKeys = <String>[];
-    for (final MapEntry(key: key, value: item) in updates.entries) {
-      if (_controller.hasListener &&
-          _hasChanged(key, _flagStore.get(key), item)) {
-        changedKeys.add(key);
-      }
-      _flagStore.insertOrUpdate(key, item);
+        final changedKeys = <String>[];
+        for (final MapEntry(key: key, value: item) in updates.entries) {
+          if (_controller.hasListener &&
+              _hasChanged(key, _flagStore.get(key), item)) {
+            changedKeys.add(key);
+          }
+          _flagStore.insertOrUpdate(key, item);
+        }
+        if (changedKeys.isNotEmpty) {
+          _sendNotifications(changedKeys);
+        }
+        return true;
+      case PayloadType.none:
+        return true;
     }
-    if (changedKeys.isNotEmpty) {
-      _sendNotifications(changedKeys);
-    }
-    return true;
   }
 
   void close() {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_persistence.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_store.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_updater.dart';
@@ -31,7 +32,7 @@ void main() {
   };
 
   group('with persistence', () {
-    test('it stores cache on applyUpdates', () async {
+    test('it stores cache on a partial applyChanges', () async {
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
       final flagPersistence = FlagPersistence(
@@ -51,8 +52,10 @@ void main() {
           detail: LDEvaluationDetail(
               LDValue.ofString('updated'), 0, LDEvaluationReason.off()));
       expect(
-          await flagPersistence.applyUpdates(
-              context, {'flagA': ItemDescriptor(version: 3, flag: updated)}),
+          await flagPersistence.applyChanges(
+              context,
+              {'flagA': ItemDescriptor(version: 3, flag: updated)},
+              PayloadType.partial),
           true);
 
       final contextPersistenceKey =
@@ -63,8 +66,9 @@ void main() {
           reason: 'a successful apply writes through to the cache');
     });
 
-    test('it does not store cache for an inactive context on applyUpdates',
-        () async {
+    test(
+        'it does not store cache for an inactive context on a partial '
+        'applyChanges', () async {
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
       final flagPersistence = FlagPersistence(
@@ -86,8 +90,10 @@ void main() {
           detail: LDEvaluationDetail(
               LDValue.ofString('updated'), 0, LDEvaluationReason.off()));
       expect(
-          await flagPersistence.applyUpdates(otherContext,
-              {'flagA': ItemDescriptor(version: 3, flag: updated)}),
+          await flagPersistence.applyChanges(
+              otherContext,
+              {'flagA': ItemDescriptor(version: 3, flag: updated)},
+              PayloadType.partial),
           false);
 
       final otherPersistenceKey =
@@ -97,7 +103,8 @@ void main() {
           reason: 'a rejected apply must not write the cache');
     });
 
-    test('it skips the cache write for an empty applyUpdates', () async {
+    test('it skips the cache write for an empty partial applyChanges',
+        () async {
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
       final flagPersistence = FlagPersistence(
@@ -113,9 +120,61 @@ void main() {
       await flagPersistence.init(context, basicData);
       final writesAfterInit = mockPersistence.setCallCount;
 
-      expect(await flagPersistence.applyUpdates(context, {}), true);
+      expect(
+          await flagPersistence.applyChanges(context, {}, PayloadType.partial),
+          true);
       expect(mockPersistence.setCallCount, writesAfterInit,
           reason: 'an empty payload changes nothing');
+    });
+
+    test('it skips the cache write for an applyChanges of none', () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      await flagPersistence.init(context, basicData);
+      final writesAfterInit = mockPersistence.setCallCount;
+
+      expect(await flagPersistence.applyChanges(context, {}, PayloadType.none),
+          true);
+      expect(mockPersistence.setCallCount, writesAfterInit,
+          reason: 'a transfer of none changes nothing');
+    });
+
+    test('it stores cache for a full applyChanges, even an empty one',
+        () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      await flagPersistence.init(context, basicData);
+
+      expect(await flagPersistence.applyChanges(context, {}, PayloadType.full),
+          true);
+
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
+      final cached =
+          mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey]!;
+      expect(cached, '{}',
+          reason: 'replacing the stored flags with an empty set is a change '
+              'and must be persisted');
     });
     test('it stores cache on init', () async {
       final flagStore = FlagStore();
