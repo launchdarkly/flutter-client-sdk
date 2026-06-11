@@ -31,17 +31,6 @@ class DefaultEventPaths {
   }
 }
 
-class NetworkConfig {
-  /// Browsers forbid setting the `user-agent` header. The authorization
-  /// header is not restricted: the data acquisition services' CORS
-  /// configuration allows it, and header authentication is preferred
-  /// wherever the transport supports custom headers. It must not be
-  /// added to the base headers, though -- the events service CORS
-  /// configuration does not allow it (see
-  /// [CredentialConfig.baseHeaders]).
-  Set<String> get restrictedHeaders => {'user-agent'};
-}
-
 final class DefaultEndpoints {
   final String polling = 'https://clientsdk.launchdarkly.com';
   final String streaming = 'https://clientstream.launchdarkly.com';

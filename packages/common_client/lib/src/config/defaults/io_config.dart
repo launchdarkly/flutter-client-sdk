@@ -31,10 +31,6 @@ class DefaultEventPaths {
   }
 }
 
-class NetworkConfig {
-  Set<String> get restrictedHeaders => {};
-}
-
 final class DefaultEndpoints {
   final String polling = 'https://clientsdk.launchdarkly.com';
   final String streaming = 'https://clientstream.launchdarkly.com';

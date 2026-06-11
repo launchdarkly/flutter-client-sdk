@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import '../config/data_source_config.dart';
-import '../config/defaults/credential_type.dart';
 import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
@@ -96,15 +95,8 @@ final class Requestor {
         _lastEtag = etag;
       }
 
-      var environmentId = getEnvironmentId(res.headers);
-
-      if (environmentId == null &&
-          DefaultConfig.credentialConfig.credentialType ==
-              CredentialType.clientSideId) {
-        // When using a client-side ID we can use it to represent the
-        // environment.
-        environmentId = _credential;
-      }
+      final environmentId = getEnvironmentId(res.headers) ??
+          DefaultConfig.credentialConfig.environmentIdFallback(_credential);
 
       return DataEvent('put', res.body, environmentId: environmentId);
     }

@@ -31,10 +31,6 @@ class DefaultEventPaths {
   }
 }
 
-class NetworkConfig {
-  Set<String> get restrictedHeaders => throw Exception('Stub implementation');
-}
-
 final class DefaultEndpoints {
   DefaultEndpoints() {
     throw Exception('Stub implementation');
