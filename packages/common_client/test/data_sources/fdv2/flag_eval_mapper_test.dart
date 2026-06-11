@@ -30,6 +30,53 @@ void main() {
           result['my-flag']!.flag!.detail.value, equals(LDValue.ofBool(true)));
     });
 
+    test(
+        'parses an object without an in-object version, using the envelope '
+        'version', () {
+      // The live service's flag-eval objects carry only flagVersion; the
+      // version lives on the put-object envelope.
+      final updates = [
+        Update(
+          kind: flagEvalKind,
+          key: 'my-flag',
+          version: 420,
+          object: {
+            'flagVersion': 7,
+            'value': true,
+            'variation': 0,
+            'trackEvents': false,
+          },
+        ),
+      ];
+
+      final result = mapUpdatesToItemDescriptors(updates);
+
+      expect(result['my-flag']!.version, equals(420));
+      expect(result['my-flag']!.flag!.version, equals(420));
+      expect(result['my-flag']!.flag!.flagVersion, equals(7));
+      expect(
+          result['my-flag']!.flag!.detail.value, equals(LDValue.ofBool(true)));
+    });
+
+    test('the envelope version replaces a differing in-object version', () {
+      final updates = [
+        Update(
+          kind: flagEvalKind,
+          key: 'my-flag',
+          version: 10,
+          object: {
+            'value': true,
+            'version': 3,
+            'variation': 0,
+          },
+        ),
+      ];
+
+      final result = mapUpdatesToItemDescriptors(updates);
+
+      expect(result['my-flag']!.flag!.version, equals(10));
+    });
+
     test('converts delete update to tombstone', () {
       final updates = [
         Update(
