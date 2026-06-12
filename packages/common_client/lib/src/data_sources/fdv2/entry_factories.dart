@@ -124,13 +124,11 @@ Uri _buildStreamingUri({
   final addedPath = usePost
       ? FDv2Endpoints.streaming
       : FDv2Endpoints.streamingGet(contextEncoded);
-  // Avoid a double slash when the configured base URI carries a
-  // trailing slash; Uri.replace would otherwise land the appended path
-  // inside the query component.
-  final basePath = baseUri.path.endsWith('/')
-      ? baseUri.path.substring(0, baseUri.path.length - 1)
-      : baseUri.path;
-  final mergedPath = '$basePath$addedPath';
+  // Compose against the parsed base URI so a custom streaming URL
+  // carrying its own query parameters (e.g. a relay proxy with a token)
+  // is preserved correctly. String concatenation against `baseUri`
+  // would land the appended path inside the query component.
+  final mergedPath = appendPath(baseUri.path, addedPath);
 
   final mergedQuery = Map<String, String>.of(baseUri.queryParameters);
   mergedQuery.addAll(additionalQueryParameters);

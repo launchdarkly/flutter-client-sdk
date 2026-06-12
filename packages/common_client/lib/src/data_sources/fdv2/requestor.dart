@@ -121,10 +121,7 @@ final class FDv2Requestor {
     // carrying its own query parameters (e.g. a relay proxy with a token)
     // is preserved correctly. String concatenation against `_baseUri`
     // would land the appended path inside the query component.
-    final basePath = _baseUri.path.endsWith('/')
-        ? _baseUri.path.substring(0, _baseUri.path.length - 1)
-        : _baseUri.path;
-    final mergedPath = '$basePath$addedPath';
+    final mergedPath = appendPath(_baseUri.path, addedPath);
 
     // Use queryParametersAll so a base URL like `?dup=1&dup=2` round-trips
     // both values; the simpler `queryParameters` map collapses duplicates.
