@@ -1,10 +1,11 @@
 import 'dart:convert';
 
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    hide ServiceEndpoints;
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
 import '../../config/defaults/default_config.dart';
-import '../../config/service_endpoints.dart' as client_endpoints;
+import '../../config/service_endpoints.dart';
 import '../streaming_data_source.dart' show LDLoggerToEventSourceAdapter;
 import 'cache_initializer.dart' as cache_src;
 import 'endpoints.dart';
@@ -31,7 +32,7 @@ ServiceEndpoints mergeServiceEndpoints(
   if (override.pollingBaseUri == null && override.streamingBaseUri == null) {
     return base;
   }
-  return client_endpoints.ServiceEndpoints.custom(
+  return ServiceEndpoints.custom(
     polling: override.pollingBaseUri?.toString() ?? base.polling,
     streaming: override.streamingBaseUri?.toString() ?? base.streaming,
     events: base.events,

@@ -1,14 +1,15 @@
 import 'dart:collection';
 import 'dart:math';
 
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    hide ServiceEndpoints;
 
 import 'hooks/hook.dart';
 import 'config/data_system_config.dart';
 import 'config/defaults/default_config.dart';
 import 'config/events_config.dart';
 import 'connection_mode.dart';
-import 'config/service_endpoints.dart' as client_endpoints;
+import 'config/service_endpoints.dart';
 
 /// Configuration which affects how the SDK uses persistence.
 final class PersistenceConfig {
@@ -157,8 +158,7 @@ abstract class LDCommonConfig {
       List<Hook>? hooks,
       this.dataSystem})
       : httpProperties = httpProperties ?? HttpProperties(),
-        serviceEndpoints =
-            serviceEndpoints ?? client_endpoints.ServiceEndpoints(),
+        serviceEndpoints = serviceEndpoints ?? ServiceEndpoints(),
         events = events ?? EventsConfig(),
         persistence = persistence ?? PersistenceConfig(),
         offline = offline ?? DefaultConfig.defaultOffline,

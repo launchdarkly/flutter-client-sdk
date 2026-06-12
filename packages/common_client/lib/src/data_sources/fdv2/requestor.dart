@@ -1,5 +1,7 @@
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    hide ServiceEndpoints;
 
+import '../../config/service_endpoints.dart';
 import 'endpoints.dart';
 import 'selector.dart';
 

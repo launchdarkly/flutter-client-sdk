@@ -1,6 +1,8 @@
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    hide ServiceEndpoints;
 
 import '../../config/data_system_config.dart';
+import '../../config/service_endpoints.dart';
 import '../../fdv2_connection_mode.dart';
 import '../data_source_manager.dart';
 import '../data_source_status_manager.dart';
