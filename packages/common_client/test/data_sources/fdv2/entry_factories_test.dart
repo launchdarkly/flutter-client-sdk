@@ -133,7 +133,7 @@ void main() {
       final ctx = SourceFactoryContext(
         context: _context(),
         credential: 'the-client-side-id',
-        authQueryParameters: const {'auth': 'the-client-side-id'},
+        additionalQueryParameters: const {'auth': 'the-client-side-id'},
         logger: LDLogger(level: LDLogLevel.error),
         httpProperties: HttpProperties(),
         serviceEndpoints: ServiceEndpoints.custom(
@@ -196,7 +196,7 @@ void main() {
       final ctx = SourceFactoryContext(
         context: _context(),
         credential: 'the-client-side-id',
-        authQueryParameters: const {'auth': 'the-client-side-id'},
+        additionalQueryParameters: const {'auth': 'the-client-side-id'},
         logger: LDLogger(level: LDLogLevel.error),
         httpProperties: HttpProperties(),
         serviceEndpoints:

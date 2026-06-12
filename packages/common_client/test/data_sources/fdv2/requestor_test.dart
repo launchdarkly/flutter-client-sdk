@@ -16,7 +16,7 @@ FDv2Requestor makeRequestor(
   bool withReasons = false,
   String contextEncoded = 'eyJrZXkiOiJ0ZXN0In0=',
   String contextJson = '{"key":"test"}',
-  Map<String, String> authQueryParameters = const {},
+  Map<String, String> additionalQueryParameters = const {},
   HttpProperties? httpProperties,
 }) {
   return FDv2Requestor(
@@ -26,7 +26,7 @@ FDv2Requestor makeRequestor(
     contextJson: contextJson,
     usePost: usePost,
     withReasons: withReasons,
-    authQueryParameters: authQueryParameters,
+    additionalQueryParameters: additionalQueryParameters,
     httpProperties: httpProperties ?? HttpProperties(),
     httpClientFactory: (props) =>
         HttpClient(client: innerClient, httpProperties: props),
@@ -70,12 +70,13 @@ void main() {
       final requestor = makeRequestor(mock);
       await requestor.request();
 
-      // Authentication comes from the base headers (mobile keys) or the
-      // auth query parameters (browsers), never per-request.
-      expect(capturedHeaders, isNot(contains('authorization')));
+      expect(capturedHeaders, isNot(contains('authorization')),
+          reason: 'authentication comes from the base headers or the '
+              'additional query parameters, never per-request');
     });
 
-    test('includes the auth query parameters in every request URL', () async {
+    test('includes the additional query parameters in every request URL',
+        () async {
       final capturedUris = <Uri>[];
       final mock = MockClient((request) async {
         capturedUris.add(request.url);
@@ -83,7 +84,7 @@ void main() {
       });
 
       final requestor = makeRequestor(mock,
-          authQueryParameters: {'auth': 'the-client-side-id'});
+          additionalQueryParameters: {'auth': 'the-client-side-id'});
       await requestor.request();
       await requestor.request(basis: Selector(state: 'st', version: 1));
 

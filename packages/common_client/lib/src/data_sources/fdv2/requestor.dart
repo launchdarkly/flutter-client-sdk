@@ -41,7 +41,7 @@ final class FDv2Requestor {
   final String _contextJson;
   final bool _usePost;
   final bool _withReasons;
-  final Map<String, String> _authQueryParameters;
+  final Map<String, String> _additionalQueryParameters;
   String? _lastEtag;
 
   FDv2Requestor({
@@ -52,7 +52,7 @@ final class FDv2Requestor {
     required bool usePost,
     required bool withReasons,
     required HttpProperties httpProperties,
-    Map<String, String> authQueryParameters = const {},
+    Map<String, String> additionalQueryParameters = const {},
     HttpClientFactory httpClientFactory = _defaultHttpClientFactory,
   })  : _logger = logger.subLogger('FDv2Requestor'),
         _baseUri = Uri.parse(endpoints.polling),
@@ -60,7 +60,7 @@ final class FDv2Requestor {
         _contextJson = contextJson,
         _usePost = usePost,
         _withReasons = withReasons,
-        _authQueryParameters = authQueryParameters,
+        _additionalQueryParameters = additionalQueryParameters,
         _client = httpClientFactory(usePost
             ? httpProperties.withHeaders({'content-type': 'application/json'})
             : httpProperties);
@@ -72,9 +72,6 @@ final class FDv2Requestor {
   Future<RequestorResponse> request({Selector basis = Selector.empty}) async {
     final uri = _buildUri(basis: basis);
     final method = _usePost ? RequestMethod.post : RequestMethod.get;
-    // Authentication is carried by the base headers (mobile keys) or by
-    // the auth query parameters (browsers); the requestor adds neither
-    // per-request.
     final additionalHeaders = <String, String>{};
     if (_lastEtag case final etag?) {
       additionalHeaders['if-none-match'] = etag;
@@ -133,7 +130,7 @@ final class FDv2Requestor {
     // both values; the simpler `queryParameters` map collapses duplicates.
     final mergedQuery = <String, dynamic>{};
     mergedQuery.addAll(_baseUri.queryParametersAll);
-    mergedQuery.addAll(_authQueryParameters);
+    mergedQuery.addAll(_additionalQueryParameters);
     if (_withReasons) {
       mergedQuery['withReasons'] = 'true';
     }

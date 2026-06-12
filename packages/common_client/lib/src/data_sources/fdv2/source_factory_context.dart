@@ -34,11 +34,9 @@ final class SourceFactoryContext {
   /// platform's credential is a client-side ID.
   final String credential;
 
-  /// Authentication query parameters, applied to every data acquisition
-  /// request on platforms that authenticate with the `auth` query
-  /// parameter (browsers). Empty on platforms that authenticate with the
-  /// authorization header in the base headers (mobile keys).
-  final Map<String, String> authQueryParameters;
+  /// Additional query parameters applied to every data acquisition
+  /// request, both polling and streaming.
+  final Map<String, String> additionalQueryParameters;
 
   const SourceFactoryContext({
     required this.context,
@@ -50,7 +48,7 @@ final class SourceFactoryContext {
     required this.defaultPollingInterval,
     required this.cachedFlagsReader,
     required this.credential,
-    this.authQueryParameters = const {},
+    this.additionalQueryParameters = const {},
     this.httpClientFactory,
   });
 
@@ -77,7 +75,11 @@ final class SourceFactoryContext {
       defaultPollingInterval: defaultPollingInterval,
       cachedFlagsReader: cachedFlagsReader,
       credential: credential,
-      authQueryParameters:
+      // Platforms that authenticate with the `auth` query parameter
+      // (browsers) supply it here; platforms that authenticate with the
+      // authorization header in the base headers (mobile keys) supply
+      // nothing.
+      additionalQueryParameters:
           DefaultConfig.credentialConfig.authQueryParameters(credential),
       httpClientFactory: httpClientFactory,
     );

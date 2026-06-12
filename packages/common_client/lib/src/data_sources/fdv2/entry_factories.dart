@@ -57,7 +57,7 @@ FDv2PollingBase _buildPollingBase({
     contextJson: ctx.contextJson,
     usePost: usePost,
     withReasons: ctx.withReasons,
-    authQueryParameters: ctx.authQueryParameters,
+    additionalQueryParameters: ctx.additionalQueryParameters,
     httpProperties: ctx.httpProperties,
     httpClientFactory: ctx.httpClientFactory ?? _defaultHttpClientFactory,
   );
@@ -249,7 +249,7 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
                 usePost: e.usePost,
                 withReasons: ctx.withReasons,
                 basis: selectorGetter(),
-                additionalQueryParameters: ctx.authQueryParameters,
+                additionalQueryParameters: ctx.additionalQueryParameters,
               );
           final sseClient = (sseClientFactory ?? _defaultSseClientFactory)(
             uriProvider: uriProvider,
