@@ -95,7 +95,9 @@ const Set<String> _fdv2StreamEventNames = {
   'ping',
 };
 
-SSEClient _defaultSseClientFactory({
+/// Constructs the production [SSEClient]. The default for the factory
+/// builders; tests inject a fake through the same parameter.
+SSEClient defaultSseClientFactory({
   required Uri Function() uriProvider,
   required HttpProperties httpProperties,
   required String? body,
@@ -215,7 +217,7 @@ InitializerFactory createInitializerFactoryFromEntry(
 SynchronizerFactory createSynchronizerFactoryFromEntry(
   mode.SynchronizerEntry entry,
   SourceFactoryContext ctx, {
-  FDv2SseClientFactory? sseClientFactory,
+  FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
 }) {
   switch (entry) {
     case final mode.PollingSynchronizer e:
@@ -249,7 +251,7 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
                 basis: selectorGetter(),
                 additionalQueryParameters: ctx.additionalQueryParameters,
               );
-          final sseClient = (sseClientFactory ?? _defaultSseClientFactory)(
+          final sseClient = sseClientFactory(
             uriProvider: uriProvider,
             httpProperties: ctx.httpProperties,
             body: e.usePost ? ctx.contextJson : null,
@@ -295,7 +297,7 @@ List<InitializerFactory> buildInitializerFactories(
 List<SynchronizerFactory> buildSynchronizerFactories(
   List<mode.SynchronizerEntry> entries,
   SourceFactoryContext ctx, {
-  FDv2SseClientFactory? sseClientFactory,
+  FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
 }) {
   return entries
       .map((e) => createSynchronizerFactoryFromEntry(e, ctx,

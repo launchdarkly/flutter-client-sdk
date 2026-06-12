@@ -33,7 +33,7 @@ final class FDv2DataSystem {
   final Duration _defaultPollingInterval;
   final DataSourceStatusManager _statusManager;
   final Map<String, ModeDefinition> _modeTable;
-  final FDv2SseClientFactory? _sseClientFactory;
+  final FDv2SseClientFactory _sseClientFactory;
   final HttpClientFactory? _httpClientFactory;
 
   Selector _selector = Selector.empty;
@@ -48,7 +48,7 @@ final class FDv2DataSystem {
     required bool withReasons,
     required Duration defaultPollingInterval,
     required DataSourceStatusManager statusManager,
-    FDv2SseClientFactory? sseClientFactory,
+    FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
     HttpClientFactory? httpClientFactory,
   })  : _credential = credential,
         _logger = logger,
