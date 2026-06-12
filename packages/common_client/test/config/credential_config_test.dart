@@ -39,11 +39,12 @@ void main() {
           equals({
             'x-launchdarkly-user-agent': 'Sdk/1.0',
           }),
-          reason: 'the events service CORS configuration does not permit '
-              'the authorization header from browsers');
+          reason: 'browsers only deliver the authorization header when the '
+              'service CORS pre-flight allows it, so web requests '
+              'authenticate with the auth query parameter instead');
     });
 
-    test('auth query parameter for transports that cannot send headers', () {
+    test('the auth query parameter authenticates browser requests', () {
       expect(config.authQueryParameters('the-client-side-id'),
           equals({'auth': 'the-client-side-id'}));
     });
