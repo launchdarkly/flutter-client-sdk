@@ -34,10 +34,20 @@ final class SynchronizerSlot {
 /// Manages the state of initializers and synchronizers, tracks which
 /// source is active, and handles source transitions for the orchestrator.
 ///
-/// Every transition closes the previously active source: producing the
-/// next initializer or synchronizer, re-creating the current
-/// synchronizer, engaging the FDv1 fallback, exhausting the initializer
-/// list, and shutting the manager down.
+/// The manager assumes a single, sequential driver and relies on these
+/// contracts:
+///
+/// - At most one source is active at a time. Activating a source closes
+///   the previously active one, exhausting the initializer list closes
+///   the final initializer, and [close] closes whatever remains.
+/// - The synchronizer scan cursor doubles as the active-slot pointer:
+///   from an activation ([nextAvailableSynchronizer] or
+///   [recreateCurrentSynchronizer]) until the next cursor mutation
+///   ([resetSynchronizerIndex] or [engageFdv1Fallback]), the cursor
+///   identifies the running synchronizer's slot. [isPrimarySynchronizer]
+///   and [blockCurrentSynchronizer] read the cursor and are only
+///   meaningful inside that window. After mutating the cursor, activate
+///   a new synchronizer before consulting either of them.
 final class SourceManager {
   final List<InitializerFactory> _initializerFactories;
   final List<SynchronizerSlot> _synchronizerSlots;
@@ -46,17 +56,7 @@ final class SourceManager {
   Initializer? _activeInitializer;
   Synchronizer? _activeSynchronizer;
   int _initializerIndex = -1;
-
-  /// Scan cursor for the synchronizer rotation. Advanced by
-  /// [nextAvailableSynchronizer]; reset by [resetSynchronizerIndex] and
-  /// [engageFdv1Fallback].
   int _synchronizerIndex = -1;
-
-  /// The slot of the active synchronizer, distinct from the scan
-  /// cursor: the cursor can move (recovery reset, fallback engagement)
-  /// while a synchronizer is still active.
-  int? _activeSlotIndex;
-
   bool _shutdown = false;
 
   SourceManager({
@@ -74,7 +74,6 @@ final class SourceManager {
     _activeInitializer = null;
     _activeSynchronizer?.close();
     _activeSynchronizer = null;
-    _activeSlotIndex = null;
   }
 
   int _firstAvailableIndex() => _synchronizerSlots
@@ -82,7 +81,7 @@ final class SourceManager {
 
   /// Get the next initializer and set it as the active source. Closes the
   /// previous active source. Returns null when all initializers are
-  /// exhausted; exhaustion also closes the last active source, so a
+  /// exhausted; exhaustion also closes the final initializer, so a
   /// terminal null leaves no source running.
   Initializer? nextInitializer() {
     if (_shutdown) return null;
@@ -119,7 +118,6 @@ final class SourceManager {
         _closeActiveSource();
         final synchronizer = candidate.factory.create(_selectorGetter);
         _activeSynchronizer = synchronizer;
-        _activeSlotIndex = _synchronizerIndex;
         return synchronizer;
       }
       visited += 1;
@@ -128,49 +126,58 @@ final class SourceManager {
     return null;
   }
 
-  /// Close the active synchronizer and create a fresh instance from its
-  /// slot, without advancing the scan position. Used when a source must
-  /// drop its connection and re-establish it (goodbye, invalid data).
-  /// Returns null if no synchronizer is active or its slot is no longer
-  /// available.
+  /// Close the active synchronizer and create a fresh instance from the
+  /// current slot, without advancing the scan position. Used when a
+  /// source must drop its connection and re-establish it (goodbye,
+  /// invalid data). Returns null if the current slot is not available
+  /// or no synchronizer has been started yet.
   Synchronizer? recreateCurrentSynchronizer() {
-    if (_shutdown) return null;
-    final slotIndex = _activeSlotIndex;
-    if (slotIndex == null) return null;
-
-    final slot = _synchronizerSlots[slotIndex];
+    if (_shutdown ||
+        _synchronizerIndex < 0 ||
+        _synchronizerIndex >= _synchronizerSlots.length) {
+      return null;
+    }
+    final slot = _synchronizerSlots[_synchronizerIndex];
     if (slot.state != SynchronizerSlotState.available) {
       return null;
     }
     _closeActiveSource();
     final synchronizer = slot.factory.create(_selectorGetter);
     _activeSynchronizer = synchronizer;
-    _activeSlotIndex = slotIndex;
     return synchronizer;
   }
 
   /// Mark the active synchronizer's slot as blocked (e.g. after a
-  /// terminal error). Blocking does not close the running synchronizer;
-  /// the next transition does. No effect when no synchronizer is active.
+  /// terminal error). Reads the scan cursor, so it must only be called
+  /// while the cursor identifies the active slot (see the class
+  /// contract).
   void blockCurrentSynchronizer() {
-    if (_activeSlotIndex case final slotIndex?) {
-      _synchronizerSlots[slotIndex].state = SynchronizerSlotState.blocked;
+    if (_synchronizerIndex >= 0 &&
+        _synchronizerIndex < _synchronizerSlots.length) {
+      _synchronizerSlots[_synchronizerIndex].state =
+          SynchronizerSlotState.blocked;
     }
   }
 
-  /// Reset the synchronizer scan position so the next call to
-  /// [nextAvailableSynchronizer] starts from the beginning.
+  /// Reset the synchronizer scan cursor so the next call to
+  /// [nextAvailableSynchronizer] starts from the beginning. After a
+  /// reset the cursor no longer identifies the active slot; activate a
+  /// new synchronizer before consulting [isPrimarySynchronizer] or
+  /// [blockCurrentSynchronizer].
   void resetSynchronizerIndex() {
     _synchronizerIndex = -1;
   }
 
-  /// Block all non-FDv1 synchronizers and unblock FDv1 synchronizers,
-  /// closing the active source. No effect when no FDv1 fallback slot is
-  /// configured: a fallback directive must not be able to leave the SDK
-  /// with no usable synchronizer tier.
+  /// Block all non-FDv1 synchronizers, unblock the FDv1 fallback, and
+  /// reset the scan cursor so the next activation selects the fallback.
+  /// Does nothing when no FDv1 fallback slot is configured, since
+  /// blocking every slot without unblocking one would leave nothing to
+  /// activate. The active source keeps running until the next
+  /// activation closes it.
   void engageFdv1Fallback() {
-    if (!hasFdv1FallbackConfigured) return;
-    _closeActiveSource();
+    if (!hasFdv1FallbackConfigured) {
+      return;
+    }
     for (final slot in _synchronizerSlots) {
       slot.state = slot.isFdv1Fallback
           ? SynchronizerSlotState.available
@@ -179,18 +186,20 @@ final class SourceManager {
     _synchronizerIndex = -1;
   }
 
-  /// True if the active synchronizer is the first available (primary).
-  /// False when no synchronizer is active.
+  /// True if the active synchronizer occupies the first available slot
+  /// (the primary). Reads the scan cursor, so it is only meaningful
+  /// while the cursor identifies the active slot (see the class
+  /// contract).
   bool get isPrimarySynchronizer =>
-      _activeSlotIndex != null && _activeSlotIndex == _firstAvailableIndex();
+      _synchronizerIndex == _firstAvailableIndex();
 
   /// Count of synchronizers in the available state.
   int get availableSynchronizerCount => _synchronizerSlots
       .where((slot) => slot.state == SynchronizerSlotState.available)
       .length;
 
-  /// True if any synchronizer slot is configured as an FDv1 fallback,
-  /// regardless of whether the fallback has been engaged.
+  /// True if any synchronizer slot is the FDv1 fallback, whether or not
+  /// it has been engaged.
   bool get hasFdv1FallbackConfigured =>
       _synchronizerSlots.any((slot) => slot.isFdv1Fallback);
 
