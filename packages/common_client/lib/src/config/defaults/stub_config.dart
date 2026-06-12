@@ -31,10 +31,6 @@ class DefaultEventPaths {
   }
 }
 
-class NetworkConfig {
-  Set<String> get restrictedHeaders => throw Exception('Stub implementation');
-}
-
 final class DefaultEndpoints {
   DefaultEndpoints() {
     throw Exception('Stub implementation');
@@ -47,6 +43,15 @@ final class DefaultEndpoints {
 
 final class CredentialConfig {
   CredentialType get credentialType => throw Exception('Stub implementation');
+
+  Map<String, String> baseHeaders(String credential, String userAgent) =>
+      throw Exception('Stub implementation');
+
+  Map<String, String> authQueryParameters(String credential) =>
+      throw Exception('Stub implementation');
+
+  String? environmentIdFallback(String credential) =>
+      throw Exception('Stub implementation');
 }
 
 final class DefaultDataSourceConfig {
