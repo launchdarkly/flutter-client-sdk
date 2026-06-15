@@ -9,10 +9,8 @@ const String flagEvalKind = 'flag-eval';
 /// Translates a wire-level [Payload] into a typed [ChangeSet] ready for
 /// the flag store.
 ///
-/// Throws if any flag-eval object cannot be parsed. The data source layer
-/// calls this at acquisition time and reports a failure as a data source
-/// error, so the connection recovers rather than the failure surfacing
-/// later at apply time.
+/// Throws if any flag-eval object cannot be parsed, so the data source
+/// layer can report it as a data source error and recover the connection.
 ChangeSet translatePayload(Payload payload) {
   return ChangeSet(
     selector: payload.selector,

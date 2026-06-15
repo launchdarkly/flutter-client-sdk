@@ -102,10 +102,9 @@ final class Payload {
 ///
 /// The wire-level [Payload] carries raw [Update] objects; producing a
 /// [ChangeSet] converts each flag-eval object into an [ItemDescriptor].
-/// That conversion is performed by the data source layer (see
-/// `translatePayload`) so a malformed object is reported as a data source
-/// error at acquisition time -- where the connection can recover -- rather
-/// than surfacing later, at apply time.
+/// The data source layer performs this conversion (see `translatePayload`),
+/// so a malformed object is reported as a data source error where the
+/// connection can recover.
 final class ChangeSet {
   /// The selector for this change set, carried over from the originating
   /// [Payload]. [Selector.empty] when the source provided none (cached
