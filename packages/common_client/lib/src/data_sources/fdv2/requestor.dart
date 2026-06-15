@@ -116,28 +116,12 @@ final class FDv2Requestor {
     final addedPath = _usePost
         ? FDv2Endpoints.polling
         : FDv2Endpoints.pollingGet(_contextEncoded);
-
-    // Compose against the parsed base URI so a custom polling URL
-    // carrying its own query parameters (e.g. a relay proxy with a token)
-    // is preserved correctly. String concatenation against `_baseUri`
-    // would land the appended path inside the query component.
-    final mergedPath = appendPath(_baseUri.path, addedPath);
-
-    // Use queryParametersAll so a base URL like `?dup=1&dup=2` round-trips
-    // both values; the simpler `queryParameters` map collapses duplicates.
-    final mergedQuery = <String, dynamic>{};
-    mergedQuery.addAll(_baseUri.queryParametersAll);
-    mergedQuery.addAll(_additionalQueryParameters);
-    if (_withReasons) {
-      mergedQuery['withReasons'] = 'true';
-    }
-    if (basis.state case final state? when state.isNotEmpty) {
-      mergedQuery['basis'] = state;
-    }
-
-    return _baseUri.replace(
-      path: mergedPath,
-      queryParameters: mergedQuery.isEmpty ? null : mergedQuery,
+    return buildFDv2Uri(
+      baseUri: _baseUri,
+      addedPath: addedPath,
+      withReasons: _withReasons,
+      basis: basis,
+      additionalQueryParameters: _additionalQueryParameters,
     );
   }
 }

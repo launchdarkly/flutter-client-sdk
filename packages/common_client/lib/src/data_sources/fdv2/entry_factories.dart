@@ -122,28 +122,15 @@ Uri _buildStreamingUri({
   required Selector basis,
   Map<String, String> additionalQueryParameters = const {},
 }) {
-  final baseUri = Uri.parse(endpoints.streaming);
   final addedPath = usePost
       ? FDv2Endpoints.streaming
       : FDv2Endpoints.streamingGet(contextEncoded);
-  // Compose against the parsed base URI so a custom streaming URL
-  // carrying its own query parameters (e.g. a relay proxy with a token)
-  // is preserved correctly. String concatenation against `baseUri`
-  // would land the appended path inside the query component.
-  final mergedPath = appendPath(baseUri.path, addedPath);
-
-  final mergedQuery = Map<String, String>.of(baseUri.queryParameters);
-  mergedQuery.addAll(additionalQueryParameters);
-  if (withReasons) {
-    mergedQuery['withReasons'] = 'true';
-  }
-  if (basis.state case final state? when state.isNotEmpty) {
-    mergedQuery['basis'] = state;
-  }
-
-  return baseUri.replace(
-    path: mergedPath,
-    queryParameters: mergedQuery.isEmpty ? null : mergedQuery,
+  return buildFDv2Uri(
+    baseUri: Uri.parse(endpoints.streaming),
+    addedPath: addedPath,
+    withReasons: withReasons,
+    basis: basis,
+    additionalQueryParameters: additionalQueryParameters,
   );
 }
 

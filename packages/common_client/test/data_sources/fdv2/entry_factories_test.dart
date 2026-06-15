@@ -176,6 +176,53 @@ void main() {
 
       sync.close();
     });
+
+    test(
+        'streaming URI preserves repeated query keys on the base URL across '
+        'reconnects', () {
+      final ctx = SourceFactoryContext(
+        context: _context(),
+        credential: 'cid',
+        logger: LDLogger(level: LDLogLevel.error),
+        httpProperties: HttpProperties(),
+        serviceEndpoints: ServiceEndpoints.custom(
+            polling: 'https://poll.test',
+            streaming: 'https://relay.test/?tag=a&tag=b'),
+        contextJson: '{"key":"test","kind":"user"}',
+        withReasons: false,
+        defaultPollingInterval: const Duration(seconds: 300),
+        cachedFlagsReader: (_) async => null,
+      );
+
+      var selector = Selector.empty;
+      late Uri Function() capturedUriProvider;
+      final factory = createSynchronizerFactoryFromEntry(
+        StreamingSynchronizer(),
+        ctx,
+        sseClientFactory: ({
+          required Uri Function() uriProvider,
+          required HttpProperties httpProperties,
+          required String? body,
+          required SseHttpMethod method,
+          required EventSourceLogger logger,
+        }) {
+          capturedUriProvider = uriProvider;
+          return SSEClient.testClient(uriProvider(), const {});
+        },
+      );
+      final sync = factory.create(() => selector);
+
+      // A relay-style base URL with a repeated key must round-trip both
+      // values, matching the polling requestor -- and on every reconnect,
+      // since the provider rebuilds the URI each time.
+      expect(
+          capturedUriProvider().queryParametersAll['tag'], equals(['a', 'b']));
+      selector = const Selector(state: '(p:abc:1)', version: 1);
+      expect(
+          capturedUriProvider().queryParametersAll['tag'], equals(['a', 'b']));
+
+      sync.close();
+    });
   });
 
   group('createInitializerFactoryFromEntry', () {
