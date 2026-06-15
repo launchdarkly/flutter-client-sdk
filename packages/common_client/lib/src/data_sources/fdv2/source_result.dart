@@ -23,10 +23,10 @@ sealed class FDv2SourceResult {
   const FDv2SourceResult({this.fdv1Fallback = false});
 }
 
-/// A data payload was received.
+/// A data payload was received and translated into typed descriptors.
 final class ChangeSetResult extends FDv2SourceResult {
-  /// The payload containing updates.
-  final Payload payload;
+  /// The translated change set ready to apply to the flag store.
+  final ChangeSet changeSet;
 
   /// The environment ID from response headers, if present.
   final String? environmentId;
@@ -38,7 +38,7 @@ final class ChangeSetResult extends FDv2SourceResult {
   final bool persist;
 
   const ChangeSetResult({
-    required this.payload,
+    required this.changeSet,
     required this.persist,
     this.environmentId,
     this.freshness,
@@ -46,9 +46,9 @@ final class ChangeSetResult extends FDv2SourceResult {
   });
 
   @override
-  String toString() => 'ChangeSetResult(type: ${payload.type}, '
-      'updates: ${payload.updates.length}, '
-      'hasSelector: ${payload.selector.isNotEmpty}, '
+  String toString() => 'ChangeSetResult(type: ${changeSet.type}, '
+      'updates: ${changeSet.updates.length}, '
+      'hasSelector: ${changeSet.selector.isNotEmpty}, '
       'persist: $persist, fdv1Fallback: $fdv1Fallback)';
 }
 
@@ -82,14 +82,14 @@ final class StatusResult extends FDv2SourceResult {
 /// Factory functions for creating common result types.
 abstract final class FDv2SourceResults {
   static ChangeSetResult changeSet({
-    required Payload payload,
+    required ChangeSet changeSet,
     required bool persist,
     String? environmentId,
     DateTime? freshness,
     bool fdv1Fallback = false,
   }) =>
       ChangeSetResult(
-        payload: payload,
+        changeSet: changeSet,
         persist: persist,
         environmentId: environmentId,
         freshness: freshness,

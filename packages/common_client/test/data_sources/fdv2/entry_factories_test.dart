@@ -144,6 +144,6 @@ void main() {
     final result = await init.run();
     expect(result, isA<ChangeSetResult>());
     final cs = result as ChangeSetResult;
-    expect(cs.payload.type, PayloadType.none);
+    expect(cs.changeSet.type, PayloadType.none);
   });
 }

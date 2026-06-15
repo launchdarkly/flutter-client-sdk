@@ -42,23 +42,22 @@ void main() {
     expect(result, isA<ChangeSetResult>());
     final cs = result as ChangeSetResult;
     expect(cs.persist, isFalse);
-    expect(cs.payload.type, equals(PayloadType.full));
-    expect(cs.payload.selector.isEmpty, isTrue);
+    expect(cs.changeSet.type, equals(PayloadType.full));
+    expect(cs.changeSet.selector.isEmpty, isTrue);
     expect(cs.environmentId, equals('env-xyz'));
-    expect(cs.payload.updates, hasLength(2));
+    expect(cs.changeSet.updates, hasLength(2));
 
-    final byKey = {for (final u in cs.payload.updates) u.key: u};
-    expect(byKey['flag-a']?.version, equals(7));
-    expect(byKey['flag-a']?.kind, equals('flag-eval'));
-    expect(byKey['flag-a']?.deleted, isFalse);
-    expect(byKey['flag-a']?.object, isNotNull);
-    expect(byKey['flag-b']?.version, equals(9));
+    final updates = cs.changeSet.updates;
+    expect(updates['flag-a']?.version, equals(7));
+    expect(updates['flag-a']?.flag, isNotNull);
+    expect(updates['flag-b']?.version, equals(9));
   });
 
-  test('cache hit Updates round-trip through LDEvaluationResultSerialization',
+  test('cache hit carries the evaluation result through without re-parsing',
       () async {
-    // Confirms the cache initializer writes the same JSON shape that the
-    // protocol handler's flag_eval mapper expects on the read side.
+    // Cached flags are already typed; the initializer places the
+    // evaluation result directly in the descriptor rather than
+    // round-tripping it through the wire JSON shape.
     final original = _evalResult(version: 42);
     final init = CacheInitializer(
       reader: _staticReader((flags: {'k': original}, environmentId: null)),
@@ -68,11 +67,10 @@ void main() {
 
     final result = await init.run();
     final cs = result as ChangeSetResult;
-    final update = cs.payload.updates.single;
+    final descriptor = cs.changeSet.updates['k']!;
 
-    final reconstructed =
-        LDEvaluationResultSerialization.fromJson(update.object!);
-    expect(reconstructed, equals(original));
+    expect(descriptor.version, equals(42));
+    expect(descriptor.flag, equals(original));
   });
 
   test('cache miss emits a none-type ChangeSetResult so the chain advances',
@@ -87,8 +85,8 @@ void main() {
 
     expect(result, isA<ChangeSetResult>());
     final cs = result as ChangeSetResult;
-    expect(cs.payload.type, equals(PayloadType.none));
-    expect(cs.payload.updates, isEmpty);
+    expect(cs.changeSet.type, equals(PayloadType.none));
+    expect(cs.changeSet.updates, isEmpty);
     expect(cs.persist, isFalse);
     expect(cs.environmentId, isNull);
   });
@@ -104,7 +102,8 @@ void main() {
     final result = await init.run();
 
     expect(result, isA<ChangeSetResult>());
-    expect((result as ChangeSetResult).payload.type, equals(PayloadType.none));
+    expect(
+        (result as ChangeSetResult).changeSet.type, equals(PayloadType.none));
   });
 
   test('close before run returns shutdown without invoking reader', () async {

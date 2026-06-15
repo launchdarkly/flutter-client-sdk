@@ -84,12 +84,12 @@ class FakeTimer implements Timer {
 
 ChangeSetResult _changeSet({DateTime? freshness, String? selectorState}) =>
     ChangeSetResult(
-      payload: Payload(
+      changeSet: ChangeSet(
         type: PayloadType.full,
         selector: selectorState != null
             ? Selector(state: selectorState, version: 1)
             : Selector.empty,
-        updates: const [],
+        updates: const {},
       ),
       persist: true,
       freshness: freshness ?? DateTime.utc(2026, 1, 1),
@@ -175,7 +175,7 @@ void main() {
 
     expect(emissions, hasLength(2));
     expect(
-      (emissions[1] as ChangeSetResult).payload.selector.state,
+      (emissions[1] as ChangeSetResult).changeSet.selector.state,
       equals('second'),
     );
 

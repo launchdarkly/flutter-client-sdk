@@ -1,5 +1,6 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
+import '../../item_descriptor.dart';
 import 'selector.dart';
 
 /// The type of payload transfer.
@@ -93,5 +94,38 @@ final class Payload {
 
   @override
   String toString() => 'Payload(selector: $selector, type: $type, '
+      'updates: ${updates.length})';
+}
+
+/// A [Payload] translated into typed flag descriptors, ready to apply to
+/// the flag store.
+///
+/// The wire-level [Payload] carries raw [Update] objects; producing a
+/// [ChangeSet] converts each flag-eval object into an [ItemDescriptor].
+/// That conversion is performed by the data source layer (see
+/// `translatePayload`) so a malformed object is reported as a data source
+/// error at acquisition time -- where the connection can recover -- rather
+/// than surfacing later, at apply time.
+final class ChangeSet {
+  /// The selector for this change set, carried over from the originating
+  /// [Payload]. [Selector.empty] when the source provided none (cached
+  /// data or an intent of none).
+  final Selector selector;
+
+  /// Whether this is a full, partial, or no-op change set.
+  final PayloadType type;
+
+  /// The typed updates, keyed by flag key. A tombstone (deletion) is an
+  /// [ItemDescriptor] with a null flag.
+  final Map<String, ItemDescriptor> updates;
+
+  const ChangeSet({
+    this.selector = Selector.empty,
+    required this.type,
+    required this.updates,
+  });
+
+  @override
+  String toString() => 'ChangeSet(selector: $selector, type: $type, '
       'updates: ${updates.length})';
 }

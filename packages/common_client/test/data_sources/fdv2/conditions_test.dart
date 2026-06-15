@@ -5,7 +5,7 @@ import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_result.d
 import 'package:test/test.dart';
 
 ChangeSetResult _changeSet() => const ChangeSetResult(
-      payload: Payload(type: PayloadType.full, updates: []),
+      changeSet: ChangeSet(type: PayloadType.full, updates: {}),
       persist: true,
     );
 

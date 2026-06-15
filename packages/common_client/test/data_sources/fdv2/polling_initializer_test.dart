@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/polling_initializer.dart';
+import 'package:launchdarkly_common_client/src/item_descriptor.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_result.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
@@ -42,15 +43,9 @@ class HoldingDelay {
 
 ChangeSetResult _changeSet({String flagKey = 'k', int version = 1}) =>
     ChangeSetResult(
-      payload: Payload(
+      changeSet: ChangeSet(
         type: PayloadType.full,
-        updates: [
-          Update(
-              kind: 'flag-eval',
-              key: flagKey,
-              version: version,
-              object: const {})
-        ],
+        updates: {flagKey: ItemDescriptor(version: version)},
       ),
       persist: true,
       freshness: DateTime.utc(2026, 1, 1),

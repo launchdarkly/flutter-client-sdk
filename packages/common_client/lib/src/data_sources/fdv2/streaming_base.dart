@@ -6,6 +6,7 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
 import 'flag_eval_mapper.dart';
+import 'payload.dart';
 import 'protocol_handler.dart';
 import 'protocol_types.dart';
 import 'source.dart';
@@ -18,7 +19,10 @@ import 'source_result.dart';
 /// fresh [FDv2ProtocolHandler]. The first emitted [ProtocolAction]
 /// per event is translated into an [FDv2SourceResult]:
 ///
-/// - [ActionPayload] --> [ChangeSetResult] with `persist: true`.
+/// - [ActionPayload] --> translated into a [ChangeSet] and emitted as a
+///   [ChangeSetResult] with `persist: true`. A payload whose flag-eval
+///   objects cannot be parsed is surfaced as an interrupted
+///   [StatusResult] instead, the same as any other transient data error.
 /// - [ActionGoodbye] --> goodbye [StatusResult]; the SSE connection is
 ///   closed.
 /// - [ActionServerError] / [ActionError] --> interrupted
@@ -226,8 +230,25 @@ final class FDv2StreamingBase {
 
     switch (action) {
       case ActionPayload(:final payload):
+        final ChangeSet changeSet;
+        try {
+          changeSet = translatePayload(payload);
+        } catch (err) {
+          // A protocol-valid payload whose flag-eval objects cannot be
+          // parsed. Treat it like any other transient data error:
+          // discard the partial state and surface interrupted, which
+          // arms the orchestrator's fallback timer. The SSE connection
+          // stays up and the server's next payload is processed by the
+          // fresh handler.
+          _logger.warn(
+              'Streaming payload contained invalid flag data (${err.runtimeType})');
+          _resetHandler();
+          _emit(FDv2SourceResults.interrupted(
+              message: 'Streaming payload contained invalid flag data'));
+          return;
+        }
         _emit(ChangeSetResult(
-          payload: payload,
+          changeSet: changeSet,
           environmentId: _environmentId,
           freshness: freshness,
           persist: true,
