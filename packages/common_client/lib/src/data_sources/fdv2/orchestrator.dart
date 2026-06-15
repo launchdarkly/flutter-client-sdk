@@ -141,12 +141,12 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     if (_closed || _controller.isClosed) return;
     // An intent of "none" means the SDK is already up to date; it carries
     // no selector and must not regress the one we hold.
-    if (result.payload.type != PayloadType.none) {
-      _selectorUpdater(result.payload.selector);
+    if (result.changeSet.type != PayloadType.none) {
+      _selectorUpdater(result.changeSet.selector);
     }
     _dataEmitted = true;
-    _controller
-        .add(PayloadEvent(result.payload, environmentId: result.environmentId));
+    _controller.add(
+        PayloadEvent(result.changeSet, environmentId: result.environmentId));
   }
 
   void _reportTransientError(StatusResult result) {
@@ -194,7 +194,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
 
       switch (result) {
         case ChangeSetResult():
-          if (result.payload.type != PayloadType.none) {
+          if (result.changeSet.type != PayloadType.none) {
             _emitPayload(result);
 
             if (_handleFdv1Fallback(result)) {
@@ -203,7 +203,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
               return;
             }
 
-            if (result.payload.selector.isNotEmpty) {
+            if (result.changeSet.selector.isNotEmpty) {
               // Basis data with a selector: initialization is complete.
               return;
             }
@@ -240,7 +240,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
         _synchronizerSlots.isEmpty;
     if (cacheOnlyDataSystem && !_dataEmitted && !errorDuringInit) {
       _emitPayload(const ChangeSetResult(
-        payload: Payload(type: PayloadType.none, updates: []),
+        changeSet: ChangeSet(type: PayloadType.none, updates: {}),
         persist: false,
       ));
     }
@@ -251,7 +251,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     // payload marks it valid so a pending identify completes.
     if (_initializerFactories.isEmpty && _synchronizerSlots.isEmpty) {
       _emitPayload(const ChangeSetResult(
-        payload: Payload(type: PayloadType.none, updates: []),
+        changeSet: ChangeSet(type: PayloadType.none, updates: {}),
         persist: false,
       ));
       return;

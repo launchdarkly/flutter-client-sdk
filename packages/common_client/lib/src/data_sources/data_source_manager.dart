@@ -164,7 +164,7 @@ final class DataSourceManager {
           return handled;
         case PayloadEvent():
           var handled = await _dataSourceEventHandler.handlePayload(
-              _activeContext!, event.payload,
+              _activeContext!, event.changeSet,
               environmentId: event.environmentId);
           _completeIdentify(handled);
           return handled;

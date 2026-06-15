@@ -66,9 +66,9 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(emissions, hasLength(2));
-    expect((emissions[0] as ChangeSetResult).payload.selector.state,
+    expect((emissions[0] as ChangeSetResult).changeSet.selector.state,
         equals('sel-1'));
-    expect((emissions[1] as ChangeSetResult).payload.selector.state,
+    expect((emissions[1] as ChangeSetResult).changeSet.selector.state,
         equals('sel-2'));
 
     await sub.cancel();

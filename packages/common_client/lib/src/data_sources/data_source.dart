@@ -11,13 +11,14 @@ final class DataEvent implements DataSourceEvent {
   DataEvent(this.type, this.data, {this.environmentId});
 }
 
-/// An FDv2 payload produced by the data source orchestrator. Carries the
-/// already-parsed updates instead of the FDv1 JSON string forms.
+/// An FDv2 change set produced by the data source orchestrator. Carries
+/// typed flag descriptors translated at acquisition time, not the FDv1
+/// JSON string forms.
 final class PayloadEvent implements DataSourceEvent {
-  final Payload payload;
+  final ChangeSet changeSet;
   final String? environmentId;
 
-  PayloadEvent(this.payload, {this.environmentId});
+  PayloadEvent(this.changeSet, {this.environmentId});
 }
 
 final class StatusEvent implements DataSourceEvent {

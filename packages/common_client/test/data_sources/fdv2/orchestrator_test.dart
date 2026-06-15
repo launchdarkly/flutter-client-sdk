@@ -80,7 +80,7 @@ ChangeSetResult changeSet({
   bool fdv1Fallback = false,
 }) {
   return ChangeSetResult(
-    payload: Payload(selector: selector, type: type, updates: const []),
+    changeSet: ChangeSet(selector: selector, type: type, updates: const {}),
     persist: true,
     fdv1Fallback: fdv1Fallback,
   );
@@ -172,7 +172,7 @@ void main() {
     final payloads = harness.events.whereType<PayloadEvent>().toList();
     expect(payloads, hasLength(1),
         reason: 'the cache miss payload is not emitted');
-    expect(payloads.single.payload.selector.state, 'state-1');
+    expect(payloads.single.changeSet.selector.state, 'state-1');
 
     harness.orchestrator.stop();
   });
@@ -189,7 +189,7 @@ void main() {
 
     final payloads = harness.events.whereType<PayloadEvent>().toList();
     expect(payloads, hasLength(1));
-    expect(payloads.single.payload.type, PayloadType.none);
+    expect(payloads.single.changeSet.type, PayloadType.none);
 
     harness.orchestrator.stop();
   });
@@ -386,7 +386,7 @@ void main() {
     // subscription-driven, roughly 100 MB over this soak).
     Future<int> soak(FakeSynchronizer synchronizer, int results) async {
       const healthyResult = ChangeSetResult(
-          payload: Payload(type: PayloadType.partial, updates: []),
+          changeSet: ChangeSet(type: PayloadType.partial, updates: {}),
           persist: true);
       final baseline = ProcessInfo.currentRss;
       for (var i = 0; i < results; i++) {
