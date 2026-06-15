@@ -23,6 +23,7 @@ void main() {
       Future<CachedFlags?> reader(LDContext _) async => null;
 
       final ctx = SourceFactoryContext.fromClientConfig(
+        credential: 'test-credential',
         context: context,
         logger: logger,
         httpProperties: httpProperties,
@@ -51,6 +52,7 @@ void main() {
       Future<CachedFlags?> reader(LDContext _) async => null;
 
       final ctx = SourceFactoryContext.fromClientConfig(
+        credential: 'test-credential',
         context: context,
         logger: logger,
         httpProperties: HttpProperties(),
@@ -85,6 +87,7 @@ void main() {
       Future<CachedFlags?> reader(LDContext _) async => null;
 
       final ctx = SourceFactoryContext.fromClientConfig(
+        credential: 'test-credential',
         context: context,
         logger: logger,
         httpProperties: HttpProperties(),
@@ -116,6 +119,7 @@ void main() {
           HttpClient(httpProperties: p);
 
       final ctx = SourceFactoryContext.fromClientConfig(
+        credential: 'test-credential',
         context: context,
         logger: logger,
         httpProperties: httpProperties,

@@ -16,6 +16,7 @@ FDv2Requestor makeRequestor(
   bool withReasons = false,
   String contextEncoded = 'eyJrZXkiOiJ0ZXN0In0=',
   String contextJson = '{"key":"test"}',
+  Map<String, String> additionalQueryParameters = const {},
   HttpProperties? httpProperties,
 }) {
   return FDv2Requestor(
@@ -25,6 +26,7 @@ FDv2Requestor makeRequestor(
     contextJson: contextJson,
     usePost: usePost,
     withReasons: withReasons,
+    additionalQueryParameters: additionalQueryParameters,
     httpProperties: httpProperties ?? HttpProperties(),
     httpClientFactory: (props) =>
         HttpClient(client: innerClient, httpProperties: props),
@@ -56,6 +58,41 @@ void main() {
       expect(capturedMethod, equals('GET'));
       expect(capturedUri.path, equals('/sdk/poll/eval/ENC123'));
       expect(capturedUri.host, equals('example.test'));
+    });
+
+    test('does not add an authorization header', () async {
+      Map<String, String>? capturedHeaders;
+      final mock = MockClient((request) async {
+        capturedHeaders = request.headers;
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock);
+      await requestor.request();
+
+      expect(capturedHeaders, isNot(contains('authorization')),
+          reason: 'authentication comes from the base headers or the '
+              'additional query parameters, never per-request');
+    });
+
+    test('includes the additional query parameters in every request URL',
+        () async {
+      final capturedUris = <Uri>[];
+      final mock = MockClient((request) async {
+        capturedUris.add(request.url);
+        return http.Response('{}', 200);
+      });
+
+      final requestor = makeRequestor(mock,
+          additionalQueryParameters: {'auth': 'the-client-side-id'});
+      await requestor.request();
+      await requestor.request(basis: Selector(state: 'st', version: 1));
+
+      expect(capturedUris, hasLength(2));
+      for (final uri in capturedUris) {
+        expect(uri.queryParameters, containsPair('auth', 'the-client-side-id'));
+      }
+      expect(capturedUris[1].queryParameters, containsPair('basis', 'st'));
     });
 
     test('does not send a body on GET', () async {

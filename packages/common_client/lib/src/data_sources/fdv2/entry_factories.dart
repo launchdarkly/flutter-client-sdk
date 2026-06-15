@@ -2,9 +2,14 @@ import 'dart:convert';
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
+import '../../config/defaults/default_config.dart';
 import '../../config/service_endpoints.dart';
+import '../streaming_data_source.dart' show LDLoggerToEventSourceAdapter;
 import 'cache_initializer.dart' as cache_src;
+import 'endpoints.dart';
+import 'protocol_types.dart';
 import 'source_factory_context.dart';
 import 'mode_definition.dart' as mode;
 import 'polling_base.dart';
@@ -13,6 +18,8 @@ import 'polling_synchronizer.dart';
 import 'requestor.dart';
 import 'selector.dart';
 import 'source.dart';
+import 'streaming_base.dart';
+import 'streaming_synchronizer.dart';
 
 /// Merges per-entry [mode.EndpointConfig] overrides into [base].
 ServiceEndpoints mergeServiceEndpoints(
@@ -50,6 +57,7 @@ FDv2PollingBase _buildPollingBase({
     contextJson: ctx.contextJson,
     usePost: usePost,
     withReasons: ctx.withReasons,
+    additionalQueryParameters: ctx.additionalQueryParameters,
     httpProperties: ctx.httpProperties,
     httpClientFactory: ctx.httpClientFactory ?? _defaultHttpClientFactory,
   );
@@ -61,6 +69,69 @@ FDv2PollingBase _buildPollingBase({
 
 HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
+}
+
+/// Constructs the [SSEClient] used by a streaming source. [uriProvider]
+/// is re-invoked on every connection attempt so the `basis` query
+/// parameter reflects the current selector. Tests inject a fake.
+typedef FDv2SseClientFactory = SSEClient Function({
+  required Uri Function() uriProvider,
+  required HttpProperties httpProperties,
+  required String? body,
+  required SseHttpMethod method,
+  required EventSourceLogger logger,
+});
+
+/// FDv2 event names subscribed on the streaming connection. Includes the
+/// legacy `ping` bridge event.
+const Set<String> _fdv2StreamEventNames = {
+  FDv2EventTypes.serverIntent,
+  FDv2EventTypes.putObject,
+  FDv2EventTypes.deleteObject,
+  FDv2EventTypes.payloadTransferred,
+  FDv2EventTypes.goodbye,
+  FDv2EventTypes.error,
+  FDv2EventTypes.heartbeat,
+  'ping',
+};
+
+/// Constructs the production [SSEClient]. The default for the factory
+/// builders; tests inject a fake through the same parameter.
+SSEClient defaultSseClientFactory({
+  required Uri Function() uriProvider,
+  required HttpProperties httpProperties,
+  required String? body,
+  required SseHttpMethod method,
+  required EventSourceLogger logger,
+}) {
+  return SSEClient(uriProvider(), _fdv2StreamEventNames,
+      headers: httpProperties.baseHeaders,
+      body: body,
+      httpMethod: method,
+      logger: logger,
+      uriProvider: uriProvider);
+}
+
+/// Builds the streaming URI for the current state. Invoked per
+/// connection attempt so the `basis` parameter tracks the selector.
+Uri _buildStreamingUri({
+  required ServiceEndpoints endpoints,
+  required String contextEncoded,
+  required bool usePost,
+  required bool withReasons,
+  required Selector basis,
+  Map<String, String> additionalQueryParameters = const {},
+}) {
+  final addedPath = usePost
+      ? FDv2Endpoints.streaming
+      : FDv2Endpoints.streamingGet(contextEncoded);
+  return buildFDv2Uri(
+    baseUri: Uri.parse(endpoints.streaming),
+    addedPath: addedPath,
+    withReasons: withReasons,
+    basis: basis,
+    additionalQueryParameters: additionalQueryParameters,
+  );
 }
 
 /// A factory for creating [Initializer] instances.
@@ -130,12 +201,11 @@ InitializerFactory createInitializerFactoryFromEntry(
 }
 
 /// Builds a [SynchronizerFactory] for a single [mode.SynchronizerEntry].
-///
-/// Throws [UnsupportedError] for unsupported entry types.
 SynchronizerFactory createSynchronizerFactoryFromEntry(
   mode.SynchronizerEntry entry,
-  SourceFactoryContext ctx,
-) {
+  SourceFactoryContext ctx, {
+  FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
+}) {
   switch (entry) {
     case final mode.PollingSynchronizer e:
       final interval = e.pollInterval ?? ctx.defaultPollingInterval;
@@ -155,9 +225,47 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
           );
         },
       );
-    case mode.StreamingSynchronizer():
-      throw UnsupportedError(
-        'FDv2 StreamingSynchronizer factories are not implemented yet',
+    case final mode.StreamingSynchronizer e:
+      return SynchronizerFactory(
+        create: (SelectorGetter selectorGetter) {
+          final endpointsResolved =
+              mergeServiceEndpoints(ctx.serviceEndpoints, e.endpoints);
+          Uri uriProvider() => _buildStreamingUri(
+                endpoints: endpointsResolved,
+                contextEncoded: base64UrlEncode(utf8.encode(ctx.contextJson)),
+                usePost: e.usePost,
+                withReasons: ctx.withReasons,
+                basis: selectorGetter(),
+                additionalQueryParameters: ctx.additionalQueryParameters,
+              );
+          final sseClient = sseClientFactory(
+            uriProvider: uriProvider,
+            httpProperties: ctx.httpProperties,
+            body: e.usePost ? ctx.contextJson : null,
+            method: e.usePost ? SseHttpMethod.post : SseHttpMethod.get,
+            logger: LDLoggerToEventSourceAdapter(ctx.logger),
+          );
+
+          // Legacy ping events trigger a one-shot poll.
+          final pingPollingBase = _buildPollingBase(
+            endpoints: e.endpoints,
+            usePost: e.usePost,
+            ctx: ctx,
+          );
+
+          return FDv2StreamingSynchronizer(
+            base: FDv2StreamingBase(
+              sseClient: sseClient,
+              pingHandler: () =>
+                  pingPollingBase.pollOnce(basis: selectorGetter()),
+              logger: ctx.logger,
+              // Used when the transport exposes no response headers (the
+              // browser EventSource) to read x-ld-envid from.
+              defaultEnvironmentId: DefaultConfig.credentialConfig
+                  .environmentIdFallback(ctx.credential),
+            ),
+          );
+        },
       );
   }
 }
@@ -173,9 +281,11 @@ List<InitializerFactory> buildInitializerFactories(
 /// One factory per entry, in list order.
 List<SynchronizerFactory> buildSynchronizerFactories(
   List<mode.SynchronizerEntry> entries,
-  SourceFactoryContext ctx,
-) {
+  SourceFactoryContext ctx, {
+  FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
+}) {
   return entries
-      .map((e) => createSynchronizerFactoryFromEntry(e, ctx))
+      .map((e) => createSynchronizerFactoryFromEntry(e, ctx,
+          sseClientFactory: sseClientFactory))
       .toList();
 }
