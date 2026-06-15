@@ -63,10 +63,10 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   bool _closed = false;
   bool _dataEmitted = false;
 
-  /// Decides the outcome of the active synchronizer run. Set while a
+  /// Resolves the outcome of the active synchronizer run. Set while a
   /// synchronizer is running; [restart] and [stop] use it to interrupt
   /// the run.
-  void Function(_SynchronizerOutcome outcome)? _decideActiveRun;
+  void Function(_SynchronizerOutcome outcome)? _resolveCurrentOutcome;
 
   FDv2DataSourceOrchestrator({
     required List<InitializerFactory> initializerFactories,
@@ -111,7 +111,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     _sourceManager.close();
     // Wake the active synchronizer run so it can observe the closed
     // state.
-    _decideActiveRun?.call(_SynchronizerOutcome.stop);
+    _resolveCurrentOutcome?.call(_SynchronizerOutcome.stop);
     if (!_controller.isClosed) {
       _controller.close();
     }
@@ -121,7 +121,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   void restart() {
     if (_closed) return;
     _logger.debug('Restart requested; recycling the active synchronizer.');
-    _decideActiveRun?.call(_SynchronizerOutcome.recycle);
+    _resolveCurrentOutcome?.call(_SynchronizerOutcome.recycle);
   }
 
   Future<void> _run() async {
@@ -301,7 +301,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   ///
   /// Consumption is subscription-driven: one listener on the
   /// synchronizer's results, one on the merged condition stream, and a
-  /// decide hook for [restart] and [stop]. Nothing is attached
+  /// resolve hook for [restart] and [stop]. Nothing is attached
   /// per-result, so a healthy synchronizer that streams change sets
   /// indefinitely holds constant memory. (Racing long-lived futures per
   /// result would attach an irremovable listener to them each
@@ -316,24 +316,24 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     );
 
     final outcome = Completer<_SynchronizerOutcome>();
-    void decide(_SynchronizerOutcome decision) {
+    void resolve(_SynchronizerOutcome decision) {
       if (!outcome.isCompleted) {
         outcome.complete(decision);
       }
     }
 
-    _decideActiveRun = decide;
+    _resolveCurrentOutcome = resolve;
 
     final conditionSubscription = conditions.events.listen((type) {
       switch (type) {
         case ConditionType.fallback:
           _logger.warn('Fallback condition fired; moving to the next '
               'synchronizer.');
-          decide(_SynchronizerOutcome.advance);
+          resolve(_SynchronizerOutcome.advance);
         case ConditionType.recovery:
           _logger.info('Recovery condition fired; returning to the '
               'primary synchronizer.');
-          decide(_SynchronizerOutcome.recover);
+          resolve(_SynchronizerOutcome.recover);
       }
     });
 
@@ -356,25 +356,25 @@ final class FDv2DataSourceOrchestrator implements DataSource {
                   '${result.message ?? 'unknown error'}');
               _reportTransientError(result);
               if (_handleFdv1Fallback(result)) {
-                decide(_SynchronizerOutcome.advance);
+                resolve(_SynchronizerOutcome.advance);
                 return;
               }
               _sourceManager.blockCurrentSynchronizer();
-              decide(_SynchronizerOutcome.advance);
+              resolve(_SynchronizerOutcome.advance);
               return;
             case SourceState.shutdown:
-              decide(_SynchronizerOutcome.stop);
+              resolve(_SynchronizerOutcome.stop);
               return;
             case SourceState.goodbye:
               _logger.info('Server requested disconnect (goodbye); '
                   're-establishing the synchronizer.');
-              decide(_SynchronizerOutcome.recycle);
+              resolve(_SynchronizerOutcome.recycle);
               return;
           }
       }
 
       if (_handleFdv1Fallback(result)) {
-        decide(_SynchronizerOutcome.advance);
+        resolve(_SynchronizerOutcome.advance);
       }
     }, onDone: () {
       if (outcome.isCompleted || _closed) return;
@@ -383,14 +383,14 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       // the source shut itself down unexpectedly. Re-establish it.
       _logger.warn('Synchronizer stream ended unexpectedly; '
           're-establishing.');
-      decide(_SynchronizerOutcome.recycle);
+      resolve(_SynchronizerOutcome.recycle);
     });
 
     try {
       final decision = await outcome.future;
       return _closed ? _SynchronizerOutcome.stop : decision;
     } finally {
-      _decideActiveRun = null;
+      _resolveCurrentOutcome = null;
       conditions.close();
       await conditionSubscription.cancel();
       await resultSubscription.cancel();
