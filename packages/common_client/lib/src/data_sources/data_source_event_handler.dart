@@ -102,11 +102,6 @@ final class DataSourceEventHandler {
   /// Full change sets replace the stored flags, partial change sets apply
   /// each update, and a change set of type none confirms the SDK is up to
   /// date without changing data. All three mark the data source valid.
-  ///
-  /// The change set is already translated into typed descriptors by the
-  /// data source layer, so malformed flag data never reaches here -- it is
-  /// surfaced as a data source error at acquisition time. The catch is a
-  /// backstop for an unexpected store/persistence failure.
   Future<MessageStatus> handlePayload(LDContext context, ChangeSet changeSet,
       {String? environmentId}) async {
     try {
