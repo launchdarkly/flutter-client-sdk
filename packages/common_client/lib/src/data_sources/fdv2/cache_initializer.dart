@@ -66,9 +66,6 @@ final class CacheInitializer implements Initializer {
       return _miss();
     }
 
-    // Cached flags are already typed evaluation results, so build the
-    // change set directly rather than round-tripping through the wire
-    // representation and back.
     final updates = <String, ItemDescriptor>{};
     cached.flags.forEach((key, evalResult) {
       updates[key] =
