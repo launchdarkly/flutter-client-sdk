@@ -246,9 +246,7 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
             logger: LDLoggerToEventSourceAdapter(ctx.logger),
           );
 
-          // Legacy ping events trigger a one-shot poll against the FDv2
-          // polling endpoint, using the streaming entry's endpoint
-          // overrides only for the streaming half; polling uses defaults.
+          // Legacy ping events trigger a one-shot poll.
           final pingPollingBase = _buildPollingBase(
             endpoints: e.endpoints,
             usePost: e.usePost,
