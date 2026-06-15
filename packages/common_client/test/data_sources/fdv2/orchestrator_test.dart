@@ -264,6 +264,48 @@ void main() {
     harness.orchestrator.stop();
   });
 
+  test(
+      'a synchronizer stuck on interrupted falls back after the timeout '
+      'instead of retrying the same source forever', () async {
+    final firstTier = <FakeSynchronizer>[];
+    final secondTier = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [
+        synchronizerSlot(firstTier),
+        synchronizerSlot(secondTier),
+      ],
+      fallbackTimeout: const Duration(milliseconds: 50),
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    // The source reports interrupted -- the shape a payload that fails to
+    // translate now takes. The run stays on this source while the
+    // fallback timer counts down; it must not switch immediately.
+    firstTier.single.controller
+        .add(FDv2SourceResults.interrupted(message: 'invalid flag data'));
+    await harness.pump();
+    expect(secondTier, isEmpty,
+        reason: 'fallback waits out the timeout, it does not switch at once');
+
+    // Let the fallback timer elapse. A source that never recovers must not
+    // pin the SDK to it.
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    await harness.pump();
+
+    expect(secondTier, hasLength(1),
+        reason: 'sustained interruption falls back to the next synchronizer');
+
+    secondTier.single.controller
+        .add(changeSet(selector: const Selector(state: 's', version: 1)));
+    await harness.pump();
+    expect(harness.events.whereType<PayloadEvent>(), hasLength(1));
+
+    harness.orchestrator.stop();
+  });
+
   test('goodbye re-establishes the same synchronizer', () async {
     final synchronizers = <FakeSynchronizer>[];
     final harness = Harness(
