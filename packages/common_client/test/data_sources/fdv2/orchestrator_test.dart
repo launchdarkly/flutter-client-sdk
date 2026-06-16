@@ -399,6 +399,136 @@ void main() {
     harness.orchestrator.stop();
   });
 
+  test('recovery condition returns to the primary synchronizer', () async {
+    final primary = <FakeSynchronizer>[];
+    final secondary = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [
+        synchronizerSlot(primary),
+        synchronizerSlot(secondary),
+      ],
+      fallbackTimeout: const Duration(milliseconds: 40),
+      recoveryTimeout: const Duration(milliseconds: 40),
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    // Fall back off the primary (without blocking it) so the secondary,
+    // which carries the recovery condition, runs.
+    primary.single.controller
+        .add(FDv2SourceResults.interrupted(message: 'down'));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await harness.pump();
+    expect(secondary, hasLength(1),
+        reason: 'the fallback timer moved off the primary');
+
+    // The recovery timer on the non-primary fires and returns to the
+    // primary slot, which is still available.
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await harness.pump();
+    expect(primary, hasLength(2),
+        reason: 'recovery re-establishes the primary synchronizer');
+
+    harness.orchestrator.stop();
+  });
+
+  test('an unexpectedly ended synchronizer stream is recycled', () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [synchronizerSlot(synchronizers)],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    // The stream ends with no terminal directive -- the source stopped on
+    // its own. The orchestrator recreates the same slot.
+    await synchronizers.single.controller.close();
+    await harness.pump();
+
+    expect(synchronizers, hasLength(2),
+        reason: 'an unexpected stream end recreates the same synchronizer');
+    expect(synchronizers.first.closed, isTrue);
+
+    harness.orchestrator.stop();
+  });
+
+  test(
+      'a synchronizer that shuts down before delivering data halts with a '
+      'shutdown status', () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [synchronizerSlot(synchronizers)],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    synchronizers.single.controller
+        .add(FDv2SourceResults.shutdown(message: 'gone'));
+    await harness.pump();
+
+    final shutdowns =
+        harness.events.whereType<StatusEvent>().where((e) => e.shutdown);
+    expect(shutdowns, hasLength(1),
+        reason: 'a no-data shutdown must surface a shutdown status so a '
+            'pending identify fails instead of hanging');
+
+    harness.orchestrator.stop();
+  });
+
+  test('a synchronizer shutdown after data does not halt the system', () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [synchronizerSlot(synchronizers)],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    synchronizers.single.controller
+        .add(changeSet(selector: const Selector(state: 's', version: 1)));
+    synchronizers.single.controller
+        .add(FDv2SourceResults.shutdown(message: 'gone'));
+    await harness.pump();
+
+    expect(harness.events.whereType<PayloadEvent>(), hasLength(1));
+    expect(harness.events.whereType<StatusEvent>().where((e) => e.shutdown),
+        isEmpty,
+        reason: 'data was already delivered, so a shutdown is not a halt');
+
+    harness.orchestrator.stop();
+  });
+
+  test('an initializer error suppresses the cache-only empty payload',
+      () async {
+    final harness = Harness(
+      initializerFactories: [
+        initializerFactory(
+            FDv2SourceResults.interrupted(message: 'cache read failed'),
+            isCache: true),
+      ],
+      synchronizerSlots: [],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    expect(harness.events.whereType<PayloadEvent>(), isEmpty,
+        reason: 'an errored initialization is not papered over with an empty '
+            'payload, unlike a clean cache miss');
+    expect(harness.events.whereType<StatusEvent>().where((e) => e.shutdown),
+        hasLength(1),
+        reason: 'with no data and no synchronizer tier, the system halts');
+
+    harness.orchestrator.stop();
+  });
+
   test('stop closes the active synchronizer and ends the loop', () async {
     final synchronizers = <FakeSynchronizer>[];
     final harness = Harness(

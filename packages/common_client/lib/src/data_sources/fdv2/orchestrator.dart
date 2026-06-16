@@ -61,7 +61,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
 
   bool _started = false;
   bool _closed = false;
-  bool _dataEmitted = false;
+  bool _emittedPayload = false;
 
   /// Resolves the outcome of the active synchronizer run. Set while a
   /// synchronizer is running; [restart] and [stop] use it to interrupt
@@ -144,7 +144,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     if (result.changeSet.type != PayloadType.none) {
       _selectorUpdater(result.changeSet.selector);
     }
-    _dataEmitted = true;
+    _emittedPayload = true;
     _controller.add(
         PayloadEvent(result.changeSet, environmentId: result.environmentId));
   }
@@ -238,7 +238,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     final cacheOnlyDataSystem = _initializerFactories.isNotEmpty &&
         _initializerFactories.every((f) => f.isCache) &&
         _synchronizerSlots.isEmpty;
-    if (cacheOnlyDataSystem && !_dataEmitted && !errorDuringInit) {
+    if (cacheOnlyDataSystem && !_emittedPayload && !errorDuringInit) {
       _emitPayload(const ChangeSetResult(
         changeSet: ChangeSet(type: PayloadType.none, updates: {}),
         persist: false,
@@ -273,7 +273,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       }
 
       if (synchronizer == null) {
-        if (!_dataEmitted) {
+        if (!_emittedPayload) {
           _halt('All FDv2 data sources exhausted without receiving data');
         } else if (_synchronizerSlots.isNotEmpty) {
           _logger.warn('No available FDv2 synchronizer remains; the SDK '
@@ -363,6 +363,16 @@ final class FDv2DataSourceOrchestrator implements DataSource {
               resolve(_SynchronizerOutcome.advance);
               return;
             case SourceState.shutdown:
+              // A synchronizer that shuts itself down before the system
+              // has reached a usable state would otherwise leave a
+              // pending identify with nothing to resolve it. Emit a
+              // shutdown status so identify fails rather than hangs,
+              // mirroring the source-exhaustion path. (No shipped source
+              // reaches here while the system is still live, but a future
+              // synchronizer could.)
+              if (!_emittedPayload) {
+                _halt('FDv2 synchronizer shut down without delivering data');
+              }
               resolve(_SynchronizerOutcome.stop);
               return;
             case SourceState.goodbye:
