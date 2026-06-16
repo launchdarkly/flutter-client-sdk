@@ -110,6 +110,14 @@ final class FDv2DataSystem {
               modeDefinition.initializers, factoryContext)
           : <InitializerFactory>[];
 
+      // The FDv1 fallback tier (modeDefinition.fdv1Fallback) is not built
+      // into a slot yet. When it is, mark that slot isFdv1Fallback and keep
+      // its source incapable of emitting a result with fdv1Fallback set:
+      // it is the terminal tier, so re-asserting the directive from there
+      // would drive the orchestrator to re-engage FDv1 fallback on every
+      // result, undelayed and blocking no slot. A source that cannot emit
+      // the directive is simpler than guarding the orchestrator against
+      // re-engaging while already on FDv1.
       final synchronizerSlots = buildSynchronizerFactories(
               modeDefinition.synchronizers, factoryContext,
               sseClientFactory: _sseClientFactory)
