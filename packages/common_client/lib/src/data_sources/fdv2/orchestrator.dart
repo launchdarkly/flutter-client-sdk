@@ -140,7 +140,12 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   void _emitPayload(ChangeSetResult result) {
     if (_closed || _controller.isClosed) return;
     // An intent of "none" means the SDK is already up to date; it carries
-    // no selector and must not regress the one we hold.
+    // no selector and must not regress the one we hold. For any other
+    // type the payload's selector is adopted verbatim, including an empty
+    // one -- a selector-less full transfer (an FDv1 fallback payload,
+    // whose state cannot serve as an FDv2 basis) must clear the held
+    // selector so the next request sends no stale basis. Do not gate this
+    // on a non-empty selector.
     if (result.changeSet.type != PayloadType.none) {
       _selectorUpdater(result.changeSet.selector);
     }
