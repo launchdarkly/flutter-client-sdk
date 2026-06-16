@@ -4,6 +4,8 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source_status.d
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
+import 'package:launchdarkly_common_client/src/item_descriptor.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -287,33 +289,35 @@ void main() {
     });
 
     group('handlePayload', () {
-      Update flagEval(String key, int version, {Object? value = true}) =>
-          Update(
-            kind: 'flag-eval',
-            key: key,
+      // The change set reaching handlePayload is already translated into
+      // typed descriptors by the data source layer, so these build
+      // descriptors directly. Translation-failure handling is covered at
+      // the source layer (streaming/polling base tests).
+      ItemDescriptor flagEval(int version, {bool value = true}) =>
+          ItemDescriptor(
             version: version,
-            object: {
-              'flagVersion': 5,
-              'value': value,
-              'variation': 0,
-              'trackEvents': false,
-            },
+            flag: LDEvaluationResult(
+              version: version,
+              detail: LDEvaluationDetail(
+                  LDValue.ofBool(value), 0, LDEvaluationReason.off()),
+            ),
           );
 
-      test('a full payload replaces the stored flags and sets valid', () async {
+      test('a full change set replaces the stored flags and sets valid',
+          () async {
         expectLater(
             statusManager!.changes,
             emits(DataSourceStatus(
                 state: DataSourceState.valid, stateSince: DateTime(2))));
 
         await eventHandler!.handlePayload(context,
-            Payload(type: PayloadType.full, updates: [flagEval('flagA', 1)]));
+            ChangeSet(type: PayloadType.full, updates: {'flagA': flagEval(1)}));
 
         expect(
             await eventHandler!.handlePayload(
                 context,
-                Payload(
-                    type: PayloadType.full, updates: [flagEval('flagB', 2)]),
+                ChangeSet(
+                    type: PayloadType.full, updates: {'flagB': flagEval(2)}),
                 environmentId: 'the-environment-id'),
             MessageStatus.messageHandled);
 
@@ -324,17 +328,17 @@ void main() {
       });
 
       test(
-          'a partial payload applies updates without per-item version '
+          'a partial change set applies updates without per-item version '
           'comparison and sets valid', () async {
         await eventHandler!.handlePayload(context,
-            Payload(type: PayloadType.full, updates: [flagEval('flagA', 7)]));
+            ChangeSet(type: PayloadType.full, updates: {'flagA': flagEval(7)}));
 
         expect(
             await eventHandler!.handlePayload(
                 context,
-                Payload(
+                ChangeSet(
                     type: PayloadType.partial,
-                    updates: [flagEval('flagA', 3, value: false)])),
+                    updates: {'flagA': flagEval(3, value: false)})),
             MessageStatus.messageHandled);
 
         final updated = flagManager!.get('flagA')!.flag!;
@@ -344,41 +348,16 @@ void main() {
         expect(updated.detail.value, LDValue.ofBool(false));
       });
 
-      test('a payload of none changes no data and sets valid', () async {
+      test('a change set of none changes no data and sets valid', () async {
         await eventHandler!.handlePayload(context,
-            Payload(type: PayloadType.full, updates: [flagEval('flagA', 1)]));
+            ChangeSet(type: PayloadType.full, updates: {'flagA': flagEval(1)}));
 
         expect(
             await eventHandler!.handlePayload(
-                context, const Payload(type: PayloadType.none, updates: [])),
+                context, const ChangeSet(type: PayloadType.none, updates: {})),
             MessageStatus.messageHandled);
 
         expect(flagManager!.get('flagA')?.flag?.version, 1);
-      });
-
-      test('invalid flag data sets an invalid data error', () async {
-        expectLater(
-            statusManager!.changes,
-            emits(DataSourceStatus(
-                lastError: DataSourceStatusErrorInfo(
-                    kind: ErrorKind.invalidData,
-                    message: 'FDv2 payload contained invalid data',
-                    statusCode: null,
-                    time: DateTime(2)),
-                state: DataSourceState.initializing,
-                stateSince: DateTime(1))));
-
-        expect(
-            await eventHandler!.handlePayload(
-                context,
-                Payload(type: PayloadType.full, updates: [
-                  const Update(
-                      kind: 'flag-eval',
-                      key: 'bad',
-                      version: 1,
-                      object: {'trackEvents': 'not-a-bool'})
-                ])),
-            MessageStatus.invalidMessage);
       });
     });
   });

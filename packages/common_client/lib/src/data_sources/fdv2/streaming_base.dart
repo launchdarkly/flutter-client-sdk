@@ -6,6 +6,7 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
 import 'flag_eval_mapper.dart';
+import 'payload.dart';
 import 'protocol_handler.dart';
 import 'protocol_types.dart';
 import 'source.dart';
@@ -18,7 +19,10 @@ import 'source_result.dart';
 /// fresh [FDv2ProtocolHandler]. The first emitted [ProtocolAction]
 /// per event is translated into an [FDv2SourceResult]:
 ///
-/// - [ActionPayload] --> [ChangeSetResult] with `persist: true`.
+/// - [ActionPayload] --> translated into a [ChangeSet] and emitted as a
+///   [ChangeSetResult] with `persist: true`. A payload whose flag-eval
+///   objects cannot be parsed is surfaced as an interrupted
+///   [StatusResult] instead, the same as any other transient data error.
 /// - [ActionGoodbye] --> goodbye [StatusResult]; the SSE connection is
 ///   closed.
 /// - [ActionServerError] / [ActionError] --> interrupted
@@ -61,9 +65,11 @@ final class FDv2StreamingBase {
     required SSEClient sseClient,
     required PingHandler pingHandler,
     required LDLogger logger,
+    String? defaultEnvironmentId,
     DateTime Function()? now,
   })  : _sseClient = sseClient,
         _pingHandler = pingHandler,
+        _environmentId = defaultEnvironmentId,
         _logger = logger.subLogger('FDv2StreamingBase'),
         _now = now ?? DateTime.now {
     _controller = StreamController<FDv2SourceResult>(
@@ -226,8 +232,25 @@ final class FDv2StreamingBase {
 
     switch (action) {
       case ActionPayload(:final payload):
+        final ChangeSet changeSet;
+        try {
+          changeSet = translatePayload(payload);
+        } catch (err) {
+          // A protocol-valid payload whose flag-eval objects cannot be
+          // parsed. Treat it like any other transient data error:
+          // discard the partial state and surface interrupted, which
+          // arms the orchestrator's fallback timer. The SSE connection
+          // stays up and the server's next payload is processed by the
+          // fresh handler.
+          _logger.warn(
+              'Streaming payload contained invalid flag data (${err.runtimeType})');
+          _resetHandler();
+          _emit(FDv2SourceResults.interrupted(
+              message: 'Streaming payload contained invalid flag data'));
+          return;
+        }
         _emit(ChangeSetResult(
-          payload: payload,
+          changeSet: changeSet,
           environmentId: _environmentId,
           freshness: freshness,
           persist: true,
@@ -293,6 +316,24 @@ final class FDv2StreamingBase {
 
   void _handleSseError(Object err, StackTrace stack) {
     if (_stoppedSignal.isCompleted) return;
+
+    if (err is UnrecoverableStatusError) {
+      // The SSE client stops reconnecting for these status codes, so the
+      // source cannot recover on its own. Surface a terminal error so the
+      // orchestrator moves to another source. The error response may also
+      // carry the FDv1 fallback directive.
+      final fallback = err.headers['x-ld-fd-fallback']?.toLowerCase() == 'true';
+      _logger.warn(
+          'Streaming request failed with status ${err.statusCode}; giving up');
+      _terminate(
+          finalResult: FDv2SourceResults.terminalError(
+        message: 'Streaming request failed with status ${err.statusCode}',
+        statusCode: err.statusCode,
+        fdv1Fallback: fallback,
+      ));
+      return;
+    }
+
     // The SSE client's built-in backoff handles reconnection. Surface
     // the disruption as interrupted; the orchestrator decides whether
     // to fall through to a different source after enough time.

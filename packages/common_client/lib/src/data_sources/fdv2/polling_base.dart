@@ -73,7 +73,7 @@ final class FDv2PollingBase {
     // 304 Not Modified means the SDK's cached data is confirmed current.
     if (response.status == 304) {
       return ChangeSetResult(
-        payload: const Payload(type: PayloadType.none, updates: []),
+        changeSet: const ChangeSet(type: PayloadType.none, updates: {}),
         environmentId: environmentId,
         freshness: _now(),
         persist: true,
@@ -135,8 +135,12 @@ final class FDv2PollingBase {
         final action = handler.processEvent(event);
         switch (action) {
           case ActionPayload(:final payload):
+            // translatePayload may throw on a flag-eval object that
+            // cannot be parsed; the surrounding catch converts that into
+            // an interrupted result, the same as a malformed protocol
+            // body.
             return ChangeSetResult(
-              payload: payload,
+              changeSet: translatePayload(payload),
               environmentId: environmentId,
               freshness: _now(),
               persist: true,

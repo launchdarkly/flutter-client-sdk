@@ -1,8 +1,7 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
-import 'flag_eval_mapper.dart';
+import '../../item_descriptor.dart';
 import 'payload.dart';
-import 'selector.dart';
 import 'source.dart';
 import 'source_result.dart';
 
@@ -67,20 +66,15 @@ final class CacheInitializer implements Initializer {
       return _miss();
     }
 
-    final updates = <Update>[];
+    final updates = <String, ItemDescriptor>{};
     cached.flags.forEach((key, evalResult) {
-      updates.add(Update(
-        kind: flagEvalKind,
-        key: key,
-        version: evalResult.version,
-        object: LDEvaluationResultSerialization.toJson(evalResult),
-      ));
+      updates[key] =
+          ItemDescriptor(version: evalResult.version, flag: evalResult);
     });
 
     return ChangeSetResult(
-      payload: Payload(
+      changeSet: ChangeSet(
         type: PayloadType.full,
-        selector: Selector.empty,
         updates: updates,
       ),
       environmentId: cached.environmentId,
@@ -95,9 +89,9 @@ final class CacheInitializer implements Initializer {
   }
 
   ChangeSetResult _miss() => ChangeSetResult(
-        payload: const Payload(
+        changeSet: const ChangeSet(
           type: PayloadType.none,
-          updates: [],
+          updates: {},
         ),
         freshness: _now(),
         persist: false,

@@ -48,6 +48,17 @@ String putObject({
       'object': {'value': true, 'version': version, 'variation': 0},
     });
 
+/// A put-object that is structurally valid at the protocol level (the
+/// object is a JSON object with the required envelope fields) but whose
+/// flag-eval fields have the wrong types, so translation into a typed
+/// descriptor fails.
+String badPutObject({String key = 'flag-a', int version = 1}) => jsonEncode({
+      'kind': 'flag-eval',
+      'key': key,
+      'version': version,
+      'object': {'trackEvents': 'not-a-bool'},
+    });
+
 String payloadTransferred({String state = 'sel-1', int version = 1}) =>
     jsonEncode({
       'state': state,
@@ -221,11 +232,45 @@ void main() {
 
       expect(emissions, hasLength(1));
       final cs = emissions.single as ChangeSetResult;
-      expect(cs.payload.type, equals(PayloadType.full));
-      expect(cs.payload.selector.state, equals('sel-99'));
-      expect(cs.payload.updates.single.key, equals('k1'));
+      expect(cs.changeSet.type, equals(PayloadType.full));
+      expect(cs.changeSet.selector.state, equals('sel-99'));
+      expect(cs.changeSet.updates.keys.single, equals('k1'));
       expect(cs.persist, isTrue);
       expect(cs.freshness, equals(fixedNow));
+
+      await sub.cancel();
+    });
+
+    test(
+        'a payload whose flag data cannot be parsed surfaces interrupted, and '
+        'the connection recovers on the next valid payload', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      emitMessage(sse, 'server-intent', serverIntent());
+      emitMessage(sse, 'put-object', badPutObject());
+      emitMessage(sse, 'payload-transferred', payloadTransferred());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      expect(emissions.single, isA<StatusResult>(),
+          reason: 'invalid flag data is a transient data error, not a '
+              'change set');
+      expect((emissions.single as StatusResult).state,
+          equals(SourceState.interrupted));
+
+      // The SSE connection was not torn down: the server's next valid
+      // payload is processed by the fresh handler.
+      emitFullPayload(sse, state: 'sel-good', flagKey: 'good');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(2));
+      expect(emissions.last, isA<ChangeSetResult>());
+      expect((emissions.last as ChangeSetResult).changeSet.updates.keys.single,
+          equals('good'));
 
       await sub.cancel();
     });
@@ -372,7 +417,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       for (final result in emissions.whereType<ChangeSetResult>()) {
-        final keys = result.payload.updates.map((u) => u.key).toSet();
+        final keys = result.changeSet.updates.keys.toSet();
         expect(keys, isNot(contains('old-flag')),
             reason: 'old-flag from the previous connection bled into '
                 "the new connection's payload");
@@ -495,7 +540,7 @@ void main() {
         'the stream', () async {
       var pingCallCount = 0;
       final pingResult = ChangeSetResult(
-        payload: const Payload(type: PayloadType.full, updates: []),
+        changeSet: const ChangeSet(type: PayloadType.full, updates: {}),
         persist: true,
         freshness: DateTime.utc(2026, 1, 1),
       );

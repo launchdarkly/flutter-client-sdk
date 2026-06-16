@@ -1,3 +1,7 @@
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+
+import 'selector.dart';
+
 /// FDv2 endpoint paths.
 ///
 /// These paths are uniform across mobile and browser SDKs; FDv2 does
@@ -19,4 +23,40 @@ abstract final class FDv2Endpoints {
   /// embedded in the URL path.
   static String streamingGet(String encodedContext) =>
       '$streaming/$encodedContext';
+}
+
+/// Builds an FDv2 request URI: appends [addedPath] to [baseUri]'s path and
+/// merges the [withReasons], [basis], and [additionalQueryParameters]
+/// query parameters onto the base URL's own.
+///
+/// Composes against the parsed [baseUri] so a custom URL carrying its own
+/// query parameters (e.g. a relay proxy with a token) is preserved --
+/// including repeated keys, via `queryParametersAll`, which a plain
+/// `queryParameters` map would collapse to the last value. String
+/// concatenation against the base would instead land the appended path
+/// inside the query component.
+///
+/// Shared by the polling requestor and the streaming source so the two
+/// transports build URLs identically.
+Uri buildFDv2Uri({
+  required Uri baseUri,
+  required String addedPath,
+  required bool withReasons,
+  required Selector basis,
+  Map<String, String> additionalQueryParameters = const {},
+}) {
+  final mergedPath = appendPath(baseUri.path, addedPath);
+  final mergedQuery = <String, dynamic>{}
+    ..addAll(baseUri.queryParametersAll)
+    ..addAll(additionalQueryParameters);
+  if (withReasons) {
+    mergedQuery['withReasons'] = 'true';
+  }
+  if (basis.state case final state? when state.isNotEmpty) {
+    mergedQuery['basis'] = state;
+  }
+  return baseUri.replace(
+    path: mergedPath,
+    queryParameters: mergedQuery.isEmpty ? null : mergedQuery,
+  );
 }

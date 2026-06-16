@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
 
+import '../../config/defaults/default_config.dart';
 import '../../config/service_endpoints.dart';
 import 'cache_initializer.dart';
 import 'requestor.dart';
@@ -29,6 +30,14 @@ final class SourceFactoryContext {
 
   final HttpClientFactory? httpClientFactory;
 
+  /// The SDK credential. Used as the environment identifier when the
+  /// platform's credential is a client-side ID.
+  final String credential;
+
+  /// Additional query parameters applied to every data acquisition
+  /// request, both polling and streaming.
+  final Map<String, String> additionalQueryParameters;
+
   const SourceFactoryContext({
     required this.context,
     required this.logger,
@@ -38,6 +47,8 @@ final class SourceFactoryContext {
     required this.withReasons,
     required this.defaultPollingInterval,
     required this.cachedFlagsReader,
+    required this.credential,
+    this.additionalQueryParameters = const {},
     this.httpClientFactory,
   });
 
@@ -49,6 +60,7 @@ final class SourceFactoryContext {
     required bool withReasons,
     required Duration defaultPollingInterval,
     required CachedFlagsReader cachedFlagsReader,
+    required String credential,
     HttpClientFactory? httpClientFactory,
   }) {
     final plainContextString =
@@ -62,6 +74,13 @@ final class SourceFactoryContext {
       withReasons: withReasons,
       defaultPollingInterval: defaultPollingInterval,
       cachedFlagsReader: cachedFlagsReader,
+      credential: credential,
+      // Platforms that authenticate with the `auth` query parameter
+      // (browsers) supply it here; platforms that authenticate with the
+      // authorization header in the base headers (mobile keys) supply
+      // nothing.
+      additionalQueryParameters:
+          DefaultConfig.credentialConfig.authQueryParameters(credential),
       httpClientFactory: httpClientFactory,
     );
   }
