@@ -116,6 +116,9 @@ final class PollingDataSource implements DataSource {
           _permanentShutdown = true;
           stop();
         }
+      case PayloadEvent():
+        // The FDv1 requestor never produces FDv2 payload events.
+        break;
     }
 
     _schedulePoll();

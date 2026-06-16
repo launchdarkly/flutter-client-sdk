@@ -159,6 +159,10 @@ final class DataSourceManager {
           // Only need to complete this the first time.
           _identifyCompleter = null;
           return handled;
+        case PayloadEvent():
+          // The FDv1 data sources this manager runs never produce FDv2
+          // payload events.
+          return MessageStatus.messageHandled;
         case StatusEvent():
           if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {
             _identifyCompleter!.completeError(Exception(event.message));
