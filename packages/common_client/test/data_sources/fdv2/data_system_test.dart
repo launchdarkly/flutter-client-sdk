@@ -25,8 +25,8 @@ FDv2DataSystem makeDataSystem(
 LDContext _context() => LDContextBuilder().kind('user', 'bob').build();
 
 void main() {
-  test('an empty data system config carries no custom modes', () {
-    expect(const DataSystemConfig().customConnectionModes, isEmpty);
+  test('an empty data system config overrides no modes', () {
+    expect(const DataSystemConfig().connectionModes, isEmpty);
   });
 
   test('buildFactories exposes streaming, polling, and background', () {
@@ -58,16 +58,28 @@ void main() {
     second.stop();
   });
 
-  test('a custom connection mode replaces the built-in definition', () {
+  test('an override replaces a built-in mode definition', () {
     // Override streaming with the polling definition; the streaming
     // factory should still build a usable data source from it.
     final factory = makeDataSystem(
-            config: const DataSystemConfig(
-                customConnectionModes: {'streaming': BuiltInModes.polling}))
-        .buildFactories()[const FDv2Streaming()]!;
+        config: const DataSystemConfig(connectionModes: {
+      ConnectionModeId.streaming: BuiltInModes.polling,
+    })).buildFactories()[const FDv2Streaming()]!;
 
     final source = factory(_context());
     expect(source, isA<DataSource>());
     source.stop();
+  });
+
+  test('the override map is keyed only by built-in modes', () {
+    // ConnectionModeId is a sealed type whose only nameable values are the
+    // built-in modes, so a custom/arbitrary mode name cannot be expressed
+    // as a key. Providing an override for a built-in resolves; the others
+    // keep their built-in definitions.
+    const config = DataSystemConfig(connectionModes: {
+      ConnectionModeId.polling: BuiltInModes.streaming,
+    });
+    final factories = makeDataSystem(config: config).buildFactories();
+    expect(factories.keys, hasLength(3));
   });
 }

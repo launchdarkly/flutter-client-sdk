@@ -32,7 +32,7 @@ final class FDv2DataSystem {
   final bool _withReasons;
   final Duration _defaultPollingInterval;
   final DataSourceStatusManager _statusManager;
-  final Map<String, ModeDefinition> _modeTable;
+  final Map<ConnectionModeId, ModeDefinition> _connectionModeOverrides;
   final FDv2SseClientFactory _sseClientFactory;
   final HttpClientFactory? _httpClientFactory;
 
@@ -59,20 +59,23 @@ final class FDv2DataSystem {
         _statusManager = statusManager,
         _sseClientFactory = sseClientFactory,
         _httpClientFactory = httpClientFactory,
-        _modeTable = {
-          'streaming': BuiltInModes.streaming,
-          'polling': BuiltInModes.polling,
-          'background': BuiltInModes.background,
-          ...config.customConnectionModes,
-        };
+        _connectionModeOverrides = config.connectionModes;
+
+  /// The definition for a built-in mode: the user's override if one was
+  /// given for it, otherwise the built-in default.
+  ModeDefinition _resolve(ConnectionModeId mode, ModeDefinition builtIn) =>
+      _connectionModeOverrides[mode] ?? builtIn;
 
   /// Produces the factory map for the DataSourceManager. Offline carries
   /// no factory; the manager handles offline without a data source.
   Map<FDv2ConnectionMode, DataSourceFactory> buildFactories() {
     return {
-      const FDv2Streaming(): _factoryForMode(_modeTable['streaming']!),
-      const FDv2Polling(): _factoryForMode(_modeTable['polling']!),
-      const FDv2Background(): _factoryForMode(_modeTable['background']!),
+      const FDv2Streaming(): _factoryForMode(
+          _resolve(ConnectionModeId.streaming, BuiltInModes.streaming)),
+      const FDv2Polling(): _factoryForMode(
+          _resolve(ConnectionModeId.polling, BuiltInModes.polling)),
+      const FDv2Background(): _factoryForMode(
+          _resolve(ConnectionModeId.background, BuiltInModes.background)),
     };
   }
 

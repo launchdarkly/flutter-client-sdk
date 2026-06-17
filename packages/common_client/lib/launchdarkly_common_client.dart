@@ -6,7 +6,8 @@ export 'src/ld_common_config.dart'
         AutoEnvAttributes,
         PollingConfig;
 
-export 'src/config/data_system_config.dart' show DataSystemConfig;
+export 'src/config/data_system_config.dart'
+    show DataSystemConfig, ConnectionModeId;
 export 'src/data_sources/fdv2/mode_definition.dart'
     show
         ModeDefinition,
