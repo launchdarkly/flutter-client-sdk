@@ -1,36 +1,31 @@
 import '../data_sources/fdv2/mode_definition.dart';
 
-/// Identifies a connection mode whose data-source pipeline can be
-/// overridden through [DataSystemConfig.connectionModes].
-///
-/// Only the built-in modes are nameable today: a user can override a
-/// built-in mode's pipeline but cannot register a new mode. This is a
-/// sealed hierarchy rather than an enum specifically so a custom-mode
-/// variant can be added later without changing this surface. The planned
-/// extension is a custom variant constructed as
-/// `ConnectionModeId.custom('custom-my-mode')`:
-///
-/// ```dart
-/// final class _CustomConnectionMode extends ConnectionModeId {
-///   final String name;
-///   const _CustomConnectionMode(this.name);
-///   // value equality on name so it works as an override-map key
-/// }
-/// // on ConnectionModeId:
-/// //   factory ConnectionModeId.custom(String name) = _CustomConnectionMode;
-/// ```
-///
-/// A custom name must be namespaced (e.g. a `custom-` prefix) so it cannot
-/// collide with a current or future built-in mode; the data system would
-/// validate the name and reject a collision before using it.
-///
-/// Note the equality split this implies. The built-in values are `const`
-/// singletons and rely on canonical-instance identity, which is what lets
-/// a `connectionModes` map of only built-in keys be a `const` map. A
-/// custom variant, constructed at runtime, must instead carry value
-/// equality on its name to work as a map key, so an override map holding a
-/// custom key would be non-`const`. The built-in variant therefore must
-/// not override `==`/`hashCode`.
+// Maintainer note (not public API): ConnectionModeId is a sealed
+// hierarchy rather than an enum so a custom-mode variant can be added
+// later without changing this surface. The planned extension is a custom
+// variant constructed as `ConnectionModeId.custom('custom-my-mode')`:
+//
+//   factory ConnectionModeId.custom(String name) = _CustomConnectionMode;
+//   final class _CustomConnectionMode extends ConnectionModeId {
+//     final String name;
+//     const _CustomConnectionMode(this.name);
+//     // value equality on name so it works as an override-map key
+//   }
+//
+// A custom name must be namespaced (e.g. a `custom-` prefix) so it cannot
+// collide with a current or future built-in mode; validate the name and
+// reject a collision before using it.
+//
+// Equality split: the built-in values are const singletons relying on
+// canonical-instance identity, which lets a connectionModes map of only
+// built-in keys be a const map. A runtime-constructed custom variant must
+// carry value equality, so an override map holding a custom key would be
+// non-const. The built-in variant therefore must not override
+// `==`/`hashCode`.
+
+/// Identifies a built-in connection mode whose data-source pipeline can be
+/// overridden through [DataSystemConfig.connectionModes]: [streaming],
+/// [polling], or [background].
 sealed class ConnectionModeId {
   const ConnectionModeId();
 
@@ -45,10 +40,6 @@ sealed class ConnectionModeId {
       _BuiltInConnectionMode('background');
 }
 
-/// A built-in connection mode. Instances are the canonical `const`
-/// singletons on [ConnectionModeId]; this class is not constructible by
-/// users and intentionally keeps identity equality so an override map of
-/// built-in keys can be `const`.
 final class _BuiltInConnectionMode extends ConnectionModeId {
   final String name;
 
@@ -70,8 +61,7 @@ final class _BuiltInConnectionMode extends ConnectionModeId {
 final class DataSystemConfig {
   /// Overrides for built-in connection modes. A definition given here
   /// replaces the built-in pipeline for that mode; modes not present keep
-  /// their built-in definition. Only built-in modes can be named (see
-  /// [ConnectionModeId]); custom modes are not supported.
+  /// their built-in definition.
   final Map<ConnectionModeId, ModeDefinition> connectionModes;
 
   const DataSystemConfig({
