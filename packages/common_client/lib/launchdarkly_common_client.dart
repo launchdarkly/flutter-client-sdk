@@ -6,6 +6,21 @@ export 'src/ld_common_config.dart'
         AutoEnvAttributes,
         PollingConfig;
 
+export 'src/config/data_system_config.dart'
+    show DataSystemConfig, ConnectionModeId;
+export 'src/data_sources/fdv2/mode_definition.dart'
+    show
+        ModeDefinition,
+        EndpointConfig,
+        InitializerEntry,
+        SynchronizerEntry,
+        CacheInitializer,
+        PollingInitializer,
+        StreamingInitializer,
+        PollingSynchronizer,
+        StreamingSynchronizer,
+        Fdv1FallbackConfig;
+
 export 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     show
         LDContext,

@@ -92,6 +92,20 @@ final class DataSourceManager {
     _activeDataSource = null;
   }
 
+  void _completeIdentify(MessageStatus handled) {
+    if (handled == MessageStatus.messageHandled && _identifyCompleter != null) {
+      if (_identifyCompleter!.isCompleted) {
+        _logger.error('Identify was already complete before receiving '
+            'data. This could represent an issue with SDK logic. Please'
+            'make a bug report if you encounter this situation.');
+      } else {
+        _identifyCompleter!.complete();
+      }
+    }
+    // Only need to complete this the first time.
+    _identifyCompleter = null;
+  }
+
   DataSource? _createDataSource(FDv2ConnectionMode mode) {
     if (_activeContext != null) {
       if (_dataSourceFactories[mode] == null) {
@@ -146,23 +160,14 @@ final class DataSourceManager {
           var handled = await _dataSourceEventHandler.handleMessage(
               _activeContext!, event.type, event.data,
               environmentId: event.environmentId);
-          if (handled == MessageStatus.messageHandled &&
-              _identifyCompleter != null) {
-            if (_identifyCompleter!.isCompleted) {
-              _logger.error('Identify was already complete before receiving '
-                  'data. This could represent an issue with SDK logic. Please'
-                  'make a bug report if you encounter this situation.');
-            } else {
-              _identifyCompleter!.complete();
-            }
-          }
-          // Only need to complete this the first time.
-          _identifyCompleter = null;
+          _completeIdentify(handled);
           return handled;
         case PayloadEvent():
-          // The FDv1 data sources this manager runs never produce FDv2
-          // payload events.
-          return MessageStatus.messageHandled;
+          var handled = await _dataSourceEventHandler.handlePayload(
+              _activeContext!, event.changeSet,
+              environmentId: event.environmentId);
+          _completeIdentify(handled);
+          return handled;
         case StatusEvent():
           if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {
             _identifyCompleter!.completeError(Exception(event.message));

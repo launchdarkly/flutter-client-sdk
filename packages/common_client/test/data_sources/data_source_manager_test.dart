@@ -6,15 +6,22 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source_event_ha
 import 'package:launchdarkly_common_client/src/data_sources/data_source_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
+import 'package:launchdarkly_common_client/src/item_descriptor.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
 final class MockDataSource implements DataSource {
   final StreamController<DataSourceEvent> controller = StreamController();
+  final List<DataSourceEvent> _startEvents;
 
   bool startCalled = false;
   bool stopCalled = false;
   bool restartCalled = false;
+
+  MockDataSource({List<DataSourceEvent>? startEvents})
+      : _startEvents = startEvents ?? [DataEvent('put', '{}')];
 
   @override
   Stream<DataSourceEvent> get events => controller.stream;
@@ -22,7 +29,9 @@ final class MockDataSource implements DataSource {
   @override
   void start() {
     startCalled = true;
-    controller.sink.add(DataEvent('put', '{}'));
+    for (final event in _startEvents) {
+      controller.sink.add(event);
+    }
   }
 
   @override
@@ -110,6 +119,42 @@ void main() {
           DataSourceStatus(
               state: DataSourceState.valid, stateSince: DateTime(1)),
         ));
+  });
+
+  test('it applies an FDv2 payload event and completes identify', () async {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final changeSet = ChangeSet(type: PayloadType.full, updates: {
+      'flag-a': ItemDescriptor(
+        version: 3,
+        flag: LDEvaluationResult(
+          version: 3,
+          detail: LDEvaluationDetail(
+              LDValue.ofBool(true), 0, LDEvaluationReason.off()),
+        ),
+      ),
+    });
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) =>
+          MockDataSource(startEvents: [PayloadEvent(changeSet)]),
+      const FDv2Polling(): (_) => MockDataSource(),
+      const FDv2Background(): (_) => MockDataSource(),
+    };
+    final manager =
+        makeManager(context, factories, inStatusManager: statusManager);
+
+    expectLater(
+        statusManager.changes,
+        emits(DataSourceStatus(
+            state: DataSourceState.valid, stateSince: DateTime(1))));
+
+    final completer = Completer<void>();
+    manager.identify(context, completer);
+
+    // The payload reaches handlePayload, which applies the change set,
+    // marks the source valid, and completes the pending identify. (A
+    // dropped/no-op payload would leave the identify hanging.)
+    await completer.future;
   });
 
   test('it can transition to offline and tear-down the previous connection',
