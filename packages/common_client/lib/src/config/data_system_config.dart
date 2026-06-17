@@ -3,7 +3,7 @@ import '../data_sources/fdv2/mode_definition.dart';
 // Maintainer note (not public API): ConnectionModeId is a sealed
 // hierarchy rather than an enum so a custom-mode variant can be added
 // later without changing this surface. The planned extension is a custom
-// variant constructed as `ConnectionModeId.custom('custom-my-mode')`:
+// variant constructed as `ConnectionModeId.custom('my-mode')`:
 //
 //   factory ConnectionModeId.custom(String name) = _CustomConnectionMode;
 //   final class _CustomConnectionMode extends ConnectionModeId {
@@ -12,9 +12,13 @@ import '../data_sources/fdv2/mode_definition.dart';
 //     // value equality on name so it works as an override-map key
 //   }
 //
-// A custom name must be namespaced (e.g. a `custom-` prefix) so it cannot
-// collide with a current or future built-in mode; validate the name and
-// reject a collision before using it.
+// A custom mode is a distinct type from a built-in, so the two share no
+// namespace: a custom id never equals a built-in id (even with the same
+// name), and so cannot collide with a current or future built-in. The
+// type is the namespace -- no name prefix is needed. This holds only
+// while custom modes stay typed; if one is ever reduced to a bare string
+// (logs, persistence) that reintroduces a shared string space where a
+// prefix would matter again.
 //
 // Equality split: the built-in values are const singletons relying on
 // canonical-instance identity, which lets a connectionModes map of only
