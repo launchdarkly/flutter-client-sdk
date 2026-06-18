@@ -54,14 +54,29 @@ final class FDv1DataManager implements DataManager {
 /// first delivered payload, or -- when waiting for network results -- only
 /// on basis (network or terminal) data, so a cache load alone does not
 /// satisfy a wait-for-network identify.
+///
+/// Identify is also where a held basis is discarded: a selector points at
+/// one context's data, so on a context change [resetBasis] is invoked
+/// before connecting. This is keyed on the context's canonical key and
+/// driven here rather than inferred from the context instance inside the
+/// data source factory, so it holds regardless of which connection mode is
+/// active when the context changes (including offline).
 final class FDv2DataManager implements DataManager {
   final DataSourceManager _dataSourceManager;
+  final void Function() _resetBasis;
 
-  FDv2DataManager(this._dataSourceManager);
+  String? _lastContextKey;
+
+  FDv2DataManager(this._dataSourceManager, this._resetBasis);
 
   @override
   Future<void> identify(LDContext context,
       {required bool waitForNetworkResults}) {
+    final key = context.canonicalKey;
+    if (key != _lastContextKey) {
+      _lastContextKey = key;
+      _resetBasis();
+    }
     final completer = Completer<void>();
     _dataSourceManager.identify(context, completer,
         requireFreshData: waitForNetworkResults);
