@@ -75,6 +75,7 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         PluginMetadata,
         PollingConfig,
         DataSystemConfig,
+        ConnectionModeId,
         ModeDefinition,
         EndpointConfig,
         InitializerEntry,
