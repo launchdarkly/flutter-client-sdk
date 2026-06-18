@@ -289,11 +289,6 @@ final class LDCommonClient {
         dataSourceEventHandler: dataSourceEventHandler,
         logger: _logger);
 
-    // FDv2 loads the cache through its pipeline; FDv1 loads it at identify.
-    _dataManager = _config.dataSystem != null
-        ? FDv2DataManager(_dataSourceManager)
-        : FDv1DataManager(_dataSourceManager, _flagManager);
-
     if (_config.offline) {
       _dataSourceStatusManager.setOffline();
     }
@@ -447,12 +442,18 @@ final class LDCommonClient {
           cachedFlagsReader: _flagManager.readCached,
         );
         _dataSourceManager.setFactories(dataSystem.buildFactories());
+        // FDv2 loads the cache through its pipeline and resets the held
+        // basis on a context change (clearSelector).
+        _dataManager =
+            FDv2DataManager(_dataSourceManager, dataSystem.clearSelector);
       } else {
         _dataSourceManager.setFactories(_composeFactoriesForManager(
           fdv1Factories: _dataSourceFactories(_config, _logger, httpProperties),
           backgroundFactory:
               _backgroundFactory(_config, _logger, httpProperties),
         ));
+        // FDv1 loads the cache imperatively at identify.
+        _dataManager = FDv1DataManager(_dataSourceManager, _flagManager);
       }
     } else {
       DataSource nullSource(LDContext _) => NullDataSource();
@@ -461,6 +462,9 @@ final class LDCommonClient {
         const FDv2Polling(): nullSource,
         const FDv2Background(): nullSource,
       });
+      // Fully offline serves cached flags directly at identify; the data
+      // manager is not exercised, but assign one so the field is set.
+      _dataManager = FDv1DataManager(_dataSourceManager, _flagManager);
     }
   }
 

@@ -17,14 +17,16 @@ import 'source_factory_context.dart';
 import 'source_manager.dart';
 
 /// Composes the FDv2 data source factories consumed by the
-/// DataSourceManager and owns the state that must outlive any single
-/// orchestrator instance: the current selector and the context it
-/// belongs to.
+/// DataSourceManager and owns the selector, which must outlive any single
+/// orchestrator instance.
 ///
 /// A fresh orchestrator is created per connection-mode switch and per
 /// identify. The selector survives mode switches (initializers are
-/// skipped when a selector is held) but is reset whenever the context
-/// changes, since a selector is specific to a single context.
+/// skipped when a selector is held). It is specific to a single context,
+/// so it must be reset on a context change; that is driven explicitly by
+/// the data manager via [clearSelector] at identify time rather than
+/// inferred here from the context instance, which depends on the factory
+/// being invoked for every change.
 final class FDv2DataSystem {
   final String _credential;
   final LDLogger _logger;
@@ -39,7 +41,6 @@ final class FDv2DataSystem {
   final HttpClientFactory? _httpClientFactory;
 
   Selector _selector = Selector.empty;
-  LDContext? _lastContext;
 
   FDv2DataSystem({
     required DataSystemConfig config,
@@ -70,6 +71,14 @@ final class FDv2DataSystem {
   ModeDefinition _resolve(ConnectionModeId mode, ModeDefinition builtIn) =>
       _connectionModeOverrides[mode] ?? builtIn;
 
+  /// Discards the held selector so the next source rebuilds a basis from
+  /// its initializers. Called when identifying a new context, since a
+  /// selector points at one context's data and cannot seed a delta for
+  /// another. Mode switches keep the selector and so do not call this.
+  void clearSelector() {
+    _selector = Selector.empty;
+  }
+
   /// Produces the factory map for the DataSourceManager. Offline is a
   /// real pipeline mode: its data source runs the cache initializer with
   /// no synchronizer, so the SDK serves cached flags while offline. The
@@ -90,14 +99,6 @@ final class FDv2DataSystem {
 
   DataSourceFactory _factoryForMode(ModeDefinition modeDefinition) {
     return (LDContext context) {
-      if (!identical(context, _lastContext)) {
-        // A new identify produces a new decorated context instance; a
-        // mode switch re-uses the active one. The selector belongs to a
-        // single context and must not be reused across identifies.
-        _lastContext = context;
-        _selector = Selector.empty;
-      }
-
       final factoryContext = SourceFactoryContext.fromClientConfig(
         context: context,
         credential: _credential,
