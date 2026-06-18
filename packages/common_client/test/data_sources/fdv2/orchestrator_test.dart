@@ -194,6 +194,51 @@ void main() {
     harness.orchestrator.stop();
   });
 
+  test('tags preliminary cache data as non-basis and network data as basis',
+      () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final harness = Harness(initializerFactories: [
+      // A cache hit (full data, no selector) ahead of a synchronizer.
+      initializerFactory(changeSet(type: PayloadType.full), isCache: true),
+    ], synchronizerSlots: [
+      synchronizerSlot(synchronizers),
+    ]);
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    final afterCache = harness.events.whereType<PayloadEvent>().toList();
+    expect(afterCache, hasLength(1));
+    expect(afterCache.single.basis, isFalse,
+        reason: 'cache data ahead of a synchronizer is preliminary');
+
+    synchronizers.single.controller
+        .add(changeSet(selector: const Selector(state: 'state-1', version: 1)));
+    await harness.pump();
+
+    final all = harness.events.whereType<PayloadEvent>().toList();
+    expect(all, hasLength(2));
+    expect(all.last.basis, isTrue, reason: 'network data is basis');
+
+    harness.orchestrator.stop();
+  });
+
+  test('a cache-only system tags the cache load as basis', () async {
+    final harness = Harness(initializerFactories: [
+      initializerFactory(changeSet(type: PayloadType.full), isCache: true),
+    ], synchronizerSlots: []);
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    final payloads = harness.events.whereType<PayloadEvent>().toList();
+    expect(payloads, hasLength(1));
+    expect(payloads.single.basis, isTrue,
+        reason: 'with no fresher source, the cache load is the basis');
+
+    harness.orchestrator.stop();
+  });
+
   test('synchronizer change sets are emitted and update the selector',
       () async {
     final synchronizers = <FakeSynchronizer>[];

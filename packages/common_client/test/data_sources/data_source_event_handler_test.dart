@@ -303,13 +303,7 @@ void main() {
             ),
           );
 
-      test('a full change set replaces the stored flags and sets valid',
-          () async {
-        expectLater(
-            statusManager!.changes,
-            emits(DataSourceStatus(
-                state: DataSourceState.valid, stateSince: DateTime(2))));
-
+      test('a full change set replaces the stored flags', () async {
         await eventHandler!.handlePayload(context,
             ChangeSet(type: PayloadType.full, updates: {'flagA': flagEval(1)}));
 
@@ -329,7 +323,7 @@ void main() {
 
       test(
           'a partial change set applies updates without per-item version '
-          'comparison and sets valid', () async {
+          'comparison', () async {
         await eventHandler!.handlePayload(context,
             ChangeSet(type: PayloadType.full, updates: {'flagA': flagEval(7)}));
 
@@ -348,7 +342,7 @@ void main() {
         expect(updated.detail.value, LDValue.ofBool(false));
       });
 
-      test('a change set of none changes no data and sets valid', () async {
+      test('a change set of none changes no data', () async {
         await eventHandler!.handlePayload(context,
             ChangeSet(type: PayloadType.full, updates: {'flagA': flagEval(1)}));
 

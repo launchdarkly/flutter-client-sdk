@@ -38,6 +38,11 @@ final class DataSourceManager {
 
   Completer<void>? _identifyCompleter;
 
+  /// When true, the active identify resolves only on basis (network or
+  /// terminal) data, not on preliminary cache data. Set per identify from
+  /// the caller's wait-for-network-results preference.
+  bool _requireFreshData = false;
+
   DataSourceManager({
     ConnectionMode startingMode = ConnectionMode.streaming,
     required DataSourceStatusManager statusManager,
@@ -61,8 +66,10 @@ final class DataSourceManager {
     _dataSourceFactories.addAll(factories);
   }
 
-  void identify(LDContext context, Completer<void> completer) {
+  void identify(LDContext context, Completer<void> completer,
+      {bool requireFreshData = false}) {
     _identifyCompleter = completer;
+    _requireFreshData = requireFreshData;
     _activeContext = context;
 
     _setupConnection();
@@ -92,15 +99,22 @@ final class DataSourceManager {
     _activeDataSource = null;
   }
 
-  void _completeIdentify(MessageStatus handled) {
-    if (handled == MessageStatus.messageHandled && _identifyCompleter != null) {
-      if (_identifyCompleter!.isCompleted) {
-        _logger.error('Identify was already complete before receiving '
-            'data. This could represent an issue with SDK logic. Please'
-            'make a bug report if you encounter this situation.');
-      } else {
-        _identifyCompleter!.complete();
-      }
+  void _completeIdentify(MessageStatus handled, {bool basis = true}) {
+    if (handled != MessageStatus.messageHandled || _identifyCompleter == null) {
+      return;
+    }
+    // An identify waiting for network results resolves only on basis
+    // (network or terminal) data; preliminary cache data is applied but
+    // leaves the identify pending so a later basis payload resolves it.
+    if (_requireFreshData && !basis) {
+      return;
+    }
+    if (_identifyCompleter!.isCompleted) {
+      _logger.error('Identify was already complete before receiving '
+          'data. This could represent an issue with SDK logic. Please'
+          'make a bug report if you encounter this situation.');
+    } else {
+      _identifyCompleter!.complete();
     }
     // Only need to complete this the first time.
     _identifyCompleter = null;
@@ -132,6 +146,11 @@ final class DataSourceManager {
 
     switch (_activeConnectionMode) {
       case FDv2Offline():
+        // Report why the SDK is offline. When an offline data source is
+        // configured (the FDv2 data system supplies one) it then loads
+        // cached flags through the pipeline below; its payload does not
+        // drive the status to valid while offline, so this status stands.
+        // FDv1 has no offline factory, so offline stays status-only.
         switch (_offlineDetail) {
           case OfflineSetOffline():
             _statusManager.setOffline();
@@ -140,7 +159,6 @@ final class DataSourceManager {
           case OfflineBackgroundDisabled():
             _statusManager.setBackgroundDisabled();
         }
-        return;
       case FDv2Streaming():
       case FDv2Polling():
       case FDv2Background():
@@ -166,7 +184,15 @@ final class DataSourceManager {
           var handled = await _dataSourceEventHandler.handlePayload(
               _activeContext!, event.changeSet,
               environmentId: event.environmentId);
-          _completeIdentify(handled);
+          if (handled == MessageStatus.messageHandled && event.basis) {
+            // Basis data marks the source valid, except while offline:
+            // there the offline status set in _setupConnection stands and
+            // a cache load must not be reported as a live connection.
+            if (_activeConnectionMode is! FDv2Offline) {
+              _statusManager.setValid();
+            }
+          }
+          _completeIdentify(handled, basis: event.basis);
           return handled;
         case StatusEvent():
           if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {

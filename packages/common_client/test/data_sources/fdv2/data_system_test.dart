@@ -20,6 +20,7 @@ FDv2DataSystem makeDataSystem(
       withReasons: false,
       defaultPollingInterval: const Duration(seconds: 300),
       statusManager: DataSourceStatusManager(),
+      cachedFlagsReader: (_) async => null,
     );
 
 LDContext _context() => LDContextBuilder().kind('user', 'bob').build();
@@ -29,7 +30,8 @@ void main() {
     expect(const DataSystemConfig().connectionModes, isEmpty);
   });
 
-  test('buildFactories exposes streaming, polling, and background', () {
+  test('buildFactories exposes streaming, polling, background, and offline',
+      () {
     final factories = makeDataSystem().buildFactories();
 
     expect(
@@ -38,9 +40,8 @@ void main() {
           const FDv2Streaming(),
           const FDv2Polling(),
           const FDv2Background(),
+          const FDv2Offline(),
         ]));
-    expect(factories.containsKey(const FDv2Offline()), isFalse,
-        reason: 'offline has no data source; the manager handles it directly');
   });
 
   test('a factory builds a data source, fresh on each call', () {
@@ -80,6 +81,6 @@ void main() {
       ConnectionModeId.polling: BuiltInModes.streaming,
     });
     final factories = makeDataSystem(config: config).buildFactories();
-    expect(factories.keys, hasLength(3));
+    expect(factories.keys, hasLength(4));
   });
 }

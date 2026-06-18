@@ -16,6 +16,7 @@ import 'context_modifiers/context_modifier.dart';
 import 'context_modifiers/env_context_modifier.dart';
 import 'hooks/hook.dart';
 import 'hooks/hook_runner.dart';
+import 'data_sources/data_manager.dart';
 import 'data_sources/data_source.dart';
 import 'data_sources/data_source_event_handler.dart';
 import 'data_sources/fdv2/built_in_modes.dart';
@@ -205,6 +206,11 @@ final class LDCommonClient {
   final CommonPlatform _platform;
 
   late final DataSourceManager _dataSourceManager;
+
+  /// Owns the per-protocol identify strategy (cache load + resolution).
+  /// Selected from [_config.dataSystem]: FDv2 when a data system is
+  /// configured, otherwise FDv1.
+  late final DataManager _dataManager;
   late final EnvironmentReport _envReport;
   late final AsyncSingleQueue<void> _identifyQueue = AsyncSingleQueue();
   late final DataSourceFactoriesFn _dataSourceFactories;
@@ -282,6 +288,11 @@ final class LDCommonClient {
         statusManager: _dataSourceStatusManager,
         dataSourceEventHandler: dataSourceEventHandler,
         logger: _logger);
+
+    // FDv2 loads the cache through its pipeline; FDv1 loads it at identify.
+    _dataManager = _config.dataSystem != null
+        ? FDv2DataManager(_dataSourceManager)
+        : FDv1DataManager(_dataSourceManager, _flagManager);
 
     if (_config.offline) {
       _dataSourceStatusManager.setOffline();
@@ -433,6 +444,7 @@ final class LDCommonClient {
           defaultPollingInterval:
               _config.dataSourceConfig.polling.pollingInterval,
           statusManager: _dataSourceStatusManager,
+          cachedFlagsReader: _flagManager.readCached,
         );
         _dataSourceManager.setFactories(dataSystem.buildFactories());
       } else {
@@ -550,19 +562,18 @@ final class LDCommonClient {
     final afterIdentify = _hookRunner.identify(_context);
     hookCallback(afterIdentify);
 
-    final completer = Completer<void>();
     _eventProcessor?.processIdentifyEvent(IdentifyEvent(context: _context));
-    final loadedFromCache = await _flagManager.loadCached(_context);
 
     if (_config.offline) {
+      // Fully offline: there is no data source to run, so load the cache
+      // directly to serve flags. (Distinct from the offline connection
+      // mode, whose pipeline loads the cache for the FDv2 data system.)
+      await _flagManager.loadCached(_context);
       return;
     }
-    _dataSourceManager.identify(_context, completer);
 
-    if (loadedFromCache && !waitForNetworkResults) {
-      return;
-    }
-    return completer.future;
+    return _dataManager.identify(_context,
+        waitForNetworkResults: waitForNetworkResults);
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.

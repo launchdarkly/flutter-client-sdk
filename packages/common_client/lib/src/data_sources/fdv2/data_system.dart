@@ -7,6 +7,7 @@ import '../../fdv2_connection_mode.dart';
 import '../data_source_manager.dart';
 import '../data_source_status_manager.dart';
 import 'built_in_modes.dart';
+import 'cache_initializer.dart';
 import 'entry_factories.dart';
 import 'mode_definition.dart';
 import 'orchestrator.dart';
@@ -33,6 +34,7 @@ final class FDv2DataSystem {
   final Duration _defaultPollingInterval;
   final DataSourceStatusManager _statusManager;
   final Map<ConnectionModeId, ModeDefinition> _connectionModeOverrides;
+  final CachedFlagsReader _cachedFlagsReader;
   final FDv2SseClientFactory _sseClientFactory;
   final HttpClientFactory? _httpClientFactory;
 
@@ -48,6 +50,7 @@ final class FDv2DataSystem {
     required bool withReasons,
     required Duration defaultPollingInterval,
     required DataSourceStatusManager statusManager,
+    required CachedFlagsReader cachedFlagsReader,
     FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
     HttpClientFactory? httpClientFactory,
   })  : _credential = credential,
@@ -57,6 +60,7 @@ final class FDv2DataSystem {
         _withReasons = withReasons,
         _defaultPollingInterval = defaultPollingInterval,
         _statusManager = statusManager,
+        _cachedFlagsReader = cachedFlagsReader,
         _sseClientFactory = sseClientFactory,
         _httpClientFactory = httpClientFactory,
         _connectionModeOverrides = config.connectionModes;
@@ -66,8 +70,11 @@ final class FDv2DataSystem {
   ModeDefinition _resolve(ConnectionModeId mode, ModeDefinition builtIn) =>
       _connectionModeOverrides[mode] ?? builtIn;
 
-  /// Produces the factory map for the DataSourceManager. Offline carries
-  /// no factory; the manager handles offline without a data source.
+  /// Produces the factory map for the DataSourceManager. Offline is a
+  /// real pipeline mode: its data source runs the cache initializer with
+  /// no synchronizer, so the SDK serves cached flags while offline. The
+  /// manager reports the offline status itself; the offline source's
+  /// payload does not drive the status to valid.
   Map<FDv2ConnectionMode, DataSourceFactory> buildFactories() {
     return {
       const FDv2Streaming(): _factoryForMode(
@@ -76,6 +83,8 @@ final class FDv2DataSystem {
           _resolve(ConnectionModeId.polling, BuiltInModes.polling)),
       const FDv2Background(): _factoryForMode(
           _resolve(ConnectionModeId.background, BuiltInModes.background)),
+      const FDv2Offline(): _factoryForMode(
+          _resolve(ConnectionModeId.offline, BuiltInModes.offline)),
     };
   }
 
@@ -97,11 +106,10 @@ final class FDv2DataSystem {
         serviceEndpoints: _serviceEndpoints,
         withReasons: _withReasons,
         defaultPollingInterval: _defaultPollingInterval,
-        // The common client loads cached flags into the flag store before
-        // the data source starts (FlagManager.loadCached during identify),
-        // so the cache is already applied by the time this chain runs.
-        // Reporting a miss advances the chain without re-applying it.
-        cachedFlagsReader: (_) async => null,
+        // The FDv2 data system owns cache loading: the cache initializer
+        // reads persistence through this reader and feeds the result into
+        // the pipeline, rather than the client applying it at identify.
+        cachedFlagsReader: _cachedFlagsReader,
         httpClientFactory: _httpClientFactory,
       );
 
