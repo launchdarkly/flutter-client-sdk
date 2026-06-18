@@ -298,10 +298,12 @@ class TestApiImpl extends SdkTestApi {
   /// SDK's [DataSystemConfig] and an initial connection mode.
   ///
   /// Two shapes are supported, mirroring the harness:
-  /// - `connectionModeConfig` with `customConnectionModes` (a map of mode
-  ///   name to mode definition) plus `initialConnectionMode`.
-  /// - Top-level `initializers`/`synchronizers` lists, which are wrapped
-  ///   into a single custom `streaming` mode.
+  /// - `connectionModeConfig` with a map of mode name to mode definition
+  ///   plus `initialConnectionMode`. The SDK overrides built-in modes
+  ///   only, so a definition is applied when its name matches a built-in
+  ///   ([ConnectionModeId]); other names are ignored.
+  /// - Top-level `initializers`/`synchronizers` lists, which override the
+  ///   built-in streaming mode.
   ({DataSystemConfig config, ConnectionMode initialConnectionMode})?
       _mapDataSystem(Map<String, dynamic>? raw) {
     if (raw == null) {
@@ -362,27 +364,38 @@ class TestApiImpl extends SdkTestApi {
       };
     }
 
+    ConnectionModeId? builtInModeId(String name) {
+      return switch (name) {
+        'streaming' => ConnectionModeId.streaming,
+        'polling' => ConnectionModeId.polling,
+        'background' => ConnectionModeId.background,
+        'offline' => ConnectionModeId.offline,
+        _ => null,
+      };
+    }
+
     if (raw['connectionModeConfig'] case final Map<String, dynamic> connMode) {
-      final customModes = <String, ModeDefinition>{};
+      final overrides = <ConnectionModeId, ModeDefinition>{};
       if (connMode['customConnectionModes']
           case final Map<String, dynamic> modes) {
         for (final entry in modes.entries) {
-          customModes[entry.key] =
-              translateMode(entry.value as Map<String, dynamic>);
+          if (builtInModeId(entry.key) case final id?) {
+            overrides[id] = translateMode(entry.value as Map<String, dynamic>);
+          }
         }
       }
       return (
-        config: DataSystemConfig(customConnectionModes: customModes),
+        config: DataSystemConfig(connectionModes: overrides),
         initialConnectionMode:
             parseInitialMode(connMode['initialConnectionMode'] as String?),
       );
     }
 
     if (raw['initializers'] != null || raw['synchronizers'] != null) {
-      // Top-level source lists; wrap them into a single streaming mode.
+      // Top-level source lists override the built-in streaming mode.
       return (
         config: DataSystemConfig(
-            customConnectionModes: {'streaming': translateMode(raw)}),
+            connectionModes: {ConnectionModeId.streaming: translateMode(raw)}),
         initialConnectionMode: ConnectionMode.streaming,
       );
     }
