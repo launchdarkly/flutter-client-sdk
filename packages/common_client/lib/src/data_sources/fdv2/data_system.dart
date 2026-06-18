@@ -1,5 +1,6 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
+import 'package:meta/meta.dart';
 
 import '../../config/data_system_config.dart';
 import '../../config/service_endpoints.dart';
@@ -66,10 +67,30 @@ final class FDv2DataSystem {
         _httpClientFactory = httpClientFactory,
         _connectionModeOverrides = config.connectionModes;
 
-  /// The definition for a built-in mode: the user's override if one was
-  /// given for it, otherwise the built-in default.
-  ModeDefinition _resolve(ConnectionModeId mode, ModeDefinition builtIn) =>
-      _connectionModeOverrides[mode] ?? builtIn;
+  /// The built-in definition for each connection mode, before any override.
+  static const Map<ConnectionModeId, ModeDefinition> _builtInDefinitions = {
+    ConnectionModeId.streaming: BuiltInModes.streaming,
+    ConnectionModeId.polling: BuiltInModes.polling,
+    ConnectionModeId.background: BuiltInModes.background,
+    ConnectionModeId.offline: BuiltInModes.offline,
+  };
+
+  /// The definition for [mode]: the user's override if one was given for
+  /// it, otherwise the built-in default.
+  ModeDefinition _resolve(ConnectionModeId mode) {
+    if (_builtInDefinitions[mode] case final builtIn?) {
+      return _connectionModeOverrides[mode] ?? builtIn;
+    }
+    // Unreachable: ConnectionModeId is sealed over the built-in modes, each
+    // of which has an entry above.
+    throw StateError('No built-in definition for connection mode: $mode');
+  }
+
+  /// The resolved definition for [mode], exposed so tests can confirm that
+  /// an override is selected over the built-in. How a definition's entries
+  /// become concrete data sources is covered by the entry-factory tests.
+  @visibleForTesting
+  ModeDefinition resolvedDefinition(ConnectionModeId mode) => _resolve(mode);
 
   /// Discards the held selector so the next source rebuilds a basis from
   /// its initializers. Called when identifying a new context, since a
@@ -86,14 +107,12 @@ final class FDv2DataSystem {
   /// payload does not drive the status to valid.
   Map<FDv2ConnectionMode, DataSourceFactory> buildFactories() {
     return {
-      const FDv2Streaming(): _factoryForMode(
-          _resolve(ConnectionModeId.streaming, BuiltInModes.streaming)),
-      const FDv2Polling(): _factoryForMode(
-          _resolve(ConnectionModeId.polling, BuiltInModes.polling)),
-      const FDv2Background(): _factoryForMode(
-          _resolve(ConnectionModeId.background, BuiltInModes.background)),
-      const FDv2Offline(): _factoryForMode(
-          _resolve(ConnectionModeId.offline, BuiltInModes.offline)),
+      const FDv2Streaming():
+          _factoryForMode(_resolve(ConnectionModeId.streaming)),
+      const FDv2Polling(): _factoryForMode(_resolve(ConnectionModeId.polling)),
+      const FDv2Background():
+          _factoryForMode(_resolve(ConnectionModeId.background)),
+      const FDv2Offline(): _factoryForMode(_resolve(ConnectionModeId.offline)),
     };
   }
 

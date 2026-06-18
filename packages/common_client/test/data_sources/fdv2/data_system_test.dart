@@ -59,17 +59,24 @@ void main() {
     second.stop();
   });
 
-  test('an override replaces a built-in mode definition', () {
-    // Override streaming with the polling definition; the streaming
-    // factory should still build a usable data source from it.
-    final factory = makeDataSystem(
+  test('an override is selected over the built-in for that mode', () {
+    // The data system's job here is resolution: the overridden mode uses
+    // the override definition, others keep their built-in. Translating a
+    // definition's entries into concrete sources (e.g. that the polling
+    // definition yields a polling source) is covered by entry_factories.
+    final dataSystem = makeDataSystem(
         config: const DataSystemConfig(connectionModes: {
       ConnectionModeId.streaming: BuiltInModes.polling,
-    })).buildFactories()[const FDv2Streaming()]!;
+    }));
 
-    final source = factory(_context());
-    expect(source, isA<DataSource>());
-    source.stop();
+    expect(dataSystem.resolvedDefinition(ConnectionModeId.streaming),
+        same(BuiltInModes.polling),
+        reason: 'the override replaces the built-in streaming definition');
+    expect(dataSystem.resolvedDefinition(ConnectionModeId.polling),
+        same(BuiltInModes.polling),
+        reason: 'an un-overridden mode keeps its built-in');
+    expect(dataSystem.resolvedDefinition(ConnectionModeId.offline),
+        same(BuiltInModes.offline));
   });
 
   test('the override map is keyed only by built-in modes', () {
