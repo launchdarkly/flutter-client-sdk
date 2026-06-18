@@ -63,6 +63,11 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   bool _closed = false;
   bool _emittedPayload = false;
 
+  /// True when the only sources are cache initializers (no synchronizers).
+  /// In such a system the cache load is the freshest data that will ever
+  /// arrive, so its payload is treated as basis rather than preliminary.
+  final bool _cacheOnlyDataSystem;
+
   /// Resolves the outcome of the active synchronizer run. Set while a
   /// synchronizer is running; [restart] and [stop] use it to interrupt
   /// the run.
@@ -86,6 +91,9 @@ final class FDv2DataSourceOrchestrator implements DataSource {
         _recoveryTimeout = recoveryTimeout,
         _recycleDelay = recycleDelay,
         _logger = logger.subLogger('FDv2Orchestrator'),
+        _cacheOnlyDataSystem = initializerFactories.isNotEmpty &&
+            initializerFactories.every((f) => f.isCache) &&
+            synchronizerSlots.isEmpty,
         _sourceManager = SourceManager(
           initializerFactories: initializerFactories,
           synchronizerSlots: synchronizerSlots,
@@ -137,7 +145,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     }
   }
 
-  void _emitPayload(ChangeSetResult result) {
+  void _emitPayload(ChangeSetResult result, {bool basis = true}) {
     if (_closed || _controller.isClosed) return;
     // An intent of "none" means the SDK is already up to date; it carries
     // no selector and must not regress the one we hold. For any other
@@ -150,8 +158,8 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       _selectorUpdater(result.changeSet.selector);
     }
     _emittedPayload = true;
-    _controller.add(
-        PayloadEvent(result.changeSet, environmentId: result.environmentId));
+    _controller.add(PayloadEvent(result.changeSet,
+        environmentId: result.environmentId, basis: basis));
   }
 
   void _reportTransientError(StatusResult result) {
@@ -200,7 +208,15 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       switch (result) {
         case ChangeSetResult():
           if (result.changeSet.type != PayloadType.none) {
-            _emitPayload(result);
+            // Selector-bearing data is network basis; an FDv1 fallback
+            // transfer is fresh network data too; and in a cache-only
+            // system the cache load is the freshest data there will be.
+            // Otherwise this is preliminary cache data ahead of a
+            // synchronizer: applied, but not basis.
+            final isBasis = result.changeSet.selector.isNotEmpty ||
+                result.fdv1Fallback ||
+                _cacheOnlyDataSystem;
+            _emitPayload(result, basis: isBasis);
 
             if (_handleFdv1Fallback(result)) {
               // Data was received but the server directed FDv1 fallback;
@@ -240,10 +256,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     // miss -- there is nowhere else for data to come from. Emit an empty
     // payload so the pipeline reaches a valid state, unless an error has
     // already been reported.
-    final cacheOnlyDataSystem = _initializerFactories.isNotEmpty &&
-        _initializerFactories.every((f) => f.isCache) &&
-        _synchronizerSlots.isEmpty;
-    if (cacheOnlyDataSystem && !_emittedPayload && !errorDuringInit) {
+    if (_cacheOnlyDataSystem && !_emittedPayload && !errorDuringInit) {
       _emitPayload(const ChangeSetResult(
         changeSet: ChangeSet(type: PayloadType.none, updates: {}),
         persist: false,

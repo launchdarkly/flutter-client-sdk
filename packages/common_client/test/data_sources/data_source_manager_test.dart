@@ -295,4 +295,115 @@ void main() {
     expect(createdDataSource.controller.hasListener, isTrue);
     expect(createdDataSource.restartCalled, isTrue);
   });
+
+  ChangeSet aChangeSet() => ChangeSet(type: PayloadType.full, updates: {
+        'flag-a': ItemDescriptor(
+          version: 3,
+          flag: LDEvaluationResult(
+            version: 3,
+            detail: LDEvaluationDetail(
+                LDValue.ofBool(true), 0, LDEvaluationReason.off()),
+          ),
+        ),
+      });
+
+  test(
+      'a non-basis payload applies data and resolves a cached identify '
+      'without marking the source valid', () async {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(
+          startEvents: [PayloadEvent(aChangeSet(), basis: false)]),
+      const FDv2Polling(): (_) => MockDataSource(),
+      const FDv2Background(): (_) => MockDataSource(),
+    };
+    final manager =
+        makeManager(context, factories, inStatusManager: statusManager);
+
+    final completer = Completer<void>();
+    // requireFreshData defaults false: a cached identify resolves on the
+    // preliminary cache payload.
+    manager.identify(context, completer);
+    await completer.future;
+
+    expect(statusManager.status.state, isNot(DataSourceState.valid),
+        reason: 'preliminary cache data must not report a live connection');
+  });
+
+  test(
+      'an identify requiring fresh data ignores a non-basis payload and '
+      'resolves on a basis payload, then marks valid', () async {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(startEvents: [
+            PayloadEvent(aChangeSet(), basis: false),
+            PayloadEvent(aChangeSet(), basis: true),
+          ]),
+      const FDv2Polling(): (_) => MockDataSource(),
+      const FDv2Background(): (_) => MockDataSource(),
+    };
+    final manager =
+        makeManager(context, factories, inStatusManager: statusManager);
+
+    final completer = Completer<void>();
+    manager.identify(context, completer, requireFreshData: true);
+    await completer.future;
+
+    expect(statusManager.status.state, DataSourceState.valid);
+  });
+
+  test('an identify requiring fresh data does not resolve on cache alone',
+      () async {
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(
+          startEvents: [PayloadEvent(aChangeSet(), basis: false)]),
+      const FDv2Polling(): (_) => MockDataSource(),
+      const FDv2Background(): (_) => MockDataSource(),
+    };
+    final manager = makeManager(context, factories);
+
+    final completer = Completer<void>();
+    manager.identify(context, completer, requireFreshData: true);
+    await pumpEventQueue();
+
+    expect(completer.isCompleted, isFalse,
+        reason:
+            'cache data alone must not satisfy a wait-for-network identify');
+  });
+
+  test(
+      'offline runs its data source to load cache but keeps the offline status',
+      () async {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    var offlineStarted = false;
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(),
+      const FDv2Polling(): (_) => MockDataSource(),
+      const FDv2Background(): (_) => MockDataSource(),
+      const FDv2Offline(): (_) {
+        offlineStarted = true;
+        // A cache-only system: the cache load is the terminal (basis)
+        // payload, so the identify resolves -- but the manager must keep
+        // the offline status rather than report valid.
+        return MockDataSource(
+            startEvents: [PayloadEvent(aChangeSet(), basis: true)]);
+      },
+    };
+    final manager =
+        makeManager(context, factories, inStatusManager: statusManager);
+
+    manager.setMode(const ResolvedOffline(OfflineSetOffline()));
+    final completer = Completer<void>();
+    manager.identify(context, completer);
+    await completer.future;
+
+    expect(offlineStarted, isTrue,
+        reason: 'offline is a pipeline mode that runs its data source');
+    expect(statusManager.status.state, DataSourceState.setOffline,
+        reason: 'a cache load while offline must not report valid');
+  });
 }

@@ -18,7 +18,20 @@ final class PayloadEvent implements DataSourceEvent {
   final ChangeSet changeSet;
   final String? environmentId;
 
-  PayloadEvent(this.changeSet, {this.environmentId});
+  /// Whether this payload represents the freshest data the active source
+  /// can produce for this initialization -- network basis data, an FDv1
+  /// fallback transfer, or the terminal payload of a cache-only system.
+  ///
+  /// False only for preliminary cache data delivered while a fresher
+  /// source is still expected (e.g. the cache initializer ahead of a
+  /// streaming synchronizer). The manager uses this to decide whether to
+  /// mark the source valid and whether to resolve an identify that is
+  /// waiting for network results: cached flags are applied either way,
+  /// but a non-basis payload neither drives the status to valid nor
+  /// satisfies a wait-for-network identify.
+  final bool basis;
+
+  PayloadEvent(this.changeSet, {this.environmentId, this.basis = true});
 }
 
 final class StatusEvent implements DataSourceEvent {

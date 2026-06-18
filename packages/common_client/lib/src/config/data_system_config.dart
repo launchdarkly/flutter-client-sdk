@@ -29,7 +29,7 @@ import '../data_sources/fdv2/mode_definition.dart';
 
 /// Identifies a built-in connection mode whose data-source pipeline can be
 /// overridden through [DataSystemConfig.connectionModes]: [streaming],
-/// [polling], or [background].
+/// [polling], [background], or [offline].
 sealed class ConnectionModeId {
   const ConnectionModeId();
 
@@ -42,6 +42,11 @@ sealed class ConnectionModeId {
   /// The built-in background mode.
   static const ConnectionModeId background =
       _BuiltInConnectionMode('background');
+
+  /// The built-in offline mode. Its pipeline loads cached flags and runs
+  /// no synchronizer, so overriding it customizes how the SDK behaves
+  /// while offline (for example, the cache initializer it uses).
+  static const ConnectionModeId offline = _BuiltInConnectionMode('offline');
 }
 
 final class _BuiltInConnectionMode extends ConnectionModeId {
