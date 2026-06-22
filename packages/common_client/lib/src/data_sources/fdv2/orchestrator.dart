@@ -62,6 +62,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   bool _started = false;
   bool _closed = false;
   bool _emittedPayload = false;
+  bool _initialized = false;
 
   /// True when the only sources are cache initializers (no synchronizers).
   /// Such a system must still reach a usable state on a cache miss, so an
@@ -181,10 +182,22 @@ final class FDv2DataSourceOrchestrator implements DataSource {
         .add(StatusEvent(ErrorKind.unknown, null, message, shutdown: true));
   }
 
+  /// Signals that initialization is complete. Emitted at most once -- the
+  /// manager resolves a wait-for-network identify on it.
+  void _emitInitialized() {
+    if (_initialized || _closed || _controller.isClosed) return;
+    _initialized = true;
+    _controller.add(InitializedEvent());
+  }
+
   /// True when the source indicated an FDv1 fallback directive and a
-  /// fallback tier exists to engage.
+  /// fallback tier exists to engage. The directive is ignored when the
+  /// FDv1 fallback synchronizer is already the active source, so it cannot
+  /// loop (the fallback source also never re-asserts the directive).
   bool _handleFdv1Fallback(FDv2SourceResult result) {
-    if (result.fdv1Fallback && _sourceManager.hasFdv1FallbackConfigured) {
+    if (result.fdv1Fallback &&
+        _sourceManager.hasFdv1FallbackConfigured &&
+        !_sourceManager.isCurrentSynchronizerFdv1Fallback) {
       _logger.warn('Server directed fallback to FDv1; engaging the FDv1 '
           'fallback synchronizer.');
       _sourceManager.engageFdv1Fallback();
@@ -195,6 +208,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
 
   Future<void> _runInitializers() async {
     var errorDuringInit = false;
+    var dataReceived = false;
 
     while (!_closed) {
       final initializer = _sourceManager.nextInitializer();
@@ -209,10 +223,12 @@ final class FDv2DataSourceOrchestrator implements DataSource {
         case ChangeSetResult():
           if (result.changeSet.type != PayloadType.none) {
             _emitPayload(result);
+            dataReceived = true;
 
             if (_handleFdv1Fallback(result)) {
               // Data was received but the server directed FDv1 fallback;
-              // move on to synchronizers where the fallback tier runs.
+              // move on to synchronizers where the fallback tier runs and
+              // its first change set completes initialization.
               return;
             }
 
@@ -220,6 +236,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
               // A selector means a complete, server-versioned payload:
               // initialization is done. A selector-less payload (e.g. cache)
               // is applied, but we keep initializing toward network data.
+              _emitInitialized();
               return;
             }
           }
@@ -244,27 +261,34 @@ final class FDv2DataSourceOrchestrator implements DataSource {
 
     if (_closed) return;
 
-    // All initializers exhausted. A data system whose only sources are
-    // cache initializers must still complete initialization on a cache
-    // miss -- there is nowhere else for data to come from. Emit an empty
-    // payload so the pipeline reaches a valid state, unless an error has
-    // already been reported.
+    // All initializers exhausted. A cache-only system (no synchronizer to
+    // produce data on its own) must still surface something on a cache
+    // miss, so a cached identify has a payload to resolve on; emit an empty
+    // payload unless an error was already reported.
     if (_cacheOnlyDataSystem && !_emittedPayload && !errorDuringInit) {
       _emitPayload(const ChangeSetResult(
         changeSet: ChangeSet(type: PayloadType.none, updates: {}),
         persist: false,
       ));
     }
+
+    // Initialization completes at exhaustion when there is no synchronizer
+    // to wait on (cache-only), or when an initializer already delivered data
+    // without a selector. Otherwise the first synchronizer completes it.
+    if (_cacheOnlyDataSystem || dataReceived) {
+      _emitInitialized();
+    }
   }
 
   Future<void> _runSynchronizers() async {
-    // A data system with no sources at all has nothing to do; an empty
-    // payload marks it valid so a pending identify completes.
+    // A data system with no sources at all has nothing to do; complete
+    // initialization so a pending identify resolves.
     if (_initializerFactories.isEmpty && _synchronizerSlots.isEmpty) {
       _emitPayload(const ChangeSetResult(
         changeSet: ChangeSet(type: PayloadType.none, updates: {}),
         persist: false,
       ));
+      _emitInitialized();
       return;
     }
 
@@ -356,6 +380,9 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       switch (result) {
         case ChangeSetResult():
           _emitPayload(result);
+          // The first synchronizer change set -- of any type, with or
+          // without a selector -- completes initialization.
+          _emitInitialized();
         case StatusResult():
           switch (result.state) {
             case SourceState.interrupted:

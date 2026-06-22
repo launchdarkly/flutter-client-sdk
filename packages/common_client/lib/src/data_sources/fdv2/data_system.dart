@@ -10,6 +10,7 @@ import '../data_source_status_manager.dart';
 import 'built_in_modes.dart';
 import 'cache_initializer.dart';
 import 'entry_factories.dart';
+import 'fdv1_fallback_synchronizer.dart';
 import 'mode_definition.dart';
 import 'orchestrator.dart';
 import 'requestor.dart';
@@ -138,19 +139,22 @@ final class FDv2DataSystem {
               modeDefinition.initializers, factoryContext)
           : <InitializerFactory>[];
 
-      // The FDv1 fallback tier (modeDefinition.fdv1Fallback) is not built
-      // into a slot yet. When it is, mark that slot isFdv1Fallback and keep
-      // its source incapable of emitting a result with fdv1Fallback set:
-      // it is the terminal tier, so re-asserting the directive from there
-      // would drive the orchestrator to re-engage FDv1 fallback on every
-      // result, undelayed and blocking no slot. A source that cannot emit
-      // the directive is simpler than guarding the orchestrator against
-      // re-engaging while already on FDv1.
       final synchronizerSlots = buildSynchronizerFactories(
               modeDefinition.synchronizers, factoryContext,
               sseClientFactory: _sseClientFactory)
           .map((factory) => SynchronizerSlot(factory: factory))
           .toList();
+
+      // The FDv1 fallback is the terminal tier: appended last, blocked until
+      // the server directs fallback. Its source never re-asserts the
+      // directive, so engaging it cannot loop.
+      if (modeDefinition.fdv1Fallback case final fallbackConfig?) {
+        synchronizerSlots.add(SynchronizerSlot(
+          factory: createFdv1FallbackSynchronizerFactory(
+              fallbackConfig, factoryContext),
+          isFdv1Fallback: true,
+        ));
+      }
 
       return FDv2DataSourceOrchestrator(
         initializerFactories: initializerFactories,

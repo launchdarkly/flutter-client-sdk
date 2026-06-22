@@ -345,15 +345,13 @@ void main() {
         ),
       });
 
-  ChangeSet aNetworkChangeSet() =>
-      aChangeSet(selector: const Selector(state: 'state-1', version: 1));
-
   test(
-      'a selector-less payload resolves a cached identify without marking the '
-      'source valid', () async {
+      'a cached identify resolves on the first applied payload, which marks '
+      'the source valid', () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final context = LDContextBuilder().kind('user', 'bob').build();
     final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      // A cache load (selector-less full) is enough for a cached identify.
       const FDv2Streaming(): (_) =>
           MockDataSource(startEvents: [PayloadEvent(aChangeSet())]),
       const FDv2Polling(): (_) => MockDataSource(),
@@ -363,25 +361,24 @@ void main() {
         makeManager(context, factories, inStatusManager: statusManager);
 
     final completer = Completer<void>();
-    // requireFreshData defaults false: a cached identify resolves on the
-    // cache payload, which has no selector.
+    // requireFreshData defaults false (cached): resolves on any applied data.
     manager.identify(context, completer);
     await completer.future;
 
-    expect(statusManager.status.state, isNot(DataSourceState.valid),
-        reason: 'cache data has no selector and must not report a live '
-            'connection');
+    expect(statusManager.status.state, DataSourceState.valid,
+        reason: 'applying any data while online marks the source valid');
   });
 
   test(
-      'an identify requiring fresh data ignores a selector-less payload and '
-      'resolves on one with a selector, then marks valid', () async {
+      'a wait-for-network identify resolves on the initialized event, not '
+      'earlier data', () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final context = LDContextBuilder().kind('user', 'bob').build();
     final factories = <FDv2ConnectionMode, DataSourceFactory>{
       const FDv2Streaming(): (_) => MockDataSource(startEvents: [
+            // Cache data, then the orchestrator's initialized signal.
             PayloadEvent(aChangeSet()),
-            PayloadEvent(aNetworkChangeSet()),
+            InitializedEvent(),
           ]),
       const FDv2Polling(): (_) => MockDataSource(),
       const FDv2Background(): (_) => MockDataSource(),

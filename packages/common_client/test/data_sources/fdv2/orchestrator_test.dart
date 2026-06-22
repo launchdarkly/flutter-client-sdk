@@ -249,6 +249,64 @@ void main() {
     harness.orchestrator.stop();
   });
 
+  test('emits InitializedEvent when an initializer returns a selector',
+      () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final harness = Harness(initializerFactories: [
+      initializerFactory(
+          changeSet(selector: const Selector(state: 'state-1', version: 1))),
+    ], synchronizerSlots: [
+      synchronizerSlot(synchronizers),
+    ]);
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    expect(harness.events.whereType<InitializedEvent>(), hasLength(1));
+
+    harness.orchestrator.stop();
+  });
+
+  test(
+      'emits InitializedEvent on the first synchronizer change set, even '
+      'a no-change one with no selector', () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final harness = Harness(
+        initializerFactories: [],
+        synchronizerSlots: [synchronizerSlot(synchronizers)]);
+
+    harness.orchestrator.start();
+    await harness.pump();
+    expect(harness.events.whereType<InitializedEvent>(), isEmpty,
+        reason: 'no data has arrived yet');
+
+    synchronizers.single.controller.add(changeSet(type: PayloadType.none));
+    await harness.pump();
+    expect(harness.events.whereType<InitializedEvent>(), hasLength(1),
+        reason: 'the first synchronizer result completes initialization');
+
+    synchronizers.single.controller
+        .add(changeSet(selector: const Selector(state: 's', version: 1)));
+    await harness.pump();
+    expect(harness.events.whereType<InitializedEvent>(), hasLength(1),
+        reason: 'it is emitted at most once');
+
+    harness.orchestrator.stop();
+  });
+
+  test('a cache-only system emits InitializedEvent at exhaustion', () async {
+    final harness = Harness(initializerFactories: [
+      initializerFactory(changeSet(type: PayloadType.none), isCache: true),
+    ], synchronizerSlots: []);
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    expect(harness.events.whereType<InitializedEvent>(), hasLength(1));
+
+    harness.orchestrator.stop();
+  });
+
   test('synchronizer change sets are emitted and update the selector',
       () async {
     final synchronizers = <FakeSynchronizer>[];
