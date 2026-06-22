@@ -10,7 +10,6 @@ import '../resolved_connection_mode.dart';
 import 'data_source.dart';
 import 'data_source_event_handler.dart';
 import 'data_source_status_manager.dart';
-import 'fdv2/payload.dart';
 
 typedef DataSourceFactory = DataSource Function(LDContext context);
 
@@ -100,36 +99,18 @@ final class DataSourceManager {
     _activeDataSource = null;
   }
 
-  /// Whether [changeSet] is server-provided current data rather than a cache
-  /// load. It is server data when it carries a selector (a basis or delta the
-  /// server versioned) or is an intent-none (the server confirming the SDK is
-  /// already up to date). A cache load is a full transfer with no selector,
-  /// so it is not server data.
-  bool _isServerData(ChangeSet changeSet) =>
-      changeSet.selector.isNotEmpty || changeSet.type == PayloadType.none;
-
-  void _maybeCompleteIdentify(MessageStatus handled, ChangeSet? changeSet,
-      {bool offline = false}) {
-    if (handled != MessageStatus.messageHandled || _identifyCompleter == null) {
+  /// Resolves the pending identify, if any. Idempotent: only the first call
+  /// completes it. Callers decide *when* to call it -- a cached identify on
+  /// the first applied payload, a wait-for-network identify on the
+  /// orchestrator's [InitializedEvent].
+  void _maybeCompleteIdentify() {
+    final completer = _identifyCompleter;
+    if (completer == null) {
       return;
     }
-    // An identify waiting for network results resolves only on server data, so
-    // a cache load is applied but leaves the identify pending until the server
-    // responds. Offline cannot reach the server, so it resolves on whatever
-    // data is available; FDv1 passes no change set and never waits.
-    if (_requireFreshData && !offline) {
-      if (changeSet == null || !_isServerData(changeSet)) {
-        return;
-      }
+    if (!completer.isCompleted) {
+      completer.complete();
     }
-    if (_identifyCompleter!.isCompleted) {
-      _logger.error('Identify was already complete before receiving '
-          'data. This could represent an issue with SDK logic. Please'
-          'make a bug report if you encounter this situation.');
-    } else {
-      _identifyCompleter!.complete();
-    }
-    // Only need to complete this the first time.
     _identifyCompleter = null;
   }
 
@@ -191,25 +172,37 @@ final class DataSourceManager {
           var handled = await _dataSourceEventHandler.handleMessage(
               _activeContext!, event.type, event.data,
               environmentId: event.environmentId);
-          _maybeCompleteIdentify(handled, null);
+          if (handled == MessageStatus.messageHandled) {
+            _maybeCompleteIdentify();
+          }
           return handled;
         case PayloadEvent():
           var handled = await _dataSourceEventHandler.handlePayload(
               _activeContext!, event.changeSet,
               environmentId: event.environmentId);
-          final offline = _activeConnectionMode is FDv2Offline;
-          if (handled == MessageStatus.messageHandled &&
-              _isServerData(event.changeSet) &&
-              !offline) {
-            // Server data means the connection is live, so the source is
-            // valid -- including a no-change response, which is how a healthy
-            // reconnect restores valid after an interruption. A cache load is
-            // not server data, and while offline the status set in
-            // _setupConnection stands, so neither reports a live connection.
-            _statusManager.setValid();
+          if (handled == MessageStatus.messageHandled) {
+            // Applying any change set from a live source marks it valid --
+            // including a no-change response, which restores valid after an
+            // interruption. While offline the status set in _setupConnection
+            // stands, so cached data does not report a live connection.
+            if (_activeConnectionMode is! FDv2Offline) {
+              _statusManager.setValid();
+            }
+            // A cached identify resolves on any applied data; a
+            // wait-for-network identify waits for the orchestrator's
+            // InitializedEvent instead.
+            if (!_requireFreshData) {
+              _maybeCompleteIdentify();
+            }
           }
-          _maybeCompleteIdentify(handled, event.changeSet, offline: offline);
           return handled;
+        case InitializedEvent():
+          // Initialization is complete (network basis, initializer
+          // exhaustion, or the first synchronizer change set). Resolves a
+          // wait-for-network identify; a cached identify has usually resolved
+          // already on earlier data.
+          _maybeCompleteIdentify();
+          return MessageStatus.messageHandled;
         case StatusEvent():
           if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {
             _identifyCompleter!.completeError(Exception(event.message));

@@ -203,6 +203,15 @@ final class SourceManager {
   bool get hasFdv1FallbackConfigured =>
       _synchronizerSlots.any((slot) => slot.isFdv1Fallback);
 
+  /// True when the active synchronizer is the FDv1 fallback. Reads the scan
+  /// cursor, so it is only meaningful while the cursor identifies the active
+  /// slot (see the class contract). Used to ignore a repeat fallback
+  /// directive once the SDK is already on FDv1.
+  bool get isCurrentSynchronizerFdv1Fallback =>
+      _synchronizerIndex >= 0 &&
+      _synchronizerIndex < _synchronizerSlots.length &&
+      _synchronizerSlots[_synchronizerIndex].isFdv1Fallback;
+
   /// Close the active source and mark the manager as shut down.
   void close() {
     _shutdown = true;

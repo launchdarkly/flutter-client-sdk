@@ -117,7 +117,8 @@ final class PollingDataSource implements DataSource {
           stop();
         }
       case PayloadEvent():
-        // The FDv1 requestor never produces FDv2 payload events.
+      case InitializedEvent():
+        // The FDv1 requestor never produces FDv2 payload or lifecycle events.
         break;
     }
 

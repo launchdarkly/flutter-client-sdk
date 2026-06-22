@@ -66,6 +66,7 @@ class MockLogAdapter extends Mock implements LDLogAdapter {}
               shutdown: event.shutdown);
         }
       case PayloadEvent():
+      case InitializedEvent():
         break;
     }
   }).listen((_) {});
@@ -443,6 +444,7 @@ void main() {
                 shutdown: event.shutdown);
           }
         case PayloadEvent():
+        case InitializedEvent():
           break;
       }
     }).listen((_) {});
@@ -506,6 +508,7 @@ void main() {
                 shutdown: event.shutdown);
           }
         case PayloadEvent():
+        case InitializedEvent():
           break;
       }
     }).listen((_) {});
