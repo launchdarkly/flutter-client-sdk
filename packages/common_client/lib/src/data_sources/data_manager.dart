@@ -55,28 +55,21 @@ final class FDv1DataManager implements DataManager {
 /// on fresh data, so a cache load alone does not satisfy a wait-for-network
 /// identify.
 ///
-/// Identify is also where a held selector is discarded: a selector points
-/// at one context's data, so on a context change [clearSelector] is invoked
-/// before connecting. This is keyed on the context's canonical key and
-/// driven here rather than inferred from the context instance inside the
-/// data source factory, so it holds regardless of which connection mode is
-/// active when the context changes (including offline).
+/// Each identify starts data acquisition fresh: any held selector is
+/// discarded via [clearSelector] before connecting, so the new connection
+/// re-fetches a full payload rather than resuming a previous context's
+/// basis. Mode switches keep the selector and reach the data source manager
+/// directly rather than through here, so they are unaffected.
 final class FDv2DataManager implements DataManager {
   final DataSourceManager _dataSourceManager;
   final void Function() _clearSelector;
-
-  String? _lastContextKey;
 
   FDv2DataManager(this._dataSourceManager, this._clearSelector);
 
   @override
   Future<void> identify(LDContext context,
       {required bool waitForNetworkResults}) {
-    final key = context.canonicalKey;
-    if (key != _lastContextKey) {
-      _lastContextKey = key;
-      _clearSelector();
-    }
+    _clearSelector();
     final completer = Completer<void>();
     _dataSourceManager.identify(context, completer,
         requireFreshData: waitForNetworkResults);
