@@ -100,21 +100,25 @@ final class DataSourceManager {
     _activeDataSource = null;
   }
 
+  /// Whether [changeSet] is server-provided current data rather than a cache
+  /// load. It is server data when it carries a selector (a basis or delta the
+  /// server versioned) or is an intent-none (the server confirming the SDK is
+  /// already up to date). A cache load is a full transfer with no selector,
+  /// so it is not server data.
+  bool _isServerData(ChangeSet changeSet) =>
+      changeSet.selector.isNotEmpty || changeSet.type == PayloadType.none;
+
   void _maybeCompleteIdentify(MessageStatus handled, ChangeSet? changeSet,
       {bool offline = false}) {
     if (handled != MessageStatus.messageHandled || _identifyCompleter == null) {
       return;
     }
-    // An identify waiting for network results resolves only on fresh data: a
-    // payload carrying a server selector, or an intent-none (the server
-    // confirming the SDK is up to date). A cache load has neither, so it is
-    // applied but leaves the identify pending until network data arrives.
-    // Offline can produce neither, so it resolves on whatever data is
-    // available; FDv1 passes no change set and never waits for fresh data.
+    // An identify waiting for network results resolves only on server data, so
+    // a cache load is applied but leaves the identify pending until the server
+    // responds. Offline cannot reach the server, so it resolves on whatever
+    // data is available; FDv1 passes no change set and never waits.
     if (_requireFreshData && !offline) {
-      final fresh = changeSet != null &&
-          (changeSet.selector.isNotEmpty || changeSet.type == PayloadType.none);
-      if (!fresh) {
+      if (changeSet == null || !_isServerData(changeSet)) {
         return;
       }
     }
@@ -195,12 +199,13 @@ final class DataSourceManager {
               environmentId: event.environmentId);
           final offline = _activeConnectionMode is FDv2Offline;
           if (handled == MessageStatus.messageHandled &&
-              event.changeSet.selector.isNotEmpty &&
+              _isServerData(event.changeSet) &&
               !offline) {
-            // A server selector means this is network data, which marks the
-            // source valid. Cached data has no selector, and while offline
-            // the status set in _setupConnection stands, so neither reports a
-            // live connection.
+            // Server data means the connection is live, so the source is
+            // valid -- including a no-change response, which is how a healthy
+            // reconnect restores valid after an interruption. A cache load is
+            // not server data, and while offline the status set in
+            // _setupConnection stands, so neither reports a live connection.
             _statusManager.setValid();
           }
           _maybeCompleteIdentify(handled, event.changeSet, offline: offline);

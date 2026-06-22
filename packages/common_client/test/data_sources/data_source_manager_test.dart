@@ -162,6 +162,38 @@ void main() {
     await completer.future;
   });
 
+  test('a no-change payload after an interruption restores valid', () async {
+    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    const networkBasis = ChangeSet(
+        selector: Selector(state: 'state-1', version: 1),
+        type: PayloadType.full,
+        updates: {});
+    const noChange = ChangeSet(type: PayloadType.none, updates: {});
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(startEvents: [
+            // Healthy connection delivers basis data, then drops, then
+            // reconnects and reports no changes.
+            PayloadEvent(networkBasis),
+            StatusEvent(ErrorKind.networkError, null, 'connection dropped'),
+            PayloadEvent(noChange),
+          ]),
+      const FDv2Polling(): (_) => MockDataSource(),
+      const FDv2Background(): (_) => MockDataSource(),
+    };
+    final manager =
+        makeManager(context, factories, inStatusManager: statusManager);
+
+    final completer = Completer<void>();
+    manager.identify(context, completer);
+    await completer.future;
+    await pumpEventQueue();
+
+    expect(statusManager.status.state, DataSourceState.valid,
+        reason: 'a healthy reconnect reporting no changes carries no selector, '
+            'but it is still a server response and must restore valid');
+  });
+
   test('it can transition to offline and tear-down the previous connection',
       () {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
