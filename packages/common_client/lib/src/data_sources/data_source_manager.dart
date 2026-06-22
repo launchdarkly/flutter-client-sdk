@@ -100,7 +100,7 @@ final class DataSourceManager {
     _activeDataSource = null;
   }
 
-  void _completeIdentify(MessageStatus handled, ChangeSet? changeSet,
+  void _maybeCompleteIdentify(MessageStatus handled, ChangeSet? changeSet,
       {bool offline = false}) {
     if (handled != MessageStatus.messageHandled || _identifyCompleter == null) {
       return;
@@ -187,7 +187,7 @@ final class DataSourceManager {
           var handled = await _dataSourceEventHandler.handleMessage(
               _activeContext!, event.type, event.data,
               environmentId: event.environmentId);
-          _completeIdentify(handled, null);
+          _maybeCompleteIdentify(handled, null);
           return handled;
         case PayloadEvent():
           var handled = await _dataSourceEventHandler.handlePayload(
@@ -203,7 +203,7 @@ final class DataSourceManager {
             // live connection.
             _statusManager.setValid();
           }
-          _completeIdentify(handled, event.changeSet, offline: offline);
+          _maybeCompleteIdentify(handled, event.changeSet, offline: offline);
           return handled;
         case StatusEvent():
           if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {
