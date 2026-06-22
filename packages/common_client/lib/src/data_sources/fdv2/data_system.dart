@@ -124,9 +124,8 @@ final class FDv2DataSystem {
         serviceEndpoints: _serviceEndpoints,
         withReasons: _withReasons,
         defaultPollingInterval: _defaultPollingInterval,
-        // The FDv2 data system owns cache loading: the cache initializer
-        // reads persistence through this reader and feeds the result into
-        // the pipeline, rather than the client applying it at identify.
+        // The cache initializer reads persistence through this reader and
+        // feeds the result into the pipeline.
         cachedFlagsReader: _cachedFlagsReader,
         httpClientFactory: _httpClientFactory,
       );
