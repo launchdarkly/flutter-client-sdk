@@ -124,7 +124,8 @@ final class Harness {
 }
 
 void main() {
-  test('runs initializers in order until one returns basis data', () async {
+  test('runs initializers in order until one returns data with a selector',
+      () async {
     final firstCreated = <FakeInitializer>[];
     final secondCreated = <FakeInitializer>[];
     final thirdCreated = <FakeInitializer>[];
@@ -194,11 +195,11 @@ void main() {
     harness.orchestrator.stop();
   });
 
-  test('tags preliminary cache data as non-basis and network data as basis',
+  test('a cache hit is applied but initialization continues to network data',
       () async {
     final synchronizers = <FakeSynchronizer>[];
     final harness = Harness(initializerFactories: [
-      // A cache hit (full data, no selector) ahead of a synchronizer.
+      // A cache hit: full data with no selector.
       initializerFactory(changeSet(type: PayloadType.full), isCache: true),
     ], synchronizerSlots: [
       synchronizerSlot(synchronizers),
@@ -209,32 +210,41 @@ void main() {
 
     final afterCache = harness.events.whereType<PayloadEvent>().toList();
     expect(afterCache, hasLength(1));
-    expect(afterCache.single.basis, isFalse,
-        reason: 'cache data ahead of a synchronizer is preliminary');
+    expect(afterCache.single.changeSet.selector.isEmpty, isTrue,
+        reason: 'cache data carries no selector');
+    expect(synchronizers, hasLength(1),
+        reason: 'a selector-less payload does not complete initialization, '
+            'so the synchronizer tier still starts');
 
     synchronizers.single.controller
         .add(changeSet(selector: const Selector(state: 'state-1', version: 1)));
     await harness.pump();
 
-    final all = harness.events.whereType<PayloadEvent>().toList();
-    expect(all, hasLength(2));
-    expect(all.last.basis, isTrue, reason: 'network data is basis');
+    expect(harness.selector.state, 'state-1',
+        reason: 'network data carries the selector forward');
 
     harness.orchestrator.stop();
   });
 
-  test('a cache-only system tags the cache load as basis', () async {
-    final harness = Harness(initializerFactories: [
-      initializerFactory(changeSet(type: PayloadType.full), isCache: true),
-    ], synchronizerSlots: []);
+  test('a selector-less full payload clears the held selector', () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final harness = Harness(
+        initializerFactories: [],
+        synchronizerSlots: [synchronizerSlot(synchronizers)]);
 
     harness.orchestrator.start();
     await harness.pump();
 
-    final payloads = harness.events.whereType<PayloadEvent>().toList();
-    expect(payloads, hasLength(1));
-    expect(payloads.single.basis, isTrue,
-        reason: 'with no fresher source, the cache load is the basis');
+    synchronizers.single.controller
+        .add(changeSet(selector: const Selector(state: 'state-1', version: 1)));
+    await harness.pump();
+    expect(harness.selector.state, 'state-1');
+
+    // A full transfer with no selector (e.g. an FDv1 fallback) clears it, so
+    // the next reconnect asks for a full payload rather than a stale delta.
+    synchronizers.single.controller.add(changeSet(type: PayloadType.full));
+    await harness.pump();
+    expect(harness.selector.isEmpty, isTrue);
 
     harness.orchestrator.stop();
   });

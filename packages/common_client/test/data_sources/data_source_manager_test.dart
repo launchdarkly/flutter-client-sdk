@@ -7,6 +7,7 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source_manager.
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_common_client/src/item_descriptor.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
@@ -124,16 +125,19 @@ void main() {
   test('it applies an FDv2 payload event and completes identify', () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final context = LDContextBuilder().kind('user', 'bob').build();
-    final changeSet = ChangeSet(type: PayloadType.full, updates: {
-      'flag-a': ItemDescriptor(
-        version: 3,
-        flag: LDEvaluationResult(
-          version: 3,
-          detail: LDEvaluationDetail(
-              LDValue.ofBool(true), 0, LDEvaluationReason.off()),
-        ),
-      ),
-    });
+    final changeSet = ChangeSet(
+        selector: const Selector(state: 'state-1', version: 1),
+        type: PayloadType.full,
+        updates: {
+          'flag-a': ItemDescriptor(
+            version: 3,
+            flag: LDEvaluationResult(
+              version: 3,
+              detail: LDEvaluationDetail(
+                  LDValue.ofBool(true), 0, LDEvaluationReason.off()),
+            ),
+          ),
+        });
     final factories = <FDv2ConnectionMode, DataSourceFactory>{
       const FDv2Streaming(): (_) =>
           MockDataSource(startEvents: [PayloadEvent(changeSet)]),
@@ -151,9 +155,10 @@ void main() {
     final completer = Completer<void>();
     manager.identify(context, completer);
 
-    // The payload reaches handlePayload, which applies the change set,
-    // marks the source valid, and completes the pending identify. (A
-    // dropped/no-op payload would leave the identify hanging.)
+    // The network payload (carrying a selector) reaches handlePayload, which
+    // applies the change set; the manager marks the source valid and
+    // completes the pending identify. (A dropped/no-op payload would leave
+    // the identify hanging.)
     await completer.future;
   });
 
@@ -296,7 +301,8 @@ void main() {
     expect(createdDataSource.restartCalled, isTrue);
   });
 
-  ChangeSet aChangeSet() => ChangeSet(type: PayloadType.full, updates: {
+  ChangeSet aChangeSet({Selector selector = Selector.empty}) =>
+      ChangeSet(selector: selector, type: PayloadType.full, updates: {
         'flag-a': ItemDescriptor(
           version: 3,
           flag: LDEvaluationResult(
@@ -307,14 +313,17 @@ void main() {
         ),
       });
 
+  ChangeSet aNetworkChangeSet() =>
+      aChangeSet(selector: const Selector(state: 'state-1', version: 1));
+
   test(
-      'a non-basis payload applies data and resolves a cached identify '
-      'without marking the source valid', () async {
+      'a selector-less payload resolves a cached identify without marking the '
+      'source valid', () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final context = LDContextBuilder().kind('user', 'bob').build();
     final factories = <FDv2ConnectionMode, DataSourceFactory>{
-      const FDv2Streaming(): (_) => MockDataSource(
-          startEvents: [PayloadEvent(aChangeSet(), basis: false)]),
+      const FDv2Streaming(): (_) =>
+          MockDataSource(startEvents: [PayloadEvent(aChangeSet())]),
       const FDv2Polling(): (_) => MockDataSource(),
       const FDv2Background(): (_) => MockDataSource(),
     };
@@ -323,23 +332,24 @@ void main() {
 
     final completer = Completer<void>();
     // requireFreshData defaults false: a cached identify resolves on the
-    // preliminary cache payload.
+    // cache payload, which has no selector.
     manager.identify(context, completer);
     await completer.future;
 
     expect(statusManager.status.state, isNot(DataSourceState.valid),
-        reason: 'preliminary cache data must not report a live connection');
+        reason: 'cache data has no selector and must not report a live '
+            'connection');
   });
 
   test(
-      'an identify requiring fresh data ignores a non-basis payload and '
-      'resolves on a basis payload, then marks valid', () async {
+      'an identify requiring fresh data ignores a selector-less payload and '
+      'resolves on one with a selector, then marks valid', () async {
     final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
     final context = LDContextBuilder().kind('user', 'bob').build();
     final factories = <FDv2ConnectionMode, DataSourceFactory>{
       const FDv2Streaming(): (_) => MockDataSource(startEvents: [
-            PayloadEvent(aChangeSet(), basis: false),
-            PayloadEvent(aChangeSet(), basis: true),
+            PayloadEvent(aChangeSet()),
+            PayloadEvent(aNetworkChangeSet()),
           ]),
       const FDv2Polling(): (_) => MockDataSource(),
       const FDv2Background(): (_) => MockDataSource(),
@@ -358,8 +368,8 @@ void main() {
       () async {
     final context = LDContextBuilder().kind('user', 'bob').build();
     final factories = <FDv2ConnectionMode, DataSourceFactory>{
-      const FDv2Streaming(): (_) => MockDataSource(
-          startEvents: [PayloadEvent(aChangeSet(), basis: false)]),
+      const FDv2Streaming(): (_) =>
+          MockDataSource(startEvents: [PayloadEvent(aChangeSet())]),
       const FDv2Polling(): (_) => MockDataSource(),
       const FDv2Background(): (_) => MockDataSource(),
     };
@@ -386,11 +396,10 @@ void main() {
       const FDv2Background(): (_) => MockDataSource(),
       const FDv2Offline(): (_) {
         offlineStarted = true;
-        // A cache-only system: the cache load is the terminal (basis)
-        // payload, so the identify resolves -- but the manager must keep
-        // the offline status rather than report valid.
-        return MockDataSource(
-            startEvents: [PayloadEvent(aChangeSet(), basis: true)]);
+        // Offline cannot reach the network, so the identify resolves on the
+        // selector-less cache payload -- but the manager must keep the
+        // offline status rather than report valid.
+        return MockDataSource(startEvents: [PayloadEvent(aChangeSet())]);
       },
     };
     final manager =
