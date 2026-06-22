@@ -23,11 +23,9 @@ import 'source_manager.dart';
 ///
 /// A fresh orchestrator is created per connection-mode switch and per
 /// identify. The selector survives mode switches (initializers are
-/// skipped when a selector is held). It is specific to a single context,
-/// so it must be reset on a context change; that is driven explicitly by
-/// the data manager via [clearSelector] at identify time rather than
-/// inferred here from the context instance, which depends on the factory
-/// being invoked for every change.
+/// skipped when a selector is held). The data manager clears it via
+/// [clearSelector] on each identify, so a new identify starts from a full
+/// payload rather than resuming a prior state.
 final class FDv2DataSystem {
   final String _credential;
   final LDLogger _logger;
