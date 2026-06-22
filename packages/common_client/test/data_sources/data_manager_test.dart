@@ -31,41 +31,41 @@ LDContext _ctx(String key) => LDContextBuilder().kind('user', key).build();
 
 void main() {
   group('FDv2DataManager', () {
-    test('resets the basis on a context change but not when it repeats', () {
-      var resets = 0;
+    test('clears the selector on a context change but not when it repeats', () {
+      var clears = 0;
       final manager =
-          FDv2DataManager(_managerWithoutFactories(), () => resets++);
+          FDv2DataManager(_managerWithoutFactories(), () => clears++);
 
       // The returned futures never complete (no factory delivers data); we
-      // only care that the basis-reset decision fires correctly.
+      // only care that the clear-selector decision fires correctly.
       unawaited(manager.identify(_ctx('a'), waitForNetworkResults: false));
       unawaited(manager.identify(_ctx('a'), waitForNetworkResults: false));
       unawaited(manager.identify(_ctx('b'), waitForNetworkResults: false));
       unawaited(manager.identify(_ctx('a'), waitForNetworkResults: false));
 
-      // a (first), b, a-again -> 3 resets. The repeated 'a' keeps its basis.
-      expect(resets, 3);
+      // a (first), b, a-again -> 3 clears. The repeated 'a' keeps its selector.
+      expect(clears, 3);
     });
 
     test(
-        'resets the basis on a context change regardless of intervening mode '
-        'switches', () {
-      // The reset is driven at identify time, not by the data source factory,
+        'clears the selector on a context change regardless of intervening '
+        'mode switches', () {
+      // The clear is driven at identify time, not by the data source factory,
       // so a mode switch between identifies (e.g. going offline) cannot leave
-      // a stale basis behind for the next context. Mode switches go through
+      // a stale selector behind for the next context. Mode switches go through
       // DataSourceManager.setMode and never reach this manager, so they do not
-      // reset the basis themselves.
-      var resets = 0;
+      // clear the selector themselves.
+      var clears = 0;
       final dataSourceManager = _managerWithoutFactories();
-      final manager = FDv2DataManager(dataSourceManager, () => resets++);
+      final manager = FDv2DataManager(dataSourceManager, () => clears++);
 
       unawaited(manager.identify(_ctx('a'), waitForNetworkResults: false));
       dataSourceManager.setMode(const ResolvedOffline(OfflineSetOffline()));
       unawaited(manager.identify(_ctx('b'), waitForNetworkResults: false));
       dataSourceManager.setMode(const ResolvedStreaming());
 
-      // Reset fired for 'a' and 'b'; the offline/online switches did not.
-      expect(resets, 2);
+      // Clear fired for 'a' and 'b'; the offline/online switches did not.
+      expect(clears, 2);
     });
   });
 }

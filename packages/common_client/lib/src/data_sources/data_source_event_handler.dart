@@ -103,11 +103,11 @@ final class DataSourceEventHandler {
   /// each update, and a change set of type none confirms the SDK is up to
   /// date without changing data.
   ///
-  /// This does not touch the data source status. Unlike the FDv1 verbs,
-  /// an FDv2 payload only marks the source valid when it is network basis
-  /// data, and never while offline; the DataSourceManager makes that call
-  /// from the payload's basis flag and the active mode, so applying cached
-  /// flags here does not prematurely report valid.
+  /// This does not touch the data source status. Unlike the FDv1 verbs, an
+  /// FDv2 payload only marks the source valid when it carries a server
+  /// selector (network data), and never while offline; the DataSourceManager
+  /// makes that call from the change set's selector and the active mode, so
+  /// applying cached flags here does not prematurely report valid.
   Future<MessageStatus> handlePayload(LDContext context, ChangeSet changeSet,
       {String? environmentId}) async {
     try {

@@ -64,8 +64,8 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   bool _emittedPayload = false;
 
   /// True when the only sources are cache initializers (no synchronizers).
-  /// In such a system the cache load is the freshest data that will ever
-  /// arrive, so its payload is treated as basis rather than preliminary.
+  /// Such a system must still reach a usable state on a cache miss, so an
+  /// empty payload is emitted when no data was produced.
   final bool _cacheOnlyDataSystem;
 
   /// Resolves the outcome of the active synchronizer run. Set while a
@@ -145,21 +145,21 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     }
   }
 
-  void _emitPayload(ChangeSetResult result, {bool basis = true}) {
+  void _emitPayload(ChangeSetResult result) {
     if (_closed || _controller.isClosed) return;
     // An intent of "none" means the SDK is already up to date; it carries
     // no selector and must not regress the one we hold. For any other
     // type the payload's selector is adopted verbatim, including an empty
-    // one -- a selector-less full transfer (an FDv1 fallback payload,
-    // whose state cannot serve as an FDv2 basis) must clear the held
-    // selector so the next request sends no stale basis. Do not gate this
-    // on a non-empty selector.
+    // one -- a selector-less full transfer (e.g. an FDv1 fallback payload,
+    // whose state cannot drive FDv2 deltas) clears the held selector so the
+    // next request asks for a full payload rather than a stale delta. Do
+    // not gate this on a non-empty selector.
     if (result.changeSet.type != PayloadType.none) {
       _selectorUpdater(result.changeSet.selector);
     }
     _emittedPayload = true;
-    _controller.add(PayloadEvent(result.changeSet,
-        environmentId: result.environmentId, basis: basis));
+    _controller.add(
+        PayloadEvent(result.changeSet, environmentId: result.environmentId));
   }
 
   void _reportTransientError(StatusResult result) {
@@ -208,15 +208,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       switch (result) {
         case ChangeSetResult():
           if (result.changeSet.type != PayloadType.none) {
-            // Selector-bearing data is network basis; an FDv1 fallback
-            // transfer is fresh network data too; and in a cache-only
-            // system the cache load is the freshest data there will be.
-            // Otherwise this is preliminary cache data ahead of a
-            // synchronizer: applied, but not basis.
-            final isBasis = result.changeSet.selector.isNotEmpty ||
-                result.fdv1Fallback ||
-                _cacheOnlyDataSystem;
-            _emitPayload(result, basis: isBasis);
+            _emitPayload(result);
 
             if (_handleFdv1Fallback(result)) {
               // Data was received but the server directed FDv1 fallback;
@@ -225,10 +217,11 @@ final class FDv2DataSourceOrchestrator implements DataSource {
             }
 
             if (result.changeSet.selector.isNotEmpty) {
-              // Basis data with a selector: initialization is complete.
+              // A selector means a complete, server-versioned payload:
+              // initialization is done. A selector-less payload (e.g. cache)
+              // is applied, but we keep initializing toward network data.
               return;
             }
-            // Data without a selector (e.g. cache); keep initializing.
           }
         case StatusResult():
           switch (result.state) {

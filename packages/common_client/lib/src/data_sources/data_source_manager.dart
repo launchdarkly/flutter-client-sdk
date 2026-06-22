@@ -10,6 +10,7 @@ import '../resolved_connection_mode.dart';
 import 'data_source.dart';
 import 'data_source_event_handler.dart';
 import 'data_source_status_manager.dart';
+import 'fdv2/payload.dart';
 
 typedef DataSourceFactory = DataSource Function(LDContext context);
 
@@ -38,9 +39,9 @@ final class DataSourceManager {
 
   Completer<void>? _identifyCompleter;
 
-  /// When true, the active identify resolves only on basis (network or
-  /// terminal) data, not on preliminary cache data. Set per identify from
-  /// the caller's wait-for-network-results preference.
+  /// When true, the active identify resolves only on fresh data, not on a
+  /// cache load. Set per identify from the caller's wait-for-network-results
+  /// preference.
   bool _requireFreshData = false;
 
   DataSourceManager({
@@ -99,15 +100,23 @@ final class DataSourceManager {
     _activeDataSource = null;
   }
 
-  void _completeIdentify(MessageStatus handled, {bool basis = true}) {
+  void _completeIdentify(MessageStatus handled, ChangeSet? changeSet,
+      {bool offline = false}) {
     if (handled != MessageStatus.messageHandled || _identifyCompleter == null) {
       return;
     }
-    // An identify waiting for network results resolves only on basis
-    // (network or terminal) data; preliminary cache data is applied but
-    // leaves the identify pending so a later basis payload resolves it.
-    if (_requireFreshData && !basis) {
-      return;
+    // An identify waiting for network results resolves only on fresh data: a
+    // payload carrying a server selector, or an intent-none (the server
+    // confirming the SDK is up to date). A cache load has neither, so it is
+    // applied but leaves the identify pending until network data arrives.
+    // Offline can produce neither, so it resolves on whatever data is
+    // available; FDv1 passes no change set and never waits for fresh data.
+    if (_requireFreshData && !offline) {
+      final fresh = changeSet != null &&
+          (changeSet.selector.isNotEmpty || changeSet.type == PayloadType.none);
+      if (!fresh) {
+        return;
+      }
     }
     if (_identifyCompleter!.isCompleted) {
       _logger.error('Identify was already complete before receiving '
@@ -178,21 +187,23 @@ final class DataSourceManager {
           var handled = await _dataSourceEventHandler.handleMessage(
               _activeContext!, event.type, event.data,
               environmentId: event.environmentId);
-          _completeIdentify(handled);
+          _completeIdentify(handled, null);
           return handled;
         case PayloadEvent():
           var handled = await _dataSourceEventHandler.handlePayload(
               _activeContext!, event.changeSet,
               environmentId: event.environmentId);
-          if (handled == MessageStatus.messageHandled && event.basis) {
-            // Basis data marks the source valid, except while offline:
-            // there the offline status set in _setupConnection stands and
-            // a cache load must not be reported as a live connection.
-            if (_activeConnectionMode is! FDv2Offline) {
-              _statusManager.setValid();
-            }
+          final offline = _activeConnectionMode is FDv2Offline;
+          if (handled == MessageStatus.messageHandled &&
+              event.changeSet.selector.isNotEmpty &&
+              !offline) {
+            // A server selector means this is network data, which marks the
+            // source valid. Cached data has no selector, and while offline
+            // the status set in _setupConnection stands, so neither reports a
+            // live connection.
+            _statusManager.setValid();
           }
-          _completeIdentify(handled, basis: event.basis);
+          _completeIdentify(handled, event.changeSet, offline: offline);
           return handled;
         case StatusEvent():
           if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {

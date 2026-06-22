@@ -442,8 +442,8 @@ final class LDCommonClient {
           cachedFlagsReader: _flagManager.readCached,
         );
         _dataSourceManager.setFactories(dataSystem.buildFactories());
-        // FDv2 loads the cache through its pipeline and resets the held
-        // basis on a context change (clearSelector).
+        // FDv2 loads the cache through its pipeline and clears the held
+        // selector on a context change.
         _dataManager =
             FDv2DataManager(_dataSourceManager, dataSystem.clearSelector);
       } else {

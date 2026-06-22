@@ -92,10 +92,10 @@ final class FDv2DataSystem {
   @visibleForTesting
   ModeDefinition resolvedDefinition(ConnectionModeId mode) => _resolve(mode);
 
-  /// Discards the held selector so the next source rebuilds a basis from
-  /// its initializers. Called when identifying a new context, since a
-  /// selector points at one context's data and cannot seed a delta for
-  /// another. Mode switches keep the selector and so do not call this.
+  /// Discards the held selector so the next source re-fetches a full
+  /// payload from its initializers. Called when identifying a new context,
+  /// since a selector points at one context's data and cannot seed a delta
+  /// for another. Mode switches keep the selector and so do not call this.
   void clearSelector() {
     _selector = Selector.empty;
   }
@@ -133,7 +133,7 @@ final class FDv2DataSystem {
         httpClientFactory: _httpClientFactory,
       );
 
-      // When a selector is held the SDK already has basis data for this
+      // When a selector is held the SDK already has current data for this
       // context; mode switches go straight to synchronizers.
       final includeInitializers = _selector.isEmpty;
       final initializerFactories = includeInitializers
