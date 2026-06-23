@@ -73,4 +73,36 @@ void main() {
     expect((result as StatusResult).state, SourceState.interrupted);
     expect(result.fdv1Fallback, isFalse);
   });
+
+  test('a fresh synchronizer instance does not inherit a prior ETag', () async {
+    final requests = <http.Request>[];
+    final mock = MockClient((req) async {
+      requests.add(req);
+      return http.Response(
+        '{"flagA":{"version":1,"value":true,"variation":0,'
+        '"reason":{"kind":"OFF"}}}',
+        200,
+        headers: {'etag': 'etag-from-first-connection'},
+      );
+    });
+    final factory = createFdv1FallbackSynchronizerFactory(
+        const Fdv1FallbackConfig(), _ctx(mock));
+
+    // First instance polls and receives an ETag.
+    final first = factory.create(() => Selector.empty);
+    await first.results.first;
+    first.close();
+
+    // A second instance (a new connection) must poll without if-none-match;
+    // were the ETag shared, it could receive a 304 for a request it never
+    // made and silently keep stale data.
+    final second = factory.create(() => Selector.empty);
+    await second.results.first;
+    second.close();
+
+    expect(requests, hasLength(2));
+    expect(requests[0].headers.containsKey('if-none-match'), isFalse);
+    expect(requests[1].headers.containsKey('if-none-match'), isFalse,
+        reason: 'the ETag is scoped to a single requestor instance');
+  });
 }
