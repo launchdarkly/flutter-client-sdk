@@ -512,6 +512,124 @@ void main() {
     harness.orchestrator.stop();
   });
 
+  test(
+      'a change set carrying the directive is applied before the fallback '
+      'tier engages', () async {
+    final fdv2Tier = <FakeSynchronizer>[];
+    final fdv1Tier = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [
+        synchronizerSlot(fdv2Tier),
+        synchronizerSlot(fdv1Tier, isFdv1Fallback: true),
+      ],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    // A successful connection delivered its basis and carried the directive
+    // on the same change set.
+    fdv2Tier.single.controller.add(changeSet(
+        selector: const Selector(state: 'from-stream', version: 1),
+        fdv1Fallback: true));
+    await harness.pump();
+
+    // The payload was applied (emitted + selector adopted) before the
+    // fallback tier was engaged.
+    expect(harness.events.whereType<PayloadEvent>(), hasLength(1));
+    expect(harness.selector.state, 'from-stream');
+    expect(fdv1Tier, hasLength(1), reason: 'the fallback tier then engages');
+
+    harness.orchestrator.stop();
+  });
+
+  test(
+      'a directive with no fallback tier stays interrupted and retries FDv2 '
+      'after the TTL', () async {
+    final fdv2Tier = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [synchronizerSlot(fdv2Tier)],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    fdv2Tier.first.controller.add(FDv2SourceResults.terminalError(
+        message: 'fall back',
+        fdv1Fallback: true,
+        fdv1FallbackTtl: const Duration(milliseconds: 30)));
+    await harness.pump();
+
+    // No fallback tier exists, so the system is not halted; it has not yet
+    // retried either (the TTL has not elapsed).
+    expect(harness.events.whereType<StatusEvent>(), isEmpty,
+        reason: 'the directive does not halt the data system');
+    expect(fdv2Tier, hasLength(1));
+
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    await harness.pump();
+
+    expect(fdv2Tier, hasLength(2),
+        reason: 'the FDv2 synchronizer is retried once the TTL elapses');
+
+    harness.orchestrator.stop();
+  });
+
+  test(
+      'a directive with no fallback tier and no TTL does not reconnect '
+      'promptly (defaults to a long retry interval)', () async {
+    final fdv2Tier = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [synchronizerSlot(fdv2Tier)],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    fdv2Tier.first.controller.add(FDv2SourceResults.terminalError(
+        message: 'fall back', fdv1Fallback: true));
+    await harness.pump();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    await harness.pump();
+
+    expect(harness.events.whereType<StatusEvent>(), isEmpty);
+    expect(fdv2Tier, hasLength(1),
+        reason: 'with no TTL the default retry interval is long, so no '
+            'reconnect is observed in the test window');
+
+    harness.orchestrator.stop();
+  });
+
+  test(
+      'a directive with no fallback tier and a zero TTL pauses FDv2 with no '
+      'retry', () async {
+    final fdv2Tier = <FakeSynchronizer>[];
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [synchronizerSlot(fdv2Tier)],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    fdv2Tier.first.controller.add(FDv2SourceResults.terminalError(
+        message: 'fall back',
+        fdv1Fallback: true,
+        fdv1FallbackTtl: Duration.zero));
+    await harness.pump();
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    await harness.pump();
+
+    expect(harness.events.whereType<StatusEvent>(), isEmpty,
+        reason: 'pausing is not a halt');
+    expect(fdv2Tier, hasLength(1), reason: 'a zero TTL means no retry');
+
+    harness.orchestrator.stop();
+  });
+
   test('recovery condition returns to the primary synchronizer', () async {
     final primary = <FakeSynchronizer>[];
     final secondary = <FakeSynchronizer>[];

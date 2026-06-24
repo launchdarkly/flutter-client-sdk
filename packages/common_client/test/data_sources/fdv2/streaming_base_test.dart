@@ -192,7 +192,9 @@ void main() {
         'close() is safe to call from a listener reacting to an FDv1 '
         'fallback', () async {
       // Same race risk as the goodbye case, but for the fdv1-fallback
-      // terminal branch.
+      // terminal branch -- here driven by a goodbye carrying a
+      // protocol-fallback TTL, which surfaces as a terminal fallback
+      // result.
       final sse = makeSse();
       final base = makeBase(sse);
       Object? caught;
@@ -205,7 +207,9 @@ void main() {
       }, (err, _) => caught = err);
 
       await Future<void>.delayed(Duration.zero);
-      emitOpen(sse, headers: {'x-ld-fd-fallback': 'true'});
+      emitOpen(sse);
+      emitMessage(sse, 'goodbye',
+          jsonEncode({'reason': 'fall back', 'protocolFallbackTTL': 60}));
       for (var i = 0; i < 5; i++) {
         await Future<void>.delayed(Duration.zero);
       }
@@ -480,25 +484,52 @@ void main() {
     });
   });
 
-  group('FDv1 fallback header on connect', () {
+  group('FDv1 fallback directive', () {
     test(
-        'x-ld-fd-fallback: true on the OpenEvent emits terminalError and '
-        'closes', () async {
+        'a directive on a successful connection is emitted with the basis '
+        'change set so the payload is applied before fallback', () async {
       final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
-      final done = Completer<void>();
-      base.results.listen(emissions.add, onDone: done.complete);
+      final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
       emitOpen(sse, headers: {'x-ld-fd-fallback': 'true'});
-      await done.future;
+      emitFullPayload(sse);
+      await Future<void>.delayed(Duration.zero);
 
-      expect(emissions, hasLength(1));
-      final status = emissions.single as StatusResult;
-      expect(status.state, equals(SourceState.terminalError));
-      expect(status.fdv1Fallback, isTrue);
-      expect(sse.isClosed, isTrue);
+      // The basis is delivered as a change set carrying the directive --
+      // not dropped in favor of an immediate terminal error.
+      expect(emissions.single, isA<ChangeSetResult>());
+      final changeSet = emissions.single as ChangeSetResult;
+      expect(changeSet.fdv1Fallback, isTrue);
+      expect(changeSet.changeSet.type, PayloadType.full);
+      // The source stays open; the orchestrator tears it down when it
+      // engages the fallback tier.
+      expect(sse.isClosed, isFalse);
+
+      await sub.cancel();
+    });
+
+    test('the directive carries the fallback TTL from the response header',
+        () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      emitOpen(sse, headers: {
+        'x-ld-fd-fallback': 'true',
+        'x-ld-fd-fallback-ttl': '90',
+      });
+      emitFullPayload(sse);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions.single.fdv1FallbackTtl,
+          equals(const Duration(seconds: 90)));
+
+      await sub.cancel();
     });
 
     test('fallback header is matched case-insensitively', () async {
@@ -509,9 +540,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       emitOpen(sse, headers: {'x-ld-fd-fallback': 'TRUE'});
+      emitFullPayload(sse);
       await Future<void>.delayed(Duration.zero);
 
-      expect((emissions.single as StatusResult).fdv1Fallback, isTrue);
+      expect(emissions.single.fdv1Fallback, isTrue);
 
       await sub.cancel();
     });
@@ -531,6 +563,116 @@ void main() {
       expect(emissions.single.fdv1Fallback, isFalse);
 
       await sub.cancel();
+    });
+
+    test(
+        'a goodbye carrying protocolFallbackTTL surfaces as a terminal '
+        'fallback directive with that TTL', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      emitOpen(sse);
+      emitMessage(sse, 'goodbye',
+          jsonEncode({'reason': 'see ya', 'protocolFallbackTTL': 0}));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.terminalError);
+      expect(status.fdv1Fallback, isTrue);
+      // A zero TTL means remain on the fallback indefinitely.
+      expect(status.fdv1FallbackTtl, Duration.zero);
+      expect(sse.isClosed, isTrue);
+    });
+
+    test('a goodbye with no protocolFallbackTTL is an ordinary disconnect',
+        () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      emitOpen(sse);
+      emitMessage(sse, 'goodbye', jsonEncode({'reason': 'see ya'}));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.goodbye);
+      expect(status.fdv1Fallback, isFalse);
+    });
+  });
+
+  group('SSE HTTP errors', () {
+    test('a recoverable error is interrupted and keeps the source open',
+        () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      sse.emitError(error: SseHttpError(503, const {}, recoverable: true));
+      await Future<void>.delayed(Duration.zero);
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.interrupted);
+      expect(status.statusCode, 503);
+      expect(status.fdv1Fallback, isFalse);
+      expect(sse.isClosed, isFalse,
+          reason: 'the client retries a recoverable error on its own');
+
+      await sub.cancel();
+    });
+
+    test('an unrecoverable error is terminal and closes the source', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      sse.emitError(error: SseHttpError(401, const {}, recoverable: false));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.terminalError);
+      expect(status.statusCode, 401);
+      expect(status.fdv1Fallback, isFalse);
+      expect(sse.isClosed, isTrue);
+    });
+
+    test(
+        'a directive on an error response is terminal with the fallback TTL, '
+        'even when the status is recoverable', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      sse.emitError(
+          error: SseHttpError(
+              503,
+              const {
+                'x-ld-fd-fallback': 'true',
+                'x-ld-fd-fallback-ttl': '120',
+              },
+              recoverable: true));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.terminalError);
+      expect(status.fdv1Fallback, isTrue);
+      expect(status.fdv1FallbackTtl, const Duration(seconds: 120));
+      expect(sse.isClosed, isTrue,
+          reason: 'falling back stops the connection regardless of retry');
     });
   });
 

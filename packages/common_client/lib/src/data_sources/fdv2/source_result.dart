@@ -20,7 +20,13 @@ sealed class FDv2SourceResult {
   /// Whether the server indicated FDv1 fallback is needed.
   final bool fdv1Fallback;
 
-  const FDv2SourceResult({this.fdv1Fallback = false});
+  /// How long to remain on the fallback before retrying FDv2, when
+  /// [fdv1Fallback] is set. `null` means the server gave no time-to-live
+  /// (the caller applies its default); [Duration.zero] means remain
+  /// indefinitely with no automatic retry.
+  final Duration? fdv1FallbackTtl;
+
+  const FDv2SourceResult({this.fdv1Fallback = false, this.fdv1FallbackTtl});
 }
 
 /// A data payload was received and translated into typed descriptors.
@@ -43,6 +49,7 @@ final class ChangeSetResult extends FDv2SourceResult {
     this.environmentId,
     this.freshness,
     super.fdv1Fallback,
+    super.fdv1FallbackTtl,
   });
 
   @override
@@ -72,6 +79,7 @@ final class StatusResult extends FDv2SourceResult {
     this.message,
     this.statusCode,
     super.fdv1Fallback,
+    super.fdv1FallbackTtl,
   });
 
   @override
@@ -87,6 +95,7 @@ abstract final class FDv2SourceResults {
     String? environmentId,
     DateTime? freshness,
     bool fdv1Fallback = false,
+    Duration? fdv1FallbackTtl,
   }) =>
       ChangeSetResult(
         changeSet: changeSet,
@@ -94,18 +103,21 @@ abstract final class FDv2SourceResults {
         environmentId: environmentId,
         freshness: freshness,
         fdv1Fallback: fdv1Fallback,
+        fdv1FallbackTtl: fdv1FallbackTtl,
       );
 
   static StatusResult interrupted({
     String? message,
     int? statusCode,
     bool fdv1Fallback = false,
+    Duration? fdv1FallbackTtl,
   }) =>
       StatusResult(
         state: SourceState.interrupted,
         message: message,
         statusCode: statusCode,
         fdv1Fallback: fdv1Fallback,
+        fdv1FallbackTtl: fdv1FallbackTtl,
       );
 
   static StatusResult shutdown({
@@ -122,12 +134,14 @@ abstract final class FDv2SourceResults {
     String? message,
     int? statusCode,
     bool fdv1Fallback = false,
+    Duration? fdv1FallbackTtl,
   }) =>
       StatusResult(
         state: SourceState.terminalError,
         message: message,
         statusCode: statusCode,
         fdv1Fallback: fdv1Fallback,
+        fdv1FallbackTtl: fdv1FallbackTtl,
       );
 
   static StatusResult goodbyeResult({
