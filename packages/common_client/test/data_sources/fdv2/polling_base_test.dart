@@ -648,6 +648,34 @@ void main() {
       expect(result, isA<ChangeSetResult>());
       expect(result.fdv1Fallback, isFalse);
     });
+
+    test('the fallback TTL header is carried onto the result', () async {
+      final mock = MockClient((request) async {
+        return http.Response(buildXferFullBody(), 200, headers: {
+          'x-ld-fd-fallback': 'true',
+          'x-ld-fd-fallback-ttl': '300',
+        });
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect(result.fdv1Fallback, isTrue);
+      expect(result.fdv1FallbackTtl, equals(const Duration(seconds: 300)));
+    });
+
+    test('a directive with no TTL header leaves the TTL null', () async {
+      final mock = MockClient((request) async {
+        return http.Response(buildXferFullBody(), 200,
+            headers: {'x-ld-fd-fallback': 'true'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect(result.fdv1Fallback, isTrue);
+      expect(result.fdv1FallbackTtl, isNull);
+    });
   });
 
   group('error message sanitization', () {

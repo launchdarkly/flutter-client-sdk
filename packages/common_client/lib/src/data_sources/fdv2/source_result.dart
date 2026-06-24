@@ -147,10 +147,12 @@ abstract final class FDv2SourceResults {
   static StatusResult goodbyeResult({
     String? message,
     bool fdv1Fallback = false,
+    Duration? fdv1FallbackTtl,
   }) =>
       StatusResult(
         state: SourceState.goodbye,
         message: message,
         fdv1Fallback: fdv1Fallback,
+        fdv1FallbackTtl: fdv1FallbackTtl,
       );
 }

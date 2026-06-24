@@ -5,34 +5,13 @@ import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
+import 'fallback_directive.dart';
 import 'flag_eval_mapper.dart';
 import 'payload.dart';
 import 'protocol_handler.dart';
 import 'protocol_types.dart';
 import 'source.dart';
 import 'source_result.dart';
-
-/// The FDv1 fallback directive parsed from a connection's response
-/// headers. Its presence means the server asked the SDK to fall back;
-/// [ttl] is how long to remain on the fallback before retrying FDv2
-/// (null when the server gave no TTL; [Duration.zero] means indefinitely).
-final class _FallbackDirective {
-  final Duration? ttl;
-  const _FallbackDirective(this.ttl);
-}
-
-/// Reads the FDv1 fallback directive from response headers, or null when
-/// the `x-ld-fd-fallback` header is not `"true"`. The single place that
-/// interprets these headers, used for both successful and error responses.
-_FallbackDirective? _readFallbackDirective(Map<String, String> headers) {
-  if (headers['x-ld-fd-fallback']?.toLowerCase() != 'true') {
-    return null;
-  }
-  final raw = headers['x-ld-fd-fallback-ttl'];
-  final seconds = raw == null ? null : int.tryParse(raw);
-  return _FallbackDirective(
-      seconds == null ? null : Duration(seconds: seconds));
-}
 
 /// Long-lived streaming data source over SSE.
 ///
@@ -94,7 +73,7 @@ final class FDv2StreamingBase {
   /// basis delivered alongside it is applied before the SDK falls back (a
   /// successful stream that says "fall back" still hands over its current
   /// data first). Cleared once emitted.
-  _FallbackDirective? _pendingDirective;
+  FallbackDirective? _pendingDirective;
 
   FDv2StreamingBase({
     required SSEClient sseClient,
@@ -214,7 +193,7 @@ final class FDv2StreamingBase {
     // current basis first. Defer the directive so it is emitted with the
     // next change set: the payload is applied, then the SDK falls back.
     // Terminating here would drop the basis the server just sent.
-    _pendingDirective = _readFallbackDirective(headers);
+    _pendingDirective = readFallbackDirective(headers);
   }
 
   Future<void> _handleMessage(MessageEvent event) async {
@@ -366,7 +345,7 @@ final class FDv2StreamingBase {
       // A fallback directive on the response takes precedence over the
       // status: tear down this connection (which stops any retry the
       // client scheduled) and route to the fallback tier.
-      if (_readFallbackDirective(err.headers) case final directive?) {
+      if (readFallbackDirective(err.headers) case final directive?) {
         _logger.warn('$message; server requested FDv1 fallback');
         _terminate(
             finalResult: FDv2SourceResults.terminalError(
