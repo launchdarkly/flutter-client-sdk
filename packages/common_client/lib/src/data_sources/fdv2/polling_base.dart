@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
+import 'fallback_directive.dart';
 import 'flag_eval_mapper.dart';
 import 'payload.dart';
 import 'protocol_handler.dart';
@@ -27,12 +28,14 @@ import 'source_result.dart';
 ///   through an [FDv2ProtocolHandler]. The first emitted action
 ///   determines the result.
 ///
-/// `x-ld-fd-fallback: true` is treated as an annotation on whatever
-/// result the response would otherwise produce: the body is still
-/// parsed and used, the 304 is still treated as no-op, errors are
-/// still classified by status code, and `fdv1Fallback: true` is
-/// stamped on the resulting [FDv2SourceResult]. The orchestrator can
-/// consume the data and transition to FDv1 in the same step.
+/// The `x-ld-fd-fallback` directive (read via [readFallbackDirective],
+/// shared with the streaming source) is treated as an annotation on
+/// whatever result the response would otherwise produce: the body is
+/// still parsed and used, the 304 is still treated as no-op, errors are
+/// still classified by status code, and `fdv1Fallback: true` plus the
+/// fallback TTL are stamped on the resulting [FDv2SourceResult]. The
+/// orchestrator can consume the data and transition to FDv1 in the same
+/// step.
 final class FDv2PollingBase {
   final LDLogger _logger;
   final FDv2Requestor _requestor;
@@ -65,9 +68,9 @@ final class FDv2PollingBase {
   }
 
   FDv2SourceResult _processResponse(RequestorResponse response) {
-    // Match `x-ld-fd-fallback` case-insensitively.
-    final fdv1Fallback =
-        response.headers['x-ld-fd-fallback']?.toLowerCase() == 'true';
+    final directive = readFallbackDirective(response.headers);
+    final fdv1Fallback = directive != null;
+    final fdv1FallbackTtl = directive?.ttl;
     final environmentId = response.headers['x-ld-envid'];
 
     // 304 Not Modified means the SDK's cached data is confirmed current.
@@ -78,6 +81,7 @@ final class FDv2PollingBase {
         freshness: _now(),
         persist: true,
         fdv1Fallback: fdv1Fallback,
+        fdv1FallbackTtl: fdv1FallbackTtl,
       );
     }
 
@@ -89,6 +93,7 @@ final class FDv2PollingBase {
           statusCode: response.status,
           message: message,
           fdv1Fallback: fdv1Fallback,
+          fdv1FallbackTtl: fdv1FallbackTtl,
         );
       }
       _logger.error('$message; will not retry');
@@ -96,6 +101,7 @@ final class FDv2PollingBase {
         statusCode: response.status,
         message: message,
         fdv1Fallback: fdv1Fallback,
+        fdv1FallbackTtl: fdv1FallbackTtl,
       );
     }
 
@@ -103,6 +109,7 @@ final class FDv2PollingBase {
       response,
       environmentId: environmentId,
       fdv1Fallback: fdv1Fallback,
+      fdv1FallbackTtl: fdv1FallbackTtl,
     );
   }
 
@@ -110,6 +117,7 @@ final class FDv2PollingBase {
     RequestorResponse response, {
     String? environmentId,
     required bool fdv1Fallback,
+    required Duration? fdv1FallbackTtl,
   }) {
     // The whole parse path is wrapped: jsonDecode plus the structural
     // casts inside FDv2EventsCollection.fromJson and the per-event
@@ -122,6 +130,7 @@ final class FDv2PollingBase {
           statusCode: response.status,
           message: 'Polling response was not a JSON object',
           fdv1Fallback: fdv1Fallback,
+          fdv1FallbackTtl: fdv1FallbackTtl,
         );
       }
 
@@ -145,21 +154,33 @@ final class FDv2PollingBase {
               freshness: _now(),
               persist: true,
               fdv1Fallback: fdv1Fallback,
+              fdv1FallbackTtl: fdv1FallbackTtl,
             );
-          case ActionGoodbye(:final reason):
-            return FDv2SourceResults.goodbyeResult(
-              message: reason,
-              fdv1Fallback: fdv1Fallback,
-            );
+          case ActionGoodbye(:final reason, :final protocolFallbackTtl):
+            // A goodbye can itself carry a fallback directive: in-band via
+            // protocolFallbackTtl, or via the response header. The
+            // orchestrator's goodbye path recycles without consulting the
+            // directive, so surface it as a terminal fallback result (as the
+            // streaming source does) rather than an ordinary goodbye.
+            if (protocolFallbackTtl != null || fdv1Fallback) {
+              return FDv2SourceResults.terminalError(
+                message: reason,
+                fdv1Fallback: true,
+                fdv1FallbackTtl: protocolFallbackTtl ?? fdv1FallbackTtl,
+              );
+            }
+            return FDv2SourceResults.goodbyeResult(message: reason);
           case ActionServerError(:final reason):
             return FDv2SourceResults.interrupted(
               message: reason,
               fdv1Fallback: fdv1Fallback,
+              fdv1FallbackTtl: fdv1FallbackTtl,
             );
           case ActionError(:final message):
             return FDv2SourceResults.interrupted(
               message: message,
               fdv1Fallback: fdv1Fallback,
+              fdv1FallbackTtl: fdv1FallbackTtl,
             );
           case ActionNone():
             // Continue accumulating events until a payload-transferred or
@@ -175,6 +196,7 @@ final class FDv2PollingBase {
         statusCode: response.status,
         message: 'Polling response did not include a complete payload',
         fdv1Fallback: fdv1Fallback,
+        fdv1FallbackTtl: fdv1FallbackTtl,
       );
     } catch (err, stack) {
       // Log only the type at error level (not the message — `jsonDecode`
@@ -187,6 +209,7 @@ final class FDv2PollingBase {
         statusCode: response.status,
         message: 'Polling response body was malformed',
         fdv1Fallback: fdv1Fallback,
+        fdv1FallbackTtl: fdv1FallbackTtl,
       );
     }
   }

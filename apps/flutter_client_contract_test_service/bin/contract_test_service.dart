@@ -29,6 +29,7 @@ class TestApiImpl extends SdkTestApi {
     'client-prereq-events',
     'auto-env-attributes',
     'client-event-source-http-errors',
+    'fdv1-fallback',
   ];
 
   static const clientUrlPrefix = '/client/';
@@ -310,6 +311,26 @@ class TestApiImpl extends SdkTestApi {
       return null;
     }
 
+    // The FDv1 fallback is configured at the data-system level (a polling
+    // config); it applies to whichever modes are built below.
+    Fdv1FallbackConfig? parseFdv1Fallback() {
+      if (raw['fdv1Fallback'] case final Map<String, dynamic> fallback) {
+        return Fdv1FallbackConfig(
+          pollInterval: fallback['pollIntervalMs'] != null
+              ? Duration(
+                  milliseconds: (fallback['pollIntervalMs'] as num).toInt())
+              : null,
+          endpoints: fallback['baseUri'] != null
+              ? EndpointConfig(
+                  pollingBaseUri: Uri.parse(fallback['baseUri'] as String))
+              : null,
+        );
+      }
+      return null;
+    }
+
+    final fdv1Fallback = parseFdv1Fallback();
+
     ModeDefinition translateMode(Map<String, dynamic> modeJson) {
       final initializers = <InitializerEntry>[];
       for (final entry in (modeJson['initializers'] as List<dynamic>? ?? [])) {
@@ -353,7 +374,9 @@ class TestApiImpl extends SdkTestApi {
       }
 
       return ModeDefinition(
-          initializers: initializers, synchronizers: synchronizers);
+          initializers: initializers,
+          synchronizers: synchronizers,
+          fdv1Fallback: fdv1Fallback);
     }
 
     ConnectionMode parseInitialMode(String? name) {

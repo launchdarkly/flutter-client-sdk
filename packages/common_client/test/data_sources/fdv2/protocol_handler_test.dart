@@ -423,7 +423,32 @@ void main() {
           event: FDv2EventTypes.goodbye, data: {'reason': 'maintenance'}));
       expect(action, isA<ActionGoodbye>());
       expect((action as ActionGoodbye).reason, equals('maintenance'));
+      expect(action.protocolFallbackTtl, isNull,
+          reason: 'an ordinary goodbye carries no fallback directive');
       expect(handler.state, equals(ProtocolState.inactive));
+    });
+
+    test('carries the protocolFallbackTTL as an in-band fallback directive',
+        () {
+      final handler = makeHandler();
+      handler.processEvent(serverIntent('xfer-full'));
+
+      final action = handler.processEvent(FDv2Event(
+          event: FDv2EventTypes.goodbye,
+          data: {'reason': 'fall back', 'protocolFallbackTTL': 60}));
+      expect((action as ActionGoodbye).protocolFallbackTtl,
+          equals(const Duration(seconds: 60)));
+    });
+
+    test('a zero protocolFallbackTTL is preserved (indefinite fallback)', () {
+      final handler = makeHandler();
+      handler.processEvent(serverIntent('xfer-full'));
+
+      final action = handler.processEvent(FDv2Event(
+          event: FDv2EventTypes.goodbye,
+          data: {'reason': 'fall back', 'protocolFallbackTTL': 0}));
+      expect(
+          (action as ActionGoodbye).protocolFallbackTtl, equals(Duration.zero));
     });
   });
 
