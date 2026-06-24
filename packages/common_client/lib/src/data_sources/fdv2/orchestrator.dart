@@ -34,7 +34,7 @@ enum _SynchronizerOutcome {
   stop,
 }
 
-/// How the orchestrator responds to a server-directed FDv1 fallback.
+/// How the orchestrator responds to server-directed actions.
 enum _DirectiveAction {
   /// No directive present; carry on normally.
   none,
