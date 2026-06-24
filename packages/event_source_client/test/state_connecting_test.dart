@@ -2,7 +2,8 @@
 
 import 'dart:async';
 
-import 'package:launchdarkly_event_source_client/src/http_consts.dart';
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart'
+    show Event, SseHttpError;
 import 'package:launchdarkly_event_source_client/src/state_backoff.dart';
 import 'package:launchdarkly_event_source_client/src/state_connected.dart';
 import 'package:launchdarkly_event_source_client/src/state_connecting.dart';
@@ -22,28 +23,51 @@ void main() {
     await StateConnecting.run(svo);
   });
 
-  test('Test connecting to backoff on recoverable error', () async {
+  test(
+      'a recoverable error backs off and reports SseHttpError(recoverable: '
+      'true) with its headers', () async {
     final transitionController = StreamController<dynamic>.broadcast();
+    final eventController = StreamController<Event>.broadcast();
 
     final svo = TestUtils.makeMockStateValues(
         transitionSink: transitionController,
+        eventSink: eventController,
         clientFactory: () => TestUtils.makeMockHttpClient(
-            httpStatusCode: HttpStatusCodes.tooManyRequestsStatus));
+            httpStatusCode: 503, headers: const {'x-ld-fd-fallback': 'true'}));
 
     expectLater(transitionController.stream,
         emitsInOrder([StateConnecting, StateBackoff]));
+    expectLater(
+        eventController.stream,
+        emitsError(isA<SseHttpError>()
+            .having((e) => e.statusCode, 'statusCode', 503)
+            .having((e) => e.recoverable, 'recoverable', true)
+            .having((e) => e.headers['x-ld-fd-fallback'], 'directive header',
+                'true')));
     await StateConnecting.run(svo);
   });
 
-  test('Test connecting to idle on unrecoverable error', () async {
+  test(
+      'an unrecoverable error goes idle and reports SseHttpError(recoverable: '
+      'false) with its headers', () async {
     final transitionController = StreamController<dynamic>.broadcast();
+    final eventController = StreamController<Event>.broadcast();
 
     final svo = TestUtils.makeMockStateValues(
         transitionSink: transitionController,
-        clientFactory: () => TestUtils.makeMockHttpClient(httpStatusCode: 404));
+        eventSink: eventController,
+        clientFactory: () => TestUtils.makeMockHttpClient(
+            httpStatusCode: 401, headers: const {'x-ld-fd-fallback': 'true'}));
 
     expectLater(transitionController.stream,
         emitsInOrder([StateConnecting, StateIdle]));
+    expectLater(
+        eventController.stream,
+        emitsError(isA<SseHttpError>()
+            .having((e) => e.statusCode, 'statusCode', 401)
+            .having((e) => e.recoverable, 'recoverable', false)
+            .having((e) => e.headers['x-ld-fd-fallback'], 'directive header',
+                'true')));
     await StateConnecting.run(svo);
   });
 

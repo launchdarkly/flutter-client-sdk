@@ -40,7 +40,7 @@ void main() {
   });
 
   test(
-      'reports UnrecoverableStatusError with the status code and headers '
+      'reports SseHttpError with the status code and headers '
       'for non-retryable status codes', () async {
     final eventsController = StreamController<Event>.broadcast();
     final svo = TestUtils.makeMockStateValues(
@@ -50,8 +50,9 @@ void main() {
 
     final expectation = expectLater(
         eventsController.stream,
-        emitsError(isA<UnrecoverableStatusError>()
+        emitsError(isA<SseHttpError>()
             .having((error) => error.statusCode, 'statusCode', 401)
+            .having((error) => error.recoverable, 'recoverable', false)
             .having((error) => error.headers['x-ld-fd-fallback'],
                 'fallback header', 'true')));
 
