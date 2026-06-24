@@ -156,12 +156,20 @@ final class FDv2PollingBase {
               fdv1Fallback: fdv1Fallback,
               fdv1FallbackTtl: fdv1FallbackTtl,
             );
-          case ActionGoodbye(:final reason):
-            return FDv2SourceResults.goodbyeResult(
-              message: reason,
-              fdv1Fallback: fdv1Fallback,
-              fdv1FallbackTtl: fdv1FallbackTtl,
-            );
+          case ActionGoodbye(:final reason, :final protocolFallbackTtl):
+            // A goodbye can itself carry a fallback directive: in-band via
+            // protocolFallbackTtl, or via the response header. The
+            // orchestrator's goodbye path recycles without consulting the
+            // directive, so surface it as a terminal fallback result (as the
+            // streaming source does) rather than an ordinary goodbye.
+            if (protocolFallbackTtl != null || fdv1Fallback) {
+              return FDv2SourceResults.terminalError(
+                message: reason,
+                fdv1Fallback: true,
+                fdv1FallbackTtl: protocolFallbackTtl ?? fdv1FallbackTtl,
+              );
+            }
+            return FDv2SourceResults.goodbyeResult(message: reason);
           case ActionServerError(:final reason):
             return FDv2SourceResults.interrupted(
               message: reason,
