@@ -224,7 +224,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   /// loop (the fallback source also never re-asserts the directive). When
   /// there is no FDv1 fallback tier we defer retrying FDv2
   /// ([_DirectiveAction.deferRetry]).
-  _DirectiveAction _handleDirective(FDv2SourceResult result) {
+  _DirectiveAction _processDirective(FDv2SourceResult result) {
     if (!result.fdv1Fallback ||
         _sourceManager.isCurrentSynchronizerFdv1Fallback) {
       return _DirectiveAction.none;
@@ -282,7 +282,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
             _emitPayload(result);
             dataReceived = true;
 
-            switch (_handleDirective(result)) {
+            switch (_processDirective(result)) {
               case _DirectiveAction.engageFdv1Fallback:
                 // Data received but the server directed FDv1 fallback;
                 // move on to synchronizers where the fallback tier runs
@@ -317,7 +317,8 @@ final class FDv2DataSourceOrchestrator implements DataSource {
             case SourceState.goodbye:
               break;
           }
-          if (_handleDirective(result) == _DirectiveAction.engageFdv1Fallback) {
+          if (_processDirective(result) ==
+              _DirectiveAction.engageFdv1Fallback) {
             return;
           }
       }
@@ -459,7 +460,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
               _logger.warn('Synchronizer terminal error: '
                   '${result.message ?? 'unknown error'}');
               _reportTransientError(result);
-              switch (_handleDirective(result)) {
+              switch (_processDirective(result)) {
                 case _DirectiveAction.engageFdv1Fallback:
                   resolve(_SynchronizerOutcome.advance);
                 case _DirectiveAction.deferRetry:
@@ -490,7 +491,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
           }
       }
 
-      switch (_handleDirective(result)) {
+      switch (_processDirective(result)) {
         case _DirectiveAction.engageFdv1Fallback:
           // A change set carrying the directive (e.g. a successful stream
           // that delivered its basis then asked us to fall back) has been
