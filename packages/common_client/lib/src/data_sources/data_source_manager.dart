@@ -112,9 +112,7 @@ final class DataSourceManager {
   }
 
   /// Resolves the pending identify, if any. Idempotent: only the first call
-  /// completes it. Callers decide *when* to call it -- a cached identify on
-  /// the first applied payload, a wait-for-network identify on the
-  /// orchestrator's [InitializedEvent].
+  /// completes it.
   void _maybeCompleteIdentify() {
     final completer = _identifyCompleter;
     if (completer == null) {
