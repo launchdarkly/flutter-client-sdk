@@ -12,7 +12,7 @@ import 'src/sse_client_stub.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
 import 'src/test_sse_client.dart';
 
-export 'src/errors.dart' show UnrecoverableStatusError;
+export 'src/errors.dart' show SseHttpError;
 export 'src/events.dart' show Event, MessageEvent, OpenEvent;
 export 'src/test_sse_client.dart' show TestSseClient;
 export 'src/logging.dart'
