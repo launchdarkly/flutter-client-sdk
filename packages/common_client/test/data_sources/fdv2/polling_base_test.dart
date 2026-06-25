@@ -390,6 +390,51 @@ void main() {
       expect((result as StatusResult).state, equals(SourceState.goodbye));
     });
 
+    test(
+        'a goodbye carrying protocolFallbackTTL becomes a terminal fallback '
+        'directive (no fallback header needed)', () async {
+      final body = jsonEncode({
+        'events': [
+          {
+            'event': 'goodbye',
+            'data': {'reason': 'fall back', 'protocolFallbackTTL': 90}
+          },
+        ]
+      });
+      final mock = MockClient((request) async {
+        return http.Response(body, 200);
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.terminalError));
+      expect(result.fdv1Fallback, isTrue);
+      expect(result.fdv1FallbackTtl, equals(const Duration(seconds: 90)));
+    });
+
+    test(
+        'a goodbye with the fallback header becomes a terminal fallback '
+        'directive', () async {
+      final body = jsonEncode({
+        'events': [
+          {
+            'event': 'goodbye',
+            'data': {'reason': 'maintenance'}
+          },
+        ]
+      });
+      final mock = MockClient((request) async {
+        return http.Response(body, 200, headers: {'x-ld-fd-fallback': 'true'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect((result as StatusResult).state, equals(SourceState.terminalError));
+      expect(result.fdv1Fallback, isTrue);
+    });
+
     test('server error event produces interrupted', () async {
       final body = jsonEncode({
         'events': [
@@ -647,6 +692,34 @@ void main() {
 
       expect(result, isA<ChangeSetResult>());
       expect(result.fdv1Fallback, isFalse);
+    });
+
+    test('the fallback TTL header is carried onto the result', () async {
+      final mock = MockClient((request) async {
+        return http.Response(buildXferFullBody(), 200, headers: {
+          'x-ld-fd-fallback': 'true',
+          'x-ld-fd-fallback-ttl': '300',
+        });
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect(result.fdv1Fallback, isTrue);
+      expect(result.fdv1FallbackTtl, equals(const Duration(seconds: 300)));
+    });
+
+    test('a directive with no TTL header leaves the TTL null', () async {
+      final mock = MockClient((request) async {
+        return http.Response(buildXferFullBody(), 200,
+            headers: {'x-ld-fd-fallback': 'true'});
+      });
+
+      final base = makePollingBase(mock);
+      final result = await base.pollOnce();
+
+      expect(result.fdv1Fallback, isTrue);
+      expect(result.fdv1FallbackTtl, isNull);
     });
   });
 

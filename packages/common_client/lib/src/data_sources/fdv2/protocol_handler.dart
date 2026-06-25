@@ -54,7 +54,14 @@ final class ActionError extends ProtocolAction {
 /// The server intends to disconnect.
 final class ActionGoodbye extends ProtocolAction {
   final String reason;
-  const ActionGoodbye(this.reason);
+
+  /// When present, the goodbye carries an in-band protocol-fallback
+  /// directive (FDv2 to FDv1) with this time-to-live; [Duration.zero]
+  /// means remain on the fallback indefinitely. `null` means an ordinary
+  /// disconnect with no fallback directive.
+  final Duration? protocolFallbackTtl;
+
+  const ActionGoodbye(this.reason, {this.protocolFallbackTtl});
 }
 
 /// A server-side application error was encountered.
@@ -259,7 +266,8 @@ final class FDv2ProtocolHandler {
   ProtocolAction _processGoodbye(GoodbyeEvent data) {
     _logger.info('Goodbye received from LaunchDarkly: ${data.reason}');
     reset();
-    return ActionGoodbye(data.reason);
+    return ActionGoodbye(data.reason,
+        protocolFallbackTtl: data.protocolFallbackTtl);
   }
 
   ProtocolAction _processError(ServerErrorEvent data) {

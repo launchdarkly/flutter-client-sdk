@@ -198,6 +198,12 @@ final class StreamingDataSource implements DataSource {
         if (_permanentShutdown) {
           return;
         }
+        // The SSE client retries recoverable responses on its own (and
+        // logs them), so this source is not shutting down -- let the retry
+        // run.
+        if (err is SseHttpError && err.recoverable) {
+          return;
+        }
         _permanentShutdown = true;
         _logger.error(
             'Encountered an unrecoverable error: "$err", Shutting down.');
