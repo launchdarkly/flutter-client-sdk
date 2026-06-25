@@ -13,6 +13,18 @@ import 'data_source_status_manager.dart';
 
 typedef DataSourceFactory = DataSource Function(LDContext context);
 
+/// The minimum data availability an identify must reach before it
+/// completes, mapped from the caller's wait-for-network-results
+/// preference (`false` -> [cached], `true` -> [fresh]).
+enum DataAvailability {
+  /// Resolve as soon as any data is applied, including a cache load.
+  cached,
+
+  /// Wait for fresh network data (the orchestrator's InitializedEvent);
+  /// a cache load alone does not satisfy it.
+  fresh,
+}
+
 /// The data source manager controls which data source is connected to
 /// the data source status as well as the data source event handler.
 final class DataSourceManager {
@@ -38,10 +50,10 @@ final class DataSourceManager {
 
   Completer<void>? _identifyCompleter;
 
-  /// When true, the active identify resolves only on fresh data, not on a
-  /// cache load. Set per identify from the caller's wait-for-network-results
-  /// preference.
-  bool _requireFreshData = false;
+  /// The minimum data availability the active identify must reach before
+  /// it resolves. Set per identify from the caller's
+  /// wait-for-network-results preference.
+  DataAvailability _minimumDataAvailability = DataAvailability.cached;
 
   DataSourceManager({
     ConnectionMode startingMode = ConnectionMode.streaming,
@@ -67,9 +79,9 @@ final class DataSourceManager {
   }
 
   void identify(LDContext context, Completer<void> completer,
-      {bool requireFreshData = false}) {
+      {DataAvailability minimumDataAvailability = DataAvailability.cached}) {
     _identifyCompleter = completer;
-    _requireFreshData = requireFreshData;
+    _minimumDataAvailability = minimumDataAvailability;
     _activeContext = context;
 
     _setupConnection();
@@ -188,10 +200,10 @@ final class DataSourceManager {
             if (_activeConnectionMode is! FDv2Offline) {
               _statusManager.setValid();
             }
-            // A cached identify resolves on any applied data; a
-            // wait-for-network identify waits for the orchestrator's
-            // InitializedEvent instead.
-            if (!_requireFreshData) {
+            // A 'cached' identify resolves on any applied data; a 'fresh'
+            // identify waits for the orchestrator's InitializedEvent
+            // instead.
+            if (_minimumDataAvailability == DataAvailability.cached) {
               _maybeCompleteIdentify();
             }
           }

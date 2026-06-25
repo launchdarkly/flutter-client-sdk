@@ -72,7 +72,9 @@ final class FDv2DataManager implements DataManager {
     _clearSelector();
     final completer = Completer<void>();
     _dataSourceManager.identify(context, completer,
-        requireFreshData: waitForNetworkResults);
+        minimumDataAvailability: waitForNetworkResults
+            ? DataAvailability.fresh
+            : DataAvailability.cached);
     return completer.future;
   }
 }
