@@ -31,6 +31,13 @@ final class StatusEvent implements DataSourceEvent {
       {this.shutdown = false});
 }
 
+/// Emitted once by the FDv2 orchestrator when initialization is complete:
+/// a selector-bearing payload arrived, the initializer chain was exhausted
+/// (with cached data or in a cache-only system), or the first synchronizer
+/// delivered a change set. The manager resolves a wait-for-network identify
+/// on this; a cached identify resolves earlier, on the first applied payload.
+final class InitializedEvent implements DataSourceEvent {}
+
 abstract interface class DataSource {
   Stream<DataSourceEvent> get events;
 

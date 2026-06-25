@@ -1,0 +1,169 @@
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    hide ServiceEndpoints;
+import 'package:meta/meta.dart';
+
+import '../../config/data_system_config.dart';
+import '../../config/service_endpoints.dart';
+import '../../fdv2_connection_mode.dart';
+import '../data_source_manager.dart';
+import '../data_source_status_manager.dart';
+import 'built_in_modes.dart';
+import 'cache_initializer.dart';
+import 'entry_factories.dart';
+import 'fdv1_fallback_synchronizer.dart';
+import 'mode_definition.dart';
+import 'orchestrator.dart';
+import 'requestor.dart';
+import 'selector.dart';
+import 'source_factory_context.dart';
+import 'source_manager.dart';
+
+/// Composes the FDv2 data source factories consumed by the
+/// DataSourceManager and owns the selector, which must outlive any single
+/// orchestrator instance.
+///
+/// A fresh orchestrator is created per connection-mode switch and per
+/// identify. The selector survives mode switches (initializers are
+/// skipped when a selector is held). The data manager clears it via
+/// [clearSelector] on each identify, so a new identify starts from a full
+/// payload rather than resuming a prior state.
+final class FDv2DataSystem {
+  final String _credential;
+  final LDLogger _logger;
+  final HttpProperties _httpProperties;
+  final ServiceEndpoints _serviceEndpoints;
+  final bool _withReasons;
+  final Duration _defaultPollingInterval;
+  final DataSourceStatusManager _statusManager;
+  final Map<ConnectionModeId, ModeDefinition> _connectionModeOverrides;
+  final CachedFlagsReader _cachedFlagsReader;
+  final FDv2SseClientFactory _sseClientFactory;
+  final HttpClientFactory? _httpClientFactory;
+
+  Selector _selector = Selector.empty;
+
+  FDv2DataSystem({
+    required DataSystemConfig config,
+    required String credential,
+    required LDLogger logger,
+    required HttpProperties httpProperties,
+    required ServiceEndpoints serviceEndpoints,
+    required bool withReasons,
+    required Duration defaultPollingInterval,
+    required DataSourceStatusManager statusManager,
+    required CachedFlagsReader cachedFlagsReader,
+    FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
+    HttpClientFactory? httpClientFactory,
+  })  : _credential = credential,
+        _logger = logger,
+        _httpProperties = httpProperties,
+        _serviceEndpoints = serviceEndpoints,
+        _withReasons = withReasons,
+        _defaultPollingInterval = defaultPollingInterval,
+        _statusManager = statusManager,
+        _cachedFlagsReader = cachedFlagsReader,
+        _sseClientFactory = sseClientFactory,
+        _httpClientFactory = httpClientFactory,
+        _connectionModeOverrides = config.connectionModes;
+
+  /// The built-in definition for each connection mode, before any override.
+  static const Map<ConnectionModeId, ModeDefinition> _builtInDefinitions = {
+    ConnectionModeId.streaming: BuiltInModes.streaming,
+    ConnectionModeId.polling: BuiltInModes.polling,
+    ConnectionModeId.background: BuiltInModes.background,
+    ConnectionModeId.offline: BuiltInModes.offline,
+  };
+
+  /// The definition for [mode]: the user's override if one was given for
+  /// it, otherwise the built-in default.
+  ModeDefinition _resolve(ConnectionModeId mode) {
+    if (_builtInDefinitions[mode] case final builtIn?) {
+      return _connectionModeOverrides[mode] ?? builtIn;
+    }
+    // Unreachable: ConnectionModeId is sealed over the built-in modes, each
+    // of which has an entry above.
+    throw StateError('No built-in definition for connection mode: $mode');
+  }
+
+  /// The resolved definition for [mode], exposed so tests can confirm that
+  /// an override is selected over the built-in. How a definition's entries
+  /// become concrete data sources is covered by the entry-factory tests.
+  @visibleForTesting
+  ModeDefinition resolvedDefinition(ConnectionModeId mode) => _resolve(mode);
+
+  /// Discards the held selector so the next source re-fetches a full
+  /// payload from its initializers. Called when identifying a new context,
+  /// since a selector points at one context's data and cannot seed a delta
+  /// for another. Mode switches keep the selector and so do not call this.
+  void clearSelector() {
+    _selector = Selector.empty;
+  }
+
+  /// Produces the factory map for the DataSourceManager. Offline is a
+  /// real pipeline mode: its data source runs the cache initializer with
+  /// no synchronizer, so the SDK serves cached flags while offline. The
+  /// manager reports the offline status itself; the offline source's
+  /// payload does not drive the status to valid.
+  Map<FDv2ConnectionMode, DataSourceFactory> buildFactories() {
+    return {
+      const FDv2Streaming():
+          _factoryForMode(_resolve(ConnectionModeId.streaming)),
+      const FDv2Polling(): _factoryForMode(_resolve(ConnectionModeId.polling)),
+      const FDv2Background():
+          _factoryForMode(_resolve(ConnectionModeId.background)),
+      const FDv2Offline(): _factoryForMode(_resolve(ConnectionModeId.offline)),
+    };
+  }
+
+  DataSourceFactory _factoryForMode(ModeDefinition modeDefinition) {
+    return (LDContext context) {
+      final factoryContext = SourceFactoryContext.fromClientConfig(
+        context: context,
+        credential: _credential,
+        logger: _logger,
+        httpProperties: _httpProperties,
+        serviceEndpoints: _serviceEndpoints,
+        withReasons: _withReasons,
+        defaultPollingInterval: _defaultPollingInterval,
+        // The cache initializer reads persistence through this reader and
+        // feeds the result into the pipeline.
+        cachedFlagsReader: _cachedFlagsReader,
+        httpClientFactory: _httpClientFactory,
+      );
+
+      // When a selector is held the SDK already has current data for this
+      // context; mode switches go straight to synchronizers.
+      final includeInitializers = _selector.isEmpty;
+      final initializerFactories = includeInitializers
+          ? buildInitializerFactories(
+              modeDefinition.initializers, factoryContext)
+          : <InitializerFactory>[];
+
+      final synchronizerSlots = buildSynchronizerFactories(
+              modeDefinition.synchronizers, factoryContext,
+              sseClientFactory: _sseClientFactory)
+          .map((factory) => SynchronizerSlot(factory: factory))
+          .toList();
+
+      // The FDv1 fallback is the terminal tier: appended last, blocked until
+      // the server directs fallback. Its source never re-asserts the
+      // directive, so engaging it cannot loop.
+      if (modeDefinition.fdv1Fallback case final fallbackConfig?) {
+        synchronizerSlots.add(SynchronizerSlot(
+          factory: createFdv1FallbackSynchronizerFactory(
+              fallbackConfig, factoryContext),
+          isFdv1Fallback: true,
+        ));
+      }
+
+      return FDv2DataSourceOrchestrator(
+        initializerFactories: initializerFactories,
+        synchronizerSlots: synchronizerSlots,
+        selectorGetter: () => _selector,
+        selectorUpdater: (selector) => _selector = selector,
+        statusManager: _statusManager,
+        logger: _logger,
+      );
+    };
+  }
+}
