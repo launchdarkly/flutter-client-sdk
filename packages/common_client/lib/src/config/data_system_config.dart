@@ -76,8 +76,8 @@ final class DataSystemConfig {
   /// The connection mode the SDK starts in.
   ///
   /// Setting this is equivalent to calling `setConnectionMode` with the
-  /// same mode immediately after the client is created: it is a sticky
-  /// override. While a mode is set this way the SDK stays in it and does
+  /// same mode immediately after the client is created.
+  // While a mode is set this way the SDK stays in it and does
   /// not switch automatically in response to application lifecycle or
   /// network changes. Call `setConnectionMode(null)` to clear the override
   /// and resume automatic mode resolution.
