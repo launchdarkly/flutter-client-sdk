@@ -13,6 +13,18 @@ import 'data_source_status_manager.dart';
 
 typedef DataSourceFactory = DataSource Function(LDContext context);
 
+/// The minimum data availability an identify must reach before it
+/// completes, mapped from the caller's wait-for-network-results
+/// preference (`false` -> [cached], `true` -> [fresh]).
+enum DataAvailability {
+  /// Resolve as soon as any data is applied, including a cache load.
+  cached,
+
+  /// Wait for fresh network data (the orchestrator's InitializedEvent);
+  /// a cache load alone does not satisfy it.
+  fresh,
+}
+
 /// The data source manager controls which data source is connected to
 /// the data source status as well as the data source event handler.
 final class DataSourceManager {
@@ -38,6 +50,11 @@ final class DataSourceManager {
 
   Completer<void>? _identifyCompleter;
 
+  /// The minimum data availability the active identify must reach before
+  /// it resolves. Set per identify from the caller's
+  /// wait-for-network-results preference.
+  DataAvailability _minimumDataAvailability = DataAvailability.cached;
+
   DataSourceManager({
     ConnectionMode startingMode = ConnectionMode.streaming,
     required DataSourceStatusManager statusManager,
@@ -61,8 +78,10 @@ final class DataSourceManager {
     _dataSourceFactories.addAll(factories);
   }
 
-  void identify(LDContext context, Completer<void> completer) {
+  void identify(LDContext context, Completer<void> completer,
+      {DataAvailability minimumDataAvailability = DataAvailability.cached}) {
     _identifyCompleter = completer;
+    _minimumDataAvailability = minimumDataAvailability;
     _activeContext = context;
 
     _setupConnection();
@@ -90,6 +109,19 @@ final class DataSourceManager {
     _activeDataSource?.stop();
     _subscription?.cancel();
     _activeDataSource = null;
+  }
+
+  /// Resolves the pending identify, if any. Idempotent: only the first call
+  /// completes it.
+  void _maybeCompleteIdentify() {
+    final completer = _identifyCompleter;
+    if (completer == null) {
+      return;
+    }
+    if (!completer.isCompleted) {
+      completer.complete();
+    }
+    _identifyCompleter = null;
   }
 
   DataSource? _createDataSource(FDv2ConnectionMode mode) {
@@ -126,7 +158,6 @@ final class DataSourceManager {
           case OfflineBackgroundDisabled():
             _statusManager.setBackgroundDisabled();
         }
-        return;
       case FDv2Streaming():
       case FDv2Polling():
       case FDv2Background():
@@ -146,22 +177,35 @@ final class DataSourceManager {
           var handled = await _dataSourceEventHandler.handleMessage(
               _activeContext!, event.type, event.data,
               environmentId: event.environmentId);
-          if (handled == MessageStatus.messageHandled &&
-              _identifyCompleter != null) {
-            if (_identifyCompleter!.isCompleted) {
-              _logger.error('Identify was already complete before receiving '
-                  'data. This could represent an issue with SDK logic. Please'
-                  'make a bug report if you encounter this situation.');
-            } else {
-              _identifyCompleter!.complete();
-            }
+          if (handled == MessageStatus.messageHandled) {
+            _maybeCompleteIdentify();
           }
-          // Only need to complete this the first time.
-          _identifyCompleter = null;
           return handled;
         case PayloadEvent():
-          // The FDv1 data sources this manager runs never produce FDv2
-          // payload events.
+          var handled = await _dataSourceEventHandler.handlePayload(
+              _activeContext!, event.changeSet,
+              environmentId: event.environmentId);
+          if (handled == MessageStatus.messageHandled) {
+            // Applying any change set from a live source marks it valid --
+            // including a no-change response, which restores valid after an
+            // interruption.
+            if (_activeConnectionMode is! FDv2Offline) {
+              _statusManager.setValid();
+            }
+            // A 'cached' identify resolves on any applied data; a 'fresh'
+            // identify waits for the orchestrator's InitializedEvent
+            // instead.
+            if (_minimumDataAvailability == DataAvailability.cached) {
+              _maybeCompleteIdentify();
+            }
+          }
+          return handled;
+        case InitializedEvent():
+          // Initialization is complete (network basis, initializer
+          // exhaustion, or the first synchronizer change set). Resolves a
+          // wait-for-network identify; a cached identify has usually resolved
+          // already on earlier data.
+          _maybeCompleteIdentify();
           return MessageStatus.messageHandled;
         case StatusEvent():
           if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {

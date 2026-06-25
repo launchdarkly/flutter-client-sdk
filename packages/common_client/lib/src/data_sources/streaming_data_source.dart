@@ -174,7 +174,9 @@ final class StreamingDataSource implements DataSource {
                 _logger.error('$message: $argument');
                 _dataController.sink.add(res);
               case PayloadEvent():
-                // The FDv1 requestor never produces FDv2 payload events.
+              case InitializedEvent():
+                // The FDv1 requestor never produces FDv2 payload or lifecycle
+                // events.
                 break;
             }
           } else {

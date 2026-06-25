@@ -97,6 +97,7 @@ class MockSseClient implements SSEClient {
               shutdown: event.shutdown);
         }
       case PayloadEvent():
+      case InitializedEvent():
         break;
     }
   }).listen((_) {});

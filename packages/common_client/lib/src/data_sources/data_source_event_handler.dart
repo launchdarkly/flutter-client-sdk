@@ -101,14 +101,13 @@ final class DataSourceEventHandler {
   ///
   /// Full change sets replace the stored flags, partial change sets apply
   /// each update, and a change set of type none confirms the SDK is up to
-  /// date without changing data. All three mark the data source valid.
+  /// date without changing data.
   Future<MessageStatus> handlePayload(LDContext context, ChangeSet changeSet,
       {String? environmentId}) async {
     try {
       await _flagManager.applyChanges(
           context, changeSet.updates, changeSet.type,
           environmentId: environmentId);
-      _statusManager.setValid();
       return MessageStatus.messageHandled;
     } catch (err) {
       _logger.error('Failed to apply an FDv2 change set: ${err.runtimeType}');

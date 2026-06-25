@@ -12,6 +12,7 @@ dependencies:
   launchdarkly_dart_common: 1.8.1
   launchdarkly_event_source_client: 2.2.0
   crypto: ^3.0.3
+  meta: ^1.12.0
   uuid: ">= 3.0.7 <5.0.0"
 
 dev_dependencies:
