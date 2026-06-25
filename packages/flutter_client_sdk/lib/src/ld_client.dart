@@ -78,11 +78,23 @@ interface class LDClient {
         DiagnosticSdkData(name: sdkName, version: sdkVersion),
         hooks: combined);
     final stateDetector = FlutterStateDetector();
+    // Under the FDv2 data system the connection mode is governed by the
+    // data system configuration, not the FDv1 data source options: the
+    // foreground slot defaults to streaming, and an initial connection mode
+    // (if configured) is applied as a sticky override, equivalent to calling
+    // setConnectionMode immediately after construction.
+    final dataSystem = config.dataSystem;
+    final initialModeOverride = switch (dataSystem?.initialConnectionMode) {
+      final id? => _fdv2FromConnectionModeId(id),
+      null => null,
+    };
     _connectionManager = ConnectionManager(
         logger: _client.logger,
         config: ConnectionManagerConfig(
-            initialConnectionMode:
-                config.dataSourceConfig.initialConnectionMode,
+            initialConnectionMode: dataSystem != null
+                ? ConnectionMode.streaming
+                : config.dataSourceConfig.initialConnectionMode,
+            initialModeOverride: initialModeOverride,
             backgroundConnectionMode:
                 FlutterDefaultConfig.defaultBackgroundConnectionMode,
             disableAutomaticBackgroundHandling:
@@ -350,18 +362,16 @@ interface class LDClient {
   /// availability) until cleared. Call with no argument (or null) to clear
   /// the override and resume automatic mode resolution.
   ///
+  /// The mode is a [ConnectionModeId], which can identify any of the FDv2
+  /// built-in modes (including [ConnectionModeId.background]).
+  ///
   /// This method is not stable, and not subject to any backwards
   /// compatibility guarantees or semantic versioning. It is in early
   /// access. If you want access to this feature please join the EAP.
   /// https://launchdarkly.com/docs/sdk/features/data-saving-mode
-  void setConnectionMode([ConnectionMode? mode]) {
-    _connectionManager.setMode(mode == null
-        ? null
-        : switch (mode) {
-            ConnectionMode.streaming => const FDv2Streaming(),
-            ConnectionMode.polling => const FDv2Polling(),
-            ConnectionMode.offline => const FDv2Offline(),
-          });
+  void setConnectionMode([ConnectionModeId? mode]) {
+    _connectionManager
+        .setMode(mode == null ? null : _fdv2FromConnectionModeId(mode));
   }
 
   /// Check if the SDK has finished initialization.
@@ -410,3 +420,13 @@ interface class LDClient {
         this, _pluginEnvironmentMetadata, [plugin], _client.logger);
   }
 }
+
+/// Translates a public [ConnectionModeId] into the internal
+/// [FDv2ConnectionMode] the connection manager drives.
+FDv2ConnectionMode _fdv2FromConnectionModeId(ConnectionModeId mode) =>
+    switch (mode) {
+      ConnectionModeId.polling => const FDv2Polling(),
+      ConnectionModeId.background => const FDv2Background(),
+      ConnectionModeId.offline => const FDv2Offline(),
+      _ => const FDv2Streaming(),
+    };
