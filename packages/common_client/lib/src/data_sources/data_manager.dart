@@ -47,19 +47,6 @@ final class FDv1DataManager implements DataManager {
   }
 }
 
-/// FDv2 data manager.
-///
-/// The cache is not loaded at identify time; the data source pipeline's
-/// cache initializer loads it as the first tier. Identify resolves on the
-/// first delivered payload, or -- when waiting for network results -- only
-/// on fresh data, so a cache load alone does not satisfy a wait-for-network
-/// identify.
-///
-/// Each identify starts data acquisition fresh: any held selector is
-/// discarded via [clearSelector] before connecting, so the new connection
-/// re-fetches a full payload rather than resuming a previous context's
-/// basis. Mode switches keep the selector and reach the data source manager
-/// directly rather than through here, so they are unaffected.
 final class FDv2DataManager implements DataManager {
   final DataSourceManager _dataSourceManager;
   final void Function() _clearSelector;
