@@ -90,6 +90,10 @@ final class LDConfig extends LDCommonConfig {
   /// [plugins] can be used to add plugins to the SDK.
   ///
   /// Plugin support is currently experimental and subject to change.
+  ///
+  /// [dataSystem] opts the SDK into the FDv2 data acquisition protocol.
+  /// This feature is not stable, and not subject to any backwards
+  /// compatibility guarantees or semantic versioning. It is in early access.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
@@ -103,7 +107,8 @@ final class LDConfig extends LDCommonConfig {
       super.globalPrivateAttributes,
       ApplicationEvents? applicationEvents,
       super.hooks,
-      List<Plugin>? plugins})
+      List<Plugin>? plugins,
+      super.dataSystem})
       : applicationEvents = applicationEvents ?? ApplicationEvents(),
         plugins =
             plugins != null ? UnmodifiableListView(List.from(plugins)) : null;
