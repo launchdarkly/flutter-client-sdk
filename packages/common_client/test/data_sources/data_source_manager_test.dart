@@ -361,7 +361,7 @@ void main() {
         makeManager(context, factories, inStatusManager: statusManager);
 
     final completer = Completer<void>();
-    // requireFreshData defaults false (cached): resolves on any applied data.
+    // minimumDataAvailability defaults to cached: resolves on any applied data.
     manager.identify(context, completer);
     await completer.future;
 
@@ -387,7 +387,8 @@ void main() {
         makeManager(context, factories, inStatusManager: statusManager);
 
     final completer = Completer<void>();
-    manager.identify(context, completer, requireFreshData: true);
+    manager.identify(context, completer,
+        minimumDataAvailability: DataAvailability.fresh);
     await completer.future;
 
     expect(statusManager.status.state, DataSourceState.valid);
@@ -405,7 +406,8 @@ void main() {
     final manager = makeManager(context, factories);
 
     final completer = Completer<void>();
-    manager.identify(context, completer, requireFreshData: true);
+    manager.identify(context, completer,
+        minimumDataAvailability: DataAvailability.fresh);
     await pumpEventQueue();
 
     expect(completer.isCompleted, isFalse,
