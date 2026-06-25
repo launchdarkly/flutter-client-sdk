@@ -28,6 +28,8 @@ class TestApiImpl extends SdkTestApi {
     'client-per-context-summaries',
     'client-prereq-events',
     'auto-env-attributes',
+    'client-event-source-http-errors',
+    'fdv1-fallback',
   ];
 
   static const clientUrlPrefix = '/client/';
@@ -50,6 +52,8 @@ class TestApiImpl extends SdkTestApi {
   Future<PostResponse> Post(PostSchema body) async {
     final startWaitTimeMillis =
         body.configuration?.startWaitTimeMs?.toInt() ?? defaultWaitTimeMillis;
+    final mappedDataSystem =
+        _mapDataSystem(body.configuration?.dataSystem?.toJson());
     final config = LDConfig(
       body.configuration?.credential ?? '',
       AutoEnvAttributes.disabled,
@@ -64,9 +68,10 @@ class TestApiImpl extends SdkTestApi {
           streaming: body.configuration?.streaming?.baseUri,
           events: body.configuration?.events?.baseUri),
       dataSourceConfig: DataSourceConfig(
-          initialConnectionMode: body.configuration?.streaming != null
-              ? ConnectionMode.streaming
-              : ConnectionMode.polling,
+          initialConnectionMode: mappedDataSystem?.initialConnectionMode ??
+              (body.configuration?.streaming != null
+                  ? ConnectionMode.streaming
+                  : ConnectionMode.polling),
           evaluationReasons: body.configuration?.clientSide?.evaluationReasons,
           useReport: body.configuration?.clientSide?.useReport),
       events: EventsConfig(
@@ -78,6 +83,7 @@ class TestApiImpl extends SdkTestApi {
           body.configuration?.events?.allAttributesPrivate ?? false,
       globalPrivateAttributes:
           body.configuration?.events?.globalPrivateAttributes,
+      dataSystem: mappedDataSystem?.config,
     );
 
     final configuration = body.configuration!;
@@ -289,6 +295,148 @@ class TestApiImpl extends SdkTestApi {
     return response;
   }
 
+  /// Translates the harness `dataSystem` configuration block into the
+  /// SDK's [DataSystemConfig] and an initial connection mode.
+  ///
+  /// Two shapes are supported, mirroring the harness:
+  /// - `connectionModeConfig` with a map of mode name to mode definition
+  ///   plus `initialConnectionMode`. The SDK overrides built-in modes
+  ///   only, so a definition is applied when its name matches a built-in
+  ///   ([ConnectionModeId]); other names are ignored.
+  /// - Top-level `initializers`/`synchronizers` lists, which override the
+  ///   built-in streaming mode.
+  ({DataSystemConfig config, ConnectionMode initialConnectionMode})?
+      _mapDataSystem(Map<String, dynamic>? raw) {
+    if (raw == null) {
+      return null;
+    }
+
+    // The FDv1 fallback is configured at the data-system level (a polling
+    // config); it applies to whichever modes are built below.
+    Fdv1FallbackConfig? parseFdv1Fallback() {
+      if (raw['fdv1Fallback'] case final Map<String, dynamic> fallback) {
+        return Fdv1FallbackConfig(
+          pollInterval: fallback['pollIntervalMs'] != null
+              ? Duration(
+                  milliseconds: (fallback['pollIntervalMs'] as num).toInt())
+              : null,
+          endpoints: fallback['baseUri'] != null
+              ? EndpointConfig(
+                  pollingBaseUri: Uri.parse(fallback['baseUri'] as String))
+              : null,
+        );
+      }
+      return null;
+    }
+
+    final fdv1Fallback = parseFdv1Fallback();
+
+    ModeDefinition translateMode(Map<String, dynamic> modeJson) {
+      final initializers = <InitializerEntry>[];
+      for (final entry in (modeJson['initializers'] as List<dynamic>? ?? [])) {
+        final initializer = entry as Map<String, dynamic>;
+        if (initializer['polling'] case final Map<String, dynamic> polling) {
+          initializers.add(PollingInitializer(
+              endpoints: EndpointConfig(
+                  pollingBaseUri: polling['baseUri'] != null
+                      ? Uri.parse(polling['baseUri'] as String)
+                      : null)));
+        }
+      }
+
+      final synchronizers = <SynchronizerEntry>[];
+      for (final entry in (modeJson['synchronizers'] as List<dynamic>? ?? [])) {
+        final synchronizer = entry as Map<String, dynamic>;
+        if (synchronizer['streaming']
+            case final Map<String, dynamic> streaming) {
+          synchronizers.add(StreamingSynchronizer(
+              initialReconnectDelay: streaming['initialRetryDelayMs'] != null
+                  ? Duration(
+                      milliseconds:
+                          (streaming['initialRetryDelayMs'] as num).toInt())
+                  : null,
+              endpoints: EndpointConfig(
+                  streamingBaseUri: streaming['baseUri'] != null
+                      ? Uri.parse(streaming['baseUri'] as String)
+                      : null)));
+        } else if (synchronizer['polling']
+            case final Map<String, dynamic> polling) {
+          synchronizers.add(PollingSynchronizer(
+              pollInterval: polling['pollIntervalMs'] != null
+                  ? Duration(
+                      milliseconds: (polling['pollIntervalMs'] as num).toInt())
+                  : null,
+              endpoints: EndpointConfig(
+                  pollingBaseUri: polling['baseUri'] != null
+                      ? Uri.parse(polling['baseUri'] as String)
+                      : null)));
+        }
+      }
+
+      return ModeDefinition(
+          initializers: initializers,
+          synchronizers: synchronizers,
+          fdv1Fallback: fdv1Fallback);
+    }
+
+    ConnectionMode parseInitialMode(String? name) {
+      return switch (name) {
+        'polling' => ConnectionMode.polling,
+        'offline' => ConnectionMode.offline,
+        _ => ConnectionMode.streaming,
+      };
+    }
+
+    ConnectionModeId? builtInModeId(String name) {
+      return switch (name) {
+        'streaming' => ConnectionModeId.streaming,
+        'polling' => ConnectionModeId.polling,
+        'background' => ConnectionModeId.background,
+        'offline' => ConnectionModeId.offline,
+        _ => null,
+      };
+    }
+
+    if (raw['connectionModeConfig'] case final Map<String, dynamic> connMode) {
+      final overrides = <ConnectionModeId, ModeDefinition>{};
+      if (connMode['customConnectionModes']
+          case final Map<String, dynamic> modes) {
+        for (final entry in modes.entries) {
+          if (builtInModeId(entry.key) case final id?) {
+            overrides[id] = translateMode(entry.value as Map<String, dynamic>);
+          }
+        }
+      }
+      final initialModeName = connMode['initialConnectionMode'] as String?;
+      return (
+        config: DataSystemConfig(
+          connectionModes: overrides,
+          // Under the FDv2 data system the initial mode must be carried on
+          // the data system config; the FDv1 initialConnectionMode is inert.
+          initialConnectionMode:
+              initialModeName == null ? null : builtInModeId(initialModeName),
+        ),
+        initialConnectionMode: parseInitialMode(initialModeName),
+      );
+    }
+
+    if (raw['initializers'] != null || raw['synchronizers'] != null) {
+      // Top-level source lists override the built-in streaming mode.
+      return (
+        config: DataSystemConfig(
+            connectionModes: {ConnectionModeId.streaming: translateMode(raw)}),
+        initialConnectionMode: ConnectionMode.streaming,
+      );
+    }
+
+    // Present but empty (or useDefaultDataSystem): FDv2 with built-in
+    // modes.
+    return (
+      config: DataSystemConfig(),
+      initialConnectionMode: ConnectionMode.streaming,
+    );
+  }
+
   LDContext _contextFromSingleOrMulti(SingleOrMultiBuildContext input) {
     if (input.single != null) {
       return _flattenedListToContext(
@@ -315,8 +463,8 @@ class TestApiImpl extends SdkTestApi {
       final multi = input.multi!.toList();
       final builder = common.LDContextBuilder();
       for (var single in multi) {
-        final kind = single['kind'];
-        final key = single['key'];
+        final kind = single['kind'] as String;
+        final key = single['key'] as String?;
 
         final singleAttributesBuilder = builder.kind(kind, key);
         _buildSingleAttributes(singleAttributesBuilder, single.toJson());
@@ -364,7 +512,12 @@ class TestApiImpl extends SdkTestApi {
 
   Response _responseFromEvaluation(LDValue value) {
     final response = Response();
-    response['value'] = common.LDValueSerialization.toJson(value);
+    // A null evaluation result is omitted rather than set: the response
+    // map rejects null values, and an absent key deserializes the same
+    // as an explicit null on the harness side.
+    if (common.LDValueSerialization.toJson(value) case final Object json) {
+      response['value'] = json;
+    }
     return response;
   }
 
@@ -385,7 +538,7 @@ class TestApiImpl extends SdkTestApi {
     if (input['private'] != null) {
       retMap['_meta'] = {'privateAttributes': input['private']};
     }
-    retMap.addAll(input['custom'] ?? {});
+    retMap.addAll(input['custom'] as Map<String, dynamic>? ?? {});
     return retMap;
   }
 
@@ -453,7 +606,7 @@ final class _WifiConnected extends ConnectivityPlatform {
 }
 
 void main() async {
-  test('Run contract tests', () async {
+  test(timeout: Timeout.none, 'Run contract tests', () async {
     ConnectivityPlatform.instance = _WifiConnected();
     widgets.WidgetsFlutterBinding.ensureInitialized(); // needed before mocking
     // ignore: invalid_use_of_visible_for_testing_member

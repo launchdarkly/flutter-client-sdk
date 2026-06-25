@@ -63,7 +63,7 @@ runs:
         cd packages/common
         dart test test/serialization/canonicalize_json_platform_test.dart -p chrome --test-randomize-ordering-seed=random
 
-    - name: Contract Tests
+    - name: Contract Tests (FDv1)
       shell: bash
       run: |
         pushd apps/flutter_client_contract_test_service
@@ -72,6 +72,22 @@ runs:
       with:
         test_service_port: 8080
         token: ${{ inputs.github_token }}
+        enable_persistence_tests: false
+        extra_params: '-status-timeout 100 --skip-from=./apps/flutter_client_contract_test_service/testharness-suppressions.txt'
+
+    # FDv2 contract tests run against the v3 harness. The FDv1 run above
+    # stops the test service when it finishes, so start it again here.
+    - name: Contract Tests (FDv2)
+      shell: bash
+      run: |
+        pushd apps/flutter_client_contract_test_service
+        flutter test bin/contract_test_service.dart > test-service-fdv2.log 2>&1 & disown
+    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1.3.0
+      with:
+        test_service_port: 8080
+        token: ${{ inputs.github_token }}
+        version: 'v3'
+        branch: 'v3'
         enable_persistence_tests: false
         extra_params: '-status-timeout 100 --skip-from=./apps/flutter_client_contract_test_service/testharness-suppressions.txt'
 

@@ -17,7 +17,7 @@ class RequestIdentifyEventContext implements OpenApiContent {
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() => Map.from(_additionalProperties)
     ..addAll(_$RequestIdentifyEventContextToJson(this));
@@ -27,11 +27,11 @@ class RequestIdentifyEventContext implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -64,7 +64,7 @@ class RequestEvaluateContext implements OpenApiContent {
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() => Map.from(_additionalProperties)
     ..addAll(_$RequestEvaluateContextToJson(this));
@@ -74,11 +74,11 @@ class RequestEvaluateContext implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -91,7 +91,7 @@ class RequestEvaluateUser implements OpenApiContent {
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() => Map.from(_additionalProperties)
     ..addAll(_$RequestEvaluateUserToJson(this));
@@ -101,11 +101,11 @@ class RequestEvaluateUser implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -160,7 +160,7 @@ class RequestEvaluate implements OpenApiContent {
   )
   final bool? detail;
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() =>
       Map.from(_additionalProperties)..addAll(_$RequestEvaluateToJson(this));
@@ -170,11 +170,11 @@ class RequestEvaluate implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -187,7 +187,7 @@ class RequestEvaluateAllContext implements OpenApiContent {
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() => Map.from(_additionalProperties)
     ..addAll(_$RequestEvaluateAllContextToJson(this));
@@ -197,11 +197,11 @@ class RequestEvaluateAllContext implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -214,7 +214,7 @@ class RequestEvaluateAllUser implements OpenApiContent {
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() => Map.from(_additionalProperties)
     ..addAll(_$RequestEvaluateAllUserToJson(this));
@@ -224,11 +224,11 @@ class RequestEvaluateAllUser implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -317,7 +317,7 @@ class RequestCustomEvent implements OpenApiContent {
   )
   final num? metricValue;
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() =>
       Map.from(_additionalProperties)..addAll(_$RequestCustomEventToJson(this));
@@ -327,11 +327,11 @@ class RequestCustomEvent implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -344,7 +344,7 @@ class BuildContext implements OpenApiContent {
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() =>
       Map.from(_additionalProperties)..addAll(_$BuildContextToJson(this));
@@ -354,11 +354,11 @@ class BuildContext implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -520,7 +520,7 @@ class Response implements OpenApiContent {
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() =>
       Map.from(_additionalProperties)..addAll(_$ResponseToJson(this));
@@ -530,11 +530,11 @@ class Response implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -592,7 +592,7 @@ class GetResponse200 extends GetResponse implements OpenApiResponseBodyJson {
       OpenApiContentType.parse('application/json');
 
   @override
-  Map<String, dynamic> propertiesToString() => {
+  Map<String, Object?> propertiesToString() => {
         'status': status,
         'body': body,
         'bodyJson': bodyJson,
@@ -643,7 +643,7 @@ class PostResponse201 extends PostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic> propertiesToString() => {
+  Map<String, Object?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -660,7 +660,7 @@ class PostResponse400 extends PostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic> propertiesToString() => {
+  Map<String, Object?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -973,7 +973,7 @@ class PostSchemaConfigurationClientSideInitialContext
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() => Map.from(_additionalProperties)
     ..addAll(_$PostSchemaConfigurationClientSideInitialContextToJson(this));
@@ -983,11 +983,11 @@ class PostSchemaConfigurationClientSideInitialContext
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -1001,7 +1001,7 @@ class PostSchemaConfigurationClientSideInitialUser implements OpenApiContent {
         .._additionalProperties.addEntries(
             jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
 
-  final Map<String, dynamic> _additionalProperties = <String, dynamic>{};
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
 
   Map<String, dynamic> toJson() => Map.from(_additionalProperties)
     ..addAll(_$PostSchemaConfigurationClientSideInitialUserToJson(this));
@@ -1011,11 +1011,11 @@ class PostSchemaConfigurationClientSideInitialUser implements OpenApiContent {
 
   void operator []=(
     String key,
-    dynamic value,
+    Object value,
   ) =>
       _additionalProperties[key] = value;
 
-  dynamic operator [](String key) => _additionalProperties[key];
+  Object? operator [](String key) => _additionalProperties[key];
 }
 
 @JsonSerializable()
@@ -1063,6 +1063,35 @@ class PostSchemaConfigurationClientSide implements OpenApiContent {
   String toString() => toJson().toString();
 }
 
+/// FDv2 data system configuration.
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class PostSchemaConfigurationDataSystem implements OpenApiContent {
+  PostSchemaConfigurationDataSystem();
+
+  factory PostSchemaConfigurationDataSystem.fromJson(
+          Map<String, dynamic> jsonMap) =>
+      _$PostSchemaConfigurationDataSystemFromJson(jsonMap)
+        .._additionalProperties.addEntries(
+            jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
+
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
+
+  Map<String, dynamic> toJson() => Map.from(_additionalProperties)
+    ..addAll(_$PostSchemaConfigurationDataSystemToJson(this));
+
+  @override
+  String toString() => toJson().toString();
+
+  void operator []=(
+    String key,
+    Object value,
+  ) =>
+      _additionalProperties[key] = value;
+
+  Object? operator [](String key) => _additionalProperties[key];
+}
+
 @JsonSerializable()
 @ApiUuidJsonConverter()
 class PostSchemaConfiguration implements OpenApiContent {
@@ -1077,6 +1106,7 @@ class PostSchemaConfiguration implements OpenApiContent {
     this.bigSegments,
     this.tags,
     this.clientSide,
+    this.dataSystem,
   });
 
   factory PostSchemaConfiguration.fromJson(Map<String, dynamic> jsonMap) =>
@@ -1145,6 +1175,13 @@ class PostSchemaConfiguration implements OpenApiContent {
   )
   final PostSchemaConfigurationClientSide? clientSide;
 
+  /// FDv2 data system configuration.
+  @JsonKey(
+    name: 'dataSystem',
+    includeIfNull: false,
+  )
+  final PostSchemaConfigurationDataSystem? dataSystem;
+
   Map<String, dynamic> toJson() => _$PostSchemaConfigurationToJson(this);
 
   @override
@@ -1191,7 +1228,7 @@ class DeleteResponse200 extends DeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic> propertiesToString() => {
+  Map<String, Object?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -1248,7 +1285,7 @@ class ClientIdPostResponse200 extends ClientIdPostResponse
       OpenApiContentType.parse('application/json');
 
   @override
-  Map<String, dynamic> propertiesToString() => {
+  Map<String, Object?> propertiesToString() => {
         'status': status,
         'body': body,
         'bodyJson': bodyJson,
@@ -1267,7 +1304,7 @@ class ClientIdPostResponse404 extends ClientIdPostResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic> propertiesToString() => {
+  Map<String, Object?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -1323,7 +1360,7 @@ class ClientIdDeleteResponse200 extends ClientIdDeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic> propertiesToString() => {
+  Map<String, Object?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
@@ -1340,7 +1377,7 @@ class ClientIdDeleteResponse404 extends ClientIdDeleteResponse {
   final OpenApiContentType? contentType = null;
 
   @override
-  Map<String, dynamic> propertiesToString() => {
+  Map<String, Object?> propertiesToString() => {
         'status': status,
         'contentType': contentType,
       };
