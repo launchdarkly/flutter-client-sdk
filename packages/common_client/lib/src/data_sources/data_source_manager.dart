@@ -188,8 +188,7 @@ final class DataSourceManager {
           if (handled == MessageStatus.messageHandled) {
             // Applying any change set from a live source marks it valid --
             // including a no-change response, which restores valid after an
-            // interruption. While offline the status set in _setupConnection
-            // stands, so cached data does not report a live connection.
+            // interruption.
             if (_activeConnectionMode is! FDv2Offline) {
               _statusManager.setValid();
             }
