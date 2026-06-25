@@ -150,11 +150,6 @@ final class DataSourceManager {
 
     switch (_activeConnectionMode) {
       case FDv2Offline():
-        // Report why the SDK is offline. When an offline data source is
-        // configured (the FDv2 data system supplies one) it then loads
-        // cached flags through the pipeline below; its payload does not
-        // drive the status to valid while offline, so this status stands.
-        // FDv1 has no offline factory, so offline stays status-only.
         switch (_offlineDetail) {
           case OfflineSetOffline():
             _statusManager.setOffline();
