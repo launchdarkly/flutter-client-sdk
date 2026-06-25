@@ -605,6 +605,33 @@ void main() {
       expect(status.state, SourceState.goodbye);
       expect(status.fdv1Fallback, isFalse);
     });
+
+    test(
+        'a goodbye after a header directive (no payload) surfaces as a '
+        'terminal fallback, carrying the header TTL', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      // The connection opened with the directive header, then the server
+      // said goodbye before any payload consumed the pending directive.
+      emitOpen(sse, headers: {
+        'x-ld-fd-fallback': 'true',
+        'x-ld-fd-fallback-ttl': '45',
+      });
+      emitMessage(sse, 'goodbye', jsonEncode({'reason': 'see ya'}));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.terminalError);
+      expect(status.fdv1Fallback, isTrue,
+          reason: 'the header directive must not be dropped on goodbye');
+      expect(status.fdv1FallbackTtl, const Duration(seconds: 45));
+      expect(sse.isClosed, isTrue);
+    });
   });
 
   group('SSE HTTP errors', () {

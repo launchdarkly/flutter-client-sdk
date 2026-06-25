@@ -271,16 +271,24 @@ final class FDv2StreamingBase {
       case ActionGoodbye(:final reason, :final protocolFallbackTtl):
         // Server told us to disconnect; route through the terminal
         // helper so a close() from the listener's onData -- a natural
-        // reaction to a goodbye -- doesn't race with our own close. A
-        // goodbye carrying a protocol-fallback TTL is an in-band fallback
-        // directive (used by transports that cannot read response
-        // headers); surface it as such instead of an ordinary goodbye.
+        // reaction to a goodbye -- doesn't race with our own close.
+        //
+        // A goodbye can carry a fallback directive: in-band via its
+        // protocol-fallback TTL, or from this connection's
+        // x-ld-fd-fallback header (pending from open, if no payload has
+        // consumed it yet). The orchestrator's goodbye path recycles
+        // without consulting the directive, so surface it as a terminal
+        // fallback result -- otherwise a header-only directive followed by
+        // a goodbye would loop on reconnect instead of falling back.
+        final hasDirective =
+            protocolFallbackTtl != null || _pendingDirective != null;
         _terminate(
-            finalResult: protocolFallbackTtl != null
+            finalResult: hasDirective
                 ? FDv2SourceResults.terminalError(
                     message: 'Server requested FDv1 fallback (goodbye)',
                     fdv1Fallback: true,
-                    fdv1FallbackTtl: protocolFallbackTtl,
+                    fdv1FallbackTtl:
+                        protocolFallbackTtl ?? _pendingDirective?.ttl,
                   )
                 : FDv2SourceResults.goodbyeResult(message: reason));
       case ActionServerError(:final reason):
