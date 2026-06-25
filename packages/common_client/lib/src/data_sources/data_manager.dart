@@ -22,12 +22,6 @@ abstract interface class DataManager {
       {required bool waitForNetworkResults});
 }
 
-/// FDv1 data manager.
-///
-/// The cache is loaded imperatively at identify time via
-/// [FlagManager.loadCached]. A cache hit resolves identify immediately
-/// unless the caller is waiting for network results; either way the
-/// network connection is started so live data follows.
 final class FDv1DataManager implements DataManager {
   final DataSourceManager _dataSourceManager;
   final FlagManager _flagManager;
