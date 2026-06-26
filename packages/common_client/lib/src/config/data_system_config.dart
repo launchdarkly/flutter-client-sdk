@@ -73,7 +73,21 @@ final class DataSystemConfig {
   /// their built-in definition.
   final Map<ConnectionModeId, ModeDefinition> connectionModes;
 
+  /// The connection mode the SDK starts in.
+  ///
+  /// Setting this is equivalent to calling `setConnectionMode` with the
+  /// same mode immediately after the client is created.
+  /// While a mode is set this way the SDK stays in it and does
+  /// not switch automatically in response to application lifecycle or
+  /// network changes. Call `setConnectionMode(null)` to clear the override
+  /// and resume automatic mode resolution.
+  ///
+  /// When null (the default) the SDK resolves the connection mode
+  /// automatically, starting in streaming while in the foreground.
+  final ConnectionModeId? initialConnectionMode;
+
   const DataSystemConfig({
     this.connectionModes = const {},
+    this.initialConnectionMode,
   });
 }

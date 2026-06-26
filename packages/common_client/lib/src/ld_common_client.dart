@@ -284,7 +284,13 @@ final class LDCommonClient {
     _dataSourceManager = DataSourceManager(
         startingMode: _config.offline
             ? ConnectionMode.offline
-            : _config.dataSourceConfig.initialConnectionMode,
+            // Under the FDv2 data system the connection mode is governed by
+            // the data system configuration (and the connection manager),
+            // not the FDv1 data source options; start in streaming and let
+            // that machinery resolve the effective mode.
+            : _config.dataSystem != null
+                ? ConnectionMode.streaming
+                : _config.dataSourceConfig.initialConnectionMode,
         statusManager: _dataSourceStatusManager,
         dataSourceEventHandler: dataSourceEventHandler,
         logger: _logger);

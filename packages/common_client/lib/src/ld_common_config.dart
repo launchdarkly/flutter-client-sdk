@@ -49,6 +49,10 @@ final class DataSourceConfig {
   bool evaluationReasons;
 
   /// The mode to use for connections when the SDK is initialized.
+  ///
+  /// This has no effect when the FDv2 data system is enabled (a
+  /// [DataSystemConfig] is provided). In that case use
+  /// [DataSystemConfig.initialConnectionMode] instead.
   ConnectionMode initialConnectionMode;
 
   /// Settings for the SDK polling data source.
@@ -69,6 +73,10 @@ final class DataSourceConfig {
   /// [ConnectionMode.offline] then the data source will not request data from
   /// LaunchDarkly, but the sending of events will be unaffected. In order
   /// to completely disable network activity use [LDConfig.offline].
+  ///
+  /// This option has no effect when the FDv2 data system is enabled (a
+  /// [DataSystemConfig] is provided); use
+  /// [DataSystemConfig.initialConnectionMode] in that case.
   DataSourceConfig(
       {bool? useReport,
       bool? evaluationReasons,
