@@ -899,4 +899,101 @@ void main() {
       connectionManager.dispose();
     });
   });
+
+  group('given an initial mode override', () {
+    test(
+        'it applies the override on the buffered initial reconcile, without '
+        'any detector emission', () async {
+      registerFallbackValue(ConnectionMode.streaming);
+
+      final destination = MockDestination();
+      final logger = LDLogger(adapter: MockLogAdapter());
+      final config = ConnectionManagerConfig(
+        initialModeOverride: const FDv2Polling(),
+        debounceWindow: const Duration(seconds: 1),
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      // The buffered initial reconcile fires on the next microtask after
+      // construction.
+      await Future<void>.microtask(() {});
+
+      verify(() => destination.setMode(const ResolvedPolling())).called(1);
+
+      connectionManager.dispose();
+    });
+
+    test(
+        'the override sticks across lifecycle changes and suppresses automatic '
+        'resolution', () async {
+      registerFallbackValue(ConnectionMode.streaming);
+
+      final destination = MockDestination();
+      final logger = LDLogger(adapter: MockLogAdapter());
+      final config = ConnectionManagerConfig(
+        runInBackground: true,
+        backgroundConnectionMode: const FDv2Background(),
+        initialModeOverride: const FDv2Polling(),
+        debounceWindow: Duration.zero,
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      mockDetector.setApplicationState(ApplicationState.background);
+      await mockDetector.applicationState.first;
+      await _pumpDebouncerHop();
+
+      // The override is honored regardless of lifecycle; the background slot
+      // is never resolved while the override is active.
+      verify(() => destination.setMode(const ResolvedPolling()));
+      verifyNever(() => destination.setMode(const ResolvedBackground()));
+
+      connectionManager.dispose();
+    });
+
+    test('clearing the override resumes automatic resolution', () async {
+      registerFallbackValue(ConnectionMode.streaming);
+
+      final destination = MockDestination();
+      final logger = LDLogger(adapter: MockLogAdapter());
+      final config = ConnectionManagerConfig(
+        runInBackground: true,
+        initialModeOverride: const FDv2Polling(),
+        debounceWindow: Duration.zero,
+      );
+      final mockDetector = MockStateDetector();
+
+      final connectionManager = ConnectionManager(
+        logger: logger,
+        config: config,
+        destination: destination,
+        detector: mockDetector,
+      );
+
+      await _pumpDebouncerHop();
+      reset(destination);
+
+      // Clearing the override resumes automatic resolution; in the foreground
+      // with network available that resolves to streaming.
+      connectionManager.setMode(null);
+      await _pumpDebouncerHop();
+
+      verify(() => destination.setMode(const ResolvedStreaming()));
+
+      connectionManager.dispose();
+    });
+  });
 }

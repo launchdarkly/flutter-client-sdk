@@ -45,11 +45,6 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         PersistenceConfig,
         ApplicationInfo,
         ConnectionMode,
-        FDv2ConnectionMode,
-        FDv2Streaming,
-        FDv2Polling,
-        FDv2Offline,
-        FDv2Background,
         ResolvedConnectionMode,
         ResolvedStreaming,
         ResolvedPolling,
@@ -73,7 +68,19 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         PluginCredentialInfo,
         PluginEnvironmentMetadata,
         PluginMetadata,
-        PollingConfig;
+        PollingConfig,
+        DataSystemConfig,
+        ConnectionModeId,
+        ModeDefinition,
+        EndpointConfig,
+        InitializerEntry,
+        SynchronizerEntry,
+        CacheInitializer,
+        PollingInitializer,
+        StreamingInitializer,
+        PollingSynchronizer,
+        StreamingSynchronizer,
+        Fdv1FallbackConfig;
 
 export 'src/ld_client.dart' show LDClient;
 export 'src/config/ld_config.dart' show LDConfig, ApplicationEvents;
