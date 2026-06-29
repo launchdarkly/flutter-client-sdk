@@ -101,9 +101,13 @@ class _DemoPageState extends State<DemoPage> {
         .identify(LDContextBuilder().kind('user', userKey).build())
         .then((result) {
       if (!mounted) return;
-      setState(() {
-        _contextDescription = 'user: $userKey';
-      });
+      // Only treat the context as active once the identify actually completed;
+      // a superseded or errored identify did not change the active context.
+      if (result is IdentifyComplete) {
+        setState(() {
+          _contextDescription = 'user: $userKey';
+        });
+      }
       messenger.showSnackBar(SnackBar(
           content: Text(switch (result) {
         IdentifyComplete() => 'Identify complete: $userKey',

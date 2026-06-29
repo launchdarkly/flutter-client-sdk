@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The SDK needs network access; declared here so release builds (which
+         merge only this manifest) can reach LaunchDarkly. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="example_fdv2"
         android:name="${applicationName}"
