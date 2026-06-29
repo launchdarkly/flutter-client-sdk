@@ -6,6 +6,7 @@ environment:
 packages:
   - packages/*
   - packages/flutter_client_sdk/example
+  - packages/flutter_client_sdk/example_fdv2
   - apps/*
 
 scripts:
