@@ -2,6 +2,14 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.20.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.19.0...4.20.0) (2026-06-29)
+
+
+### Features
+
+* Add experimental support for data-saving mode (FDv2). ([#314](https://github.com/launchdarkly/flutter-client-sdk/issues/314)) ([c2f9216](https://github.com/launchdarkly/flutter-client-sdk/commit/c2f9216b3e7dc30f1b0f00c18b680aa32d41a91d))
+* Update launchdarkly_common_client to version 1.14.0 ([#320](https://github.com/launchdarkly/flutter-client-sdk/issues/320)) ([2144c78](https://github.com/launchdarkly/flutter-client-sdk/commit/2144c785f5050cbabd421478219f4b5cd7a935a1))
+
 ## [4.19.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.18.1...4.19.0) (2026-06-10)
 
 
