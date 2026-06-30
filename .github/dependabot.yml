@@ -18,6 +18,18 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+  - package-ecosystem: "gradle"
+    directory: "/packages/flutter_client_sdk/example_fdv2/android"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+  - package-ecosystem: "gradle"
+    directory: "/packages/flutter_client_sdk/example_fdv2/android/app"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "pub"
     directory: "/"
     schedule:
@@ -62,6 +74,12 @@ updates:
       default-days: 7
   - package-ecosystem: "pub"
     directory: "/packages/flutter_client_sdk/example"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+  - package-ecosystem: "pub"
+    directory: "/packages/flutter_client_sdk/example_fdv2"
     schedule:
       interval: "weekly"
     cooldown:
