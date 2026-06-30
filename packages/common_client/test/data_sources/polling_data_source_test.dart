@@ -65,6 +65,9 @@ class MockLogAdapter extends Mock implements LDLogAdapter {}
           statusManager.setErrorByKind(event.kind, event.message,
               shutdown: event.shutdown);
         }
+      case PayloadEvent():
+      case InitializedEvent():
+        break;
     }
   }).listen((_) {});
 
@@ -440,6 +443,9 @@ void main() {
             statusManager.setErrorByKind(event.kind, event.message,
                 shutdown: event.shutdown);
           }
+        case PayloadEvent():
+        case InitializedEvent():
+          break;
       }
     }).listen((_) {});
 
@@ -501,6 +507,9 @@ void main() {
             statusManager.setErrorByKind(event.kind, event.message,
                 shutdown: event.shutdown);
           }
+        case PayloadEvent():
+        case InitializedEvent():
+          break;
       }
     }).listen((_) {});
 

@@ -6,6 +6,19 @@ import 'payload.dart';
 /// The object kind for client-side flag evaluation results.
 const String flagEvalKind = 'flag-eval';
 
+/// Translates a wire-level [Payload] into a typed [ChangeSet] ready for
+/// the flag store.
+///
+/// Throws if any flag-eval object cannot be parsed, so the data source
+/// layer can report it as a data source error and recover the connection.
+ChangeSet translatePayload(Payload payload) {
+  return ChangeSet(
+    selector: payload.selector,
+    type: payload.type,
+    updates: mapUpdatesToItemDescriptors(payload.updates),
+  );
+}
+
 /// Converts FDv2 [Update] objects to a map of [ItemDescriptor]s suitable
 /// for the flag store.
 ///

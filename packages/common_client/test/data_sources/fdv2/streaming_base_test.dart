@@ -48,6 +48,17 @@ String putObject({
       'object': {'value': true, 'version': version, 'variation': 0},
     });
 
+/// A put-object that is structurally valid at the protocol level (the
+/// object is a JSON object with the required envelope fields) but whose
+/// flag-eval fields have the wrong types, so translation into a typed
+/// descriptor fails.
+String badPutObject({String key = 'flag-a', int version = 1}) => jsonEncode({
+      'kind': 'flag-eval',
+      'key': key,
+      'version': version,
+      'object': {'trackEvents': 'not-a-bool'},
+    });
+
 String payloadTransferred({String state = 'sel-1', int version = 1}) =>
     jsonEncode({
       'state': state,
@@ -181,7 +192,9 @@ void main() {
         'close() is safe to call from a listener reacting to an FDv1 '
         'fallback', () async {
       // Same race risk as the goodbye case, but for the fdv1-fallback
-      // terminal branch.
+      // terminal branch -- here driven by a goodbye carrying a
+      // protocol-fallback TTL, which surfaces as a terminal fallback
+      // result.
       final sse = makeSse();
       final base = makeBase(sse);
       Object? caught;
@@ -194,7 +207,9 @@ void main() {
       }, (err, _) => caught = err);
 
       await Future<void>.delayed(Duration.zero);
-      emitOpen(sse, headers: {'x-ld-fd-fallback': 'true'});
+      emitOpen(sse);
+      emitMessage(sse, 'goodbye',
+          jsonEncode({'reason': 'fall back', 'protocolFallbackTTL': 60}));
       for (var i = 0; i < 5; i++) {
         await Future<void>.delayed(Duration.zero);
       }
@@ -221,11 +236,45 @@ void main() {
 
       expect(emissions, hasLength(1));
       final cs = emissions.single as ChangeSetResult;
-      expect(cs.payload.type, equals(PayloadType.full));
-      expect(cs.payload.selector.state, equals('sel-99'));
-      expect(cs.payload.updates.single.key, equals('k1'));
+      expect(cs.changeSet.type, equals(PayloadType.full));
+      expect(cs.changeSet.selector.state, equals('sel-99'));
+      expect(cs.changeSet.updates.keys.single, equals('k1'));
       expect(cs.persist, isTrue);
       expect(cs.freshness, equals(fixedNow));
+
+      await sub.cancel();
+    });
+
+    test(
+        'a payload whose flag data cannot be parsed surfaces interrupted, and '
+        'the connection recovers on the next valid payload', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      emitMessage(sse, 'server-intent', serverIntent());
+      emitMessage(sse, 'put-object', badPutObject());
+      emitMessage(sse, 'payload-transferred', payloadTransferred());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      expect(emissions.single, isA<StatusResult>(),
+          reason: 'invalid flag data is a transient data error, not a '
+              'change set');
+      expect((emissions.single as StatusResult).state,
+          equals(SourceState.interrupted));
+
+      // The SSE connection was not torn down: the server's next valid
+      // payload is processed by the fresh handler.
+      emitFullPayload(sse, state: 'sel-good', flagKey: 'good');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(2));
+      expect(emissions.last, isA<ChangeSetResult>());
+      expect((emissions.last as ChangeSetResult).changeSet.updates.keys.single,
+          equals('good'));
 
       await sub.cancel();
     });
@@ -372,7 +421,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       for (final result in emissions.whereType<ChangeSetResult>()) {
-        final keys = result.payload.updates.map((u) => u.key).toSet();
+        final keys = result.changeSet.updates.keys.toSet();
         expect(keys, isNot(contains('old-flag')),
             reason: 'old-flag from the previous connection bled into '
                 "the new connection's payload");
@@ -435,25 +484,52 @@ void main() {
     });
   });
 
-  group('FDv1 fallback header on connect', () {
+  group('FDv1 fallback directive', () {
     test(
-        'x-ld-fd-fallback: true on the OpenEvent emits terminalError and '
-        'closes', () async {
+        'a directive on a successful connection is emitted with the basis '
+        'change set so the payload is applied before fallback', () async {
       final sse = makeSse();
       final base = makeBase(sse);
       final emissions = <FDv2SourceResult>[];
-      final done = Completer<void>();
-      base.results.listen(emissions.add, onDone: done.complete);
+      final sub = base.results.listen(emissions.add);
       await Future<void>.delayed(Duration.zero);
 
       emitOpen(sse, headers: {'x-ld-fd-fallback': 'true'});
-      await done.future;
+      emitFullPayload(sse);
+      await Future<void>.delayed(Duration.zero);
 
-      expect(emissions, hasLength(1));
-      final status = emissions.single as StatusResult;
-      expect(status.state, equals(SourceState.terminalError));
-      expect(status.fdv1Fallback, isTrue);
-      expect(sse.isClosed, isTrue);
+      // The basis is delivered as a change set carrying the directive --
+      // not dropped in favor of an immediate terminal error.
+      expect(emissions.single, isA<ChangeSetResult>());
+      final changeSet = emissions.single as ChangeSetResult;
+      expect(changeSet.fdv1Fallback, isTrue);
+      expect(changeSet.changeSet.type, PayloadType.full);
+      // The source stays open; the orchestrator tears it down when it
+      // engages the fallback tier.
+      expect(sse.isClosed, isFalse);
+
+      await sub.cancel();
+    });
+
+    test('the directive carries the fallback TTL from the response header',
+        () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      emitOpen(sse, headers: {
+        'x-ld-fd-fallback': 'true',
+        'x-ld-fd-fallback-ttl': '90',
+      });
+      emitFullPayload(sse);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions.single.fdv1FallbackTtl,
+          equals(const Duration(seconds: 90)));
+
+      await sub.cancel();
     });
 
     test('fallback header is matched case-insensitively', () async {
@@ -464,9 +540,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       emitOpen(sse, headers: {'x-ld-fd-fallback': 'TRUE'});
+      emitFullPayload(sse);
       await Future<void>.delayed(Duration.zero);
 
-      expect((emissions.single as StatusResult).fdv1Fallback, isTrue);
+      expect(emissions.single.fdv1Fallback, isTrue);
 
       await sub.cancel();
     });
@@ -487,6 +564,143 @@ void main() {
 
       await sub.cancel();
     });
+
+    test(
+        'a goodbye carrying protocolFallbackTTL surfaces as a terminal '
+        'fallback directive with that TTL', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      emitOpen(sse);
+      emitMessage(sse, 'goodbye',
+          jsonEncode({'reason': 'see ya', 'protocolFallbackTTL': 0}));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.terminalError);
+      expect(status.fdv1Fallback, isTrue);
+      // A zero TTL means remain on the fallback indefinitely.
+      expect(status.fdv1FallbackTtl, Duration.zero);
+      expect(sse.isClosed, isTrue);
+    });
+
+    test('a goodbye with no protocolFallbackTTL is an ordinary disconnect',
+        () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      emitOpen(sse);
+      emitMessage(sse, 'goodbye', jsonEncode({'reason': 'see ya'}));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.goodbye);
+      expect(status.fdv1Fallback, isFalse);
+    });
+
+    test(
+        'a goodbye after a header directive (no payload) surfaces as a '
+        'terminal fallback, carrying the header TTL', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      // The connection opened with the directive header, then the server
+      // said goodbye before any payload consumed the pending directive.
+      emitOpen(sse, headers: {
+        'x-ld-fd-fallback': 'true',
+        'x-ld-fd-fallback-ttl': '45',
+      });
+      emitMessage(sse, 'goodbye', jsonEncode({'reason': 'see ya'}));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.terminalError);
+      expect(status.fdv1Fallback, isTrue,
+          reason: 'the header directive must not be dropped on goodbye');
+      expect(status.fdv1FallbackTtl, const Duration(seconds: 45));
+      expect(sse.isClosed, isTrue);
+    });
+  });
+
+  group('SSE HTTP errors', () {
+    test('a recoverable error is interrupted and keeps the source open',
+        () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final sub = base.results.listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+
+      sse.emitError(error: SseHttpError(503, const {}, recoverable: true));
+      await Future<void>.delayed(Duration.zero);
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.interrupted);
+      expect(status.statusCode, 503);
+      expect(status.fdv1Fallback, isFalse);
+      expect(sse.isClosed, isFalse,
+          reason: 'the client retries a recoverable error on its own');
+
+      await sub.cancel();
+    });
+
+    test('an unrecoverable error is terminal and closes the source', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      sse.emitError(error: SseHttpError(401, const {}, recoverable: false));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.terminalError);
+      expect(status.statusCode, 401);
+      expect(status.fdv1Fallback, isFalse);
+      expect(sse.isClosed, isTrue);
+    });
+
+    test(
+        'a directive on an error response is terminal with the fallback TTL, '
+        'even when the status is recoverable', () async {
+      final sse = makeSse();
+      final base = makeBase(sse);
+      final emissions = <FDv2SourceResult>[];
+      final done = Completer<void>();
+      base.results.listen(emissions.add, onDone: done.complete);
+      await Future<void>.delayed(Duration.zero);
+
+      sse.emitError(
+          error: SseHttpError(
+              503,
+              const {
+                'x-ld-fd-fallback': 'true',
+                'x-ld-fd-fallback-ttl': '120',
+              },
+              recoverable: true));
+      await done.future;
+
+      final status = emissions.single as StatusResult;
+      expect(status.state, SourceState.terminalError);
+      expect(status.fdv1Fallback, isTrue);
+      expect(status.fdv1FallbackTtl, const Duration(seconds: 120));
+      expect(sse.isClosed, isTrue,
+          reason: 'falling back stops the connection regardless of retry');
+    });
   });
 
   group('legacy ping bridge', () {
@@ -495,7 +709,7 @@ void main() {
         'the stream', () async {
       var pingCallCount = 0;
       final pingResult = ChangeSetResult(
-        payload: const Payload(type: PayloadType.full, updates: []),
+        changeSet: const ChangeSet(type: PayloadType.full, updates: {}),
         persist: true,
         freshness: DateTime.utc(2026, 1, 1),
       );

@@ -82,6 +82,14 @@ final class ConnectionManagerConfig {
   /// Defaults to [const FDv2Offline()].
   final FDv2ConnectionMode backgroundConnectionMode;
 
+  /// An initial mode override applied at construction, equivalent to calling
+  /// [ConnectionManager.setMode] immediately after creation. When non-null
+  /// the manager starts in this mode and suppresses automatic resolution
+  /// until the override is cleared.
+  ///
+  /// Defaults to null (automatic resolution from construction).
+  final FDv2ConnectionMode? initialModeOverride;
+
   /// Some platforms (windows, web, mac, linux) can continue executing code
   /// in the background.
   final bool runInBackground;
@@ -121,6 +129,7 @@ final class ConnectionManagerConfig {
   ConnectionManagerConfig({
     this.initialConnectionMode = ConnectionMode.streaming,
     this.backgroundConnectionMode = const FDv2Offline(),
+    this.initialModeOverride,
     this.runInBackground = true,
     this.disableAutomaticBackgroundHandling = false,
     this.disableAutomaticNetworkHandling = false,
@@ -153,7 +162,8 @@ final class ConnectionManager {
   StreamSubscription<NetworkState>? _networkStateSub;
 
   /// When non-null, [resolveMode] is skipped and this mode is
-  /// applied regardless of lifecycle/network.
+  /// applied regardless of lifecycle/network. Seeded from
+  /// [ConnectionManagerConfig.initialModeOverride].
   FDv2ConnectionMode? _modeOverride;
 
   ApplicationState _applicationState;
@@ -183,6 +193,7 @@ final class ConnectionManager {
         _config = config,
         _destination = destination,
         _resolutionTable = resolutionTable ?? flutterDefaultResolutionTable(),
+        _modeOverride = config.initialModeOverride,
         _applicationState = config.initialApplicationState,
         // Network has no synchronous platform API; start optimistic. If
         // the network is actually unavailable, the first detector emission
@@ -195,7 +206,7 @@ final class ConnectionManager {
         networkAvailable: true,
         inForeground:
             config.initialApplicationState == ApplicationState.foreground,
-        requestedMode: null,
+        requestedMode: config.initialModeOverride,
       ),
       debounceWindow: config.debounceWindow,
     );

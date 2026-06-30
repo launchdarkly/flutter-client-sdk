@@ -72,6 +72,14 @@ final class FlagManager {
     return _flagPersistence.loadCached(context);
   }
 
+  /// Reads cached values from persistence without applying them to the
+  /// store. Used by the FDv2 cache initializer, which loads the cache
+  /// through the data source pipeline rather than at identify time.
+  Future<({Map<String, LDEvaluationResult> flags, String? environmentId})?>
+      readCached(LDContext context) async {
+    return _flagPersistence.readCached(context);
+  }
+
   /// A broadcast stream which emits events as flag changes occur based either
   /// on loading cached values or updates from the data source.
   Stream<FlagsChangedEvent> get changes => _flagUpdater.changes;

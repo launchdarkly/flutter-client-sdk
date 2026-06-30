@@ -372,6 +372,63 @@ void main() {
       expect(flagStore.get('flagB'), basicData['flagB']);
     });
 
+    test('readCached returns parsed flags without applying them', () async {
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
+
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey: '{"flagA":{'
+            '"version":1,'
+            '"value":"test",'
+            '"variation":0,'
+            '"reason":{"kind":"OFF"}'
+            '},'
+            '"flagB":{'
+            '"version":2,'
+            '"value":"test2",'
+            '"variation":1,'
+            '"reason":{"kind":"TARGET_MATCH"}'
+            '}}',
+      };
+
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final cached = await flagPersistence.readCached(context);
+
+      expect(cached, isNotNull);
+      expect(cached!.flags.keys, containsAll(<String>['flagA', 'flagB']));
+      expect(flagStore.getAll(), isEmpty,
+          reason: 'readCached must not apply to the store');
+    });
+
+    test('readCached returns null on a cache miss', () async {
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      expect(await flagPersistence.readCached(context), isNull);
+    });
+
     test('it can handle a corrupt cached flag payload', () async {
       final context = LDContextBuilder().kind('user', 'user-key').build();
       final contextPersistenceKey =

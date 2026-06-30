@@ -2,6 +2,55 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.20.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.19.0...4.20.0) (2026-06-29)
+
+
+### Features
+
+* Add experimental support for data-saving mode (FDv2). ([#314](https://github.com/launchdarkly/flutter-client-sdk/issues/314)) ([c2f9216](https://github.com/launchdarkly/flutter-client-sdk/commit/c2f9216b3e7dc30f1b0f00c18b680aa32d41a91d))
+* Update launchdarkly_common_client to version 1.14.0 ([#320](https://github.com/launchdarkly/flutter-client-sdk/issues/320)) ([2144c78](https://github.com/launchdarkly/flutter-client-sdk/commit/2144c785f5050cbabd421478219f4b5cd7a935a1))
+* Add Early Access support for the FDv2 data system (data saving mode).
+
+The Flutter SDK now supports the **FDv2 data system** in Early Access. Opt in by providing a `DataSystemConfig` when you build your `LDConfig`:
+
+```dart
+final config = LDConfig(
+  '<your-mobile-key>',
+  AutoEnvAttributes.enabled,
+  // Providing a data system configuration (even an empty one) opts the
+  // SDK into the FDv2 data acquisition protocol.
+  dataSystem: const DataSystemConfig(),
+);
+```
+
+Applications that do not provide a `dataSystem` continue to use the existing (FDv1) data sources, so default behavior is unchanged.
+
+By default the SDK streams in the foreground (with polling fallback) and switches to a reduced-rate background mode when the app is backgrounded, following the application lifecycle and network availability automatically. You can turn that automatic switching off through `ApplicationEvents`.
+
+Control the connection mode at runtime with `setConnectionMode`, which takes a `ConnectionModeId` (`streaming`, `polling`, `background`, or `offline`). Setting a mode is a sticky override that suppresses automatic switching; pass no argument to clear it and resume automatic resolution:
+
+```dart
+// Force a specific mode (sticky; suppresses automatic switching).
+client.setConnectionMode(ConnectionModeId.polling);
+
+// Clear the override and resume automatic mode resolution.
+client.setConnectionMode();
+```
+
+To start in a specific mode, set `DataSystemConfig.initialConnectionMode` — equivalent to calling `setConnectionMode` with that mode immediately after the client is created:
+
+```dart
+final config = LDConfig(
+  '<your-mobile-key>',
+  AutoEnvAttributes.enabled,
+  dataSystem: const DataSystemConfig(
+    initialConnectionMode: ConnectionModeId.polling,
+  ),
+);
+```
+
+> This feature is not stable, and not subject to any backwards compatibility guarantees or semantic versioning. It is in early access. If you want access to this feature, please join the EAP. See https://launchdarkly.com/docs/sdk/features/data-saving-mode.
+
 ## [4.19.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.18.1...4.19.0) (2026-06-10)
 
 

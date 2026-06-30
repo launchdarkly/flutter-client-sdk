@@ -6,7 +6,6 @@ import '../flag_manager/flag_manager.dart';
 import '../item_descriptor.dart';
 import 'data_source_status.dart';
 import 'data_source_status_manager.dart';
-import 'fdv2/flag_eval_mapper.dart';
 import 'fdv2/payload.dart';
 
 enum MessageStatus { messageHandled, invalidMessage, unhandledVerb }
@@ -98,24 +97,22 @@ final class DataSourceEventHandler {
     }
   }
 
-  /// Applies an FDv2 payload to the flag store.
+  /// Applies an FDv2 change set to the flag store.
   ///
-  /// Full payloads replace the stored flags, partial payloads apply each
-  /// update, and a payload of type none confirms the SDK is up to date
-  /// without changing data. All three mark the data source valid.
-  Future<MessageStatus> handlePayload(LDContext context, Payload payload,
+  /// Full change sets replace the stored flags, partial change sets apply
+  /// each update, and a change set of type none confirms the SDK is up to
+  /// date without changing data.
+  Future<MessageStatus> handlePayload(LDContext context, ChangeSet changeSet,
       {String? environmentId}) async {
     try {
-      final updates = mapUpdatesToItemDescriptors(payload.updates);
-      await _flagManager.applyChanges(context, updates, payload.type,
+      await _flagManager.applyChanges(
+          context, changeSet.updates, changeSet.type,
           environmentId: environmentId);
-      _statusManager.setValid();
       return MessageStatus.messageHandled;
     } catch (err) {
-      _logger.error('FDv2 payload contained invalid flag data: '
-          '${err.runtimeType}');
+      _logger.error('Failed to apply an FDv2 change set: ${err.runtimeType}');
       _statusManager.setErrorByKind(
-          ErrorKind.invalidData, 'FDv2 payload contained invalid data');
+          ErrorKind.invalidData, 'Failed to apply an FDv2 change set');
       return MessageStatus.invalidMessage;
     }
   }

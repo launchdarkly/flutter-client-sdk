@@ -81,12 +81,20 @@ final class FlagPersistence {
     return false;
   }
 
-  Future<bool> loadCached(LDContext context) async {
+  /// Reads the cached flag state for [context] from persistence without
+  /// applying it to the store. Returns null on a cache miss, an
+  /// unreadable entry, or a parse failure.
+  ///
+  /// The FDv2 data system loads the cache through its cache initializer
+  /// rather than the [loadCached] apply-at-identify path, so it needs the
+  /// parsed flags back rather than a side effect on the store.
+  Future<({Map<String, LDEvaluationResult> flags, String? environmentId})?>
+      readCached(LDContext context) async {
     final json = await _persistence?.read(
         _environmentKey, encodePersistenceKey(context.canonicalKey));
 
     if (json == null) {
-      return false;
+      return null;
     }
 
     final environmentId = await _persistence?.read(_environmentKey, _envIdKey);
@@ -94,18 +102,26 @@ final class FlagPersistence {
     try {
       final flagConfig =
           LDEvaluationResultsSerialization.fromJson(jsonDecode(json));
-
-      _updater.initCached(
-          context,
-          flagConfig.map((key, value) => MapEntry(
-              key, ItemDescriptor(version: value.version, flag: value))),
-          environmentId: environmentId);
-      _logger.debug('Loaded a cached flag config from persistence.');
-      return true;
+      return (flags: flagConfig, environmentId: environmentId);
     } catch (e) {
       _logger.warn('Could not load cached flag values for context: $e');
+      return null;
+    }
+  }
+
+  Future<bool> loadCached(LDContext context) async {
+    final cached = await readCached(context);
+    if (cached == null) {
       return false;
     }
+
+    _updater.initCached(
+        context,
+        cached.flags.map((key, value) =>
+            MapEntry(key, ItemDescriptor(version: value.version, flag: value))),
+        environmentId: cached.environmentId);
+    _logger.debug('Loaded a cached flag config from persistence.');
+    return true;
   }
 
   Future<void> _loadIndex() async {

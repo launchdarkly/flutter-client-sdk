@@ -134,6 +134,10 @@ paths:
                           type: boolean
                         useReport:
                           type: boolean
+                    dataSystem:
+                      type: object
+                      additionalProperties: true
+                      description: FDv2 data system configuration.
       responses:
         '201':
           description: Successful creation

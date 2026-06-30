@@ -1,0 +1,526 @@
+import 'dart:async';
+
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    show LDLogger;
+
+import '../data_source.dart';
+import '../data_source_status.dart';
+import '../data_source_status_manager.dart';
+import 'conditions.dart';
+import 'entry_factories.dart';
+import 'payload.dart';
+import 'selector.dart';
+import 'source.dart';
+import 'source_manager.dart';
+import 'source_result.dart';
+
+/// Receives the selector from each applied payload so it can be carried
+/// across data source instances (mode switches, reconnects).
+typedef SelectorUpdater = void Function(Selector selector);
+
+/// Outcome of running a single synchronizer instance, directing what the
+/// synchronizer loop does next.
+enum _SynchronizerOutcome {
+  /// Move to the next available synchronizer.
+  advance,
+
+  /// Re-create the current synchronizer (goodbye or restart request).
+  recycle,
+
+  /// Reset to the primary synchronizer (recovery condition fired).
+  recover,
+
+  /// Stop the orchestration loop entirely.
+  stop,
+}
+
+/// How the orchestrator responds to server-directed actions.
+enum _DirectiveAction {
+  /// No directive present; carry on normally.
+  none,
+
+  /// An FDv1 fallback tier exists and was engaged; advance to it.
+  engageFdv1Fallback,
+
+  /// The directive was received but no FDv1 fallback tier is configured.
+  /// The SDK stays interrupted and retries FDv2 after the directive's TTL
+  /// rather than removing the source.
+  deferRetry,
+}
+
+/// The FDv2 data source orchestrator.
+///
+/// Runs the initializer chain to bring the SDK to a usable state, then
+/// drives the synchronizer tier with fallback and recovery transitions.
+/// Implements the existing [DataSource] interface so the
+/// DataSourceManager pipeline consumes it unchanged: change sets are
+/// emitted as [PayloadEvent]s, and a [StatusEvent] with `shutdown: true`
+/// is emitted only when the data system halts without having delivered
+/// data. Transient interruptions are reported directly through the
+/// [DataSourceStatusManager], matching the FDv1 streaming source's
+/// behavior of not failing an in-flight identify for recoverable errors.
+final class FDv2DataSourceOrchestrator implements DataSource {
+  final SourceManager _sourceManager;
+  final List<InitializerFactory> _initializerFactories;
+  final List<SynchronizerSlot> _synchronizerSlots;
+  final SelectorUpdater _selectorUpdater;
+  final DataSourceStatusManager _statusManager;
+  final Duration _fallbackTimeout;
+  final Duration _recoveryTimeout;
+  final Duration _recycleDelay;
+  final LDLogger _logger;
+
+  final StreamController<DataSourceEvent> _controller =
+      StreamController<DataSourceEvent>();
+
+  bool _started = false;
+  bool _closed = false;
+  bool _emittedPayload = false;
+  bool _initialized = false;
+
+  /// Default wait before retrying FDv2 after a fallback directive arrives
+  /// with no FDv1 fallback tier configured and no server-provided TTL.
+  static const Duration _defaultFallbackRetryInterval = Duration(hours: 1);
+
+  /// Overrides the next recycle delay when set (consumed once), used to
+  /// honor a fallback directive's retry TTL.
+  Duration? _pendingRetryDelay;
+
+  /// Completes when [stop] is called so a long interruptible wait (e.g. a
+  /// fallback retry delay) wakes promptly on shutdown.
+  final Completer<void> _stopCompleter = Completer<void>();
+
+  /// True when the only sources are cache initializers (no synchronizers).
+  /// Such a system must still reach a usable state on a cache miss, so an
+  /// empty payload is emitted when no data was produced.
+  final bool _cacheOnlyDataSystem;
+
+  /// Resolves the outcome of the active synchronizer run. Set while a
+  /// synchronizer is running; [restart] and [stop] use it to interrupt
+  /// the run.
+  void Function(_SynchronizerOutcome outcome)? _resolveCurrentOutcome;
+
+  FDv2DataSourceOrchestrator({
+    required List<InitializerFactory> initializerFactories,
+    required List<SynchronizerSlot> synchronizerSlots,
+    required SelectorGetter selectorGetter,
+    required SelectorUpdater selectorUpdater,
+    required DataSourceStatusManager statusManager,
+    required LDLogger logger,
+    Duration fallbackTimeout = defaultFallbackTimeout,
+    Duration recoveryTimeout = defaultRecoveryTimeout,
+    Duration recycleDelay = const Duration(seconds: 1),
+  })  : _initializerFactories = initializerFactories,
+        _synchronizerSlots = synchronizerSlots,
+        _selectorUpdater = selectorUpdater,
+        _statusManager = statusManager,
+        _fallbackTimeout = fallbackTimeout,
+        _recoveryTimeout = recoveryTimeout,
+        _recycleDelay = recycleDelay,
+        _logger = logger.subLogger('FDv2Orchestrator'),
+        _cacheOnlyDataSystem = initializerFactories.isNotEmpty &&
+            initializerFactories.every((f) => f.isCache) &&
+            synchronizerSlots.isEmpty,
+        _sourceManager = SourceManager(
+          initializerFactories: initializerFactories,
+          synchronizerSlots: synchronizerSlots,
+          selectorGetter: selectorGetter,
+        );
+
+  @override
+  Stream<DataSourceEvent> get events => _controller.stream;
+
+  @override
+  void start() {
+    if (_started || _closed) {
+      return;
+    }
+    _started = true;
+    unawaited(_run());
+  }
+
+  @override
+  void stop() {
+    if (_closed) return;
+    _closed = true;
+    if (!_stopCompleter.isCompleted) _stopCompleter.complete();
+    _sourceManager.close();
+    // Wake the active synchronizer run so it can observe the closed
+    // state.
+    _resolveCurrentOutcome?.call(_SynchronizerOutcome.stop);
+    if (!_controller.isClosed) {
+      _controller.close();
+    }
+  }
+
+  @override
+  void restart() {
+    if (_closed) return;
+    _logger.debug('Restart requested; recycling the active synchronizer.');
+    _resolveCurrentOutcome?.call(_SynchronizerOutcome.recycle);
+  }
+
+  Future<void> _run() async {
+    try {
+      await _runInitializers();
+      if (!_closed) {
+        await _runSynchronizers();
+      }
+    } catch (err, stack) {
+      _logger.error('Orchestration raised unexpectedly: ${err.runtimeType}');
+      _logger.debug('Orchestration error stack:\n$stack');
+      _halt('FDv2 data system encountered an unexpected error');
+    }
+  }
+
+  void _emitPayload(ChangeSetResult result) {
+    if (_closed || _controller.isClosed) return;
+    // An intent of "none" means the SDK is already up to date; it carries
+    // no selector and must not regress the one we hold. For any other
+    // type the payload's selector is adopted verbatim, including an empty
+    // one -- a selector-less full transfer (e.g. an FDv1 fallback payload,
+    // whose state cannot drive FDv2 deltas) clears the held selector so the
+    // next request asks for a full payload rather than a stale delta. Do
+    // not gate this on a non-empty selector.
+    if (result.changeSet.type != PayloadType.none) {
+      _selectorUpdater(result.changeSet.selector);
+    }
+    _emittedPayload = true;
+    _controller.add(
+        PayloadEvent(result.changeSet, environmentId: result.environmentId));
+  }
+
+  void _reportTransientError(StatusResult result) {
+    final message = result.message ?? 'FDv2 data source reported an error';
+    if (result.statusCode case final statusCode?) {
+      _statusManager.setErrorResponse(statusCode, message);
+    } else {
+      _statusManager.setErrorByKind(ErrorKind.networkError, message);
+    }
+  }
+
+  /// Halts the data system. Emits a shutdown status event so a pending
+  /// identify fails and the status reflects that no further data will
+  /// arrive.
+  void _halt(String message) {
+    if (_closed || _controller.isClosed) return;
+    _logger.warn('FDv2 data system halted: $message');
+    _controller
+        .add(StatusEvent(ErrorKind.unknown, null, message, shutdown: true));
+  }
+
+  /// Signals that initialization is complete. Emitted at most once -- the
+  /// manager resolves a wait-for-network identify on it.
+  void _emitInitialized() {
+    if (_initialized || _closed || _controller.isClosed) return;
+    _initialized = true;
+    _controller.add(InitializedEvent());
+  }
+
+  /// Classifies a server-directed FDv1 fallback and, for
+  /// [_DirectiveAction.engageFdv1Fallback], makes the source manager switch
+  /// tiers. The directive is ignored ([_DirectiveAction.none]) when the
+  /// FDv1 fallback synchronizer is already the active source, so it cannot
+  /// loop (the fallback source also never re-asserts the directive). When
+  /// there is no FDv1 fallback tier we defer retrying FDv2
+  /// ([_DirectiveAction.deferRetry]).
+  _DirectiveAction _processDirective(FDv2SourceResult result) {
+    if (!result.fdv1Fallback ||
+        _sourceManager.isCurrentSynchronizerFdv1Fallback) {
+      return _DirectiveAction.none;
+    }
+    if (_sourceManager.hasFdv1FallbackConfigured) {
+      _logger.warn('Server directed fallback to FDv1; engaging the FDv1 '
+          'fallback synchronizer.');
+      _sourceManager.engageFdv1Fallback();
+      return _DirectiveAction.engageFdv1Fallback;
+    }
+    return _DirectiveAction.deferRetry;
+  }
+
+  /// Honors a fallback directive that has no FDv1 tier to engage: the SDK
+  /// stays interrupted and schedules an FDv2 retry after the directive's
+  /// TTL. A TTL of zero means remain indefinitely (no retry); an absent
+  /// TTL uses [_defaultFallbackRetryInterval].
+  void _scheduleFallbackRetry(
+      Duration? ttl, void Function(_SynchronizerOutcome) resolve) {
+    if (ttl == Duration.zero) {
+      _logger.warn('Server directed FDv1 fallback with no fallback tier '
+          'configured and an indefinite TTL; FDv2 updates are paused.');
+      resolve(_SynchronizerOutcome.stop);
+      return;
+    }
+    final delay = ttl ?? _defaultFallbackRetryInterval;
+    _logger.warn('Server directed FDv1 fallback but no fallback tier is '
+        'configured; staying interrupted and retrying FDv2 in '
+        '${delay.inSeconds}s.');
+    _pendingRetryDelay = delay;
+    resolve(_SynchronizerOutcome.recycle);
+  }
+
+  /// Waits [d], returning early if the orchestrator is stopped so a long
+  /// fallback-retry delay does not pin the run open past shutdown.
+  Future<void> _delay(Duration d) =>
+      Future.any([Future<void>.delayed(d), _stopCompleter.future]);
+
+  Future<void> _runInitializers() async {
+    var errorDuringInit = false;
+    var dataReceived = false;
+
+    while (!_closed) {
+      final initializer = _sourceManager.nextInitializer();
+      if (initializer == null) {
+        break;
+      }
+
+      final result = await initializer.run();
+      if (_closed) return;
+
+      switch (result) {
+        case ChangeSetResult():
+          if (result.changeSet.type != PayloadType.none) {
+            _emitPayload(result);
+            dataReceived = true;
+
+            switch (_processDirective(result)) {
+              case _DirectiveAction.engageFdv1Fallback:
+                // Data received but the server directed FDv1 fallback;
+                // move on to synchronizers where the fallback tier runs
+                // and its first change set completes initialization.
+                return;
+              case _DirectiveAction.deferRetry:
+                // An initializer is one-shot and cannot retry itself;
+                // let the chain exhaust and leave retry timing to the
+                // synchronizer tier.
+                break;
+              case _DirectiveAction.none:
+                if (result.changeSet.selector.isNotEmpty) {
+                  // A selector means a complete, server-versioned payload:
+                  // initialization is done. A selector-less payload (e.g.
+                  // cache) is applied, but we keep initializing toward
+                  // network data.
+                  _emitInitialized();
+                  return;
+                }
+            }
+          }
+        case StatusResult():
+          switch (result.state) {
+            case SourceState.interrupted:
+            case SourceState.terminalError:
+              _logger.warn('Initializer failed: '
+                  '${result.message ?? 'unknown error'}');
+              _reportTransientError(result);
+              errorDuringInit = true;
+            case SourceState.shutdown:
+              return;
+            case SourceState.goodbye:
+              break;
+          }
+          if (_processDirective(result) ==
+              _DirectiveAction.engageFdv1Fallback) {
+            return;
+          }
+      }
+    }
+
+    if (_closed) return;
+
+    // All initializers exhausted. A cache-only system (no synchronizer to
+    // produce data on its own) must still surface something on a cache
+    // miss, so a cached identify has a payload to resolve on; emit an empty
+    // payload unless an error was already reported.
+    if (_cacheOnlyDataSystem && !_emittedPayload && !errorDuringInit) {
+      _emitPayload(const ChangeSetResult(
+        changeSet: ChangeSet(type: PayloadType.none, updates: {}),
+        persist: false,
+      ));
+    }
+
+    // Initialization completes at exhaustion when there is no synchronizer
+    // to wait on (cache-only), or when an initializer already delivered data
+    // without a selector. Otherwise the first synchronizer completes it.
+    if (_cacheOnlyDataSystem || dataReceived) {
+      _emitInitialized();
+    }
+  }
+
+  Future<void> _runSynchronizers() async {
+    // A data system with no sources at all has nothing to do; complete
+    // initialization so a pending identify resolves.
+    if (_initializerFactories.isEmpty && _synchronizerSlots.isEmpty) {
+      _emitPayload(const ChangeSetResult(
+        changeSet: ChangeSet(type: PayloadType.none, updates: {}),
+        persist: false,
+      ));
+      _emitInitialized();
+      return;
+    }
+
+    Synchronizer? synchronizer;
+    var recycleCurrent = false;
+
+    while (!_closed) {
+      if (recycleCurrent) {
+        recycleCurrent = false;
+        final delay = _pendingRetryDelay ?? _recycleDelay;
+        _pendingRetryDelay = null;
+        if (delay > Duration.zero) {
+          await _delay(delay);
+          if (_closed) return;
+        }
+        synchronizer = _sourceManager.recreateCurrentSynchronizer();
+      } else {
+        synchronizer = _sourceManager.nextAvailableSynchronizer();
+      }
+
+      if (synchronizer == null) {
+        if (!_emittedPayload) {
+          _halt('All FDv2 data sources exhausted without receiving data');
+        } else if (_synchronizerSlots.isNotEmpty) {
+          _logger.warn('No available FDv2 synchronizer remains; the SDK '
+              'will not receive further updates.');
+        }
+        return;
+      }
+
+      final outcome = await _runSynchronizer(synchronizer);
+      switch (outcome) {
+        case _SynchronizerOutcome.advance:
+          break;
+        case _SynchronizerOutcome.recycle:
+          recycleCurrent = true;
+        case _SynchronizerOutcome.recover:
+          _sourceManager.resetSynchronizerIndex();
+        case _SynchronizerOutcome.stop:
+          return;
+      }
+    }
+  }
+
+  /// Runs a single synchronizer instance until something decides its
+  /// outcome.
+  ///
+  /// Consumption is subscription-driven: one listener on the
+  /// synchronizer's results, one on the merged condition stream, and a
+  /// resolve hook for [restart] and [stop]. Nothing is attached
+  /// per-result, so a healthy synchronizer that streams change sets
+  /// indefinitely holds constant memory. (Racing long-lived futures per
+  /// result would attach an irremovable listener to them each
+  /// iteration; future listeners are only released on completion.)
+  Future<_SynchronizerOutcome> _runSynchronizer(
+      Synchronizer synchronizer) async {
+    final conditions = getConditions(
+      availableSynchronizerCount: _sourceManager.availableSynchronizerCount,
+      isPrimary: _sourceManager.isPrimarySynchronizer,
+      fallbackTimeout: _fallbackTimeout,
+      recoveryTimeout: _recoveryTimeout,
+    );
+
+    final outcome = Completer<_SynchronizerOutcome>();
+    void resolve(_SynchronizerOutcome decision) {
+      if (!outcome.isCompleted) {
+        outcome.complete(decision);
+      }
+    }
+
+    _resolveCurrentOutcome = resolve;
+
+    final conditionSubscription = conditions.events.listen((type) {
+      switch (type) {
+        case ConditionType.fallback:
+          _logger.warn('Fallback condition fired; moving to the next '
+              'synchronizer.');
+          resolve(_SynchronizerOutcome.advance);
+        case ConditionType.recovery:
+          _logger.info('Recovery condition fired; returning to the '
+              'primary synchronizer.');
+          resolve(_SynchronizerOutcome.recover);
+      }
+    });
+
+    final resultSubscription = synchronizer.results.listen((result) {
+      if (outcome.isCompleted || _closed) return;
+
+      conditions.inform(result);
+
+      switch (result) {
+        case ChangeSetResult():
+          _emitPayload(result);
+          // The first synchronizer change set -- of any type, with or
+          // without a selector -- completes initialization.
+          _emitInitialized();
+        case StatusResult():
+          switch (result.state) {
+            case SourceState.interrupted:
+              _logger.warn('Synchronizer interrupted: '
+                  '${result.message ?? 'unknown error'}');
+              _reportTransientError(result);
+            case SourceState.terminalError:
+              _logger.warn('Synchronizer terminal error: '
+                  '${result.message ?? 'unknown error'}');
+              _reportTransientError(result);
+              switch (_processDirective(result)) {
+                case _DirectiveAction.engageFdv1Fallback:
+                  resolve(_SynchronizerOutcome.advance);
+                case _DirectiveAction.deferRetry:
+                  _scheduleFallbackRetry(result.fdv1FallbackTtl, resolve);
+                case _DirectiveAction.none:
+                  _sourceManager.blockCurrentSynchronizer();
+                  resolve(_SynchronizerOutcome.advance);
+              }
+              return;
+            case SourceState.shutdown:
+              // A synchronizer that shuts itself down before the system
+              // has reached a usable state would otherwise leave a
+              // pending identify with nothing to resolve it. Emit a
+              // shutdown status so identify fails rather than hangs,
+              // mirroring the source-exhaustion path. (No shipped source
+              // reaches here while the system is still live, but a future
+              // synchronizer could.)
+              if (!_emittedPayload) {
+                _halt('FDv2 synchronizer shut down without delivering data');
+              }
+              resolve(_SynchronizerOutcome.stop);
+              return;
+            case SourceState.goodbye:
+              _logger.info('Server requested disconnect (goodbye); '
+                  're-establishing the synchronizer.');
+              resolve(_SynchronizerOutcome.recycle);
+              return;
+          }
+      }
+
+      switch (_processDirective(result)) {
+        case _DirectiveAction.engageFdv1Fallback:
+          // A change set carrying the directive (e.g. a successful stream
+          // that delivered its basis then asked us to fall back) has been
+          // applied above; now advance to the fallback tier.
+          resolve(_SynchronizerOutcome.advance);
+        case _DirectiveAction.deferRetry:
+          _scheduleFallbackRetry(result.fdv1FallbackTtl, resolve);
+        case _DirectiveAction.none:
+          break;
+      }
+    }, onDone: () {
+      if (outcome.isCompleted || _closed) return;
+      // The stream ended without a directive. Terminal paths emit a
+      // final result first, which is handled above, so this indicates
+      // the source shut itself down unexpectedly. Re-establish it.
+      _logger.warn('Synchronizer stream ended unexpectedly; '
+          're-establishing.');
+      resolve(_SynchronizerOutcome.recycle);
+    });
+
+    try {
+      final decision = await outcome.future;
+      return _closed ? _SynchronizerOutcome.stop : decision;
+    } finally {
+      _resolveCurrentOutcome = null;
+      conditions.close();
+      await conditionSubscription.cancel();
+      await resultSubscription.cancel();
+      synchronizer.close();
+    }
+  }
+}

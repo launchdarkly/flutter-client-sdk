@@ -5,7 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 
+import 'fallback_directive.dart';
 import 'flag_eval_mapper.dart';
+import 'payload.dart';
 import 'protocol_handler.dart';
 import 'protocol_types.dart';
 import 'source.dart';
@@ -18,7 +20,10 @@ import 'source_result.dart';
 /// fresh [FDv2ProtocolHandler]. The first emitted [ProtocolAction]
 /// per event is translated into an [FDv2SourceResult]:
 ///
-/// - [ActionPayload] --> [ChangeSetResult] with `persist: true`.
+/// - [ActionPayload] --> translated into a [ChangeSet] and emitted as a
+///   [ChangeSetResult] with `persist: true`. A payload whose flag-eval
+///   objects cannot be parsed is surfaced as an interrupted
+///   [StatusResult] instead, the same as any other transient data error.
 /// - [ActionGoodbye] --> goodbye [StatusResult]; the SSE connection is
 ///   closed.
 /// - [ActionServerError] / [ActionError] --> interrupted
@@ -29,9 +34,15 @@ import 'source_result.dart';
 /// Legacy `ping` events are routed to the injected [PingHandler] (which
 /// performs a one-shot poll) and the result is forwarded to the stream.
 ///
-/// The `x-ld-fd-fallback` header on the initial connection's response
-/// is detected and produces a terminal-error result with
-/// `fdv1Fallback: true`. The connection is closed.
+/// The FDv1 fallback directive is detected from three places: the
+/// `x-ld-fd-fallback` header on a successful connection's response, the
+/// same header on any error response ([SseHttpError], recoverable or not),
+/// and a `goodbye` event's `protocolFallbackTTL` (the in-band signal for
+/// transports that cannot read response headers). On a successful
+/// connection the directive is emitted with the basis change set so the
+/// payload is applied before the SDK falls back; otherwise it produces a
+/// terminal-error result. Either way the result carries `fdv1Fallback:
+/// true` and the fallback TTL.
 ///
 /// Lifecycle: a single-subscription stream. [results] starts the SSE
 /// connection on subscribe. [close] stops the source, emits a shutdown
@@ -57,13 +68,22 @@ final class FDv2StreamingBase {
   bool _pingInFlight = false;
   bool _pingPending = false;
 
+  /// Set when a successful connection's response carried the FDv1 fallback
+  /// directive. The directive is emitted with the next change set, so the
+  /// basis delivered alongside it is applied before the SDK falls back (a
+  /// successful stream that says "fall back" still hands over its current
+  /// data first). Cleared once emitted.
+  FallbackDirective? _pendingDirective;
+
   FDv2StreamingBase({
     required SSEClient sseClient,
     required PingHandler pingHandler,
     required LDLogger logger,
+    String? defaultEnvironmentId,
     DateTime Function()? now,
   })  : _sseClient = sseClient,
         _pingHandler = pingHandler,
+        _environmentId = defaultEnvironmentId,
         _logger = logger.subLogger('FDv2StreamingBase'),
         _now = now ?? DateTime.now {
     _controller = StreamController<FDv2SourceResult>(
@@ -169,17 +189,11 @@ final class FDv2StreamingBase {
       _environmentId = envId;
     }
 
-    final fallback = headers['x-ld-fd-fallback']?.toLowerCase() == 'true';
-    if (fallback) {
-      // Server told us to fall back; route through the terminal helper
-      // so a close() from the listener's onData -- a natural reaction
-      // to a fallback signal -- doesn't race with our own close.
-      _terminate(
-          finalResult: FDv2SourceResults.terminalError(
-        message: 'Server requested FDv1 fallback',
-        fdv1Fallback: true,
-      ));
-    }
+    // A successful connection that directs fallback still delivers its
+    // current basis first. Defer the directive so it is emitted with the
+    // next change set: the payload is applied, then the SDK falls back.
+    // Terminating here would drop the basis the server just sent.
+    _pendingDirective = readFallbackDirective(headers);
   }
 
   Future<void> _handleMessage(MessageEvent event) async {
@@ -226,18 +240,57 @@ final class FDv2StreamingBase {
 
     switch (action) {
       case ActionPayload(:final payload):
+        final ChangeSet changeSet;
+        try {
+          changeSet = translatePayload(payload);
+        } catch (err) {
+          // A protocol-valid payload whose flag-eval objects cannot be
+          // parsed. Treat it like any other transient data error:
+          // discard the partial state and surface interrupted, which
+          // arms the orchestrator's fallback timer. The SSE connection
+          // stays up and the server's next payload is processed by the
+          // fresh handler.
+          _logger.warn(
+              'Streaming payload contained invalid flag data (${err.runtimeType})');
+          _resetHandler();
+          _emit(FDv2SourceResults.interrupted(
+              message: 'Streaming payload contained invalid flag data'));
+          return;
+        }
         _emit(ChangeSetResult(
-          payload: payload,
+          changeSet: changeSet,
           environmentId: _environmentId,
           freshness: freshness,
           persist: true,
+          // A directive seen on this connection's response is emitted with
+          // the basis so it is applied before the orchestrator falls back.
+          fdv1Fallback: _pendingDirective != null,
+          fdv1FallbackTtl: _pendingDirective?.ttl,
         ));
-      case ActionGoodbye(:final reason):
+        _pendingDirective = null;
+      case ActionGoodbye(:final reason, :final protocolFallbackTtl):
         // Server told us to disconnect; route through the terminal
         // helper so a close() from the listener's onData -- a natural
         // reaction to a goodbye -- doesn't race with our own close.
+        //
+        // A goodbye can carry a fallback directive: in-band via its
+        // protocol-fallback TTL, or from this connection's
+        // x-ld-fd-fallback header (pending from open, if no payload has
+        // consumed it yet). The orchestrator's goodbye path recycles
+        // without consulting the directive, so surface it as a terminal
+        // fallback result -- otherwise a header-only directive followed by
+        // a goodbye would loop on reconnect instead of falling back.
+        final hasDirective =
+            protocolFallbackTtl != null || _pendingDirective != null;
         _terminate(
-            finalResult: FDv2SourceResults.goodbyeResult(message: reason));
+            finalResult: hasDirective
+                ? FDv2SourceResults.terminalError(
+                    message: 'Server requested FDv1 fallback (goodbye)',
+                    fdv1Fallback: true,
+                    fdv1FallbackTtl:
+                        protocolFallbackTtl ?? _pendingDirective?.ttl,
+                  )
+                : FDv2SourceResults.goodbyeResult(message: reason));
       case ActionServerError(:final reason):
         _emit(FDv2SourceResults.interrupted(message: reason));
       case ActionError(:final message):
@@ -293,9 +346,47 @@ final class FDv2StreamingBase {
 
   void _handleSseError(Object err, StackTrace stack) {
     if (_stoppedSignal.isCompleted) return;
-    // The SSE client's built-in backoff handles reconnection. Surface
-    // the disruption as interrupted; the orchestrator decides whether
-    // to fall through to a different source after enough time.
+
+    if (err is SseHttpError) {
+      final message = 'Streaming request failed with status ${err.statusCode}';
+
+      // A fallback directive on the response takes precedence over the
+      // status: tear down this connection (which stops any retry the
+      // client scheduled) and route to the fallback tier.
+      if (readFallbackDirective(err.headers) case final directive?) {
+        _logger.warn('$message; server requested FDv1 fallback');
+        _terminate(
+            finalResult: FDv2SourceResults.terminalError(
+          message: message,
+          statusCode: err.statusCode,
+          fdv1Fallback: true,
+          fdv1FallbackTtl: directive.ttl,
+        ));
+        return;
+      }
+
+      if (err.recoverable) {
+        // The client retries on its own (and logs the error); surface the
+        // disruption as interrupted and stay connected to it.
+        _emit(FDv2SourceResults.interrupted(
+            message: message, statusCode: err.statusCode));
+        return;
+      }
+
+      // Not recoverable and no directive: the client has stopped, so this
+      // source cannot recover. Surface a terminal error so the orchestrator
+      // moves on.
+      _logger.warn('$message; giving up');
+      _terminate(
+          finalResult: FDv2SourceResults.terminalError(
+        message: message,
+        statusCode: err.statusCode,
+      ));
+      return;
+    }
+
+    // A transport-level error (no HTTP status). The SSE client's built-in
+    // backoff handles reconnection; surface the disruption as interrupted.
     //
     // Don't log the raw exception. http.ClientException's toString
     // formats as 'ClientException: <msg>, uri=<full-url>', and in GET

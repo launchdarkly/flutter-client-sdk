@@ -1,5 +1,7 @@
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    hide ServiceEndpoints;
 
+import '../../config/service_endpoints.dart';
 import 'endpoints.dart';
 import 'selector.dart';
 
@@ -39,6 +41,7 @@ final class FDv2Requestor {
   final String _contextJson;
   final bool _usePost;
   final bool _withReasons;
+  final Map<String, String> _additionalQueryParameters;
   String? _lastEtag;
 
   FDv2Requestor({
@@ -49,6 +52,7 @@ final class FDv2Requestor {
     required bool usePost,
     required bool withReasons,
     required HttpProperties httpProperties,
+    Map<String, String> additionalQueryParameters = const {},
     HttpClientFactory httpClientFactory = _defaultHttpClientFactory,
   })  : _logger = logger.subLogger('FDv2Requestor'),
         _baseUri = Uri.parse(endpoints.polling),
@@ -56,6 +60,7 @@ final class FDv2Requestor {
         _contextJson = contextJson,
         _usePost = usePost,
         _withReasons = withReasons,
+        _additionalQueryParameters = additionalQueryParameters,
         _client = httpClientFactory(usePost
             ? httpProperties.withHeaders({'content-type': 'application/json'})
             : httpProperties);
@@ -111,30 +116,12 @@ final class FDv2Requestor {
     final addedPath = _usePost
         ? FDv2Endpoints.polling
         : FDv2Endpoints.pollingGet(_contextEncoded);
-
-    // Compose against the parsed base URI so a custom polling URL
-    // carrying its own query parameters (e.g. a relay proxy with a token)
-    // is preserved correctly. String concatenation against `_baseUri`
-    // would land the appended path inside the query component.
-    final basePath = _baseUri.path.endsWith('/')
-        ? _baseUri.path.substring(0, _baseUri.path.length - 1)
-        : _baseUri.path;
-    final mergedPath = '$basePath$addedPath';
-
-    // Use queryParametersAll so a base URL like `?dup=1&dup=2` round-trips
-    // both values; the simpler `queryParameters` map collapses duplicates.
-    final mergedQuery = <String, dynamic>{};
-    mergedQuery.addAll(_baseUri.queryParametersAll);
-    if (_withReasons) {
-      mergedQuery['withReasons'] = 'true';
-    }
-    if (basis.state case final state? when state.isNotEmpty) {
-      mergedQuery['basis'] = state;
-    }
-
-    return _baseUri.replace(
-      path: mergedPath,
-      queryParameters: mergedQuery.isEmpty ? null : mergedQuery,
+    return buildFDv2Uri(
+      baseUri: _baseUri,
+      addedPath: addedPath,
+      withReasons: _withReasons,
+      basis: basis,
+      additionalQueryParameters: _additionalQueryParameters,
     );
   }
 }

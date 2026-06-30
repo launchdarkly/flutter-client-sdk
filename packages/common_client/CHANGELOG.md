@@ -2,6 +2,30 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.14.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.13.0...launchdarkly_common_client-v1.14.0) (2026-06-29)
+
+
+### Features
+
+* add an initial connection mode to the FDv2 data system config ([#318](https://github.com/launchdarkly/flutter-client-sdk/issues/318)) ([5b980ab](https://github.com/launchdarkly/flutter-client-sdk/commit/5b980abac0ee1d66b3e20978efd84c5a37686794))
+* Add FDv2 payload application via FlagManager.applyChanges ([#299](https://github.com/launchdarkly/flutter-client-sdk/issues/299)) ([66c2554](https://github.com/launchdarkly/flutter-client-sdk/commit/66c255498f852fa534569a6afc33ef24272c3fa4))
+* Add FDv2 payload handling to the data source event handler ([#305](https://github.com/launchdarkly/flutter-client-sdk/issues/305)) ([761ed9d](https://github.com/launchdarkly/flutter-client-sdk/commit/761ed9dae238d9ee6f897e54e2872858cd759270))
+* Add FDv2 source manager ([#298](https://github.com/launchdarkly/flutter-client-sdk/issues/298)) ([43d899e](https://github.com/launchdarkly/flutter-client-sdk/commit/43d899e7f675612cf67a53e3e5338ce3cf1dc3d1))
+* Add FDv2 streaming source factories and query-parameter authentication ([7b46ac6](https://github.com/launchdarkly/flutter-client-sdk/commit/7b46ac6a05a97cba9aaeed098ecef4227883fc96))
+* Add FDv2 synchronizer fallback and recovery conditions ([#297](https://github.com/launchdarkly/flutter-client-sdk/issues/297)) ([17f7b4e](https://github.com/launchdarkly/flutter-client-sdk/commit/17f7b4e61af746b3775ddf481ae4de182e3c9937))
+* Add the FDv2 data source orchestrator ([#307](https://github.com/launchdarkly/flutter-client-sdk/issues/307)) ([eb9a35f](https://github.com/launchdarkly/flutter-client-sdk/commit/eb9a35f746d7dc172c388841c59714a0585066e7))
+* Add the FDv2 data system and expose it through configuration ([#310](https://github.com/launchdarkly/flutter-client-sdk/issues/310)) ([61a1e59](https://github.com/launchdarkly/flutter-client-sdk/commit/61a1e59ddd7095599f3645a7b9fbfedf8ed94dd7))
+* Centralize platform credential handling in CredentialConfig ([#300](https://github.com/launchdarkly/flutter-client-sdk/issues/300)) ([c677c3d](https://github.com/launchdarkly/flutter-client-sdk/commit/c677c3d19d010194ca6036fc6830d30d8e6f2129))
+* honor the FDv1 fallback directive on success, error, and goodbye ([#312](https://github.com/launchdarkly/flutter-client-sdk/issues/312)) ([1c35867](https://github.com/launchdarkly/flutter-client-sdk/commit/1c358670b8b85f9278c94d6e1bc98955ffdc5446))
+* Translate FDv2 payloads at the data source layer ([7b46ac6](https://github.com/launchdarkly/flutter-client-sdk/commit/7b46ac6a05a97cba9aaeed098ecef4227883fc96))
+* Update launchdarkly_event_source_client to version 2.2.0 ([#302](https://github.com/launchdarkly/flutter-client-sdk/issues/302)) ([cb6a5c0](https://github.com/launchdarkly/flutter-client-sdk/commit/cb6a5c0a3fa0fb68aeb6bf72a52fdd0191cbaa7e))
+* Update launchdarkly_event_source_client to version 3.0.0 ([#317](https://github.com/launchdarkly/flutter-client-sdk/issues/317)) ([15861f8](https://github.com/launchdarkly/flutter-client-sdk/commit/15861f8cc62a7b8e0b33435382bddff1fc7a9426))
+
+
+### Bug Fixes
+
+* Close the final initializer on exhaustion; document the source manager contract ([#304](https://github.com/launchdarkly/flutter-client-sdk/issues/304)) ([b20c35e](https://github.com/launchdarkly/flutter-client-sdk/commit/b20c35ea34c1618bbf66684e9b2f301145542a33))
+
 ## [1.13.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.12.0...launchdarkly_common_client-v1.13.0) (2026-06-09)
 
 

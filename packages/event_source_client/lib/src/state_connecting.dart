@@ -58,18 +58,24 @@ class StateConnecting {
       if (response.statusCode != HttpStatusCodes.okStatus) {
         svo.logger.info(
             'HTTP connection error occurred with status code ${response.statusCode}');
-        if (!ErrorUtils.isHttpStatusCodeRecoverable(response.statusCode)) {
-          // looks like the error wasn't recoverable, go to idle and wait
-          // for something to change
-          return () => StateIdle.run(svo,
-              errorCause: UnrecoverableStatusError(
-                  response.statusCode, response.headers));
+        // Report every error response with its status and headers (which
+        // may carry a service directive). The recoverable flag tells the
+        // consumer whether we will retry on our own.
+        final recoverable =
+            ErrorUtils.isHttpStatusCodeRecoverable(response.statusCode);
+        final error = SseHttpError(response.statusCode, response.headers,
+            recoverable: recoverable);
+        if (!recoverable) {
+          // Not retried: report the error and go idle until something
+          // changes.
+          return () => StateIdle.run(svo, errorCause: error);
         }
-
-        // the error is recoverable, backoff then we'll try again
+        // Retried: report the error, then back off and try again. The
+        // consumer may react (e.g. close the client) before the retry runs.
         return () {
           svo.logger.info(
               'Recoverable HTTP status code ${response.statusCode}, will retry');
+          svo.eventSink.addError(error);
           StateBackoff.run(svo);
         };
       }

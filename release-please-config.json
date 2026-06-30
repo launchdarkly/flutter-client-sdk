@@ -20,6 +20,10 @@
         {
           "type": "generic",
           "path": "example/pubspec.yaml"
+        },
+        {
+          "type": "generic",
+          "path": "example_fdv2/pubspec.yaml"
         }
       ]
     }

@@ -173,6 +173,11 @@ final class StreamingDataSource implements DataSource {
                     : res.message;
                 _logger.error('$message: $argument');
                 _dataController.sink.add(res);
+              case PayloadEvent():
+              case InitializedEvent():
+                // The FDv1 requestor never produces FDv2 payload or lifecycle
+                // events.
+                break;
             }
           } else {
             _logger.debug('Received message event, data: ${event.data}');
@@ -191,6 +196,12 @@ final class StreamingDataSource implements DataSource {
     })
       ..onError((err) {
         if (_permanentShutdown) {
+          return;
+        }
+        // The SSE client retries recoverable responses on its own (and
+        // logs them), so this source is not shutting down -- let the retry
+        // run.
+        if (err is SseHttpError && err.recoverable) {
           return;
         }
         _permanentShutdown = true;

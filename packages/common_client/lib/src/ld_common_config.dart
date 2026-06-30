@@ -1,13 +1,15 @@
 import 'dart:collection';
 import 'dart:math';
 
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    hide ServiceEndpoints;
 
 import 'hooks/hook.dart';
+import 'config/data_system_config.dart';
 import 'config/defaults/default_config.dart';
 import 'config/events_config.dart';
 import 'connection_mode.dart';
-import 'config/service_endpoints.dart' as client_endpoints;
+import 'config/service_endpoints.dart';
 
 /// Configuration which affects how the SDK uses persistence.
 final class PersistenceConfig {
@@ -47,6 +49,10 @@ final class DataSourceConfig {
   bool evaluationReasons;
 
   /// The mode to use for connections when the SDK is initialized.
+  ///
+  /// This has no effect when the FDv2 data system is enabled (a
+  /// [DataSystemConfig] is provided). In that case use
+  /// [DataSystemConfig.initialConnectionMode] instead.
   ConnectionMode initialConnectionMode;
 
   /// Settings for the SDK polling data source.
@@ -67,6 +73,10 @@ final class DataSourceConfig {
   /// [ConnectionMode.offline] then the data source will not request data from
   /// LaunchDarkly, but the sending of events will be unaffected. In order
   /// to completely disable network activity use [LDConfig.offline].
+  ///
+  /// This option has no effect when the FDv2 data system is enabled (a
+  /// [DataSystemConfig] is provided); use
+  /// [DataSystemConfig.initialConnectionMode] in that case.
   DataSourceConfig(
       {bool? useReport,
       bool? evaluationReasons,
@@ -132,6 +142,16 @@ abstract class LDCommonConfig {
   /// An initial list of hooks.
   final UnmodifiableListView<Hook>? hooks;
 
+  /// Configuration for the FDv2 data system. Providing this (even an
+  /// empty configuration) opts the SDK into the FDv2 data acquisition
+  /// protocol.
+  ///
+  /// This feature is not stable, and not subject to any backwards
+  /// compatibility guarantees or semantic versioning. It is in early
+  /// access. If you want access to this feature please join the EAP.
+  /// https://launchdarkly.com/docs/sdk/features/data-saving-mode
+  final DataSystemConfig? dataSystem;
+
   LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,
       {this.applicationInfo,
       HttpProperties? httpProperties,
@@ -143,10 +163,10 @@ abstract class LDCommonConfig {
       DataSourceConfig? dataSourceConfig,
       bool? allAttributesPrivate,
       List<String>? globalPrivateAttributes,
-      List<Hook>? hooks})
+      List<Hook>? hooks,
+      this.dataSystem})
       : httpProperties = httpProperties ?? HttpProperties(),
-        serviceEndpoints =
-            serviceEndpoints ?? client_endpoints.ServiceEndpoints(),
+        serviceEndpoints = serviceEndpoints ?? ServiceEndpoints(),
         events = events ?? EventsConfig(),
         persistence = persistence ?? PersistenceConfig(),
         offline = offline ?? DefaultConfig.defaultOffline,
