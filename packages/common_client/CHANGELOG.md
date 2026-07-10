@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.14.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.14.0...launchdarkly_common_client-v1.14.1) (2026-07-10)
+
+
+### Bug Fixes
+
+* emit status event before closing controller on unrecoverable stream error ([2bc2ac7](https://github.com/launchdarkly/flutter-client-sdk/commit/2bc2ac733c5b2f7888fbc28b85c85eafc1dba5f5))
+
 ## [1.14.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.13.0...launchdarkly_common_client-v1.14.0) (2026-06-29)
 
 
