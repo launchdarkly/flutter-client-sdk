@@ -504,6 +504,28 @@ void main() {
     });
   });
 
+  group('stream error handling', () {
+    test(
+        'it emits a status event without throwing when the stream reports an '
+        'unrecoverable error', () async {
+      final controller = StreamController<Event>();
+      final (dataSource, _, statusManager) =
+          makeDataSourceForTest(controller.stream);
+
+      final statusChange = expectLater(
+          statusManager.changes,
+          emits(predicate<DataSourceStatus>((status) =>
+              status.lastError?.kind == ErrorKind.unknown &&
+              status.lastError?.message ==
+                  'Encountered unrecoverable error streaming')));
+
+      dataSource.start();
+      controller.sink.addError(Exception('Unable to make request'));
+
+      await statusChange;
+    });
+  });
+
   group('environment ID from the stream connection', () {
     test('it uses the environment ID response header', () async {
       final controller = StreamController<Event>();
