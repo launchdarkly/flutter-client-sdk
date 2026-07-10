@@ -207,9 +207,11 @@ final class StreamingDataSource implements DataSource {
         _permanentShutdown = true;
         _logger.error(
             'Encountered an unrecoverable error: "$err", Shutting down.');
-        stop();
+        // The event must be added before calling stop, because stop closes
+        // the controller and adding an event after that throws a StateError.
         _dataController.sink.add(StatusEvent(ErrorKind.unknown, null,
             'Encountered unrecoverable error streaming'));
+        stop();
       });
   }
 
