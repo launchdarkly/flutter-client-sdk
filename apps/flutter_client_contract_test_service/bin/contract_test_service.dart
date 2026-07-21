@@ -27,6 +27,7 @@ class TestApiImpl extends SdkTestApi {
     'anonymous-redaction',
     'client-per-context-summaries',
     'client-prereq-events',
+    'client-prereq-cycle-detection',
     'auto-env-attributes',
     'client-event-source-http-errors',
     'fdv1-fallback',
