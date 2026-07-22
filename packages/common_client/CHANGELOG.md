@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.14.2](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.14.1...launchdarkly_common_client-v1.14.2) (2026-07-22)
+
+
+### Bug Fixes
+
+* add defensive cycle guard to prerequisite evaluation ([#329](https://github.com/launchdarkly/flutter-client-sdk/issues/329)) ([167e8f0](https://github.com/launchdarkly/flutter-client-sdk/commit/167e8f0ff28ceb055ba1b020dee0ee3d80c9e972))
+
 ## [1.14.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.14.0...launchdarkly_common_client-v1.14.1) (2026-07-10)
 
 
