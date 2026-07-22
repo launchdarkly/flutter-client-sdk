@@ -450,8 +450,7 @@ void main() {
       );
     });
 
-    test(
-        'emits the shared descendant once per path in a non-cyclic diamond',
+    test('emits the shared descendant once per path in a non-cyclic diamond',
         () async {
       // Diamond: A -> [B, C], B -> [D], C -> [D]. Not a cycle. Ancestor-set
       // (current-path) semantics let D be reached on each of the two independent
