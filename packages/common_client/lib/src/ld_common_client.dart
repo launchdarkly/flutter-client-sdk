@@ -772,15 +772,39 @@ final class LDCommonClient {
 
   LDEvaluationDetail<LDValue> _variationInternal(
       String flagKey, LDValue defaultValue,
-      {required bool isDetailed, LDValueType? type}) {
+      {required bool isDetailed, LDValueType? type, Set<String>? visited}) {
     final evalResult = _flagManager.get(flagKey);
 
     LDEvaluationDetail<LDValue> detail;
 
     if (evalResult != null && evalResult.flag != null) {
-      evalResult.flag?.prerequisites?.forEach((prereq) {
-        _variationInternal(prereq, LDValue.ofNull(), isDetailed: isDetailed);
-      });
+      final prerequisites = evalResult.flag!.prerequisites;
+      if (prerequisites != null && prerequisites.isNotEmpty) {
+        // Recurse on prerequisites to emulate prereq evaluations occurring with
+        // desirable side effects such as events for prereqs.
+        //
+        // `visited` tracks the chain of prerequisite dependencies from the
+        // top-level evaluation to (but not including) the current flag. It is
+        // allocated lazily: variation calls on prereq-less flags allocate no
+        // set. Once created it is shared for the rest of the walk via
+        // add-before-recurse / remove-after-recurse in a finally block.
+        final ancestors = visited ?? <String>{};
+        ancestors.add(flagKey);
+        try {
+          for (final prereq in prerequisites) {
+            if (ancestors.contains(prereq)) {
+              // Cyclic edge: skip descent, continue with remaining
+              // prerequisites at this level. The requested flag's value and
+              // reason are unaffected.
+              continue;
+            }
+            _variationInternal(prereq, LDValue.ofNull(),
+                isDetailed: isDetailed, visited: ancestors);
+          }
+        } finally {
+          ancestors.remove(flagKey);
+        }
+      }
 
       if (type == null || type == evalResult.flag!.detail.value.type) {
         detail = evalResult.flag!.detail;

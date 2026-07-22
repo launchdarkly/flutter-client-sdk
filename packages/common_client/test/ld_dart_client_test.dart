@@ -393,5 +393,75 @@ void main() {
       expect(mockEventProcessor.evalEvents[0].flagKey, 'flagAB');
       expect(mockEventProcessor.evalEvents[1].flagKey, 'flagA');
     });
+
+    // Cycle-detection tests exercise the ancestor-set cycle guard added to
+    // _variationInternal. Each test constructs a cyclic prereq graph via the
+    // storage fixture, evaluates one flag on the cycle, and asserts (a) the
+    // requested flag returns its cached value unchanged and (b) the recorded
+    // evaluation events match exactly one entry per cycle-safe descent.
+    Future<void> runCycleCase(String storageJson, String evalKey,
+        List<String> expectedEventKeys) async {
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode('bob')).toString();
+      mockPersistence.storage[sdkKeyPersistence] = {
+        contextPersistenceKey: storageJson,
+      };
+      await client.start();
+      final res = client.stringVariation(evalKey, 'default');
+      expect(res, 'cached');
+      expect(mockEventProcessor.evalEvents.map((e) => e.flagKey).toList(),
+          expectedEventKeys);
+    }
+
+    test('skips a self-loop prerequisite and returns the cached value',
+        () async {
+      // flagA's only prerequisite is itself; the cycle guard skips descent.
+      await runCycleCase(
+        '{"flagA":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagA"]}}',
+        'flagA',
+        ['flagA'],
+      );
+    });
+
+    test('handles a two-cycle evaluating A', () async {
+      // A -> B -> [A skipped]. Events deepest-first: B (as prereq of A), then A.
+      await runCycleCase(
+        '{"flagA":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagB"]},"flagB":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagA"]}}',
+        'flagA',
+        ['flagB', 'flagA'],
+      );
+    });
+
+    test('handles a two-cycle evaluating B', () async {
+      // Symmetric: same graph, entry from B. Events: A (as prereq of B), then B.
+      await runCycleCase(
+        '{"flagA":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagB"]},"flagB":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagA"]}}',
+        'flagB',
+        ['flagA', 'flagB'],
+      );
+    });
+
+    test('handles a three-cycle', () async {
+      // A -> B -> C -> [A skipped]. Events emitted deepest-first: C, B, A.
+      await runCycleCase(
+        '{"flagA":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagB"]},"flagB":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagC"]},"flagC":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagA"]}}',
+        'flagA',
+        ['flagC', 'flagB', 'flagA'],
+      );
+    });
+
+    test('emits the shared descendant once per path in a non-cyclic diamond',
+        () async {
+      // Diamond: A -> [B, C], B -> [D], C -> [D]. Not a cycle. Ancestor-set
+      // (current-path) semantics let D be reached on each of the two independent
+      // paths, so D emits twice. A naive "visited across the whole walk"
+      // implementation would drop the second event; this case guards against
+      // that regression.
+      await runCycleCase(
+        '{"flagA":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagB","flagC"]},"flagB":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagD"]},"flagC":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"},"prerequisites":["flagD"]},"flagD":{"version":1,"value":"cached","variation":0,"reason":{"kind":"OFF"}}}',
+        'flagA',
+        ['flagD', 'flagB', 'flagD', 'flagC', 'flagA'],
+      );
+    });
   });
 }
