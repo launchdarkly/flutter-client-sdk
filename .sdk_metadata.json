@@ -17,6 +17,7 @@
         "bigSegments": { "introduced": "1.0" },
         "contexts": { "introduced": "2.0" },
         "experimentation": { "introduced": "1.0" },
+        "fdv2": { "introduced": "4.20" },
         "flagChanges": { "introduced": "1.0" },
         "hooks": { "introduced": "4.12" },
         "inlineContextCustomEvents": { "introduced": "4.11.1" },
