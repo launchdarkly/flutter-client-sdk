@@ -292,9 +292,11 @@ void main() {
   group('safeRegisterPlugins', () {
     late PluginEnvironmentMetadata testEnvironmentMetadata;
     late dynamic testClient;
+    late List<Hook> activatedHooks;
 
     setUp(() {
       testClient = 'test-client';
+      activatedHooks = [];
       testEnvironmentMetadata = PluginEnvironmentMetadata(
         sdk: PluginSdkMetadata(
           name: 'test-sdk',
@@ -308,20 +310,22 @@ void main() {
     });
 
     test('does nothing when plugins list is null', () {
-      safeRegisterPlugins(testClient, testEnvironmentMetadata, null, logger);
+      safeRegisterPlugins(
+          testClient, testEnvironmentMetadata, null, activatedHooks.add, logger);
       // No exceptions should be thrown, function should complete silently
     });
 
     test('does nothing when plugins list is empty', () {
-      safeRegisterPlugins(testClient, testEnvironmentMetadata, [], logger);
+      safeRegisterPlugins(
+          testClient, testEnvironmentMetadata, [], activatedHooks.add, logger);
       // No exceptions should be thrown, function should complete silently
     });
 
     test('registers single plugin successfully', () {
       final plugin = TestPlugin('test-plugin', []);
 
-      safeRegisterPlugins(
-          testClient, testEnvironmentMetadata, [plugin], logger);
+      safeRegisterPlugins(testClient, testEnvironmentMetadata, [plugin],
+          activatedHooks.add, logger);
 
       expect(plugin.registerCallCount, equals(1));
       expect(plugin.lastClientReceived, same(testClient));
@@ -335,7 +339,7 @@ void main() {
       final plugin3 = TestPlugin('plugin-3', []);
 
       safeRegisterPlugins(testClient, testEnvironmentMetadata,
-          [plugin1, plugin2, plugin3], logger);
+          [plugin1, plugin2, plugin3], activatedHooks.add, logger);
 
       expect(plugin1.registerCallCount, equals(1));
       expect(plugin1.lastClientReceived, same(testClient));
@@ -353,6 +357,32 @@ void main() {
           same(testEnvironmentMetadata));
     });
 
+    test('activates hooks of registered plugins in order', () {
+      final hook1 = TestHook('hook-1');
+      final hook2 = TestHook('hook-2');
+      final hook3 = TestHook('hook-3');
+      final plugin1 = TestPlugin('plugin-1', [hook1, hook2]);
+      final plugin2 = TestPlugin('plugin-2', [hook3]);
+
+      safeRegisterPlugins(testClient, testEnvironmentMetadata,
+          [plugin1, plugin2], activatedHooks.add, logger);
+
+      expect(activatedHooks, equals([hook1, hook2, hook3]));
+    });
+
+    test('does not activate hooks of a plugin that fails to register', () {
+      final goodHook = TestHook('good-hook');
+      final badHook = TestHook('bad-hook');
+      final goodPlugin = TestPlugin('good-plugin', [goodHook]);
+      final badPlugin = TestPlugin('bad-plugin', [badHook],
+          shouldThrowOnRegister: true);
+
+      safeRegisterPlugins(testClient, testEnvironmentMetadata,
+          [goodPlugin, badPlugin], activatedHooks.add, logger);
+
+      expect(activatedHooks, equals([goodHook]));
+    });
+
     test('handles exception from single plugin registration and logs warning',
         () {
       final plugin1 = TestPlugin('plugin-1', []);
@@ -360,7 +390,7 @@ void main() {
       final plugin3 = TestPlugin('plugin-3', []);
 
       safeRegisterPlugins(testClient, testEnvironmentMetadata,
-          [plugin1, plugin2, plugin3], logger);
+          [plugin1, plugin2, plugin3], activatedHooks.add, logger);
 
       // First and third plugins should be registered successfully
       expect(plugin1.registerCallCount, equals(1));
@@ -385,7 +415,7 @@ void main() {
       final plugin4 = TestPlugin('plugin-4', []);
 
       safeRegisterPlugins(testClient, testEnvironmentMetadata,
-          [plugin1, plugin2, plugin3, plugin4], logger);
+          [plugin1, plugin2, plugin3, plugin4], activatedHooks.add, logger);
 
       // First and fourth plugins should be registered successfully
       expect(plugin1.registerCallCount, equals(1));
@@ -414,8 +444,8 @@ void main() {
       final plugin1 = TestPlugin('plugin-1', [], shouldThrowOnRegister: true);
       final plugin2 = TestPlugin('plugin-2', [], shouldThrowOnRegister: true);
 
-      safeRegisterPlugins(
-          testClient, testEnvironmentMetadata, [plugin1, plugin2], logger);
+      safeRegisterPlugins(testClient, testEnvironmentMetadata,
+          [plugin1, plugin2], activatedHooks.add, logger);
 
       // All plugins should have attempted registration but failed
       expect(plugin1.registerCallCount, equals(1));
@@ -440,7 +470,8 @@ void main() {
       final plugin5 = TestPlugin('plugin-5', []);
 
       safeRegisterPlugins(testClient, testEnvironmentMetadata,
-          [plugin1, plugin2, plugin3, plugin4, plugin5], logger);
+          [plugin1, plugin2, plugin3, plugin4, plugin5], activatedHooks.add,
+          logger);
 
       // Successful plugins should be registered
       expect(plugin1.registerCallCount, equals(1));
@@ -478,8 +509,8 @@ void main() {
         ),
       );
 
-      safeRegisterPlugins(
-          customClient, customEnvironmentMetadata, [plugin1, plugin2], logger);
+      safeRegisterPlugins(customClient, customEnvironmentMetadata,
+          [plugin1, plugin2], activatedHooks.add, logger);
 
       expect(plugin1.registerCallCount, equals(1));
       expect(plugin1.lastClientReceived, same(customClient));
@@ -501,7 +532,7 @@ void main() {
       final plugin3 = TestPlugin('plugin-3', []);
 
       safeRegisterPlugins(testClient, testEnvironmentMetadata,
-          [plugin1, plugin2, plugin3], logger);
+          [plugin1, plugin2, plugin3], activatedHooks.add, logger);
 
       // All plugins should have attempted registration
       expect(plugin1.registerCallCount, equals(1));

@@ -118,6 +118,7 @@ export 'src/plugins/operations.dart'
         safeGetHooks,
         safeGetPluginHooks,
         safeGetPluginName,
+        safeRegisterPlugin,
         safeRegisterPlugins;
 
 export 'src/config/defaults/credential_type.dart' show CredentialType;

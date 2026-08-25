@@ -226,6 +226,27 @@ void main() {
       client.close();
     });
 
+    test('plugin hooks do not observe another plugin register', () {
+      final firstHook = TestHook('first-plugin-hook');
+      final firstPlugin = TestPlugin('first-plugin', [firstHook]);
+      // Registers after the first plugin, and evaluates a flag while doing so.
+      final secondPlugin =
+          EvaluationOnRegisterPlugin(TestHook('second-plugin-hook'));
+
+      final client = createTestClient(plugins: [firstPlugin, secondPlugin]);
+
+      // Hooks are activated only once every plugin has registered, so the first plugin's hook did
+      // not observe the evaluation the second plugin made while registering.
+      expect(secondPlugin.registerCallCount, equals(1));
+      expect(firstHook.callLog, isEmpty);
+
+      client.boolVariation('test-flag', false);
+      expect(firstHook.callLog.any((call) => call.startsWith('beforeEvaluation')),
+          isTrue);
+
+      client.close();
+    });
+
     test('registers hooks from single plugin', () {
       final hook1 = TestHook('plugin-hook-1');
       final hook2 = TestHook('plugin-hook-2');
@@ -459,17 +480,21 @@ void main() {
       client.close();
     });
 
-    test('adds hooks before plugin register is invoked', () {
+    test('adds hooks only after plugin register has returned', () {
       final hook = TestHook('runtime-order-hook');
       final plugin = EvaluationOnRegisterPlugin(hook);
       final client = createTestClient();
 
       client.registerPlugin(plugin);
 
+      // The hooks go live only once register has returned, so the evaluation that register made did
+      // not reach them.
       expect(plugin.registerCallCount, equals(1));
+      expect(hook.callLog, isEmpty);
+
+      // They do run for evaluations made once registration has completed.
+      client.boolVariation('test-flag', false);
       expect(hook.callLog.any((call) => call.startsWith('beforeEvaluation')),
-          isTrue);
-      expect(hook.callLog.any((call) => call.startsWith('afterEvaluation')),
           isTrue);
 
       client.close();

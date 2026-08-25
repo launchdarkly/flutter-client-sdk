@@ -71,12 +71,11 @@ interface class LDClient {
         platformEnvReporter: PlatformEnvReporter(),
         autoEnvAttributes:
             config.autoEnvAttributes == AutoEnvAttributes.enabled);
-    final pluginHooks = safeGetHooks(config.plugins, config.logger);
-    final combined = combineHooks(config.hooks, pluginHooks);
-
+    // Only the configuration's own hooks. A plugin's hooks are added once that plugin has
+    // registered, below, which is still before `start` opens the first identify series.
     _client = LDCommonClient(config, platformImplementation, context,
         DiagnosticSdkData(name: sdkName, version: sdkVersion),
-        hooks: combined);
+        hooks: config.hooks);
     final stateDetector = FlutterStateDetector();
     // Under the FDv2 data system the connection mode is governed by the
     // data system configuration, not the FDv1 data source options: the
@@ -122,8 +121,8 @@ interface class LDClient {
         credential: PluginCredentialInfo(
             type: _client.credentialType, value: config.sdkCredential));
 
-    safeRegisterPlugins(
-        this, _pluginEnvironmentMetadata, config.plugins, config.logger);
+    safeRegisterPlugins(this, _pluginEnvironmentMetadata, config.plugins,
+        addHook, config.logger);
   }
 
   /// Initialize the SDK.
@@ -403,21 +402,14 @@ interface class LDClient {
   /// Registers a plugin with this SDK instance after the client has been
   /// constructed.
   ///
-  /// Bundled hooks from the plugin are added before [Plugin.register] is
-  /// invoked. If reading [Plugin.hooks] throws, the plugin is not registered.
-  /// If [Plugin.register] throws, the error is logged and not rethrown.
+  /// The plugin's bundled hooks are added only once [Plugin.register] has
+  /// returned, so they do not observe what `register` itself does, and a plugin
+  /// that fails either step contributes no hooks. The plugins in
+  /// [LDConfig.plugins] are registered by this same path, so a plugin behaves
+  /// the same however it was registered. Errors are logged, not rethrown.
   void registerPlugin(Plugin plugin) {
-    final hooks = safeGetPluginHooks(plugin, _client.logger);
-    if (hooks == null) {
-      return;
-    }
-
-    for (final hook in hooks) {
-      addHook(hook);
-    }
-
-    safeRegisterPlugins(
-        this, _pluginEnvironmentMetadata, [plugin], _client.logger);
+    safeRegisterPlugin(
+        this, _pluginEnvironmentMetadata, plugin, addHook, _client.logger);
   }
 }
 

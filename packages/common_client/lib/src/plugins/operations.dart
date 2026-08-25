@@ -38,17 +38,58 @@ List<Hook>? safeGetHooks<TClient>(
       .toList();
 }
 
+/// Registers a single [plugin] with [client] and then activates the hooks it
+/// contributes.
+///
+/// This is the single plugin case of [safeRegisterPlugins], and behaves the same
+/// way.
+void safeRegisterPlugin<TClient>(
+    TClient client,
+    PluginEnvironmentMetadata metadata,
+    PluginBase<TClient> plugin,
+    void Function(Hook hook) addHook,
+    LDLogger logger) {
+  safeRegisterPlugins(client, metadata, [plugin], addHook, logger);
+}
+
+/// Registers each of [plugins] with [client], then activates the hooks
+/// contributed by those that registered successfully.
+///
+/// The hooks are activated as the last step, once every plugin has registered,
+/// so that no plugin's hooks observe any plugin's [PluginBase.register] call,
+/// and a plugin that failed either step contributes none. Exceptions are logged
+/// rather than rethrown, so one failing plugin does not stop the others being
+/// registered.
 void safeRegisterPlugins<TClient>(
     TClient client,
     PluginEnvironmentMetadata metadata,
     List<PluginBase<TClient>>? plugins,
+    void Function(Hook hook) addHook,
     LDLogger logger) {
-  plugins?.forEach((plugin) {
+  if (plugins == null) {
+    return;
+  }
+
+  final hooksToActivate = <Hook>[];
+
+  for (final plugin in plugins) {
+    final hooks = safeGetPluginHooks(plugin, logger);
+    if (hooks == null) {
+      continue;
+    }
+
     try {
       plugin.register(client, metadata);
     } catch (err) {
       logger.warn(
           'Exception thrown when registering plugin ${safeGetPluginName(plugin, logger)}');
+      continue;
     }
-  });
+
+    hooksToActivate.addAll(hooks);
+  }
+
+  for (final hook in hooksToActivate) {
+    addHook(hook);
+  }
 }
