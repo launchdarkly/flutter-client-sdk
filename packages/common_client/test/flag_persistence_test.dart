@@ -223,6 +223,53 @@ void main() {
       expect(flagStore.getAll().equals(basicData), true);
     });
 
+    test('it round trips flagVersion through the cache', () async {
+      // Under FDv2 the store version comes from the payload envelope while
+      // flagVersion is the flag's own version, so the two differ. If
+      // flagVersion is lost here, evaluation events restored from the cache
+      // report the envelope version instead of the flag version.
+      final flagData = {
+        'flagA': ItemDescriptor(
+            version: 40,
+            flag: LDEvaluationResult(
+                version: 40,
+                flagVersion: 12,
+                detail: LDEvaluationDetail(
+                    LDValue.ofString('test'), 0, LDEvaluationReason.off())))
+      };
+
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final context = LDContextBuilder().kind('user', 'user-key').build();
+
+      await flagPersistence.init(context, flagData);
+
+      final contextPersistenceKey =
+          sha256.convert(utf8.encode(context.canonicalKey)).toString();
+
+      expect(
+          mockPersistence.storage[sdkKeyPersistence]![contextPersistenceKey],
+          '{"flagA":{'
+          '"version":40,'
+          '"flagVersion":12,'
+          '"value":"test",'
+          '"variation":0,'
+          '"reason":{"kind":"OFF"}'
+          '}}');
+
+      final cached = await flagPersistence.readCached(context);
+      expect(cached!.flags['flagA']!.flagVersion, 12);
+    });
+
     test('it updates cache on upsert', () async {
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
