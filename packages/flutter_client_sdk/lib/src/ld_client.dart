@@ -9,7 +9,7 @@ import 'platform_env_reporter.dart';
 import 'plugin.dart';
 
 const sdkName = 'FlutterClientSdk';
-const sdkVersion = '4.20.2'; // x-release-please-version
+const sdkVersion = '4.20.3'; // x-release-please-version
 
 /// The main interface for the LaunchDarkly Flutter SDK.
 ///
