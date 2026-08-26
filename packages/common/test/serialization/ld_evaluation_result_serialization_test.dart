@@ -27,7 +27,11 @@ void main() {
       LDEvaluationResult(
           version: 5,
           detail: basicEvalReason,
-          debugEventsUntilDate: DateTime.now().millisecondsSinceEpoch)
+          debugEventsUntilDate: DateTime.now().millisecondsSinceEpoch),
+      // The store version and the flag version are independent: under FDv2
+      // the wire object carries only flagVersion and the version comes from
+      // the payload envelope. Both must survive a round trip.
+      LDEvaluationResult(version: 40, flagVersion: 12, detail: basicEvalReason)
     ]) {
       test('it can serialize/deserialize the evaluation detail: $result', () {
         var serialized =
@@ -37,5 +41,22 @@ void main() {
         expect(deserialized, result);
       });
     }
+  });
+
+  test('it serializes flagVersion when it is set', () {
+    final result = LDEvaluationResult(
+        version: 40, flagVersion: 12, detail: basicEvalReason);
+
+    final json = LDEvaluationResultSerialization.toJson(result);
+
+    expect(json['flagVersion'], 12);
+  });
+
+  test('it omits flagVersion when it is not set', () {
+    final result = LDEvaluationResult(version: 40, detail: basicEvalReason);
+
+    final json = LDEvaluationResultSerialization.toJson(result);
+
+    expect(json.containsKey('flagVersion'), isFalse);
   });
 }

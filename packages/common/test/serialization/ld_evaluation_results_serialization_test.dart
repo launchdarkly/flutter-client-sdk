@@ -29,7 +29,9 @@ void main() {
       'withDate': LDEvaluationResult(
           version: 5,
           detail: basicEvalReason,
-          debugEventsUntilDate: DateTime.now().millisecondsSinceEpoch)
+          debugEventsUntilDate: DateTime.now().millisecondsSinceEpoch),
+      'withFlagVersion': LDEvaluationResult(
+          version: 40, flagVersion: 12, detail: basicEvalReason)
     };
 
     final serialized =
@@ -37,6 +39,6 @@ void main() {
     final deserialized =
         LDEvaluationResultsSerialization.fromJson(jsonDecode(serialized));
 
-    deserialized.equals(results);
+    expect(deserialized.equals(results), isTrue);
   });
 }

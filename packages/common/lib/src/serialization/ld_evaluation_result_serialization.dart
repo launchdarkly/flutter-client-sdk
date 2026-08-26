@@ -35,6 +35,9 @@ final class LDEvaluationResultSerialization {
     Map<String, dynamic> result = {};
 
     result['version'] = evaluationResult.version;
+    if (evaluationResult.flagVersion != null) {
+      result['flagVersion'] = evaluationResult.flagVersion;
+    }
     if (evaluationResult.trackEvents) {
       result['trackEvents'] = evaluationResult.trackEvents;
     }
