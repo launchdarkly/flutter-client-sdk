@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:launchdarkly_common_client/src/config/service_endpoints.dart';
@@ -11,14 +13,14 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
 import 'package:test/test.dart';
 
-SourceFactoryContext _ctx(MockClient client) =>
+SourceFactoryContext _ctx(MockClient client, {bool usePost = false}) =>
     SourceFactoryContext.fromClientConfig(
       context: LDContextBuilder().kind('user', 'bob').build(),
       logger: LDLogger(level: LDLogLevel.none),
       httpProperties: HttpProperties(),
       serviceEndpoints: ServiceEndpoints(),
       withReasons: false,
-      usePost: false,
+      usePost: usePost,
       defaultPollingInterval: const Duration(seconds: 300),
       cachedFlagsReader: (_) async => null,
       credential: 'the-credential',
@@ -105,5 +107,39 @@ void main() {
     expect(requests[0].headers.containsKey('if-none-match'), isFalse);
     expect(requests[1].headers.containsKey('if-none-match'), isFalse,
         reason: 'the ETag is scoped to a single requestor instance');
+  });
+
+  group('request method', () {
+    Future<http.Request> poll({required bool usePost}) async {
+      late http.Request captured;
+      final mock = MockClient((request) async {
+        captured = request;
+        return http.Response('{}', 200);
+      });
+      final synchronizer = createFdv1FallbackSynchronizerFactory(
+              const Fdv1FallbackConfig(), _ctx(mock, usePost: usePost))
+          .create(() => Selector.empty);
+      await synchronizer.results.first.whenComplete(synchronizer.close);
+      return captured;
+    }
+
+    test('polls with GET and the context in the path by default', () async {
+      final request = await poll(usePost: false);
+
+      expect(request.method, equals('GET'));
+      expect(request.url.path, startsWith('/msdk/evalx/contexts/'));
+      expect(request.body, isEmpty);
+    });
+
+    test(
+        'polls with REPORT and the context in the body when usePost is set, '
+        'since the FDv1 endpoints do not accept POST', () async {
+      final request = await poll(usePost: true);
+
+      expect(request.method, equals('REPORT'));
+      expect(request.url.path, equals('/msdk/evalx/context'));
+      expect(jsonDecode(request.body), equals({'kind': 'user', 'key': 'bob'}));
+      expect(request.headers['content-type'], startsWith('application/json'));
+    });
   });
 }
