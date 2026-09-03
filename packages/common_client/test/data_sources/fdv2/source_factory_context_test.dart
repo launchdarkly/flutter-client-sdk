@@ -29,6 +29,7 @@ void main() {
         httpProperties: httpProperties,
         serviceEndpoints: endpoints,
         withReasons: true,
+        usePost: false,
         defaultPollingInterval: const Duration(seconds: 42),
         cachedFlagsReader: reader,
       );
@@ -58,6 +59,7 @@ void main() {
         httpProperties: HttpProperties(),
         serviceEndpoints: endpoints,
         withReasons: false,
+        usePost: false,
         defaultPollingInterval: const Duration(seconds: 300),
         cachedFlagsReader: reader,
       );
@@ -93,6 +95,7 @@ void main() {
         httpProperties: HttpProperties(),
         serviceEndpoints: endpoints,
         withReasons: false,
+        usePost: false,
         defaultPollingInterval: const Duration(seconds: 300),
         cachedFlagsReader: reader,
       );
@@ -125,6 +128,7 @@ void main() {
         httpProperties: httpProperties,
         serviceEndpoints: endpoints,
         withReasons: false,
+        usePost: false,
         defaultPollingInterval: const Duration(minutes: 5),
         cachedFlagsReader: reader,
         httpClientFactory: httpClientFactory,
@@ -139,5 +143,21 @@ void main() {
       expect(ctx.cachedFlagsReader, same(reader));
       expect(ctx.httpClientFactory, same(httpClientFactory));
     });
+  });
+
+  test('fromClientConfig carries usePost through to the sources', () {
+    final ctx = SourceFactoryContext.fromClientConfig(
+      credential: 'test-credential',
+      context: LDContextBuilder().kind('user', 'alice').build(),
+      logger: LDLogger(level: LDLogLevel.error),
+      httpProperties: HttpProperties(),
+      serviceEndpoints: ServiceEndpoints.custom(polling: 'https://poll.test'),
+      withReasons: false,
+      usePost: true,
+      defaultPollingInterval: const Duration(seconds: 42),
+      cachedFlagsReader: (_) async => null,
+    );
+
+    expect(ctx.usePost, isTrue);
   });
 }

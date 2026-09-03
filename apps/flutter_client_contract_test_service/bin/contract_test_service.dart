@@ -31,6 +31,7 @@ class TestApiImpl extends SdkTestApi {
     'auto-env-attributes',
     'client-event-source-http-errors',
     'fdv1-fallback',
+    'client-use-post',
   ];
 
   static const clientUrlPrefix = '/client/';
@@ -53,8 +54,9 @@ class TestApiImpl extends SdkTestApi {
   Future<PostResponse> Post(PostSchema body) async {
     final startWaitTimeMillis =
         body.configuration?.startWaitTimeMs?.toInt() ?? defaultWaitTimeMillis;
-    final mappedDataSystem =
-        _mapDataSystem(body.configuration?.dataSystem?.toJson());
+    final mappedDataSystem = _mapDataSystem(
+        body.configuration?.dataSystem?.toJson(),
+        usePost: body.configuration?.clientSide?.usePost ?? false);
     final config = LDConfig(
       body.configuration?.credential ?? '',
       AutoEnvAttributes.disabled,
@@ -306,8 +308,11 @@ class TestApiImpl extends SdkTestApi {
   ///   ([ConnectionModeId]); other names are ignored.
   /// - Top-level `initializers`/`synchronizers` lists, which override the
   ///   built-in streaming mode.
+  ///
+  /// [usePost] is the harness `clientSide.usePost` flag. Under FDv2 it
+  /// selects POST requests with the context in the body.
   ({DataSystemConfig config, ConnectionMode initialConnectionMode})?
-      _mapDataSystem(Map<String, dynamic>? raw) {
+      _mapDataSystem(Map<String, dynamic>? raw, {required bool usePost}) {
     if (raw == null) {
       return null;
     }
@@ -416,6 +421,7 @@ class TestApiImpl extends SdkTestApi {
           // the data system config; the FDv1 initialConnectionMode is inert.
           initialConnectionMode:
               initialModeName == null ? null : builtInModeId(initialModeName),
+          usePost: usePost,
         ),
         initialConnectionMode: parseInitialMode(initialModeName),
       );
@@ -425,7 +431,8 @@ class TestApiImpl extends SdkTestApi {
       // Top-level source lists override the built-in streaming mode.
       return (
         config: DataSystemConfig(
-            connectionModes: {ConnectionModeId.streaming: translateMode(raw)}),
+            connectionModes: {ConnectionModeId.streaming: translateMode(raw)},
+            usePost: usePost),
         initialConnectionMode: ConnectionMode.streaming,
       );
     }
@@ -433,7 +440,7 @@ class TestApiImpl extends SdkTestApi {
     // Present but empty (or useDefaultDataSystem): FDv2 with built-in
     // modes.
     return (
-      config: DataSystemConfig(),
+      config: DataSystemConfig(usePost: usePost),
       initialConnectionMode: ConnectionMode.streaming,
     );
   }

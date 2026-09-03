@@ -4,23 +4,31 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/built_in_modes.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/data_system.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/mode_definition.dart';
 import 'package:launchdarkly_common_client/src/fdv2_connection_mode.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
+import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-FDv2DataSystem makeDataSystem(
-        {DataSystemConfig config = const DataSystemConfig()}) =>
+class MockLogAdapter extends Mock implements LDLogAdapter {}
+
+FDv2DataSystem makeDataSystem({
+  DataSystemConfig config = const DataSystemConfig(),
+  bool? streamingPostSupported,
+  LDLogger? logger,
+}) =>
     FDv2DataSystem(
       config: config,
       credential: 'the-credential',
-      logger: LDLogger(level: LDLogLevel.none),
+      logger: logger ?? LDLogger(level: LDLogLevel.none),
       httpProperties: HttpProperties(),
       serviceEndpoints: ServiceEndpoints(),
       withReasons: false,
       defaultPollingInterval: const Duration(seconds: 300),
       statusManager: DataSourceStatusManager(),
       cachedFlagsReader: (_) async => null,
+      streamingPostSupported: streamingPostSupported,
     );
 
 LDContext _context() => LDContextBuilder().kind('user', 'bob').build();
@@ -89,5 +97,93 @@ void main() {
     });
     final factories = makeDataSystem(config: config).buildFactories();
     expect(factories.keys, hasLength(4));
+  });
+
+  test('usePost is off by default', () {
+    expect(const DataSystemConfig().usePost, isFalse);
+  });
+
+  group('usePost on a platform whose streaming transport cannot POST', () {
+    setUpAll(() {
+      registerFallbackValue(LDLogRecord(
+          level: LDLogLevel.debug,
+          message: '',
+          time: DateTime.now(),
+          logTag: ''));
+    });
+
+    test(
+        'drops the streaming sources from the built-in streaming mode and '
+        'keeps polling', () {
+      final resolved = makeDataSystem(
+        config: const DataSystemConfig(usePost: true),
+        streamingPostSupported: false,
+      ).resolvedDefinition(ConnectionModeId.streaming);
+
+      expect(
+          resolved.synchronizers.whereType<StreamingSynchronizer>(), isEmpty);
+      expect(resolved.synchronizers.whereType<PollingSynchronizer>(),
+          hasLength(1));
+      expect(resolved.initializers,
+          hasLength(BuiltInModes.streaming.initializers.length));
+      expect(resolved.fdv1Fallback, same(BuiltInModes.streaming.fdv1Fallback));
+    });
+
+    test('drops the streaming sources from an override', () {
+      final config = DataSystemConfig(usePost: true, connectionModes: {
+        ConnectionModeId.polling: const ModeDefinition(
+          initializers: [StreamingInitializer()],
+          synchronizers: [StreamingSynchronizer(), PollingSynchronizer()],
+        ),
+      });
+
+      final resolved = makeDataSystem(
+        config: config,
+        streamingPostSupported: false,
+      ).resolvedDefinition(ConnectionModeId.polling);
+
+      expect(resolved.initializers, isEmpty);
+      expect(resolved.synchronizers.single, isA<PollingSynchronizer>());
+    });
+
+    test('logs one warning when the data system is created', () {
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+
+      makeDataSystem(
+        config: const DataSystemConfig(usePost: true),
+        streamingPostSupported: false,
+        logger: LDLogger(adapter: adapter, level: LDLogLevel.warn),
+      );
+
+      final records =
+          verify(() => adapter.log(captureAny())).captured.cast<LDLogRecord>();
+      expect(records, hasLength(1));
+      expect(records.single.level, equals(LDLogLevel.warn));
+      expect(records.single.message, contains('POST'));
+    });
+
+    test('keeps the streaming sources when the transport supports POST', () {
+      final resolved = makeDataSystem(
+        config: const DataSystemConfig(usePost: true),
+        streamingPostSupported: true,
+      ).resolvedDefinition(ConnectionModeId.streaming);
+
+      expect(resolved, same(BuiltInModes.streaming));
+    });
+
+    test('keeps the streaming sources and stays quiet when usePost is not set',
+        () {
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+
+      final resolved = makeDataSystem(
+        streamingPostSupported: false,
+        logger: LDLogger(adapter: adapter, level: LDLogLevel.debug),
+      ).resolvedDefinition(ConnectionModeId.streaming);
+
+      expect(resolved, same(BuiltInModes.streaming));
+      verifyNever(() => adapter.log(any()));
+    });
   });
 }

@@ -134,6 +134,8 @@ paths:
                           type: boolean
                         useReport:
                           type: boolean
+                        usePost:
+                          type: boolean
                     dataSystem:
                       type: object
                       additionalProperties: true
