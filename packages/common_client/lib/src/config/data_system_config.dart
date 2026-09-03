@@ -91,7 +91,9 @@ final class DataSystemConfig {
   /// context into the request path and uses GET.
   ///
   /// POST keeps the context out of the URL. This avoids URL length limits
-  /// and keeps context attributes out of request logs.
+  /// and keeps context attributes out of request logs. The FDv1 fallback
+  /// source keeps the context out of the URL the same way, with the REPORT
+  /// method that the FDv1 endpoints accept.
   ///
   /// The browser EventSource cannot send a POST request. On web the SDK
   /// skips streaming sources when this option is set and logs a warning,
