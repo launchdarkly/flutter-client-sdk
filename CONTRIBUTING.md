@@ -39,7 +39,7 @@ To run the unit tests for the SDK, run `melos run test` in the SDK repo. These t
 
 To run the SSE contract tests, run `melos run sse-contract-tests` in the SDK repo.
 
-To run the client-side contract tests, run `melos run client-contract-tests` in the SDK repo.
+To run the client-side contract tests, run `melos run client-contract-tests` (FDv1, sdk-test-harness v2) and `melos run client-contract-tests-fdv2` (FDv2, sdk-test-harness v3) in the SDK repo. CI runs both.
 
 ### Code Coverage
 

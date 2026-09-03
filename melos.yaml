@@ -43,7 +43,15 @@ scripts:
       curl -s https://raw.githubusercontent.com/launchdarkly/sse-contract-tests/v2.0.0/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -stop-service-at-end" sh
 
   client-contract-tests:
+    description: Runs the FDv1 client-side contract tests (sdk-test-harness v2).
     run: >
       cd apps/flutter_client_contract_test_service &&
       flutter test bin/contract_test_service.dart &
       cd apps/flutter_client_contract_test_service && curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/main/downloader/run.sh | VERSION=v2 PARAMS="-url http://localhost:8080 -debug -status-timeout 100 -stop-service-at-end -skip-from testharness-suppressions.txt" sh
+
+  client-contract-tests-fdv2:
+    description: Runs the FDv2 client-side contract tests (sdk-test-harness v3), as CI does.
+    run: >
+      cd apps/flutter_client_contract_test_service &&
+      flutter test bin/contract_test_service.dart &
+      cd apps/flutter_client_contract_test_service && curl -s https://raw.githubusercontent.com/launchdarkly/sdk-test-harness/v3/downloader/run.sh | VERSION=v3 PARAMS="-url http://localhost:8080 -debug -status-timeout 100 -stop-service-at-end -skip-from testharness-suppressions.txt" sh
