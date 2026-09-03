@@ -30,9 +30,13 @@ import 'source_result.dart';
 /// tier and never re-asserts the fallback directive -- every result it emits
 /// carries `fdv1Fallback: false`.
 ///
-/// FDv1 has no delta protocol, so it polls with the context in the path and
-/// each response is a complete flag set, translated to a `full` change set
-/// with no selector.
+/// FDv1 has no delta protocol, so each response is a complete flag set,
+/// translated to a `full` change set with no selector.
+///
+/// The context travels in the path with GET. When the data system is
+/// configured with usePost the context travels in the request body instead,
+/// with REPORT: the FDv1 endpoints do not accept POST, and REPORT is their
+/// body-carrying method.
 SynchronizerFactory createFdv1FallbackSynchronizerFactory(
   Fdv1FallbackConfig config,
   SourceFactoryContext ctx,
@@ -41,7 +45,7 @@ SynchronizerFactory createFdv1FallbackSynchronizerFactory(
       mergeServiceEndpoints(ctx.serviceEndpoints, config.endpoints);
   final interval = config.pollInterval ?? ctx.defaultPollingInterval;
   final pollingConfig = PollingDataSourceConfig(
-    useReport: false,
+    useReport: ctx.usePost,
     withReasons: ctx.withReasons,
     pollingInterval: interval,
   );
@@ -50,8 +54,10 @@ SynchronizerFactory createFdv1FallbackSynchronizerFactory(
     create: (SelectorGetter selectorGetter) {
       final requestor = fdv1.Requestor(
         logger: ctx.logger,
-        contextString: base64UrlEncode(utf8.encode(ctx.contextJson)),
-        method: RequestMethod.get,
+        contextString: ctx.usePost
+            ? ctx.contextJson
+            : base64UrlEncode(utf8.encode(ctx.contextJson)),
+        method: ctx.usePost ? RequestMethod.report : RequestMethod.get,
         httpProperties: ctx.httpProperties,
         credential: ctx.credential,
         endpoints: endpoints,

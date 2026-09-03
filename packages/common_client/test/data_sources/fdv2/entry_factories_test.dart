@@ -24,6 +24,7 @@ Selector _selectorGetter() => Selector.empty;
 SourceFactoryContext _testContext({
   CachedFlagsReader? reader,
   Duration? defaultPollingInterval,
+  bool usePost = false,
 }) {
   return SourceFactoryContext.fromClientConfig(
     credential: 'test-credential',
@@ -32,6 +33,7 @@ SourceFactoryContext _testContext({
     httpProperties: HttpProperties(),
     serviceEndpoints: ServiceEndpoints.custom(polling: 'https://example.test'),
     withReasons: false,
+    usePost: usePost,
     defaultPollingInterval:
         defaultPollingInterval ?? const Duration(seconds: 300),
     cachedFlagsReader: reader ?? ((_) async => null),
@@ -140,6 +142,7 @@ void main() {
             polling: 'https://poll.test', streaming: 'https://stream.test'),
         contextJson: '{"key":"test","kind":"user"}',
         withReasons: false,
+        usePost: false,
         defaultPollingInterval: const Duration(seconds: 300),
         cachedFlagsReader: (_) async => null,
       );
@@ -190,6 +193,7 @@ void main() {
             streaming: 'https://relay.test/?tag=a&tag=b'),
         contextJson: '{"key":"test","kind":"user"}',
         withReasons: false,
+        usePost: false,
         defaultPollingInterval: const Duration(seconds: 300),
         cachedFlagsReader: (_) async => null,
       );
@@ -250,6 +254,7 @@ void main() {
             ServiceEndpoints.custom(polling: 'https://example.test'),
         contextJson: '{"key":"test","kind":"user"}',
         withReasons: false,
+        usePost: false,
         defaultPollingInterval: const Duration(seconds: 300),
         cachedFlagsReader: (_) async => null,
         httpClientFactory: (props) =>
@@ -279,5 +284,107 @@ void main() {
     expect(result, isA<ChangeSetResult>());
     final cs = result as ChangeSetResult;
     expect(cs.changeSet.type, PayloadType.none);
+  });
+
+  group('usePost', () {
+    SourceFactoryContext factoryContext(
+        {required bool usePost, http.Client? mock}) {
+      return SourceFactoryContext(
+        context: _context(),
+        credential: 'the-credential',
+        logger: LDLogger(level: LDLogLevel.error),
+        httpProperties: HttpProperties(),
+        serviceEndpoints: ServiceEndpoints.custom(
+            polling: 'https://poll.test', streaming: 'https://stream.test'),
+        contextJson: '{"key":"test","kind":"user"}',
+        withReasons: false,
+        usePost: usePost,
+        defaultPollingInterval: const Duration(seconds: 300),
+        cachedFlagsReader: (_) async => null,
+        httpClientFactory: mock == null
+            ? null
+            : (props) => HttpClient(client: mock, httpProperties: props),
+      );
+    }
+
+    Future<http.Request> pollOnce({required bool usePost}) async {
+      late http.Request captured;
+      final mock = MockClient((request) async {
+        captured = request;
+        return http.Response('{"events":[]}', 200);
+      });
+      final init = createInitializerFactoryFromEntry(PollingInitializer(),
+              factoryContext(usePost: usePost, mock: mock))
+          .create(_selectorGetter);
+      await init.run();
+      return captured;
+    }
+
+    test('the polling request sends POST with the context in the body',
+        () async {
+      final request = await pollOnce(usePost: true);
+
+      expect(request.method, equals('POST'));
+      expect(request.url.path, equals('/sdk/poll/eval'));
+      expect(request.body, equals('{"key":"test","kind":"user"}'));
+      expect(request.headers['content-type'], startsWith('application/json'));
+    });
+
+    test(
+        'the polling request sends GET with the context in the path by default',
+        () async {
+      final request = await pollOnce(usePost: false);
+
+      expect(request.method, equals('GET'));
+      expect(request.url.path, startsWith('/sdk/poll/eval/'));
+      expect(request.body, isEmpty);
+    });
+
+    ({SseHttpMethod method, String? body, Uri uri}) connectStream(
+        {required bool usePost}) {
+      late SseHttpMethod capturedMethod;
+      String? capturedBody;
+      late Uri Function() capturedUriProvider;
+      final factory = createSynchronizerFactoryFromEntry(
+        StreamingSynchronizer(),
+        factoryContext(usePost: usePost),
+        sseClientFactory: ({
+          required Uri Function() uriProvider,
+          required HttpProperties httpProperties,
+          required String? body,
+          required SseHttpMethod method,
+          required EventSourceLogger logger,
+        }) {
+          capturedMethod = method;
+          capturedBody = body;
+          capturedUriProvider = uriProvider;
+          return SSEClient.testClient(uriProvider(), const {});
+        },
+      );
+      factory.create(_selectorGetter).close();
+      return (
+        method: capturedMethod,
+        body: capturedBody,
+        uri: capturedUriProvider()
+      );
+    }
+
+    test('the streaming connection uses POST with the context as the body', () {
+      final connection = connectStream(usePost: true);
+
+      expect(connection.method, equals(SseHttpMethod.post));
+      expect(connection.body, equals('{"key":"test","kind":"user"}'));
+      expect(connection.uri.path, equals('/sdk/stream/eval'));
+    });
+
+    test(
+        'the streaming connection uses GET with the context in the path by default',
+        () {
+      final connection = connectStream(usePost: false);
+
+      expect(connection.method, equals(SseHttpMethod.get));
+      expect(connection.body, isNull);
+      expect(connection.uri.path, startsWith('/sdk/stream/eval/'));
+    });
   });
 }

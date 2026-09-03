@@ -24,6 +24,10 @@ final class SourceFactoryContext {
 
   final bool withReasons;
 
+  /// Whether polling and streaming requests send the context in the request
+  /// body with POST instead of encoding it into the URL with GET.
+  final bool usePost;
+
   final Duration defaultPollingInterval;
 
   final CachedFlagsReader cachedFlagsReader;
@@ -45,6 +49,7 @@ final class SourceFactoryContext {
     required this.serviceEndpoints,
     required this.contextJson,
     required this.withReasons,
+    required this.usePost,
     required this.defaultPollingInterval,
     required this.cachedFlagsReader,
     required this.credential,
@@ -58,6 +63,7 @@ final class SourceFactoryContext {
     required HttpProperties httpProperties,
     required ServiceEndpoints serviceEndpoints,
     required bool withReasons,
+    required bool usePost,
     required Duration defaultPollingInterval,
     required CachedFlagsReader cachedFlagsReader,
     required String credential,
@@ -72,6 +78,7 @@ final class SourceFactoryContext {
       serviceEndpoints: serviceEndpoints,
       contextJson: plainContextString,
       withReasons: withReasons,
+      usePost: usePost,
       defaultPollingInterval: defaultPollingInterval,
       cachedFlagsReader: cachedFlagsReader,
       credential: credential,

@@ -1,4 +1,5 @@
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 final class TestConfig extends LDCommonConfig {
@@ -10,8 +11,11 @@ final class TestConfig extends LDCommonConfig {
       super.persistence,
       super.offline,
       super.logger,
-      super.dataSourceConfig});
+      super.dataSourceConfig,
+      super.dataSystem});
 }
+
+class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 void main() {
   test('it has valid defaults', () {
@@ -69,5 +73,55 @@ void main() {
   test('can set offline', () {
     final config = TestConfig('', AutoEnvAttributes.disabled, offline: true);
     expect(config.offline, true);
+  });
+
+  group('useReport with the FDv2 data system', () {
+    setUpAll(() {
+      registerFallbackValue(LDLogRecord(
+          level: LDLogLevel.debug,
+          message: '',
+          time: DateTime.now(),
+          logTag: ''));
+    });
+
+    LDLogger loggerWith(MockLogAdapter adapter) {
+      when(() => adapter.log(any())).thenReturn(null);
+      return LDLogger(adapter: adapter, level: LDLogLevel.debug);
+    }
+
+    test('logs a warning that the option is ignored', () {
+      final adapter = MockLogAdapter();
+
+      TestConfig('', AutoEnvAttributes.disabled,
+          logger: loggerWith(adapter),
+          dataSourceConfig: DataSourceConfig(useReport: true),
+          dataSystem: const DataSystemConfig());
+
+      final records =
+          verify(() => adapter.log(captureAny())).captured.cast<LDLogRecord>();
+      expect(records, hasLength(1));
+      expect(records.single.level, equals(LDLogLevel.warn));
+      expect(records.single.message, contains('useReport'));
+      expect(records.single.message, contains('usePost'));
+    });
+
+    test('stays quiet without the FDv2 data system', () {
+      final adapter = MockLogAdapter();
+
+      TestConfig('', AutoEnvAttributes.disabled,
+          logger: loggerWith(adapter),
+          dataSourceConfig: DataSourceConfig(useReport: true));
+
+      verifyNever(() => adapter.log(any()));
+    });
+
+    test('stays quiet when useReport is not set', () {
+      final adapter = MockLogAdapter();
+
+      TestConfig('', AutoEnvAttributes.disabled,
+          logger: loggerWith(adapter), dataSystem: const DataSystemConfig());
+
+      verifyNever(() => adapter.log(any()));
+    });
   });
 }

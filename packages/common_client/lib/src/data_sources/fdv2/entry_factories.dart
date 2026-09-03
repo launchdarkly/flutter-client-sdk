@@ -45,7 +45,6 @@ ServiceEndpoints mergeServiceEndpoints(
 /// per-call state (e.g. ETag) and cannot be safely shared across instances.
 FDv2PollingBase _buildPollingBase({
   required mode.EndpointConfig? endpoints,
-  required bool usePost,
   required SourceFactoryContext ctx,
 }) {
   final endpointsResolved =
@@ -55,7 +54,7 @@ FDv2PollingBase _buildPollingBase({
     endpoints: endpointsResolved,
     contextEncoded: base64UrlEncode(utf8.encode(ctx.contextJson)),
     contextJson: ctx.contextJson,
-    usePost: usePost,
+    usePost: ctx.usePost,
     withReasons: ctx.withReasons,
     additionalQueryParameters: ctx.additionalQueryParameters,
     httpProperties: ctx.httpProperties,
@@ -182,7 +181,6 @@ InitializerFactory createInitializerFactoryFromEntry(
         create: (SelectorGetter selectorGetter) {
           final base = _buildPollingBase(
             endpoints: e.endpoints,
-            usePost: e.usePost,
             ctx: ctx,
           );
           return FDv2PollingInitializer(
@@ -213,7 +211,6 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
         create: (SelectorGetter selectorGetter) {
           final base = _buildPollingBase(
             endpoints: e.endpoints,
-            usePost: e.usePost,
             ctx: ctx,
           );
           return FDv2PollingSynchronizer(
@@ -233,7 +230,7 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
           Uri uriProvider() => _buildStreamingUri(
                 endpoints: endpointsResolved,
                 contextEncoded: base64UrlEncode(utf8.encode(ctx.contextJson)),
-                usePost: e.usePost,
+                usePost: ctx.usePost,
                 withReasons: ctx.withReasons,
                 basis: selectorGetter(),
                 additionalQueryParameters: ctx.additionalQueryParameters,
@@ -241,15 +238,14 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
           final sseClient = sseClientFactory(
             uriProvider: uriProvider,
             httpProperties: ctx.httpProperties,
-            body: e.usePost ? ctx.contextJson : null,
-            method: e.usePost ? SseHttpMethod.post : SseHttpMethod.get,
+            body: ctx.usePost ? ctx.contextJson : null,
+            method: ctx.usePost ? SseHttpMethod.post : SseHttpMethod.get,
             logger: LDLoggerToEventSourceAdapter(ctx.logger),
           );
 
           // Legacy ping events trigger a one-shot poll.
           final pingPollingBase = _buildPollingBase(
             endpoints: e.endpoints,
-            usePost: e.usePost,
             ctx: ctx,
           );
 
