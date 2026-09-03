@@ -43,6 +43,10 @@ final class PollingConfig {
 final class DataSourceConfig {
   /// The data source will attempt to use the reporting method if possible.
   /// The default value is `false`.
+  ///
+  /// This has no effect when the FDv2 data system is enabled (a
+  /// [DataSystemConfig] is provided). In that case use
+  /// [DataSystemConfig.usePost] instead.
   bool useReport;
 
   /// Include evaluation reasons.
@@ -61,6 +65,9 @@ final class DataSourceConfig {
   /// [useReport] determines if the data source will attempt to use the
   /// REPORT http method if possible. For streaming requests on the web
   /// platform report is not supported. The default value is `false`.
+  /// This option has no effect when the FDv2 data system is enabled (a
+  /// [DataSystemConfig] is provided); use [DataSystemConfig.usePost] in
+  /// that case.
   ///
   /// [evaluationReasons] determines if the evaluation reasons should be
   /// included for flag evaluations. Flags which require reasons, such as
@@ -175,7 +182,14 @@ abstract class LDCommonConfig {
         allAttributesPrivate =
             allAttributesPrivate ?? DefaultConfig.allAttributesPrivate,
         globalPrivateAttributes = globalPrivateAttributes ?? [],
-        hooks = hooks != null ? UnmodifiableListView(List.from(hooks)) : null;
+        hooks = hooks != null ? UnmodifiableListView(List.from(hooks)) : null {
+    if (dataSystem != null && this.dataSourceConfig.useReport) {
+      this.logger.warn(
+          'useReport has no effect with the FDv2 data system and is ignored. '
+          'Set DataSystemConfig.usePost to send the evaluation context in the '
+          'request body.');
+    }
+  }
 }
 
 /// Enable / disable options for Auto Environment Attributes functionality.  When enabled, the SDK will automatically

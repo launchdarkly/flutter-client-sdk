@@ -3,6 +3,7 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
 import 'package:meta/meta.dart';
 
 import '../../config/data_system_config.dart';
+import '../../config/defaults/default_config.dart';
 import '../../config/service_endpoints.dart';
 import '../../fdv2_connection_mode.dart';
 import '../data_source_manager.dart';
@@ -33,6 +34,8 @@ final class FDv2DataSystem {
   final HttpProperties _httpProperties;
   final ServiceEndpoints _serviceEndpoints;
   final bool _withReasons;
+  final bool _usePost;
+  final bool _streamingPostSupported;
   final Duration _defaultPollingInterval;
   final DataSourceStatusManager _statusManager;
   final Map<ConnectionModeId, ModeDefinition> _connectionModeOverrides;
@@ -54,17 +57,30 @@ final class FDv2DataSystem {
     required CachedFlagsReader cachedFlagsReader,
     FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
     HttpClientFactory? httpClientFactory,
+    // Whether the platform's streaming transport can send a POST request.
+    // Defaults to the platform's capability; tests override it.
+    bool? streamingPostSupported,
   })  : _credential = credential,
         _logger = logger,
         _httpProperties = httpProperties,
         _serviceEndpoints = serviceEndpoints,
         _withReasons = withReasons,
+        _usePost = config.usePost,
+        _streamingPostSupported = streamingPostSupported ??
+            DefaultConfig.dataSourceConfig.streamingPostSupported,
         _defaultPollingInterval = defaultPollingInterval,
         _statusManager = statusManager,
         _cachedFlagsReader = cachedFlagsReader,
         _sseClientFactory = sseClientFactory,
         _httpClientFactory = httpClientFactory,
-        _connectionModeOverrides = config.connectionModes;
+        _connectionModeOverrides = config.connectionModes {
+    if (_usePost && !_streamingPostSupported) {
+      _logger.warn(
+          'The streaming transport on this platform cannot send POST requests. '
+          'Streaming sources are skipped while usePost is set, so the SDK '
+          'polls instead.');
+    }
+  }
 
   /// The built-in definition for each connection mode, before any override.
   static const Map<ConnectionModeId, ModeDefinition> _builtInDefinitions = {
@@ -75,19 +91,40 @@ final class FDv2DataSystem {
   };
 
   /// The definition for [mode]: the user's override if one was given for
-  /// it, otherwise the built-in default.
+  /// it, otherwise the built-in default, less any sources the platform
+  /// cannot run.
   ModeDefinition _resolve(ConnectionModeId mode) {
     if (_builtInDefinitions[mode] case final builtIn?) {
-      return _connectionModeOverrides[mode] ?? builtIn;
+      return _withoutUnsupportedSources(
+          _connectionModeOverrides[mode] ?? builtIn);
     }
     // Unreachable: ConnectionModeId is sealed over the built-in modes, each
     // of which has an entry above.
     throw StateError('No built-in definition for connection mode: $mode');
   }
 
+  /// Drops the streaming entries from [definition] when usePost is set
+  /// and the platform's streaming transport cannot send a POST request.
+  /// The polling entries stay, so a streaming mode polls instead.
+  ModeDefinition _withoutUnsupportedSources(ModeDefinition definition) {
+    if (!_usePost || _streamingPostSupported) {
+      return definition;
+    }
+    return ModeDefinition(
+      initializers: definition.initializers
+          .where((entry) => entry is! StreamingInitializer)
+          .toList(),
+      synchronizers: definition.synchronizers
+          .where((entry) => entry is! StreamingSynchronizer)
+          .toList(),
+      fdv1Fallback: definition.fdv1Fallback,
+    );
+  }
+
   /// The resolved definition for [mode], exposed so tests can confirm that
-  /// an override is selected over the built-in. How a definition's entries
-  /// become concrete data sources is covered by the entry-factory tests.
+  /// an override is selected over the built-in and that sources the
+  /// platform cannot run are dropped. How a definition's entries become
+  /// concrete data sources is covered by the entry-factory tests.
   @visibleForTesting
   ModeDefinition resolvedDefinition(ConnectionModeId mode) => _resolve(mode);
 
@@ -124,6 +161,7 @@ final class FDv2DataSystem {
         httpProperties: _httpProperties,
         serviceEndpoints: _serviceEndpoints,
         withReasons: _withReasons,
+        usePost: _usePost,
         defaultPollingInterval: _defaultPollingInterval,
         // The cache initializer reads persistence through this reader and
         // feeds the result into the pipeline.

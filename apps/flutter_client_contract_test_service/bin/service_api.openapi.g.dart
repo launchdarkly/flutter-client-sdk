@@ -500,6 +500,7 @@ PostSchemaConfigurationClientSide _$PostSchemaConfigurationClientSideFromJson(
               json['initialUser'] as Map<String, dynamic>),
       evaluationReasons: json['evaluationReasons'] as bool?,
       useReport: json['useReport'] as bool?,
+      usePost: json['usePost'] as bool?,
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationClientSideToJson(
@@ -516,6 +517,7 @@ Map<String, dynamic> _$PostSchemaConfigurationClientSideToJson(
   writeNotNull('initialUser', instance.initialUser);
   writeNotNull('evaluationReasons', instance.evaluationReasons);
   writeNotNull('useReport', instance.useReport);
+  writeNotNull('usePost', instance.usePost);
   return val;
 }
 

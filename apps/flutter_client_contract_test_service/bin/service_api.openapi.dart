@@ -1026,6 +1026,7 @@ class PostSchemaConfigurationClientSide implements OpenApiContent {
     this.initialUser,
     this.evaluationReasons,
     this.useReport,
+    this.usePost,
   });
 
   factory PostSchemaConfigurationClientSide.fromJson(
@@ -1055,6 +1056,12 @@ class PostSchemaConfigurationClientSide implements OpenApiContent {
     includeIfNull: false,
   )
   final bool? useReport;
+
+  @JsonKey(
+    name: 'usePost',
+    includeIfNull: false,
+  )
+  final bool? usePost;
 
   Map<String, dynamic> toJson() =>
       _$PostSchemaConfigurationClientSideToJson(this);

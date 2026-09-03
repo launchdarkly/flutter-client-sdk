@@ -18,6 +18,7 @@ SourceFactoryContext _ctx(MockClient client) =>
       httpProperties: HttpProperties(),
       serviceEndpoints: ServiceEndpoints(),
       withReasons: false,
+      usePost: false,
       defaultPollingInterval: const Duration(seconds: 300),
       cachedFlagsReader: (_) async => null,
       credential: 'the-credential',
