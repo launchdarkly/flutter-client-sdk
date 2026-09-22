@@ -86,8 +86,23 @@ final class DataSystemConfig {
   /// automatically, starting in streaming while in the foreground.
   final ConnectionModeId? initialConnectionMode;
 
+  /// Whether flag requests send the evaluation context in the request body
+  /// with the POST method. When false (the default) the SDK encodes the
+  /// context into the request path and uses GET.
+  ///
+  /// POST keeps the context out of the URL. This avoids URL length limits
+  /// and keeps context attributes out of request logs. The FDv1 fallback
+  /// source keeps the context out of the URL the same way, with the REPORT
+  /// method that the FDv1 endpoints accept.
+  ///
+  /// The browser EventSource cannot send a POST request. On web the SDK
+  /// skips streaming sources when this option is set and logs a warning,
+  /// so a mode that would stream polls instead.
+  final bool usePost;
+
   const DataSystemConfig({
     this.connectionModes = const {},
     this.initialConnectionMode,
+    this.usePost = false,
   });
 }
