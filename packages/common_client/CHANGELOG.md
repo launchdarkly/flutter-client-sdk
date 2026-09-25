@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.15.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.14.3...launchdarkly_common_client-v1.15.0) (2026-09-22)
+
+
+### Features
+
+* Support usePost for FDv2 polling and streaming requests ([#341](https://github.com/launchdarkly/flutter-client-sdk/issues/341)) ([e52ff32](https://github.com/launchdarkly/flutter-client-sdk/commit/e52ff32d326559637687e09b376e5ff8b7d89b09))
+
 ## [1.14.3](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.14.2...launchdarkly_common_client-v1.14.3) (2026-08-26)
 
 
