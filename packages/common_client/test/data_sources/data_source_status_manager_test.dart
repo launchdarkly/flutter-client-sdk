@@ -125,4 +125,25 @@ void main() {
       manager!.setErrorByKind(ErrorKind.networkError, 'bad network');
     });
   });
+
+  group('after stop', () {
+    test('it ignores state changes', () {
+      final manager = DataSourceStatusManager(stamper: () => DateTime(1));
+      manager.stop();
+      manager.setValid();
+      manager.setOffline();
+      manager.setNetworkUnavailable();
+      manager.setBackgroundDisabled();
+      expect(manager.status.state, DataSourceState.initializing);
+    });
+
+    test('it ignores errors', () {
+      final manager = DataSourceStatusManager(stamper: () => DateTime(1));
+      manager.stop();
+      manager.setErrorResponse(401, 'unauthorized');
+      manager.setErrorByKind(ErrorKind.networkError, 'bad network');
+      expect(manager.status.state, DataSourceState.initializing);
+      expect(manager.status.lastError, isNull);
+    });
+  });
 }

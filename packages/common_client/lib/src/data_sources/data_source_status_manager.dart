@@ -11,6 +11,7 @@ final class DataSourceStatusManager {
   DataSourceStatusErrorInfo? _errorInfo;
   DateTime _stateSince;
   final DateTime Function() _stamper;
+  bool _stopped = false;
 
   DataSourceStatus get status {
     return DataSourceStatus(
@@ -33,6 +34,9 @@ final class DataSourceStatusManager {
         _stamper = stamper;
 
   void _updateState(DataSourceState requestedState, {bool isError = false}) {
+    if (_stopped) {
+      return;
+    }
     // While initializing the state remains initializing if the desired
     // transition is interrupted.
     final newState = requestedState == DataSourceState.interrupted &&
@@ -85,6 +89,9 @@ final class DataSourceStatusManager {
   /// [DataSourceState.interrupted].
   void setErrorResponse(num statusCode, String message,
       {bool shutdown = false}) {
+    if (_stopped) {
+      return;
+    }
     _errorInfo = DataSourceStatusErrorInfo(
         kind: ErrorKind.errorResponse,
         statusCode: statusCode,
@@ -101,6 +108,9 @@ final class DataSourceStatusManager {
   /// [DataSourceState.shutdown] otherwise it will be
   /// [DataSourceState.interrupted].
   void setErrorByKind(ErrorKind kind, String message, {bool shutdown = false}) {
+    if (_stopped) {
+      return;
+    }
     _errorInfo = DataSourceStatusErrorInfo(
         kind: kind, statusCode: null, message: message, time: _stamper());
     _updateState(
@@ -108,8 +118,11 @@ final class DataSourceStatusManager {
         isError: true);
   }
 
-  /// Shutdown the manager closing the changes stream.
+  /// Shutdown the manager closing the changes stream. The manager ignores
+  /// every update after this, because a data source can still finish work
+  /// that started before the close.
   void stop() {
+    _stopped = true;
     _controller.close();
   }
 }
