@@ -536,6 +536,17 @@ void main() {
       expect(identifyCompleter.isCompleted, isFalse);
     });
 
+    test('an unchanged poll that arrives after stop does not set valid',
+        () async {
+      dataSource.controller.add(
+          PayloadEvent(const ChangeSet(type: PayloadType.none, updates: {})));
+      manager.stop();
+      await pumpEventQueue();
+
+      expect(statusManager.status.state, DataSourceState.initializing);
+      expect(identifyCompleter.isCompleted, isFalse);
+    });
+
     test('a failed FDv2 payload does not set an error', () async {
       await sendAndStop([
         PayloadEvent(const ChangeSet(

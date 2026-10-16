@@ -95,7 +95,7 @@ void main() {
     polling.start();
   });
 
-  test('permanent failure is reported for a 404', () {
+  test('a 404 is reported as an interruption', () {
     var methodCalled = false;
     final innerClient = MockClient((request) async {
       methodCalled = true;
@@ -110,7 +110,9 @@ void main() {
     expectLater(
         statusManager.changes,
         emits(DataSourceStatus(
-            state: DataSourceState.shutdown,
+            // An interruption during initialization keeps the state at
+            // initializing.
+            state: DataSourceState.initializing,
             stateSince: DateTime(1),
             lastError: DataSourceStatusErrorInfo(
                 kind: ErrorKind.errorResponse,
@@ -119,6 +121,7 @@ void main() {
                 statusCode: 404))));
 
     polling.start();
+    addTearDown(polling.stop);
   });
 
   test('it includes the content-type header for REPORT requests', () {

@@ -1,4 +1,5 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+import 'package:meta/meta.dart';
 
 import 'defaults/default_config.dart';
 
@@ -28,17 +29,34 @@ final class PollingDataSourceConfig extends DataSourceConfigBase {
   /// The current polling interval, if less than min, then the min will be used.
   final Duration pollingInterval;
 
+  /// When true, the polling interval has no minimum. Only the contract test
+  /// service sets this, so that tests can poll every few seconds. It has an
+  /// effect only when asserts are enabled, as in debug builds and tests. A
+  /// release build always applies the minimum.
+  @visibleForTesting
+  static bool ignorePollingMinimum = false;
+
   PollingDataSourceConfig(
       {Duration? pollingInterval, bool? withReasons, bool? useReport})
-      : pollingInterval = durationWithMin(
-            DefaultConfig.pollingConfig.defaultPollingInterval,
-            pollingInterval,
-            DefaultConfig.pollingConfig.minPollingInterval),
+      : pollingInterval = _resolvePollingInterval(pollingInterval),
         super(
             withReasons: withReasons ??
                 DefaultConfig.dataSourceConfig.defaultWithReasons,
             useReport:
                 useReport ?? DefaultConfig.dataSourceConfig.defaultUseReport);
+
+  static Duration _resolvePollingInterval(Duration? requested) {
+    var ignoreMinimum = false;
+    assert(() {
+      ignoreMinimum = ignorePollingMinimum;
+      return true;
+    }());
+    return ignoreMinimum
+        ? durationGreaterThanZeroWithDefault(
+            requested, DefaultConfig.pollingConfig.defaultPollingInterval)
+        : durationWithMin(DefaultConfig.pollingConfig.defaultPollingInterval,
+            requested, DefaultConfig.pollingConfig.minPollingInterval);
+  }
 }
 
 final class StreamingDataSourceConfig extends DataSourceConfigBase {

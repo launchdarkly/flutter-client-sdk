@@ -55,6 +55,12 @@ final class Requestor {
     _uri = Uri.parse(completeUrl);
   }
 
+  /// Forgets the stored ETag, so that the next request fetches a full
+  /// payload. Call this when the last payload could not be used.
+  void clearEtag() {
+    _lastEtag = null;
+  }
+
   Future<DataSourceEvent?> requestAllFlags() async {
     try {
       _logger.debug(
@@ -73,7 +79,7 @@ final class Requestor {
       // and the URL embeds the base64url-encoded context in GET mode.
       // Categorize into a fixed message and use that everywhere.
       final sanitized = _describeError(err);
-      _logger.warn('Polling request failed: $sanitized');
+      _logger.debug('Polling request failed: $sanitized');
       return StatusEvent(ErrorKind.networkError, null, sanitized);
     }
   }
@@ -100,13 +106,8 @@ final class Requestor {
 
       return DataEvent('put', res.body, environmentId: environmentId);
     }
-    if (isHttpGloballyRecoverable(res.statusCode)) {
-      return StatusEvent(ErrorKind.errorResponse, res.statusCode,
-          'Received unexpected status code: ${res.statusCode}');
-    }
     return StatusEvent(ErrorKind.errorResponse, res.statusCode,
-        'Received unexpected status code: ${res.statusCode}',
-        shutdown: true);
+        'Received unexpected status code: ${res.statusCode}');
   }
 
   String _describeError(Object err) {

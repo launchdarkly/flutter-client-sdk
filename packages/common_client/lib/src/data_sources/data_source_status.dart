@@ -3,8 +3,8 @@ enum DataSourceState {
   /// initialized.
   ///
   /// If it encounters an error that requires it to retry initialization,
-  /// the state will remain at kInitializing until it either succeeds and
-  /// becomes [valid], or permanently fails and becomes [shutdown].
+  /// the state will remain at [initializing] until it succeeds and becomes
+  /// [valid].
   initializing,
 
   /// Indicates that the data source is currently operational and has not
@@ -22,19 +22,19 @@ enum DataSourceState {
   /// In streaming mode, this means that the stream connection failed, or
   /// had to be dropped due to some other error, and will be retried after
   /// a backoff delay. In polling mode, it means that the last poll request
-  /// failed, and a new poll request will be made after the configured
-  /// polling interval.
+  /// failed, and a new poll request will be made after a backoff delay that
+  /// is never shorter than the configured polling interval.
   interrupted,
 
   /// Indicates that the application has told the SDK to stay offline.
   setOffline,
 
-  /// Indicates that the data source has been permanently shut down.
+  /// Indicates that the data source has been shut down.
   ///
-  /// This could be because it encountered an unrecoverable error (for
-  /// instance, the LaunchDarkly service rejected the SDK key; an invalid
-  /// SDK key will never become valid), or because the SDK client was
-  /// explicitly shut down.
+  /// This could be because the SDK client was explicitly shut down, or
+  /// because the data source configuration cannot work. An HTTP error or a
+  /// network error does not cause this state, because the data source keeps
+  /// retrying after those errors.
   shutdown,
 
   /// Indicates that the SDK is aware of a lack of network connectivity.
@@ -148,7 +148,7 @@ final class DataSourceStatus {
   /// [DataSourceState.valid].
   ///
   /// - For [DataSourceState.shutdown], it is the time that the data source
-  /// encountered an unrecoverable error or that the SDK was explicitly shut down.
+  /// was shut down.
   ///
   /// - For [DataSourceState.networkUnavailable] or
   /// [DataSourceState.backgroundDisabled], it is the time that the SDK switched
