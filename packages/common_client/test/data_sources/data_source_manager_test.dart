@@ -70,13 +70,42 @@ Map<FDv2ConnectionMode, DataSourceFactory> defaultFactories(
   };
 }
 
+/// Persistence whose operations wait on [gate] when it is set, then throw
+/// when [fail] is true.
+final class GatedPersistence implements Persistence {
+  Completer<void>? gate;
+  bool fail = false;
+
+  Future<void> _wait() async {
+    await gate?.future;
+    if (fail) {
+      throw Exception('persistence failed');
+    }
+  }
+
+  @override
+  Future<String?> read(String namespace, String key) async {
+    await _wait();
+    return null;
+  }
+
+  @override
+  Future<void> remove(String namespace, String key) => _wait();
+
+  @override
+  Future<void> set(String namespace, String key, String data) => _wait();
+}
+
 DataSourceManager makeManager(
     LDContext context, Map<FDv2ConnectionMode, DataSourceFactory> factories,
-    {DataSourceStatusManager? inStatusManager}) {
+    {DataSourceStatusManager? inStatusManager, Persistence? persistence}) {
   final statusManager = inStatusManager ?? DataSourceStatusManager();
   final logger = LDLogger();
-  final flagManager =
-      FlagManager(sdkKey: 'sdk-key', maxCachedContexts: 5, logger: logger);
+  final flagManager = FlagManager(
+      persistence: persistence,
+      sdkKey: 'sdk-key',
+      maxCachedContexts: 5,
+      logger: logger);
   final dataSourceEventHandler = DataSourceEventHandler(
       flagManager: flagManager, statusManager: statusManager, logger: logger);
   final manager = DataSourceManager(
@@ -445,5 +474,119 @@ void main() {
         reason: 'offline is a pipeline mode that runs its data source');
     expect(statusManager.status.state, DataSourceState.setOffline,
         reason: 'a cache load while offline must not report valid');
+  });
+
+  group('given work that completes after stop', () {
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    late DataSourceStatusManager statusManager;
+    late GatedPersistence persistence;
+    late MockDataSource dataSource;
+    late DataSourceManager manager;
+    late Completer<void> identifyCompleter;
+
+    setUp(() {
+      statusManager = DataSourceStatusManager();
+      persistence = GatedPersistence();
+      dataSource = MockDataSource(startEvents: []);
+      manager = makeManager(context, {const FDv2Streaming(): (_) => dataSource},
+          inStatusManager: statusManager, persistence: persistence);
+      identifyCompleter = Completer<void>();
+      manager.identify(context, identifyCompleter);
+    });
+
+    /// Holds persistence, sends [events], stops the manager, and then
+    /// releases persistence so the in-flight work completes.
+    Future<void> sendAndStop(List<DataSourceEvent> events,
+        {bool fail = false}) async {
+      final gate = Completer<void>();
+      persistence.gate = gate;
+      persistence.fail = fail;
+      for (final event in events) {
+        dataSource.controller.add(event);
+      }
+      await pumpEventQueue();
+      manager.stop();
+      gate.complete();
+      await pumpEventQueue();
+    }
+
+    test('a put does not set valid or complete identify', () async {
+      await sendAndStop([DataEvent('put', '{}')]);
+
+      expect(statusManager.status.state, DataSourceState.initializing);
+      expect(identifyCompleter.isCompleted, isFalse);
+    });
+
+    test('a failed put does not set an error', () async {
+      await sendAndStop([DataEvent('put', '{}')], fail: true);
+
+      expect(statusManager.status.state, DataSourceState.initializing);
+      expect(statusManager.status.lastError, isNull);
+    });
+
+    test('an FDv2 payload does not set valid or complete identify', () async {
+      await sendAndStop([
+        PayloadEvent(const ChangeSet(
+            selector: Selector(state: 'state-1', version: 1),
+            type: PayloadType.full,
+            updates: {}))
+      ]);
+
+      expect(statusManager.status.state, DataSourceState.initializing);
+      expect(identifyCompleter.isCompleted, isFalse);
+    });
+
+    test('a failed FDv2 payload does not set an error', () async {
+      await sendAndStop([
+        PayloadEvent(const ChangeSet(
+            selector: Selector(state: 'state-1', version: 1),
+            type: PayloadType.full,
+            updates: {}))
+      ], fail: true);
+
+      expect(statusManager.status.state, DataSourceState.initializing);
+      expect(statusManager.status.lastError, isNull);
+    });
+
+    for (final (verb, data) in [
+      (
+        'patch',
+        '{"key": "flag-a", "version": 2, "value": true, "variation": 1,'
+            ' "trackEvents": false}'
+      ),
+      ('delete', '{"key": "flag-a", "version": 2}'),
+    ]) {
+      test('a failed $verb does not set an error', () async {
+        // A put first makes the context active so the update reaches
+        // persistence.
+        dataSource.controller.add(DataEvent('put', '{}'));
+        await identifyCompleter.future;
+        final validSince = statusManager.status.stateSince;
+
+        await sendAndStop([DataEvent(verb, data)], fail: true);
+
+        expect(statusManager.status.state, DataSourceState.valid);
+        expect(statusManager.status.stateSince, validSince);
+        expect(statusManager.status.lastError, isNull);
+      });
+    }
+
+    test('a status event does not set an error', () async {
+      dataSource.controller.add(DataEvent('put', '{}'));
+      await identifyCompleter.future;
+      final validSince = statusManager.status.stateSince;
+
+      // The patch holds the event stream so the status event is still
+      // pending when the manager stops.
+      await sendAndStop([
+        DataEvent('patch',
+            '{"key": "flag-a", "version": 2, "value": true, "variation": 1}'),
+        StatusEvent(ErrorKind.networkError, 503, 'service unavailable'),
+      ]);
+
+      expect(statusManager.status.state, DataSourceState.valid);
+      expect(statusManager.status.stateSince, validSince);
+      expect(statusManager.status.lastError, isNull);
+    });
   });
 }
