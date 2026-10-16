@@ -8,7 +8,11 @@ final class DataEvent implements DataSourceEvent {
   final String data;
   final String? environmentId;
 
-  DataEvent(this.type, this.data, {this.environmentId});
+  /// The connection that produced this event, for a data source that opens
+  /// more than one connection. See [DataSource.restart].
+  final int? generation;
+
+  DataEvent(this.type, this.data, {this.environmentId, this.generation});
 }
 
 /// A change set with typed flag descriptors, not the FDv1 JSON string forms.
@@ -19,7 +23,11 @@ final class PayloadEvent implements DataSourceEvent {
   final ChangeSet changeSet;
   final String? environmentId;
 
-  PayloadEvent(this.changeSet, {this.environmentId});
+  /// The connection that produced this event, for a data source that opens
+  /// more than one connection. See [DataSource.restart].
+  final int? generation;
+
+  PayloadEvent(this.changeSet, {this.environmentId, this.generation});
 }
 
 final class StatusEvent implements DataSourceEvent {
@@ -51,5 +59,10 @@ abstract interface class DataSource {
 
   /// If the data source maintains a persistent connection, then drop that
   /// connection and re-establish it with any appropriate delays/backoff.
-  void restart();
+  ///
+  /// The [generation] is the connection that produced the payload that
+  /// caused the restart. A data source ignores a restart for a connection
+  /// that it has already replaced. A null [generation] means the current
+  /// connection.
+  void restart({int? generation});
 }

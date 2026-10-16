@@ -163,8 +163,11 @@ final class PollingDataSource implements DataSource {
 
   /// Records that the SDK could not apply the last payload. The data source
   /// fetches a full payload again after the retry delay.
+  ///
+  /// Polling makes one request at a time, and a restart applies only while
+  /// the last payload is pending, so the [generation] is not needed.
   @override
-  void restart() {
+  void restart({int? generation}) {
     if (_stopped || !_payloadPending) {
       return;
     }

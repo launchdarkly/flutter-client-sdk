@@ -42,7 +42,7 @@ final class MockDataSource implements DataSource {
   }
 
   @override
-  void restart() {
+  void restart({int? generation}) {
     restartCalled = true;
     Future.delayed(Duration(milliseconds: 10))
         .then((_) => controller.sink.add(DataEvent('put', '{}')));

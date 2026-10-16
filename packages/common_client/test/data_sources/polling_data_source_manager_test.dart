@@ -9,9 +9,11 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source_event_ha
 import 'package:launchdarkly_common_client/src/data_sources/data_source_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/polling_data_source.dart';
+import 'package:launchdarkly_common_client/src/data_sources/streaming_data_source.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     as ld_common;
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
 const _interval = Duration(seconds: 30);
@@ -39,6 +41,7 @@ final class _Harness {
       DataSourceStatusManager(stamper: () => DateTime(1));
   final List<http.BaseRequest> requests = [];
   final List<Duration> requestTimes = [];
+  final List<TestSseClient> sseClients = [];
   late final FlagManager flagManager;
   late final DataSourceManager manager;
   final LDContext context = LDContextBuilder().kind('user', 'test').build();
@@ -78,6 +81,20 @@ final class _Harness {
           httpProperties: HttpProperties(),
           testingInterval: _interval,
           httpClientFactory: httpClientFactory),
+      const FDv2Streaming(): (context) => StreamingDataSource(
+          credential: 'dummy-key',
+          context: context,
+          endpoints: ServiceEndpoints(),
+          logger: logger,
+          dataSourceConfig: StreamingDataSourceConfig(),
+          pollingDataSourceConfig: PollingDataSourceConfig(),
+          httpProperties: HttpProperties(),
+          httpClientFactory: httpClientFactory,
+          clientFactory: (uri, properties, body, method, logger) {
+            final sse = SSEClient.testClient(uri, {});
+            sseClients.add(sse);
+            return sse;
+          }),
     });
     manager.identify(context, Completer<void>()..future.ignore());
   }
@@ -201,6 +218,97 @@ void main() {
         expect(harness.requests, hasLength(3));
         expect(harness.statusManager.status.state, DataSourceState.valid);
         expect(harness.flagValue, isTrue);
+        harness.manager.stop();
+      });
+    });
+  });
+
+  group('ping poll', () {
+    test('a ping poll after an unusable payload fetches fresh data', () {
+      fakeAsync((async) {
+        final harness =
+            _Harness(async, mode: ConnectionMode.streaming, (index, request) {
+          if (index == 0) {
+            return _ok('not a payload', '"e1"');
+          }
+          return _hasEtag(request)
+              ? http.Response('', 304)
+              : _ok(_flagPayload, '"e2"');
+        });
+        async.flushMicrotasks();
+        harness.sseClients.last.emitEvent(MessageEvent('ping', '', null));
+        async.elapse(const Duration(seconds: 5));
+
+        // The unusable payload restarts the stream. Ping the new stream.
+        harness.sseClients.last.emitEvent(MessageEvent('ping', '', null));
+        async.flushMicrotasks();
+
+        expect(harness.requests, hasLength(2));
+        expect(_hasEtag(harness.requests[1]), isFalse);
+        expect(harness.flagValue, isTrue);
+        harness.manager.stop();
+      });
+    });
+
+    test(
+        'a rejected ping poll payload from a replaced connection clears the '
+        'ETag', () {
+      fakeAsync((async) {
+        final firstResponse = Completer<http.Response>();
+        final harness =
+            _Harness(async, mode: ConnectionMode.streaming, (index, request) {
+          if (index == 0) {
+            return firstResponse.future;
+          }
+          return _hasEtag(request)
+              ? http.Response('', 304)
+              : _ok(_flagPayload, '"e2"');
+        });
+        async.flushMicrotasks();
+
+        // The ping poll is in flight when the stream fails.
+        harness.sseClients[0].emitEvent(MessageEvent('ping', '', null));
+        async.flushMicrotasks();
+        harness.sseClients[0].emitError(error: Exception('connection reset'));
+        async.flushMicrotasks();
+
+        // The poll returns an unusable payload with an ETag, and the SDK
+        // rejects it.
+        firstResponse.complete(_ok('not a payload', '"e1"'));
+        async.flushMicrotasks();
+
+        async.elapse(const Duration(seconds: 1));
+        expect(harness.sseClients, hasLength(2));
+        harness.sseClients[1].emitEvent(MessageEvent('ping', '', null));
+        async.flushMicrotasks();
+
+        expect(harness.requests, hasLength(2));
+        expect(_hasEtag(harness.requests[1]), isFalse);
+        harness.manager.stop();
+      });
+    });
+
+    test('a 304 for a ping poll after a failure restores the valid status', () {
+      fakeAsync((async) {
+        final harness =
+            _Harness(async, mode: ConnectionMode.streaming, (index, request) {
+          return switch (index) {
+            0 => _ok(_flagPayload, '"e1"'),
+            1 => http.Response('', 503),
+            _ => http.Response('', 304),
+          };
+        });
+        async.flushMicrotasks();
+        final sse = harness.sseClients.single;
+        for (final expected in [
+          DataSourceState.valid,
+          DataSourceState.interrupted,
+          DataSourceState.valid,
+        ]) {
+          sse.emitEvent(MessageEvent('ping', '', null));
+          async.flushMicrotasks();
+          expect(harness.statusManager.status.state, expected);
+        }
         harness.manager.stop();
       });
     });

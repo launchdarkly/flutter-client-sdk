@@ -154,7 +154,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   }
 
   @override
-  void restart() {
+  void restart({int? generation}) {
     if (_closed) return;
     _logger.debug('Restart requested; recycling the active synchronizer.');
     _resolveCurrentOutcome?.call(_SynchronizerOutcome.recycle);

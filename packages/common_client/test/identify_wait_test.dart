@@ -8,8 +8,12 @@ import 'package:launchdarkly_common_client/src/config/data_source_config.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_common_client/src/data_sources/polling_data_source.dart';
+import 'package:launchdarkly_common_client/src/data_sources/streaming_data_source.dart';
+import 'package:launchdarkly_common_client/src/persistence/persistence.dart'
+    show encodePersistenceKey;
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     as ld_common;
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
 import 'mock_persistence.dart';
@@ -37,7 +41,8 @@ String _userKeyOf(http.Request request) {
 /// Makes a client that polls every step. Each context gets the statuses in
 /// [statusesByKey] in order, and the last status repeats. A 200 response
 /// carries a flag whose value is the user key.
-LDCommonClient _pollingClient(Map<String, List<int>> statusesByKey) {
+LDCommonClient _pollingClient(Map<String, List<int>> statusesByKey,
+    {Persistence? persistence}) {
   final requestsByKey = <String, int>{};
   final httpClient = MockClient((request) async {
     final key = _userKeyOf(request);
@@ -54,7 +59,7 @@ LDCommonClient _pollingClient(Map<String, List<int>> statusesByKey) {
       _TestConfig('the-sdk-key', AutoEnvAttributes.disabled,
           dataSourceConfig:
               DataSourceConfig(initialConnectionMode: ConnectionMode.polling)),
-      CommonPlatform(persistence: MockPersistence()),
+      CommonPlatform(persistence: persistence ?? MockPersistence()),
       _user('start'),
       DiagnosticSdkData(name: '', version: ''),
       dataSourceFactories: (config, logger, properties) {
@@ -88,7 +93,7 @@ final class _ScriptedDataSource implements DataSource {
   Stream<DataSourceEvent> get events => _controller.stream;
 
   @override
-  void restart() {}
+  void restart({int? generation}) {}
 
   @override
   void start() {
@@ -178,5 +183,153 @@ void main() {
     await _eventually(() => client.stringVariation('flagA', 'default') == 'b');
     expect(client.dataSourceStatus.state, DataSourceState.valid);
     await client.close();
+  });
+
+  test(
+      'a stream failure fails start, and then the reconnected stream updates '
+      'the flags', () async {
+    final sseClients = <TestSseClient>[];
+    final client = LDCommonClient(
+        _TestConfig('the-sdk-key', AutoEnvAttributes.disabled),
+        CommonPlatform(persistence: MockPersistence()),
+        _user('c'),
+        DiagnosticSdkData(name: '', version: ''),
+        dataSourceFactories: (config, logger, properties) {
+      StreamingDataSource streaming(LDContext context) => StreamingDataSource(
+          credential: 'the-sdk-key',
+          context: context,
+          endpoints: ServiceEndpoints(),
+          logger: logger,
+          dataSourceConfig: StreamingDataSourceConfig(),
+          pollingDataSourceConfig: PollingDataSourceConfig(),
+          httpProperties: properties,
+          clientFactory: (uri, properties, body, method, logger) {
+            final sse = SSEClient.testClient(uri, {});
+            sseClients.add(sse);
+            // The first connection fails. The next one sends data.
+            if (sseClients.length == 1) {
+              Timer(_step, () => sse.emitError(error: Exception('reset')));
+            } else {
+              Timer(
+                  _step,
+                  () => sse
+                      .emitEvent(MessageEvent('put', _payloadFor('c'), null)));
+            }
+            return sse;
+          });
+      return {
+        ConnectionMode.streaming: streaming,
+        ConnectionMode.polling: streaming,
+      };
+    });
+    expect(await client.start(), isFalse);
+
+    // The data source reconnects after up to 1 second.
+    await _eventually(() => client.stringVariation('flagA', 'default') == 'c');
+    expect(sseClients, hasLength(2));
+    expect(client.dataSourceStatus.state, DataSourceState.valid);
+    await client.close();
+  });
+
+  group('a context with cached flags', () {
+    /// A persistence that holds cached flags for [key]. The cached value of
+    /// flagA is 'cached'.
+    MockPersistence seeded(String key) => MockPersistence()
+      ..storage['LaunchDarkly_${encodePersistenceKey('the-sdk-key')}'] = {
+        encodePersistenceKey(key): _payloadFor('cached'),
+      };
+
+    /// Runs [body] in a zone, and returns the errors that reach the zone.
+    Future<List<Object>> uncaughtErrors(Future<void> Function() body) async {
+      final errors = <Object>[];
+      final done = Completer<void>();
+      runZonedGuarded(() {
+        body().then(done.complete, onError: done.completeError);
+      }, (error, stack) => errors.add(error));
+      await done.future;
+      return errors;
+    }
+
+    test(
+        'a stream failure after the cache load reaches no zone, and then the '
+        'stream recovers', () async {
+      final errors = await uncaughtErrors(() async {
+        final sseClients = <TestSseClient>[];
+        final client = LDCommonClient(
+            _TestConfig('the-sdk-key', AutoEnvAttributes.disabled),
+            CommonPlatform(persistence: seeded('d')),
+            _user('d'),
+            DiagnosticSdkData(name: '', version: ''),
+            dataSourceFactories: (config, logger, properties) {
+          StreamingDataSource streaming(LDContext context) =>
+              StreamingDataSource(
+                  credential: 'the-sdk-key',
+                  context: context,
+                  endpoints: ServiceEndpoints(),
+                  logger: logger,
+                  dataSourceConfig: StreamingDataSourceConfig(),
+                  pollingDataSourceConfig: PollingDataSourceConfig(),
+                  httpProperties: properties,
+                  clientFactory: (uri, properties, body, method, logger) {
+                    final sse = SSEClient.testClient(uri, {});
+                    sseClients.add(sse);
+                    // The first connection fails before any payload. The
+                    // next one sends data.
+                    if (sseClients.length == 1) {
+                      Timer(
+                          _step,
+                          () => sse.emitError(
+                              error:
+                                  SseHttpError(503, {}, recoverable: false)));
+                    } else {
+                      Timer(
+                          _step,
+                          () => sse.emitEvent(
+                              MessageEvent('put', _payloadFor('d'), null)));
+                    }
+                    return sse;
+                  });
+          return {
+            ConnectionMode.streaming: streaming,
+            ConnectionMode.polling: streaming,
+          };
+        });
+
+        expect(await client.start(), isTrue);
+        expect(client.stringVariation('flagA', 'default'), 'cached');
+
+        // A failure during initialization keeps the state at initializing,
+        // and the status reports the error.
+        await _eventually(
+            () => client.dataSourceStatus.lastError?.statusCode == 503);
+
+        await _eventually(
+            () => client.stringVariation('flagA', 'default') == 'd');
+        expect(client.dataSourceStatus.state, DataSourceState.valid);
+        await client.close();
+      });
+      expect(errors, isEmpty);
+    });
+
+    test(
+        'a polling failure after the cache load reaches no zone, and then '
+        'polling recovers', () async {
+      final errors = await uncaughtErrors(() async {
+        final client = _pollingClient({
+          'start': [503, 200],
+        }, persistence: seeded('start'));
+
+        expect(await client.start(), isTrue);
+        expect(client.stringVariation('flagA', 'default'), 'cached');
+
+        await _eventually(
+            () => client.dataSourceStatus.lastError?.statusCode == 503);
+        await _eventually(
+            () => client.stringVariation('flagA', 'default') == 'start');
+        expect(client.dataSourceStatus.state, DataSourceState.valid);
+        await client.close();
+      });
+      expect(errors, isEmpty);
+    });
   });
 }

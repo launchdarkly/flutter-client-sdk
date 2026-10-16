@@ -34,6 +34,7 @@ class TestApiImpl extends SdkTestApi {
     'client-event-source-http-errors',
     'fdv1-fallback',
     'client-use-post',
+    'retry-conformance-fdv1-streaming',
     'retry-conformance-fdv1-polling',
   ];
 

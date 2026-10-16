@@ -446,6 +446,73 @@ void main() {
       await sub.cancel();
     });
 
+    for (final (error, message) in [
+      (
+        const SseTimeoutError(SseTimeoutPhase.connect),
+        'Streaming request timed out'
+      ),
+      (
+        const SseTimeoutError(SseTimeoutPhase.read),
+        'Streaming request timed out'
+      ),
+      (
+        SseTransportError(http.ClientException('reset', Uri.parse('/x'))),
+        'Network error during streaming request'
+      ),
+      (
+        const SseContentTypeError(),
+        'Streaming response had an unexpected content type'
+      ),
+      (
+        const SseStreamClosedError(),
+        'Streaming connection closed by the server'
+      ),
+    ]) {
+      test('$error is reported as interrupted and keeps the source open',
+          () async {
+        final sse = makeSse();
+        final base = makeBase(sse);
+        final emissions = <FDv2SourceResult>[];
+        final sub = base.results.listen(emissions.add);
+        await Future<void>.delayed(Duration.zero);
+
+        sse.emitError(error: error);
+        await Future<void>.delayed(Duration.zero);
+
+        final status = emissions.single as StatusResult;
+        expect(status.state, equals(SourceState.interrupted));
+        expect(status.message, equals(message));
+        expect(sse.isClosed, isFalse);
+
+        await sub.cancel();
+      });
+
+      test('$error is logged as a warning that names the failure', () async {
+        final adapter = MockLogAdapter();
+        when(() => adapter.log(any())).thenReturn(null);
+        final sse = makeSse();
+        final base = FDv2StreamingBase(
+          sseClient: sse,
+          pingHandler: () async =>
+              FDv2SourceResults.interrupted(message: 'no ping'),
+          logger: LDLogger(adapter: adapter, level: LDLogLevel.debug),
+        );
+        final sub = base.results.listen((_) {});
+        await Future<void>.delayed(Duration.zero);
+
+        sse.emitError(error: error);
+        await Future<void>.delayed(Duration.zero);
+
+        final warnings = verify(() => adapter.log(captureAny()))
+            .captured
+            .cast<LDLogRecord>()
+            .where((record) => record.level == LDLogLevel.warn);
+        expect(warnings.map((record) => record.message), [contains(message)]);
+
+        await sub.cancel();
+      });
+    }
+
     test(
         'SSE transport error log records do not echo the request URL '
         'or any other detail of the underlying exception', () async {
