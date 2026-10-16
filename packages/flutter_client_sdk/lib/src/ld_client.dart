@@ -159,6 +159,11 @@ interface class LDClient {
   ///
   /// If [waitForNetworkResults] is true, and an error is encountered, then
   /// false may be returned even if cached values were loaded.
+  ///
+  /// A false result means that the SDK could not load flags yet. It does not
+  /// stop the SDK. The SDK keeps retrying in the background, and flags update
+  /// when data arrives. To know when that happens, listen to [flagChanges] or
+  /// [dataSourceStatusChanges].
   Future<bool> start({bool waitForNetworkResults = false}) async {
     return _client.start(waitForNetworkResults: waitForNetworkResults);
   }
@@ -209,8 +214,11 @@ interface class LDClient {
   /// it is likely that 2 total identifies would complete, the first one and the
   /// last one. The intermediates would be cancelled for performance.
   ///
-  /// [IdentifyError] this means that the identify has permanently failed. For
-  /// instance the SDK key is no longer valid.
+  /// [IdentifyError] means that the SDK encountered an error before it loaded
+  /// flags for the context. For instance, a request failed, or LaunchDarkly
+  /// rejected the credential. The SDK keeps retrying in the background, and
+  /// flags update when data arrives. To know when that happens, listen to
+  /// [flagChanges] or [dataSourceStatusChanges].
   Future<IdentifyResult> identify(LDContext context,
       {bool waitForNetworkResults = false}) async {
     return _client.identify(context,
@@ -377,8 +385,9 @@ interface class LDClient {
   /// Check if the SDK has finished initialization.
   ///
   /// This does not indicate that initialization was successful, but that it is
-  /// finished. It has either completed successfully, or encountered an
-  /// unrecoverable error.
+  /// finished. It has either completed successfully, or encountered an error
+  /// before flags were loaded. After an error, the SDK keeps retrying in the
+  /// background.
   ///
   /// Generally the future returned from [start] should be used instead or this
   /// property.

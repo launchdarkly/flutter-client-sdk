@@ -70,7 +70,9 @@ final class IdentifyComplete implements IdentifyResult {
 /// and this one has been cancelled.
 final class IdentifySuperseded implements IdentifyResult {}
 
-/// The identify operation encountered an error and will not complete.
+/// The identify operation encountered an error before flags were loaded for
+/// the context. The SDK keeps retrying in the background, and flags update
+/// when data arrives.
 final class IdentifyError implements IdentifyResult {
   /// The error which prevented the identify from completing.
   final Object error;
@@ -344,8 +346,9 @@ final class LDCommonClient {
   /// has been started, or after starting but before initialization is complete,
   /// will return default values.
   ///
-  /// If the return value is true, then the SDK has initialized, if false
-  /// then the SDK has encountered an unrecoverable error.
+  /// If the return value is true, then the SDK has initialized. If false,
+  /// then the SDK encountered an error before flags were loaded. The SDK keeps
+  /// retrying in the background, and flags update when data arrives.
   Future<bool> start({bool waitForNetworkResults = false}) {
     if (_startFuture != null) {
       return _startFuture!.then(_mapIdentifyStart);
