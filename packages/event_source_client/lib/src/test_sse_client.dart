@@ -15,6 +15,7 @@ final class TestSseClient implements SSEClient {
   final Duration readTimeout;
   final String? body;
   final SseHttpMethod httpMethod;
+  final bool autoReconnect;
   final Set<SSECapability> _capabilities;
   late final Stream<Event>? _sourceStream;
   StreamSubscription<Event>? _sourceStreamSubscription;
@@ -76,6 +77,7 @@ final class TestSseClient implements SSEClient {
     required this.readTimeout,
     required this.body,
     required this.httpMethod,
+    this.autoReconnect = true,
     Stream<Event>? sourceStream,
     Set<SSECapability>? capabilities,
   }) : _capabilities = capabilities ?? {SSECapability.requestHeaders} {

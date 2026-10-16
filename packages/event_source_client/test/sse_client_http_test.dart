@@ -148,8 +148,9 @@ void main() {
               headers: {'content-type': 'text/event-stream'});
         });
 
-        // Start listening so the SSE client conntects.
-        sseClientUnderTest.stream.listen((event) {});
+        // Start listening so the SSE client conntects. The stream ends after
+        // one event, so the client reports an error.
+        sseClientUnderTest.stream.listen((event) {}, onError: (_) {});
 
         final res = await untilCalled(() => mockClient.send(any()));
         expect((res.positionalArguments[0] as http.Request).method, method);
@@ -183,8 +184,9 @@ void main() {
           headers: {'content-type': 'text/event-stream'});
     });
 
-    // Start listening so the SSE client conntects.
-    sseClientUnderTest.stream.listen((event) {});
+    // Start listening so the SSE client conntects. The stream ends after one
+    // event, so the client reports an error.
+    sseClientUnderTest.stream.listen((event) {}, onError: (_) {});
 
     final res = await untilCalled(() => mockClient.send(any()));
     expect((res.positionalArguments[0] as http.Request).headers,

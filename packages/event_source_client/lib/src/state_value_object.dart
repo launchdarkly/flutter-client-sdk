@@ -46,6 +46,10 @@ class StateValues {
   final Backoff backoff;
   final EventSourceLogger logger;
 
+  /// When false, the state machine stops after the first failure instead of
+  /// reconnecting.
+  final bool autoReconnect;
+
   // Transient data
 
   /// The timestamp when the last active connection was established.
@@ -55,6 +59,10 @@ class StateValues {
 
   /// Headers received from the connection.
   Map<String, String>? connectHeaders;
+
+  /// Set when the owner closes the client. After that, nothing is sent to
+  /// subscribers.
+  bool closed = false;
 
   /// The URI to use for the next connection attempt.
   Uri get connectUri => uriProvider?.call() ?? uri;
@@ -75,6 +83,21 @@ class StateValues {
       this.httpMethod,
       this.resetRequest,
       this.logger,
-      {this.uriProvider})
+      {this.uriProvider,
+      this.autoReconnect = true})
       : backoff = Backoff(random);
+
+  /// Sends [event] to subscribers, unless the client is closed.
+  void emit(Event event) {
+    if (!closed) {
+      eventSink.add(event);
+    }
+  }
+
+  /// Reports [error] to subscribers, unless the client is closed.
+  void reportError(Object error) {
+    if (!closed) {
+      eventSink.addError(error);
+    }
+  }
 }
