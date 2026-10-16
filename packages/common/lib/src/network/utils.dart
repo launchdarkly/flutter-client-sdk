@@ -79,6 +79,19 @@ bool isHttpLocallyRecoverable(num status) {
   return isHttpGloballyRecoverable(status);
 }
 
+/// Classifies a failed HTTP response by its [status].
+FailureKind classifyHttpStatus(num status) => isHttpGloballyRecoverable(status)
+    ? FailureKind.normal
+    : FailureKind.unexpected;
+
+/// Returns a sentence to add to the log message for a failed request with
+/// [status], or an empty string. A 401 or a 403 usually means that the SDK
+/// credential is not correct.
+String credentialHint(num status) => status == 401 || status == 403
+    ? ' Check that the SDK credential (mobile key or client-side ID) is '
+        'correct.'
+    : '';
+
 /// Hashes the input, base64 encodes result, then sanitizes it for URL usage.
 String urlSafeSha256Hash(String input) {
   return _encodeAndSanitize(sha256.convert(utf8.encode(input)).bytes);

@@ -57,4 +57,32 @@ void main() {
     expect(result['X-LaunchDarkly-Tags'],
         'application-id/id application-name/name application-version-name/versionName');
   });
+
+  group('classifyHttpStatus', () {
+    for (final status in [400, 408, 429, 500, 503, 599, 302, 100]) {
+      test('$status is normal', () {
+        expect(classifyHttpStatus(status), FailureKind.normal);
+      });
+    }
+
+    for (final status in [401, 403, 404, 405, 413, 499]) {
+      test('$status is unexpected', () {
+        expect(classifyHttpStatus(status), FailureKind.unexpected);
+      });
+    }
+  });
+
+  group('credentialHint', () {
+    for (final status in [401, 403]) {
+      test('$status returns the hint', () {
+        expect(credentialHint(status), contains('SDK credential'));
+      });
+    }
+
+    for (final status in [404, 500]) {
+      test('$status returns an empty string', () {
+        expect(credentialHint(status), isEmpty);
+      });
+    }
+  });
 }
