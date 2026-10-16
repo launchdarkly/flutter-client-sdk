@@ -12,7 +12,14 @@ import 'src/sse_client_stub.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
 import 'src/test_sse_client.dart';
 
-export 'src/errors.dart' show SseHttpError;
+export 'src/errors.dart'
+    show
+        SseContentTypeError,
+        SseHttpError,
+        SseStreamClosedError,
+        SseTimeoutError,
+        SseTimeoutPhase,
+        SseTransportError;
 export 'src/events.dart' show Event, MessageEvent, OpenEvent;
 export 'src/test_sse_client.dart' show TestSseClient;
 export 'src/logging.dart'
@@ -65,16 +72,18 @@ enum SseHttpMethod {
 /// You can receive [Events]s by listening to the [stream] object. The SSEClient
 /// will connect when there is a nonzero number of subscribers on the [stream]
 /// and will disconnect when there are zero subscribers on the [stream].
-/// In certain cases, unrecoverable errors will be reported on the [stream] at
-/// which point the stream will be done.
 ///
-/// On `html` platforms the client is incapable of reporting unrecoverable
-/// errors: the browser's native `EventSource` exposes no HTTP status codes
-/// or response headers, so every failure is treated as recoverable and
-/// retried with backoff indefinitely, and no error is ever reported on the
-/// [stream].
+/// The client reports every connection failure as an error on the [stream].
+/// The error types are [SseHttpError], [SseTimeoutError],
+/// [SseTransportError], [SseContentTypeError] and [SseStreamClosedError].
+/// A close that the owner starts is not reported.
 ///
-/// The [SSEClient] will make best effort to maintain the streaming connection.
+/// On `html` platforms the browser's native `EventSource` exposes no HTTP
+/// status codes or response headers, so every failure is reported as an
+/// [SseTransportError].
+///
+/// By default, the [SSEClient] makes best effort to maintain the streaming
+/// connection. See the `autoReconnect` parameter of the [SSEClient] factory.
 abstract class SSEClient {
   static const defaultHeaders = <String, String>{
     HttpHeaders.userAgentHeader: HttpHeaders.defaultAgentHeaderValue,
@@ -95,6 +104,9 @@ abstract class SSEClient {
   /// Request that the SSEClient drops the current connection and then
   /// establishes a new connection respecting delay/backoff as if this was
   /// an error condition with the connection.
+  ///
+  /// Has no effect on a client made with `autoReconnect: false`. To
+  /// reconnect, close that client and make a new one.
   void restart();
 
   /// Whether this implementation supports the given [capability]. Lets
@@ -142,6 +154,12 @@ abstract class SSEClient {
   /// only when no provider is given. This allows query parameters to
   /// vary between attempts (e.g. a state selector that advances as data
   /// is received). Supported on all platforms.
+  ///
+  /// An optional [autoReconnect], true by default. When true, the client
+  /// reconnects with backoff after a failure. When false, the client
+  /// reports the first failure and then stops. It does not reconnect by
+  /// itself. The owner closes it and makes a new client when it wants to
+  /// connect again. Supported on all platforms.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,
@@ -149,13 +167,23 @@ abstract class SSEClient {
       String? body,
       SseHttpMethod httpMethod = SseHttpMethod.get,
       EventSourceLogger? logger,
-      Uri Function()? uriProvider}) {
+      Uri Function()? uriProvider,
+      bool autoReconnect = true}) {
     // merge headers so consumer gets reasonable defaults
     var mergedHeaders = <String, String>{};
     mergedHeaders.addAll(defaultHeaders);
     mergedHeaders.addAll(headers);
-    return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
-        readTimeout, body, httpMethod.toString(), logger, uriProvider);
+    return getSSEClient(
+        uri,
+        eventTypes,
+        mergedHeaders,
+        connectTimeout,
+        readTimeout,
+        body,
+        httpMethod.toString(),
+        logger,
+        uriProvider,
+        autoReconnect);
   }
 
   /// Get an SSE client for use in unit tests.
@@ -176,6 +204,7 @@ abstract class SSEClient {
     Duration readTimeout = defaultReadTimeout,
     String? body,
     SseHttpMethod httpMethod = SseHttpMethod.get,
+    bool autoReconnect = true,
     Stream<Event>? sourceStream,
     Set<SSECapability>? capabilities,
   }) {
@@ -185,6 +214,7 @@ abstract class SSEClient {
         readTimeout: readTimeout,
         body: body,
         httpMethod: httpMethod,
+        autoReconnect: autoReconnect,
         sourceStream: sourceStream,
         capabilities: capabilities);
   }

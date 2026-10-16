@@ -11,12 +11,11 @@ import 'events.dart' as ld_message_event;
 /// An [SSEClient] that uses the [web.EventSource] available on most browsers for web platform support.
 ///
 /// The native `EventSource` API does not expose HTTP status codes or
-/// response headers, so this implementation is incapable of reporting
-/// terminal errors: every failure is treated as recoverable and retried
-/// with backoff indefinitely, and no error is ever reported on the
-/// [stream]. Consumers that need to react to unrecoverable statuses
-/// (e.g. invalid credentials) must detect them through a transport that
-/// can observe HTTP responses, such as a polling request.
+/// response headers, so this implementation reports every failure as an
+/// [SseTransportError]. With automatic reconnect on, every failure is
+/// retried with backoff indefinitely. With automatic reconnect off, the
+/// client closes the browser `EventSource` after the first failure and
+/// does not reconnect.
 class HtmlSseClient implements SSEClient {
   /// The underlying eventsource
   web.EventSource? _eventSource;
@@ -31,6 +30,7 @@ class HtmlSseClient implements SSEClient {
   final Uri _uri;
   final Uri Function()? _uriProvider;
   final Set<String> _eventTypes;
+  final bool _autoReconnect;
 
   int? _activeSince;
   Timer? _retryTimer;
@@ -42,10 +42,11 @@ class HtmlSseClient implements SSEClient {
   /// a provider is given. The fixed [uri] is used only when no provider
   /// is given.
   HtmlSseClient(Uri uri, Set<String> eventTypes, EventSourceLogger? logger,
-      {Uri Function()? uriProvider})
+      {Uri Function()? uriProvider, bool autoReconnect = true})
       : _uri = uri,
         _uriProvider = uriProvider,
-        _eventTypes = eventTypes {
+        _eventTypes = eventTypes,
+        _autoReconnect = autoReconnect {
     _logger = logger ?? NoOpLogger();
     _messageEventsController =
         StreamController<ld_message_event.Event>.broadcast(
@@ -82,10 +83,20 @@ class HtmlSseClient implements SSEClient {
   }
 
   void _handleError(web.Event event) {
-    // The browser event source errors are reasonably opaque, if we could
-    // determine the type of condition, then this is where we would
-    // determine if this was a temporary or permanent failure.
-    restart();
+    if (_messageEventsController.isClosed) {
+      return;
+    }
+    // The browser event source errors are opaque, so every failure is a
+    // transport failure.
+    _messageEventsController.sink
+        .addError(const SseTransportError('EventSource error'));
+    if (!_autoReconnect) {
+      // Close the browser EventSource so that it does not reconnect by
+      // itself.
+      _closeConnection();
+      return;
+    }
+    _reconnect();
   }
 
   void _handleOpen(web.Event event) {
@@ -116,6 +127,14 @@ class HtmlSseClient implements SSEClient {
 
   @override
   void restart() {
+    if (!_autoReconnect) {
+      _logger.debug('Ignoring restart, automatic reconnect is off.');
+      return;
+    }
+    _reconnect();
+  }
+
+  void _reconnect() {
     _closeConnection();
     final delay = _backoff.getRetryDelay(_activeSince);
     _activeSince = null;
@@ -147,6 +166,8 @@ SSEClient getSSEClient(
         String? body,
         String method,
         EventSourceLogger? logger,
-        Uri Function()? uriProvider) =>
+        Uri Function()? uriProvider,
+        bool autoReconnect) =>
     // dropping unsupported configuration options
-    HtmlSseClient(uri, eventTypes, logger, uriProvider: uriProvider);
+    HtmlSseClient(uri, eventTypes, logger,
+        uriProvider: uriProvider, autoReconnect: autoReconnect);

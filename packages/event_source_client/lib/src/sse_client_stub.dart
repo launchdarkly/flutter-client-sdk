@@ -10,6 +10,7 @@ SSEClient getSSEClient(
         String? body,
         String method,
         EventSourceLogger? logger,
-        Uri Function()? uriProvider) =>
+        Uri Function()? uriProvider,
+        bool autoReconnect) =>
     throw UnsupportedError(
         'LaunchDarkly SSE Client is not supported on this platform.');

@@ -9,9 +9,9 @@ import 'state_value_object.dart';
 
 /// An [SSEClient] that uses the [http.Client] for platform support.
 ///
-///  The following cases will be considered unrecoverable and the [SSEClient] will report
-///  an error on the [stream].
-/// - HTTP Status Codes other than 200, 400, 408, 429, 500 - 599 will cause an error
+/// The client reports every connection failure on the [stream]. With
+/// automatic reconnect on, these cases are not retried:
+/// - HTTP Status Codes other than 200, 400, 408, 429, 500 - 599.
 /// - Cases in which a redirect loop is detected or a redirect is malformed.
 class HttpSseClient implements SSEClient {
   static const defaultConnectTimeout = Duration(seconds: 30);
@@ -29,6 +29,8 @@ class HttpSseClient implements SSEClient {
   final StreamController<void> _resetRequest =
       StreamController<void>.broadcast();
 
+  late final StateValues _stateValues;
+
   /// Creates an instance of an SSEClient that will connect in the future
   /// to the [uri].
   HttpSseClient(
@@ -40,7 +42,8 @@ class HttpSseClient implements SSEClient {
       String? body,
       String httpMethod,
       EventSourceLogger? logger,
-      {Uri Function()? uriProvider})
+      {Uri Function()? uriProvider,
+      bool autoReconnect = true})
       : this.internal(
             uri,
             eventTypes,
@@ -53,7 +56,8 @@ class HttpSseClient implements SSEClient {
             body,
             httpMethod,
             logger,
-            uriProvider: uriProvider);
+            uriProvider: uriProvider,
+            autoReconnect: autoReconnect);
 
   /// An internal constructor for injecting necessary dependencies for testing.
   HttpSseClient.internal(
@@ -68,16 +72,22 @@ class HttpSseClient implements SSEClient {
       String? body,
       String httpMethod,
       EventSourceLogger? logger,
-      {Uri Function()? uriProvider}) {
+      {Uri Function()? uriProvider,
+      bool autoReconnect = true}) {
     _logger = logger ?? NoOpLogger();
     _messageEventsController = StreamController<Event>.broadcast(
       // this is triggered when first listener subscribes
       onListen: () => _connectionDesiredStateController.add(true),
-      // this is triggered when last listener unsubscribes
-      onCancel: () => _connectionDesiredStateController.add(false),
+      // this is triggered when last listener unsubscribes, which also
+      // happens after close
+      onCancel: () {
+        if (!_connectionDesiredStateController.isClosed) {
+          _connectionDesiredStateController.add(false);
+        }
+      },
     );
 
-    StateIdle.run(StateValues(
+    _stateValues = StateValues(
         uri,
         eventTypes,
         headers,
@@ -92,7 +102,9 @@ class HttpSseClient implements SSEClient {
         httpMethod,
         _resetRequest.stream,
         logger ?? NoOpLogger(),
-        uriProvider: uriProvider));
+        uriProvider: uriProvider,
+        autoReconnect: autoReconnect);
+    StateIdle.run(_stateValues);
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
@@ -103,6 +115,7 @@ class HttpSseClient implements SSEClient {
   @override
   Future close() async {
     _logger.debug('Closing SSE client permanently.');
+    _stateValues.closed = true;
     _messageEventsController.close();
     _connectionDesiredStateController.close();
     _resetRequest.close();
@@ -110,6 +123,10 @@ class HttpSseClient implements SSEClient {
 
   @override
   void restart() {
+    if (!_stateValues.autoReconnect) {
+      _logger.debug('Ignoring restart, automatic reconnect is off.');
+      return;
+    }
     _logger.debug('Restarting SSE client.');
     if (_resetRequest.hasListener) {
       _resetRequest.sink.add(null);
@@ -139,7 +156,8 @@ SSEClient getSSEClient(
         String? body,
         String method,
         EventSourceLogger? logger,
-        Uri Function()? uriProvider) =>
+        Uri Function()? uriProvider,
+        bool autoReconnect) =>
     HttpSseClient(uri, eventTypes, headers, connectTimeout, readTimeout, body,
         method, logger,
-        uriProvider: uriProvider);
+        uriProvider: uriProvider, autoReconnect: autoReconnect);

@@ -3,9 +3,11 @@ import 'dart:collection';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'errors.dart';
 import 'events.dart';
 import 'state_backoff.dart';
 import 'state_idle.dart';
+import 'state_stopped.dart';
 import 'state_value_object.dart';
 import 'stateful_sse_parser.dart';
 
@@ -18,14 +20,14 @@ class StateConnected {
     // record transition to this state for testing/logging
     svo.transitionSink.add(StateConnected);
     svo.logger.debug('Transitioned to StateConnected');
-    svo.eventSink.add(OpenEvent(
+    svo.emit(OpenEvent(
         headers: svo.connectHeaders != null
             ? UnmodifiableMapView(svo.connectHeaders!)
             : null));
 
     // wait for either the stream to terminate or desired connection change to transition
     final transition = await Future.any([
-      _processStream(svo, stream),
+      _processStream(svo, client, stream),
       _monitorConnectionNoLongerDesired(svo, client),
       _monitorReset(svo, client),
     ]);
@@ -38,7 +40,7 @@ class StateConnected {
   // other errors at this point are considered recoverable.  That may not be the case
   // but the Connecting state will figure that out during the next attempt.
   static Future<Function> _processStream(
-      StateValues svo, Stream<List<int>> stream) async {
+      StateValues svo, http.Client client, Stream<List<int>> stream) async {
     var recordedActiveSince = false;
     final sseParser = StatefulSSEParser();
     try {
@@ -63,7 +65,7 @@ class StateConnected {
 
             // only emit events that have event types the sse client was configured to use
             if (svo.eventTypes.contains(event.type)) {
-              svo.eventSink.add(event);
+              svo.emit(event);
             }
           default:
             break;
@@ -71,20 +73,18 @@ class StateConnected {
       }
 
       return () {
-        svo.logger.info('Connection closed, will retry with backoff.');
-        StateBackoff.run(svo);
+        svo.logger.info('Connection closed by the server.');
+        handleFailure(svo, client, const SseStreamClosedError());
       };
     } on TimeoutException {
       return () {
-        svo.logger.info(
-            'Connection TimeoutException occurred, will retry with backoff.');
-        StateBackoff.run(svo);
+        svo.logger.info('Connection TimeoutException occurred.');
+        handleFailure(svo, client, const SseTimeoutError(SseTimeoutPhase.read));
       };
     } catch (error) {
       return () {
-        svo.logger.info(
-            'Connection error occurred, will retry with backoff. Error was: $error');
-        StateBackoff.run(svo);
+        svo.logger.info('Connection error occurred. Error was: $error');
+        handleFailure(svo, client, SseTransportError(error));
       };
     }
   }

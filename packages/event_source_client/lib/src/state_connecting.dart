@@ -5,9 +5,9 @@ import 'package:http/http.dart' as http;
 import 'error_utils.dart';
 import 'errors.dart';
 import 'http_consts.dart';
-import 'state_backoff.dart';
 import 'state_connected.dart';
 import 'state_idle.dart';
+import 'state_stopped.dart';
 import 'state_value_object.dart';
 
 /// This is the active state while we are sending the connection request to the
@@ -61,23 +61,11 @@ class StateConnecting {
         // Report every error response with its status and headers (which
         // may carry a service directive). The recoverable flag tells the
         // consumer whether we will retry on our own.
-        final recoverable =
+        final recoverable = svo.autoReconnect &&
             ErrorUtils.isHttpStatusCodeRecoverable(response.statusCode);
         final error = SseHttpError(response.statusCode, response.headers,
             recoverable: recoverable);
-        if (!recoverable) {
-          // Not retried: report the error and go idle until something
-          // changes.
-          return () => StateIdle.run(svo, errorCause: error);
-        }
-        // Retried: report the error, then back off and try again. The
-        // consumer may react (e.g. close the client) before the retry runs.
-        return () {
-          svo.logger.info(
-              'Recoverable HTTP status code ${response.statusCode}, will retry');
-          svo.eventSink.addError(error);
-          StateBackoff.run(svo);
-        };
+        return () => handleFailure(svo, client, error, retry: recoverable);
       }
 
       final isEventStream = response.headers.entries.any((e) =>
@@ -85,10 +73,10 @@ class StateConnecting {
           e.value.toLowerCase().contains(MimeTypes.textEventStream));
       if (!isEventStream) {
         // non event-stream content types are considered recoverable since it may be a service issue.
+        // The content type comes from the server, so it is not logged.
         return () {
-          svo.logger.info(
-              'Connection received non-event-stream content type, will retry with backoff.');
-          StateBackoff.run(svo);
+          svo.logger.info('Connection received non-event-stream content type.');
+          handleFailure(svo, client, const SseContentTypeError());
         };
       }
 
@@ -96,25 +84,17 @@ class StateConnecting {
 
       return () => StateConnected.run(svo, client, response.stream);
     } on TimeoutException {
-      // didn't connect in a timely manner, so backoff then we'll try again
-
-      client.close;
       return () {
-        svo.logger.info(
-            'Connection TimeoutException occurred, will retry with backoff.');
-        StateBackoff.run(svo);
+        svo.logger.info('Connection TimeoutException occurred.');
+        handleFailure(
+            svo, client, const SseTimeoutError(SseTimeoutPhase.connect));
       };
     } catch (err) {
-      client.close();
-      if (!ErrorUtils.isConnectionErrorRecoverable(err)) {
-        // go to idle relaying the error that caused us to go idle.
-        return () => StateIdle.run(svo, errorCause: err);
-      }
-
       // we err on the side of caution and say that errors are recoverable.  The worst
       // thing that happens is we retry wastefully.  The alternative of assuming
       // errors are NOT recoverable is far worse!
-      return () => StateBackoff.run(svo);
+      return () => handleFailure(svo, client, SseTransportError(err),
+          retry: ErrorUtils.isConnectionErrorRecoverable(err));
     }
   }
 
