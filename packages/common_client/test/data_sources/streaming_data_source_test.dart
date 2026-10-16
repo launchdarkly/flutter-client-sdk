@@ -507,7 +507,7 @@ void main() {
   group('stream error handling', () {
     test(
         'it emits a status event without throwing when the stream reports an '
-        'unrecoverable error', () async {
+        'error', () async {
       final controller = StreamController<Event>();
       final (dataSource, _, statusManager) =
           makeDataSourceForTest(controller.stream);
@@ -515,14 +515,14 @@ void main() {
       final statusChange = expectLater(
           statusManager.changes,
           emits(predicate<DataSourceStatus>((status) =>
-              status.lastError?.kind == ErrorKind.unknown &&
-              status.lastError?.message ==
-                  'Encountered unrecoverable error streaming')));
+              status.lastError?.kind == ErrorKind.networkError &&
+              status.lastError?.message == 'The streaming connection failed')));
 
       dataSource.start();
       controller.sink.addError(Exception('Unable to make request'));
 
       await statusChange;
+      dataSource.stop();
     });
   });
 

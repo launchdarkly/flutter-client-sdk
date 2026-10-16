@@ -19,7 +19,7 @@ final class NullDataSource implements DataSource {
   }
 
   @override
-  void restart() {
+  void restart({int? generation}) {
     // No implementation needed for null data source.
   }
 }

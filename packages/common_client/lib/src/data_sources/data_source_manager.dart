@@ -45,7 +45,7 @@ final class DataSourceManager {
   final Map<FDv2ConnectionMode, DataSourceFactory> _dataSourceFactories = {};
 
   DataSource? _activeDataSource;
-  StreamSubscription<MessageStatus?>? _subscription;
+  StreamSubscription<void>? _subscription;
   bool _stopped = false;
 
   Completer<void>? _identifyCompleter;
@@ -165,7 +165,7 @@ final class DataSourceManager {
     }
 
     _activeDataSource = _createDataSource(_activeConnectionMode);
-    _subscription = _activeDataSource?.events.asyncMap((event) async {
+    Future<MessageStatus?> handleEvent(DataSourceEvent event) async {
       // Events that arrive after a stop must not change the status or
       // complete an identify.
       if (_stopped) {
@@ -231,9 +231,22 @@ final class DataSourceManager {
                 shutdown: event.shutdown);
           }
       }
-    }).listen((status) {
-      if (status is MessageStatus && status == MessageStatus.invalidMessage) {
-        _activeDataSource?.restart();
+      return null;
+    }
+
+    _subscription = _activeDataSource?.events
+        .asyncMap((event) async => (event, await handleEvent(event)))
+        .listen((handled) {
+      final (event, status) = handled;
+      if (status == MessageStatus.invalidMessage) {
+        // The generation stops a late result from restarting a newer
+        // connection.
+        _activeDataSource?.restart(
+            generation: switch (event) {
+          DataEvent(:final generation) => generation,
+          PayloadEvent(:final generation) => generation,
+          _ => null,
+        });
       }
     });
     _activeDataSource?.start();

@@ -392,9 +392,10 @@ final class FDv2StreamingBase {
     // formats as 'ClientException: <msg>, uri=<full-url>', and in GET
     // mode the URL embeds the base64-encoded context. Only the
     // category and a synthetic stack header go to the log.
-    _logger.warn('SSE error (${err.runtimeType}); will retry');
+    final description = _describeError(err);
+    _logger.warn('$description; will retry');
     _logger.debug('SSE error stack:\n$stack');
-    _emit(FDv2SourceResults.interrupted(message: _describeError(err)));
+    _emit(FDv2SourceResults.interrupted(message: description));
   }
 
   /// Categorizes an exception surfaced on the SSE stream into a fixed
@@ -403,11 +404,18 @@ final class FDv2StreamingBase {
   /// echoes a raw http.ClientException -- whose toString carries the
   /// full request URL.
   String _describeError(Object err) {
-    if (err is TimeoutException) {
-      return 'Streaming request timed out';
-    }
-    if (err is http.ClientException) {
-      return 'Network error during streaming request';
+    switch (err) {
+      case SseTransportError(:final cause):
+        return _describeError(cause);
+      case SseTimeoutError():
+      case TimeoutException():
+        return 'Streaming request timed out';
+      case SseContentTypeError():
+        return 'Streaming response had an unexpected content type';
+      case SseStreamClosedError():
+        return 'Streaming connection closed by the server';
+      case http.ClientException():
+        return 'Network error during streaming request';
     }
     final type = err.runtimeType.toString();
     if (type.contains('Tls') || type.contains('Handshake')) {

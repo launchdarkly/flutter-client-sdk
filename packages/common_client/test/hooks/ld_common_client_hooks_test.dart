@@ -83,7 +83,7 @@ final class TestDataSourceWithEnvironmentId implements DataSource {
   Stream<DataSourceEvent> get events => _eventController.stream;
 
   @override
-  void restart() {}
+  void restart({int? generation}) {}
 
   @override
   void start() {
