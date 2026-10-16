@@ -69,9 +69,13 @@ export 'src/network/utils.dart'
     show
         Headers,
         appendPath,
+        classifyHttpStatus,
+        credentialHint,
         isHttpGloballyRecoverable,
         isHttpLocallyRecoverable,
         urlSafeSha256Hash;
+
+export 'src/retry/retry_state.dart' show RetryState, FailureKind;
 
 export 'src/async/async_single_queue.dart'
     show AsyncSingleQueue, TaskComplete, TaskShed, TaskError, TaskResult;
