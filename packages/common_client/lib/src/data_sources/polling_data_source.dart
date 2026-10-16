@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
-import 'dart:math';
 
 import '../config/data_source_config.dart';
 import 'data_source.dart';
-import 'data_source_status.dart';
+import 'fdv2/payload.dart';
 import 'requestor.dart';
 
 HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
@@ -16,12 +15,16 @@ HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
 // because the etag may not correspond to the current payload the SDK has,
 // because streaming could have been used in the interim.
 
+/// A data source that polls for flag updates.
+///
+/// Each poll is scheduled when the previous poll completes. After a
+/// successful poll, the next poll comes one polling interval later. After a
+/// failed poll, the wait comes from the [RetryState]. A payload that the SDK
+/// cannot apply is a failed poll. No failure stops the data source.
 final class PollingDataSource implements DataSource {
   final LDLogger _logger;
 
   Timer? _pollTimer;
-
-  final Stopwatch _pollStopwatch = Stopwatch();
 
   late final Duration _pollingInterval;
 
@@ -35,11 +38,14 @@ final class PollingDataSource implements DataSource {
 
   late final Requestor _requestor;
 
+  late final RetryState _retryState;
+
+  /// Set when the last poll returned a payload that the SDK has not yet
+  /// rejected. The SDK rejects a payload through [restart].
+  bool _payloadPending = false;
+
   @override
   Stream<DataSourceEvent> get events => _eventController.stream;
-
-  /// Used to track if there has been an unrecoverable error.
-  bool _permanentShutdown = false;
 
   /// The [httpClientFactory] parameter is primarily intended for testing, but it also
   /// could be used for customized clients which support functionality
@@ -60,6 +66,7 @@ final class PollingDataSource implements DataSource {
       : _logger = logger.subLogger('PollingDataSource'),
         _credential = credential {
     _pollingInterval = testingInterval ?? dataSourceConfig.pollingInterval;
+    _retryState = RetryState.polling(_pollingInterval);
 
     final method =
         dataSourceConfig.useReport ? RequestMethod.report : RequestMethod.get;
@@ -84,9 +91,12 @@ final class PollingDataSource implements DataSource {
   }
 
   Future<void> _doPoll() async {
-    _pollStopwatch.reset();
-    _pollStopwatch.start();
-
+    if (_payloadPending) {
+      // The previous payload was applied, because it was not rejected
+      // before this poll.
+      _payloadPending = false;
+      _retryState.recordSuccess();
+    }
     final event = await _requestor.requestAllFlags();
 
     if (_stopped) {
@@ -95,69 +105,76 @@ final class PollingDataSource implements DataSource {
 
     switch (event) {
       case null:
-        // No change (e.g. 304 Not Modified). Fall through to schedule
-        // the next poll -- returning here would leave the timer
-        // unset and silently stop polling after the first unchanged
-        // response.
-        break;
+        // No change (e.g. 304 Not Modified). This is a successful poll, and
+        // a change set of type none restores the valid status.
+        _retryState.recordSuccess();
+        _eventController.sink.add(_unchanged());
+        _schedulePoll(_pollingInterval);
       case DataEvent():
+        _payloadPending = true;
         _eventController.sink.add(event);
+        _schedulePoll(_pollingInterval);
       case StatusEvent():
         _eventController.sink.add(event);
-        final suffix = event.shutdown ? 'stopping polling' : 'will retry';
-        final message = event.kind == ErrorKind.errorResponse
-            ? 'received unexpected status code when polling'
-            : 'encountered error with polling request';
-        final argument = event.kind == ErrorKind.errorResponse
-            ? event.statusCode
-            : event.message;
-        _logger.error('$message: $argument, $suffix');
-        if (event.shutdown) {
-          _permanentShutdown = true;
-          stop();
-        }
+        _handleFailure(event);
       case PayloadEvent():
       case InitializedEvent():
         // The FDv1 requestor never produces FDv2 payload or lifecycle events.
         break;
     }
-
-    _schedulePoll();
   }
 
-  void _schedulePoll() {
+  void _handleFailure(StatusEvent event) {
+    if (event.statusCode case final statusCode?) {
+      final kind = classifyHttpStatus(statusCode);
+      final delay = _retryState.recordFailure(kind);
+      switch (kind) {
+        case FailureKind.unexpected:
+          _logger.error('Received unexpected status code $statusCode when '
+              'polling.${credentialHint(statusCode)} Will retry in '
+              '${delay.inMilliseconds} ms.');
+        case FailureKind.normal:
+          _logger.warn('Received status code $statusCode when polling. Will '
+              'retry in ${delay.inMilliseconds} ms.');
+      }
+      _schedulePoll(delay);
+      return;
+    }
+    final delay = _retryState.recordFailure(FailureKind.normal);
+    _logger.warn('Encountered error with polling request: ${event.message}. '
+        'Will retry in ${delay.inMilliseconds} ms.');
+    _schedulePoll(delay);
+  }
+
+  void _schedulePoll(Duration delay) {
     if (_stopped) {
       return;
     }
-    _pollStopwatch.stop();
-    final timeSincePoll = _pollStopwatch.elapsed;
-    // Calculate a delay based on the polling interval and the duration elapsed
-    // since the last poll.
-
-    // Example: If the poll took 5 seconds, and the interval is 30 seconds, then
-    // we want to poll after 25 seconds.
-    final delay = Duration(
-        milliseconds: min(
-            _pollingInterval.inMilliseconds - timeSincePoll.inMilliseconds,
-            _pollingInterval.inMilliseconds));
-
     _pollTimer = Timer(delay, _doPoll);
   }
 
   @override
   void start() {
-    if (_permanentShutdown || _stopped) {
+    if (_stopped) {
       return;
     }
-
-    _stopped = false;
     _doPoll();
   }
 
+  /// Records that the SDK could not apply the last payload. The data source
+  /// fetches a full payload again after the retry delay.
   @override
   void restart() {
-    // For polling there is no persistent connection, so this function
-    // has no effect.
+    if (_stopped || !_payloadPending) {
+      return;
+    }
+    _payloadPending = false;
+    _requestor.clearEtag();
+    _pollTimer?.cancel();
+    final delay = _retryState.recordFailure(FailureKind.normal);
+    _logger.warn('Polling response contained invalid data. Will retry in '
+        '${delay.inMilliseconds} ms.');
+    _schedulePoll(delay);
   }
 
   @override
@@ -168,3 +185,7 @@ final class PollingDataSource implements DataSource {
     _eventController.close();
   }
 }
+
+/// A change set that confirms that the SDK data is current.
+PayloadEvent _unchanged() =>
+    PayloadEvent(const ChangeSet(type: PayloadType.none, updates: {}));

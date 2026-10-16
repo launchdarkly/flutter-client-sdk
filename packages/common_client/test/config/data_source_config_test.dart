@@ -29,4 +29,45 @@ void main() {
       });
     }
   });
+
+  group('the polling interval minimum', () {
+    test('a public config uses the minimum for a shorter interval', () {
+      final config =
+          PollingDataSourceConfig(pollingInterval: const Duration(seconds: 1));
+      expect(config.pollingInterval, const Duration(minutes: 5));
+    });
+
+    test('the test hook removes the minimum when asserts are enabled', () {
+      var assertsEnabled = false;
+      assert(assertsEnabled = true);
+      expect(assertsEnabled, isTrue,
+          reason: 'the hook has an effect only when asserts are enabled');
+
+      PollingDataSourceConfig.ignorePollingMinimum = true;
+      addTearDown(() => PollingDataSourceConfig.ignorePollingMinimum = false);
+
+      final config =
+          PollingDataSourceConfig(pollingInterval: const Duration(seconds: 1));
+      expect(config.pollingInterval, const Duration(seconds: 1));
+    });
+
+    for (final interval in [Duration.zero, const Duration(seconds: -1)]) {
+      test('the test hook uses the default for an interval of $interval', () {
+        PollingDataSourceConfig.ignorePollingMinimum = true;
+        addTearDown(() => PollingDataSourceConfig.ignorePollingMinimum = false);
+
+        expect(
+            PollingDataSourceConfig(pollingInterval: interval).pollingInterval,
+            const Duration(minutes: 5));
+      });
+    }
+
+    test('the test hook keeps the default when no interval is given', () {
+      PollingDataSourceConfig.ignorePollingMinimum = true;
+      addTearDown(() => PollingDataSourceConfig.ignorePollingMinimum = false);
+
+      expect(PollingDataSourceConfig().pollingInterval,
+          const Duration(minutes: 5));
+    });
+  });
 }

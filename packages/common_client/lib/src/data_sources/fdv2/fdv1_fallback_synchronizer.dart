@@ -109,8 +109,9 @@ FDv2SourceResult _translate(DataSourceEvent? event) {
         );
       }
     case StatusEvent():
+      final statusCode = event.statusCode;
       return StatusResult(
-        state: event.shutdown
+        state: statusCode != null && !isHttpGloballyRecoverable(statusCode)
             ? SourceState.terminalError
             : SourceState.interrupted,
         message: event.message,

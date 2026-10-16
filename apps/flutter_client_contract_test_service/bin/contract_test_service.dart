@@ -6,6 +6,8 @@ import 'package:flutter/widgets.dart' as widgets;
 import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     as common;
+import 'package:launchdarkly_common_client/src/config/data_source_config.dart'
+    show PollingDataSourceConfig;
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 import 'package:openapi_base/openapi_base.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,6 +34,7 @@ class TestApiImpl extends SdkTestApi {
     'client-event-source-http-errors',
     'fdv1-fallback',
     'client-use-post',
+    'retry-conformance-fdv1-polling',
   ];
 
   static const clientUrlPrefix = '/client/';
@@ -57,6 +60,7 @@ class TestApiImpl extends SdkTestApi {
     final mappedDataSystem = _mapDataSystem(
         body.configuration?.dataSystem?.toJson(),
         usePost: body.configuration?.clientSide?.usePost ?? false);
+    final pollIntervalMs = body.configuration?.polling?.pollIntervalMs;
     final config = LDConfig(
       body.configuration?.credential ?? '',
       AutoEnvAttributes.disabled,
@@ -76,7 +80,12 @@ class TestApiImpl extends SdkTestApi {
                   ? ConnectionMode.streaming
                   : ConnectionMode.polling),
           evaluationReasons: body.configuration?.clientSide?.evaluationReasons,
-          useReport: body.configuration?.clientSide?.useReport),
+          useReport: body.configuration?.clientSide?.useReport,
+          polling: pollIntervalMs != null
+              ? PollingConfig(
+                  pollingInterval:
+                      Duration(milliseconds: pollIntervalMs.toInt()))
+              : null),
       events: EventsConfig(
           eventCapacity: body.configuration?.events?.capacity?.toInt(),
           disabled: body.configuration?.events == null,
@@ -616,6 +625,9 @@ final class _WifiConnected extends ConnectivityPlatform {
 void main() async {
   test(timeout: Timeout.none, 'Run contract tests', () async {
     ConnectivityPlatform.instance = _WifiConnected();
+    // Tests set short polling intervals and expect the SDK to use them.
+    // ignore: invalid_use_of_visible_for_testing_member
+    PollingDataSourceConfig.ignorePollingMinimum = true;
     widgets.WidgetsFlutterBinding.ensureInitialized(); // needed before mocking
     // ignore: invalid_use_of_visible_for_testing_member
     SharedPreferences.setMockInitialValues({}); // required to mock persistence
