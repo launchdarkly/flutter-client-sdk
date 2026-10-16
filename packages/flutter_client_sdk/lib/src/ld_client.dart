@@ -159,8 +159,6 @@ interface class LDClient {
   ///
   /// If [waitForNetworkResults] is true, and an error is encountered, then
   /// false may be returned even if cached values were loaded.
-  ///
-  /// If the client closes before start completes, then false is returned.
   Future<bool> start({bool waitForNetworkResults = false}) async {
     return _client.start(waitForNetworkResults: waitForNetworkResults);
   }
@@ -209,8 +207,7 @@ interface class LDClient {
   /// without waiting for the previous identify to complete, then you may get
   /// this result. For instance if you called identify 10 times rapidly, then
   /// it is likely that 2 total identifies would complete, the first one and the
-  /// last one. The intermediates would be cancelled for performance. It is
-  /// also returned when the client closes before the identify completes.
+  /// last one. The intermediates would be cancelled for performance.
   ///
   /// [IdentifyError] this means that the identify has permanently failed. For
   /// instance the SDK key is no longer valid.
@@ -390,9 +387,6 @@ interface class LDClient {
   /// Permanently shuts down the client.
   ///
   /// It's not normally necessary to explicitly shut down the client.
-  ///
-  /// A pending [start] completes with false, and a pending [identify]
-  /// completes with [IdentifySuperseded].
   Future<void> close() async {
     await _client.close();
     _connectionManager.dispose();

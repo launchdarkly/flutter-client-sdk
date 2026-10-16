@@ -67,8 +67,7 @@ final class IdentifyComplete implements IdentifyResult {
 }
 
 /// The identify has been superseded. Multiple identify calls were outstanding
-/// and this one has been cancelled, or the client closed before the identify
-/// completed.
+/// and this one has been cancelled.
 final class IdentifySuperseded implements IdentifyResult {}
 
 /// The identify operation encountered an error and will not complete.
@@ -241,7 +240,6 @@ final class LDCommonClient {
   bool _networkAvailable = true;
 
   Completer<IdentifyResult>? _startCompleter;
-  final Completer<void> _closed = Completer();
   Future<IdentifyResult>? _startFuture;
 
   Stream<DataSourceStatus> get dataSourceStatusChanges {
@@ -360,13 +358,13 @@ final class LDCommonClient {
     // The setup of modifiers and other items must be done in the identify
     // queue to ensure that identifies cannot be done without those items
     // having been set resulting in a crash.
-    _untilClosed(_identifyQueue.execute(() async {
+    _identifyQueue.execute(() async {
       await _startInternal();
 
       await _identifyInternal(_initialUndecoratedContext, (cb) {
         afterIdentify = cb;
       }, waitForNetworkResults: waitForNetworkResults);
-    })).then((res) {
+    }).then((res) {
       final identifyResult = _mapIdentifyResult(res);
       afterIdentify?.call(identifyResult);
       _startCompleter!.complete(identifyResult);
@@ -379,9 +377,15 @@ final class LDCommonClient {
     switch (result) {
       case IdentifyComplete():
         return true;
-      // The queue always runs the start identify, so it is superseded only
-      // when the client closes before it completes.
       case IdentifySuperseded():
+        // This case does not happen because of the queue configuration. First
+        // item in the queue will always be the start identify and it will
+        // always be executed.
+        _logger.error(
+            'Identify was superseded, this represents a logic error in the SDK '
+            'implementation. Please file a bug report.');
+        continue error; // Simulate fallthrough.
+      error:
       case IdentifyError():
         return false;
     }
@@ -533,19 +537,15 @@ final class LDCommonClient {
       return IdentifyError(Exception(message));
     }
     Function(IdentifyResult)? afterRunner;
-    final res = await _untilClosed(_identifyQueue.execute(() async {
+    final res = await _identifyQueue.execute(() async {
       await _identifyInternal(context, (cb) {
         afterRunner = cb;
       }, waitForNetworkResults: waitForNetworkResults);
-    }));
+    });
     final identifyResult = _mapIdentifyResult(res);
     afterRunner?.call(identifyResult);
     return identifyResult;
   }
-
-  /// Completes with [TaskShed] if the client closes before [task] completes.
-  Future<TaskResult<void>> _untilClosed(Future<TaskResult<void>> task) =>
-      Future.any([task, _closed.future.then((_) => TaskShed<void>())]);
 
   IdentifyResult _mapIdentifyResult(TaskResult<void> res) {
     switch (res) {
@@ -957,13 +957,7 @@ final class LDCommonClient {
   /// Permanently shuts down the client.
   ///
   /// It's not normally necessary to explicitly shut down the client.
-  ///
-  /// A pending [start] completes with false, and a pending [identify]
-  /// completes with [IdentifySuperseded].
   Future<void> close() async {
-    if (!_closed.isCompleted) {
-      _closed.complete();
-    }
     await _eventProcessor?.flush();
     _eventProcessor?.stop();
     _dataSourceManager.stop();

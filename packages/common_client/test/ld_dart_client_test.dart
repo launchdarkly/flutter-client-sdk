@@ -51,25 +51,6 @@ final class TestDataSource implements DataSource {
   }
 }
 
-/// A data source that never sends events.
-final class SilentDataSource implements DataSource {
-  final StreamController<DataSourceEvent> _eventController = StreamController();
-
-  @override
-  Stream<DataSourceEvent> get events => _eventController.stream;
-
-  @override
-  void restart() {}
-
-  @override
-  void start() {}
-
-  @override
-  void stop() {
-    _eventController.close();
-  }
-}
-
 void main() {
   group('given an offline client', () {
     late LDCommonClient client;
@@ -310,70 +291,6 @@ void main() {
       await client.start(waitForNetworkResults: true);
       final res = client.stringVariation('flagA', 'default');
       expect(res, 'datasource');
-    });
-  });
-
-  group('given a data source that sends data only for bob', () {
-    late LDCommonClient client;
-
-    setUp(() {
-      client = LDCommonClient(
-          TestConfig('the-sdk-key', AutoEnvAttributes.disabled),
-          CommonPlatform(persistence: MockPersistence()),
-          LDContextBuilder().kind('user', 'bob').build(),
-          DiagnosticSdkData(name: '', version: ''), dataSourceFactories:
-              (LDCommonConfig config, LDLogger logger,
-                  HttpProperties properties) {
-        DataSource factory(LDContext context) => context.canonicalKey == 'bob'
-            ? TestDataSource()
-            : SilentDataSource();
-        return {
-          ConnectionMode.streaming: factory,
-          ConnectionMode.polling: factory,
-        };
-      });
-    });
-
-    test('close completes a pending identify as superseded', () async {
-      await client.start();
-      final identify =
-          client.identify(LDContextBuilder().kind('user', 'joe').build());
-
-      await client.close();
-
-      expect(await identify.timeout(const Duration(seconds: 1)),
-          isA<IdentifySuperseded>());
-    });
-
-    test('close completes a pending start with false', () async {
-      final otherClient = LDCommonClient(
-          TestConfig('the-sdk-key', AutoEnvAttributes.disabled),
-          CommonPlatform(persistence: MockPersistence()),
-          LDContextBuilder().kind('user', 'joe').build(),
-          DiagnosticSdkData(name: '', version: ''), dataSourceFactories:
-              (LDCommonConfig config, LDLogger logger,
-                  HttpProperties properties) {
-        return {
-          ConnectionMode.streaming: (_) => SilentDataSource(),
-          ConnectionMode.polling: (_) => SilentDataSource(),
-        };
-      });
-      final start = otherClient.start();
-
-      await otherClient.close();
-
-      expect(await start.timeout(const Duration(seconds: 1)), isFalse);
-    });
-
-    test('close does not change a completed identify or start', () async {
-      expect(await client.start(), isTrue);
-      expect(
-          await client.identify(LDContextBuilder().kind('user', 'bob').build()),
-          isA<IdentifyComplete>());
-
-      await client.close();
-
-      expect(await client.start(), isTrue);
     });
   });
 
