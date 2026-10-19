@@ -21,9 +21,9 @@ sealed class FDv2SourceResult {
   final bool fdv1Fallback;
 
   /// How long to remain on the fallback before retrying FDv2, when
-  /// [fdv1Fallback] is set. `null` means the server gave no time-to-live
-  /// (the caller applies its default); [Duration.zero] means remain
-  /// indefinitely with no automatic retry.
+  /// [fdv1Fallback] is set, as supplied by the server and unvalidated.
+  /// `null` means the server gave no usable time-to-live. The orchestrator
+  /// validates it and applies the default (see `resolveFallbackTtl`).
   final Duration? fdv1FallbackTtl;
 
   const FDv2SourceResult({this.fdv1Fallback = false, this.fdv1FallbackTtl});

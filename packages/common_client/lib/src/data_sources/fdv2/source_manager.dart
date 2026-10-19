@@ -186,6 +186,20 @@ final class SourceManager {
     _synchronizerIndex = -1;
   }
 
+  /// Undo [engageFdv1Fallback] once the fallback TTL elapses: return
+  /// every slot to its initial state (FDv2 synchronizers available, the
+  /// FDv1 fallback blocked) and reset the scan cursor so the next
+  /// activation selects the primary. The active source keeps running
+  /// until the next activation closes it.
+  void restoreFdv2Synchronizers() {
+    for (final slot in _synchronizerSlots) {
+      slot.state = slot.isFdv1Fallback
+          ? SynchronizerSlotState.blocked
+          : SynchronizerSlotState.available;
+    }
+    _synchronizerIndex = -1;
+  }
+
   /// True if the active synchronizer occupies the first available slot
   /// (the primary). Reads the scan cursor, so it is only meaningful
   /// while the cursor identifies the active slot (see the class

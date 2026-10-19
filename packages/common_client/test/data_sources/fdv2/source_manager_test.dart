@@ -182,6 +182,30 @@ void main() {
         reason: 'the FDv2 tier is disabled after fallback');
   });
 
+  test('restoring FDv2 re-enables the FDv2 tier and blocks FDv1', () {
+    final fdv2Created = <RecordingSynchronizer>[];
+    final fdv1Created = <RecordingSynchronizer>[];
+    final manager = _manager(slots: [
+      _slot(0, fdv2Created),
+      _slot(1, fdv1Created, isFdv1Fallback: true),
+    ]);
+
+    manager.nextAvailableSynchronizer();
+    manager.engageFdv1Fallback();
+    manager.nextAvailableSynchronizer();
+    manager.restoreFdv2Synchronizers();
+
+    expect(manager.availableSynchronizerCount, 1);
+    expect(manager.recreateCurrentSynchronizer(), isNull,
+        reason: 'the cursor is reset, so there is no current slot');
+
+    manager.nextAvailableSynchronizer();
+
+    expect(fdv2Created, hasLength(2));
+    expect(fdv1Created.single.closed, isTrue);
+    expect(manager.isPrimarySynchronizer, isTrue);
+  });
+
   test('engaging FDv1 fallback without a configured slot does nothing', () {
     final created = <RecordingSynchronizer>[];
     final manager = _manager(slots: [_slot(0, created), _slot(1, created)]);

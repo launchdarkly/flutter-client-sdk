@@ -583,7 +583,8 @@ void main() {
       final status = emissions.single as StatusResult;
       expect(status.state, SourceState.terminalError);
       expect(status.fdv1Fallback, isTrue);
-      // A zero TTL means remain on the fallback indefinitely.
+      // A zero TTL still directs fallback; the orchestrator replaces it with
+      // the default.
       expect(status.fdv1FallbackTtl, Duration.zero);
       expect(sse.isClosed, isTrue);
     });
