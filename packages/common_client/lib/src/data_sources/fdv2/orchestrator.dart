@@ -277,9 +277,12 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   Future<void> _runInitializers() async {
     var errorDuringInit = false;
     var dataReceived = false;
+    // Set when a fallback directive defers FDv2: no further initializer
+    // may contact FDv2 until the TTL elapses; the synchronizer tier waits
+    // it out.
+    var fdv2Deferred = false;
 
-    initializers:
-    while (!_closed) {
+    while (!_closed && !fdv2Deferred) {
       final initializer = _sourceManager.nextInitializer();
       if (initializer == null) {
         break;
@@ -301,9 +304,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
                 // and its first change set completes initialization.
                 return;
               case _DirectiveAction.deferRetry:
-                // FDv2 must not be contacted again until the TTL
-                // elapses; the synchronizer tier waits it out.
-                break initializers;
+                fdv2Deferred = true;
               case _DirectiveAction.none:
                 if (result.changeSet.selector.isNotEmpty) {
                   // A selector means a complete, server-versioned payload:
@@ -332,7 +333,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
             case _DirectiveAction.engageFdv1Fallback:
               return;
             case _DirectiveAction.deferRetry:
-              break initializers;
+              fdv2Deferred = true;
             case _DirectiveAction.none:
               break;
           }
