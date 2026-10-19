@@ -8,6 +8,7 @@ import '../data_source_status.dart';
 import '../data_source_status_manager.dart';
 import 'conditions.dart';
 import 'entry_factories.dart';
+import 'fallback_directive.dart';
 import 'payload.dart';
 import 'selector.dart';
 import 'source.dart';
@@ -39,13 +40,11 @@ enum _DirectiveAction {
   /// No directive present; carry on normally.
   none,
 
-  /// An FDv1 fallback tier exists and was engaged; advance to it.
-  engageFdv1Fallback,
-
-  /// The directive was received but no FDv1 fallback tier is configured.
-  /// The SDK stays interrupted and retries FDv2 after the directive's TTL
-  /// rather than removing the source.
-  deferRetry,
+  /// The server directed FDv1 fallback: the FDv2 synchronizers are
+  /// disabled (and the FDv1 fallback tier, if configured, enabled) until
+  /// the directive's TTL elapses; advance to the next available
+  /// synchronizer.
+  fallBack,
 }
 
 /// The FDv2 data source orchestrator.
@@ -68,6 +67,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   final Duration _fallbackTimeout;
   final Duration _recoveryTimeout;
   final Duration _recycleDelay;
+  final Duration Function(Duration? ttl) _fallbackTtlResolver;
   final LDLogger _logger;
 
   final StreamController<DataSourceEvent> _controller =
@@ -78,13 +78,13 @@ final class FDv2DataSourceOrchestrator implements DataSource {
   bool _emittedPayload = false;
   bool _initialized = false;
 
-  /// Default wait before retrying FDv2 after a fallback directive arrives
-  /// with no FDv1 fallback tier configured and no server-provided TTL.
-  static const Duration _defaultFallbackRetryInterval = Duration(hours: 1);
+  /// Restores the FDv2 synchronizers once a fallback directive's TTL
+  /// elapses.
+  Timer? _fdv2RecoveryTimer;
 
-  /// Overrides the next recycle delay when set (consumed once), used to
-  /// honor a fallback directive's retry TTL.
-  Duration? _pendingRetryDelay;
+  /// Completes when [_fdv2RecoveryTimer] fires, so a synchronizer loop
+  /// with nothing available can wait for FDv2 to be restored.
+  Completer<void>? _fdv2Recovered;
 
   /// Completes when [stop] is called so a long interruptible wait (e.g. a
   /// fallback retry delay) wakes promptly on shutdown.
@@ -110,6 +110,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     Duration fallbackTimeout = defaultFallbackTimeout,
     Duration recoveryTimeout = defaultRecoveryTimeout,
     Duration recycleDelay = const Duration(seconds: 1),
+    Duration Function(Duration? ttl) fallbackTtlResolver = resolveFallbackTtl,
   })  : _initializerFactories = initializerFactories,
         _synchronizerSlots = synchronizerSlots,
         _selectorUpdater = selectorUpdater,
@@ -117,6 +118,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
         _fallbackTimeout = fallbackTimeout,
         _recoveryTimeout = recoveryTimeout,
         _recycleDelay = recycleDelay,
+        _fallbackTtlResolver = fallbackTtlResolver,
         _logger = logger.subLogger('FDv2Orchestrator'),
         _cacheOnlyDataSystem = initializerFactories.isNotEmpty &&
             initializerFactories.every((f) => f.isCache) &&
@@ -144,6 +146,7 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     if (_closed) return;
     _closed = true;
     if (!_stopCompleter.isCompleted) _stopCompleter.complete();
+    _fdv2RecoveryTimer?.cancel();
     _sourceManager.close();
     // Wake the active synchronizer run so it can observe the closed
     // state.
@@ -217,45 +220,41 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     _controller.add(InitializedEvent());
   }
 
-  /// Classifies a server-directed FDv1 fallback and, for
-  /// [_DirectiveAction.engageFdv1Fallback], makes the source manager switch
-  /// tiers. The directive is ignored ([_DirectiveAction.none]) when the
-  /// FDv1 fallback synchronizer is already the active source, so it cannot
-  /// loop (the fallback source also never re-asserts the directive). When
-  /// there is no FDv1 fallback tier we defer retrying FDv2
-  /// ([_DirectiveAction.deferRetry]).
+  /// Handles a server-directed FDv1 fallback: disables the FDv2
+  /// synchronizers (enabling the FDv1 fallback tier, if configured) and
+  /// schedules their recovery after the directive's TTL. The directive is
+  /// ignored ([_DirectiveAction.none]) when the FDv1 fallback synchronizer
+  /// is already the active source, so it cannot loop (the fallback source
+  /// also never re-asserts the directive).
   _DirectiveAction _processDirective(FDv2SourceResult result) {
     if (!result.fdv1Fallback ||
         _sourceManager.isCurrentSynchronizerFdv1Fallback) {
       return _DirectiveAction.none;
     }
+    final ttl = _fallbackTtlResolver(result.fdv1FallbackTtl);
     if (_sourceManager.hasFdv1FallbackConfigured) {
       _logger.warn('Server directed fallback to FDv1; engaging the FDv1 '
-          'fallback synchronizer.');
-      _sourceManager.engageFdv1Fallback();
-      return _DirectiveAction.engageFdv1Fallback;
+          'fallback synchronizer and retrying FDv2 in ${ttl.inSeconds}s.');
+    } else {
+      _logger.warn('Server directed FDv1 fallback but no fallback tier is '
+          'configured; pausing FDv2 and retrying it in ${ttl.inSeconds}s.');
     }
-    return _DirectiveAction.deferRetry;
+    _sourceManager.engageFdv1Fallback();
+    _scheduleFdv2Recovery(ttl);
+    return _DirectiveAction.fallBack;
   }
 
-  /// Honors a fallback directive that has no FDv1 tier to engage: the SDK
-  /// stays interrupted and schedules an FDv2 retry after the directive's
-  /// TTL. A TTL of zero means remain indefinitely (no retry); an absent
-  /// TTL uses [_defaultFallbackRetryInterval].
-  void _scheduleFallbackRetry(
-      Duration? ttl, void Function(_SynchronizerOutcome) resolve) {
-    if (ttl == Duration.zero) {
-      _logger.warn('Server directed FDv1 fallback with no fallback tier '
-          'configured and an indefinite TTL; FDv2 updates are paused.');
-      resolve(_SynchronizerOutcome.stop);
-      return;
-    }
-    final delay = ttl ?? _defaultFallbackRetryInterval;
-    _logger.warn('Server directed FDv1 fallback but no fallback tier is '
-        'configured; staying interrupted and retrying FDv2 in '
-        '${delay.inSeconds}s.');
-    _pendingRetryDelay = delay;
-    resolve(_SynchronizerOutcome.recycle);
+  void _scheduleFdv2Recovery(Duration ttl) {
+    _fdv2RecoveryTimer?.cancel();
+    final recovered = Completer<void>();
+    _fdv2Recovered = recovered;
+    _fdv2RecoveryTimer = Timer(ttl, () {
+      if (_closed) return;
+      _logger.info('Fallback TTL elapsed; retrying FDv2.');
+      _sourceManager.restoreFdv2Synchronizers();
+      recovered.complete();
+      _resolveCurrentOutcome?.call(_SynchronizerOutcome.recover);
+    });
   }
 
   /// Waits [d], returning early if the orchestrator is stopped so a long
@@ -283,16 +282,15 @@ final class FDv2DataSourceOrchestrator implements DataSource {
             dataReceived = true;
 
             switch (_processDirective(result)) {
-              case _DirectiveAction.engageFdv1Fallback:
+              case _DirectiveAction.fallBack:
                 // Data received but the server directed FDv1 fallback;
-                // move on to synchronizers where the fallback tier runs
-                // and its first change set completes initialization.
+                // move on to synchronizers. The FDv1 tier's first change
+                // set completes initialization; without one, this data
+                // does.
+                if (!_sourceManager.hasFdv1FallbackConfigured) {
+                  _emitInitialized();
+                }
                 return;
-              case _DirectiveAction.deferRetry:
-                // An initializer is one-shot and cannot retry itself;
-                // let the chain exhaust and leave retry timing to the
-                // synchronizer tier.
-                break;
               case _DirectiveAction.none:
                 if (result.changeSet.selector.isNotEmpty) {
                   // A selector means a complete, server-versioned payload:
@@ -317,8 +315,10 @@ final class FDv2DataSourceOrchestrator implements DataSource {
             case SourceState.goodbye:
               break;
           }
-          if (_processDirective(result) ==
-              _DirectiveAction.engageFdv1Fallback) {
+          if (_processDirective(result) == _DirectiveAction.fallBack) {
+            if (dataReceived && !_sourceManager.hasFdv1FallbackConfigured) {
+              _emitInitialized();
+            }
             return;
           }
       }
@@ -363,18 +363,25 @@ final class FDv2DataSourceOrchestrator implements DataSource {
     while (!_closed) {
       if (recycleCurrent) {
         recycleCurrent = false;
-        final delay = _pendingRetryDelay ?? _recycleDelay;
-        _pendingRetryDelay = null;
-        if (delay > Duration.zero) {
-          await _delay(delay);
+        if (_recycleDelay > Duration.zero) {
+          await _delay(_recycleDelay);
           if (_closed) return;
         }
-        synchronizer = _sourceManager.recreateCurrentSynchronizer();
+        // The current slot may have been blocked during the delay (e.g.
+        // FDv2 was restored from the FDv1 fallback); move on instead.
+        synchronizer = _sourceManager.recreateCurrentSynchronizer() ??
+            _sourceManager.nextAvailableSynchronizer();
       } else {
         synchronizer = _sourceManager.nextAvailableSynchronizer();
       }
 
       if (synchronizer == null) {
+        // Fallback is never indefinite: with no FDv1 tier (or an unusable
+        // one), wait for FDv2 to be restored.
+        if (_fdv2Recovered case final recovered? when !recovered.isCompleted) {
+          await Future.any([recovered.future, _stopCompleter.future]);
+          continue;
+        }
         if (!_emittedPayload) {
           _halt('All FDv2 data sources exhausted without receiving data');
         } else if (_synchronizerSlots.isNotEmpty) {
@@ -461,10 +468,8 @@ final class FDv2DataSourceOrchestrator implements DataSource {
                   '${result.message ?? 'unknown error'}');
               _reportTransientError(result);
               switch (_processDirective(result)) {
-                case _DirectiveAction.engageFdv1Fallback:
+                case _DirectiveAction.fallBack:
                   resolve(_SynchronizerOutcome.advance);
-                case _DirectiveAction.deferRetry:
-                  _scheduleFallbackRetry(result.fdv1FallbackTtl, resolve);
                 case _DirectiveAction.none:
                   _sourceManager.blockCurrentSynchronizer();
                   resolve(_SynchronizerOutcome.advance);
@@ -492,13 +497,11 @@ final class FDv2DataSourceOrchestrator implements DataSource {
       }
 
       switch (_processDirective(result)) {
-        case _DirectiveAction.engageFdv1Fallback:
+        case _DirectiveAction.fallBack:
           // A change set carrying the directive (e.g. a successful stream
           // that delivered its basis then asked us to fall back) has been
           // applied above; now advance to the fallback tier.
           resolve(_SynchronizerOutcome.advance);
-        case _DirectiveAction.deferRetry:
-          _scheduleFallbackRetry(result.fdv1FallbackTtl, resolve);
         case _DirectiveAction.none:
           break;
       }

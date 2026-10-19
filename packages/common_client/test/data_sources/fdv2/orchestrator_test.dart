@@ -5,6 +5,7 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/entry_factories.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/fallback_directive.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/orchestrator.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
@@ -78,11 +79,13 @@ ChangeSetResult changeSet({
   Selector selector = Selector.empty,
   PayloadType type = PayloadType.full,
   bool fdv1Fallback = false,
+  Duration? fdv1FallbackTtl,
 }) {
   return ChangeSetResult(
     changeSet: ChangeSet(selector: selector, type: type, updates: const {}),
     persist: true,
     fdv1Fallback: fdv1Fallback,
+    fdv1FallbackTtl: fdv1FallbackTtl,
   );
 }
 
@@ -98,6 +101,7 @@ final class Harness {
     required List<SynchronizerSlot> synchronizerSlots,
     Duration fallbackTimeout = const Duration(seconds: 120),
     Duration recoveryTimeout = const Duration(seconds: 300),
+    Duration Function(Duration? ttl) fallbackTtlResolver = resolveFallbackTtl,
   }) {
     orchestrator = FDv2DataSourceOrchestrator(
       initializerFactories: initializerFactories,
@@ -112,6 +116,7 @@ final class Harness {
       fallbackTimeout: fallbackTimeout,
       recoveryTimeout: recoveryTimeout,
       recycleDelay: Duration.zero,
+      fallbackTtlResolver: fallbackTtlResolver,
     );
     subscription = orchestrator.events.listen(events.add);
   }
@@ -119,6 +124,17 @@ final class Harness {
   Future<void> pump([int times = 8]) async {
     for (var i = 0; i < times; i++) {
       await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  /// Waits, polling every millisecond, until [condition] holds.
+  Future<void> pumpUntil(bool Function() condition) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (!condition()) {
+      if (DateTime.now().isAfter(deadline)) {
+        fail('condition not met within 5s');
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 1));
     }
   }
 }
@@ -577,55 +593,223 @@ void main() {
     harness.orchestrator.stop();
   });
 
-  test(
-      'a directive with no fallback tier and no TTL does not reconnect '
-      'promptly (defaults to a long retry interval)', () async {
+  /// Resolves a fallback TTL as the SDK does, recording the result, but
+  /// scales it down by 100000 (an hour becomes 36ms) so tests can wait it
+  /// out.
+  Duration Function(Duration?) scaledResolver(List<Duration> resolved) {
+    return (ttl) {
+      final duration = resolveFallbackTtl(ttl);
+      resolved.add(duration);
+      return duration ~/ 100000;
+    };
+  }
+
+  for (final ttl in <Duration?>[
+    null,
+    Duration.zero,
+    const Duration(seconds: -1),
+    const Duration(hours: 2),
+  ]) {
+    test(
+        'a directive with no fallback tier and a TTL of ${ttl?.inSeconds}s '
+        'retries FDv2 after the jittered default', () async {
+      final fdv2Tier = <FakeSynchronizer>[];
+      final resolved = <Duration>[];
+
+      final harness = Harness(
+        initializerFactories: [],
+        synchronizerSlots: [synchronizerSlot(fdv2Tier)],
+        fallbackTtlResolver: scaledResolver(resolved),
+      );
+
+      harness.orchestrator.start();
+      await harness.pump();
+      fdv2Tier.first.controller.add(FDv2SourceResults.terminalError(
+          message: 'fall back', fdv1Fallback: true, fdv1FallbackTtl: ttl));
+      await harness.pumpUntil(() => fdv2Tier.length == 2);
+
+      expect(
+          resolved.single, greaterThanOrEqualTo(const Duration(minutes: 30)));
+      expect(resolved.single, lessThanOrEqualTo(const Duration(hours: 1)));
+      expect(harness.events.whereType<StatusEvent>(), isEmpty,
+          reason: 'the directive does not halt the data system');
+
+      harness.orchestrator.stop();
+    });
+  }
+
+  test('an FDv1 fallback returns to FDv2 after the server TTL', () async {
     final fdv2Tier = <FakeSynchronizer>[];
+    final fdv1Tier = <FakeSynchronizer>[];
+
     final harness = Harness(
       initializerFactories: [],
-      synchronizerSlots: [synchronizerSlot(fdv2Tier)],
+      synchronizerSlots: [
+        synchronizerSlot(fdv2Tier),
+        synchronizerSlot(fdv1Tier, isFdv1Fallback: true),
+      ],
     );
 
     harness.orchestrator.start();
     await harness.pump();
+    fdv2Tier.single.controller.add(FDv2SourceResults.terminalError(
+        message: 'fall back',
+        fdv1Fallback: true,
+        fdv1FallbackTtl: const Duration(milliseconds: 20)));
+    await harness.pump();
 
-    fdv2Tier.first.controller.add(FDv2SourceResults.terminalError(
-        message: 'fall back', fdv1Fallback: true));
+    expect(fdv2Tier.single.closed, isTrue);
+    expect(fdv1Tier, hasLength(1));
+
+    await harness.pumpUntil(() => fdv2Tier.length == 2);
+
+    expect(fdv1Tier.single.closed, isTrue,
+        reason: 'FDv1 stops before FDv2 resumes');
+    expect(fdv2Tier.last.closed, isFalse);
+
+    harness.orchestrator.stop();
+  });
+
+  test('an FDv1 fallback uses a valid server TTL as-is', () async {
+    final fdv2Tier = <FakeSynchronizer>[];
+    final fdv1Tier = <FakeSynchronizer>[];
+    final resolved = <Duration>[];
+
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [
+        synchronizerSlot(fdv2Tier),
+        synchronizerSlot(fdv1Tier, isFdv1Fallback: true),
+      ],
+      fallbackTtlResolver: scaledResolver(resolved),
+    );
+
+    harness.orchestrator.start();
     await harness.pump();
-    await Future<void>.delayed(const Duration(milliseconds: 80));
+    fdv2Tier.single.controller.add(FDv2SourceResults.terminalError(
+        message: 'fall back',
+        fdv1Fallback: true,
+        fdv1FallbackTtl: const Duration(seconds: 90)));
+    await harness.pumpUntil(() => fdv2Tier.length == 2);
+
+    expect(resolved.single, const Duration(seconds: 90));
+
+    harness.orchestrator.stop();
+  });
+
+  test('an FDv1 fallback with a zero TTL returns to FDv2 within an hour',
+      () async {
+    final fdv2Tier = <FakeSynchronizer>[];
+    final fdv1Tier = <FakeSynchronizer>[];
+    final resolved = <Duration>[];
+
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [
+        synchronizerSlot(fdv2Tier),
+        synchronizerSlot(fdv1Tier, isFdv1Fallback: true),
+      ],
+      fallbackTtlResolver: scaledResolver(resolved),
+    );
+
+    harness.orchestrator.start();
     await harness.pump();
+    fdv2Tier.single.controller.add(FDv2SourceResults.terminalError(
+        message: 'fall back',
+        fdv1Fallback: true,
+        fdv1FallbackTtl: Duration.zero));
+    await harness.pumpUntil(() => fdv2Tier.length == 2);
+
+    expect(resolved.single, greaterThanOrEqualTo(const Duration(minutes: 30)));
+    expect(resolved.single, lessThanOrEqualTo(const Duration(hours: 1)));
+    expect(fdv1Tier.single.closed, isTrue);
+
+    harness.orchestrator.stop();
+  });
+
+  test('an FDv1 fallback returns to FDv2 even when the FDv1 tier fails',
+      () async {
+    final fdv2Tier = <FakeSynchronizer>[];
+    final fdv1Tier = <FakeSynchronizer>[];
+
+    final harness = Harness(
+      initializerFactories: [],
+      synchronizerSlots: [
+        synchronizerSlot(fdv2Tier),
+        synchronizerSlot(fdv1Tier, isFdv1Fallback: true),
+      ],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+    fdv2Tier.single.controller.add(changeSet(
+        selector: const Selector(state: 'from-stream', version: 1),
+        fdv1Fallback: true,
+        fdv1FallbackTtl: const Duration(milliseconds: 20)));
+    await harness.pump();
+    fdv1Tier.single.controller
+        .add(FDv2SourceResults.terminalError(message: 'FDv1 failed'));
+    await harness.pumpUntil(() => fdv2Tier.length == 2);
 
     expect(harness.events.whereType<StatusEvent>(), isEmpty);
-    expect(fdv2Tier, hasLength(1),
-        reason: 'with no TTL the default retry interval is long, so no '
-            'reconnect is observed in the test window');
 
     harness.orchestrator.stop();
   });
 
   test(
-      'a directive with no fallback tier and a zero TTL pauses FDv2 with no '
-      'retry', () async {
+      'an initializer directive with no fallback tier delays the '
+      'synchronizers until the TTL elapses', () async {
     final fdv2Tier = <FakeSynchronizer>[];
+
     final harness = Harness(
-      initializerFactories: [],
+      initializerFactories: [
+        initializerFactory(changeSet(
+            selector: const Selector(state: 'from-poll', version: 1),
+            fdv1Fallback: true,
+            fdv1FallbackTtl: const Duration(milliseconds: 20))),
+      ],
       synchronizerSlots: [synchronizerSlot(fdv2Tier)],
     );
 
     harness.orchestrator.start();
     await harness.pump();
 
-    fdv2Tier.first.controller.add(FDv2SourceResults.terminalError(
-        message: 'fall back',
-        fdv1Fallback: true,
-        fdv1FallbackTtl: Duration.zero));
-    await harness.pump();
-    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(harness.events.whereType<PayloadEvent>(), hasLength(1));
+    expect(harness.events.whereType<InitializedEvent>(), hasLength(1));
+    expect(fdv2Tier, isEmpty);
+
+    await harness.pumpUntil(() => fdv2Tier.length == 1);
+
+    harness.orchestrator.stop();
+  });
+
+  test(
+      'an initializer error directive skips the remaining initializers and '
+      'enables no FDv2 synchronizer until the TTL elapses', () async {
+    final remaining = <FakeInitializer>[];
+    final fdv2Tier = <FakeSynchronizer>[];
+
+    final harness = Harness(
+      initializerFactories: [
+        initializerFactory(FDv2SourceResults.terminalError(
+            message: 'fall back',
+            fdv1Fallback: true,
+            fdv1FallbackTtl: const Duration(milliseconds: 20))),
+        initializerFactory(
+            changeSet(selector: const Selector(state: 'state-1', version: 1)),
+            created: remaining),
+      ],
+      synchronizerSlots: [synchronizerSlot(fdv2Tier)],
+    );
+
+    harness.orchestrator.start();
     await harness.pump();
 
-    expect(harness.events.whereType<StatusEvent>(), isEmpty,
-        reason: 'pausing is not a halt');
-    expect(fdv2Tier, hasLength(1), reason: 'a zero TTL means no retry');
+    expect(fdv2Tier, isEmpty);
+
+    await harness.pumpUntil(() => fdv2Tier.length == 1);
+
+    expect(remaining, isEmpty, reason: 'initializers run only once');
 
     harness.orchestrator.stop();
   });

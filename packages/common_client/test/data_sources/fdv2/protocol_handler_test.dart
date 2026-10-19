@@ -440,7 +440,7 @@ void main() {
           equals(const Duration(seconds: 60)));
     });
 
-    test('a zero protocolFallbackTTL is preserved (indefinite fallback)', () {
+    test('a zero protocolFallbackTTL still directs fallback', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
 
