@@ -206,16 +206,19 @@ void main() {
     expect(manager.isPrimarySynchronizer, isTrue);
   });
 
-  test('engaging FDv1 fallback without a configured slot does nothing', () {
+  test('engaging FDv1 fallback without a configured slot pauses FDv2', () {
     final created = <RecordingSynchronizer>[];
     final manager = _manager(slots: [_slot(0, created), _slot(1, created)]);
 
     expect(manager.hasFdv1FallbackConfigured, isFalse);
     manager.engageFdv1Fallback();
 
-    expect(manager.availableSynchronizerCount, 2,
-        reason: 'blocking every slot without unblocking a fallback would '
-            'leave nothing to activate');
+    expect(manager.availableSynchronizerCount, 0);
+    expect(manager.nextAvailableSynchronizer(), isNull);
+
+    manager.restoreFdv2Synchronizers();
+
+    expect(manager.availableSynchronizerCount, 2);
     expect(manager.nextAvailableSynchronizer(), isNotNull);
   });
 

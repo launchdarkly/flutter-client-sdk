@@ -783,6 +783,37 @@ void main() {
     harness.orchestrator.stop();
   });
 
+  test(
+      'an initializer error directive skips the remaining initializers and '
+      'enables no FDv2 synchronizer until the TTL elapses', () async {
+    final remaining = <FakeInitializer>[];
+    final fdv2Tier = <FakeSynchronizer>[];
+
+    final harness = Harness(
+      initializerFactories: [
+        initializerFactory(FDv2SourceResults.terminalError(
+            message: 'fall back',
+            fdv1Fallback: true,
+            fdv1FallbackTtl: const Duration(milliseconds: 20))),
+        initializerFactory(
+            changeSet(selector: const Selector(state: 'state-1', version: 1)),
+            created: remaining),
+      ],
+      synchronizerSlots: [synchronizerSlot(fdv2Tier)],
+    );
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    expect(fdv2Tier, isEmpty);
+
+    await harness.pumpUntil(() => fdv2Tier.length == 1);
+
+    expect(remaining, isEmpty, reason: 'initializers run only once');
+
+    harness.orchestrator.stop();
+  });
+
   test('recovery condition returns to the primary synchronizer', () async {
     final primary = <FakeSynchronizer>[];
     final secondary = <FakeSynchronizer>[];
