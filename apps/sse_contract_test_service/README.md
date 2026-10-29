@@ -8,7 +8,7 @@ like this:
 ```
 $ cd sse_contract_test_service
 $ dart pub get
-$ dart run bin/sse_contract_tests.dart
+$ dart run bin/sse_contract_test_service.dart
 Server listening on port 8080
 ```
 

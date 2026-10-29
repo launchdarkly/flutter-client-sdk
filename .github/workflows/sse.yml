@@ -1,0 +1,52 @@
+name: SSE Contract Tests
+
+on:
+  push:
+    branches: [main, 'feat/**']
+    paths-ignore:
+      - '**.md' #Do not need to run CI for markdown changes.
+  pull_request:
+    branches: [main, 'feat/**']
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  sse-contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Dart
+        uses: dart-lang/setup-dart@e51d8e571e22473a2ddebf0ef8a2123f0ab2c02c # v1
+        with:
+          sdk: '3.7.2'
+
+      - name: Install service dependencies
+        working-directory: apps/sse_contract_test_service
+        run: dart pub get
+
+      - name: Start SSE contract test service
+        working-directory: apps/sse_contract_test_service
+        run: |
+          dart run bin/sse_contract_test_service.dart > /tmp/sse-contract-test-service.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080 > /dev/null; then
+              echo "Test service is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Test service did not become ready in time"
+          cat /tmp/sse-contract-test-service.log
+          exit 1
+
+      - name: Run SSE contract tests
+        uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1
+        with:
+          repo: sse-contract-tests
+          branch: main
+          version: v2
+          test_service_port: 8080
+          enable_persistence_tests: "false"
+          debug_logging: "true"
+          token: ${{ secrets.GITHUB_TOKEN }}
