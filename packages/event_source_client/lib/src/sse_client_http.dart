@@ -118,7 +118,9 @@ class HttpSseClient implements SSEClient {
 
   @override
   bool hasCapability(SSECapability capability) =>
-      capability == SSECapability.requestHeaders;
+      capability == SSECapability.requestHeaders ||
+      capability == SSECapability.customMethod ||
+      capability == SSECapability.httpErrors;
 }
 
 /// No op sink.  Exists to accommodate unit testing.

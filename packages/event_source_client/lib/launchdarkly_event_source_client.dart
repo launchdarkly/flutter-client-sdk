@@ -10,6 +10,7 @@ import 'src/events.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
+import 'src/sse_client_http.dart' as http_client show HttpSseClient;
 import 'src/test_sse_client.dart';
 
 export 'src/errors.dart' show SseHttpError;
@@ -39,6 +40,16 @@ class SSECapability {
   /// The transport can send custom request headers. False for the
   /// browser native `EventSource` API; true for HTTP-based clients.
   static const SSECapability requestHeaders = SSECapability._('requestHeaders');
+
+  /// The transport can use an HTTP method other than `GET` and can send a
+  /// request body (`POST` or `REPORT`). False for the browser native
+  /// `EventSource` API; true for HTTP-based clients.
+  static const SSECapability customMethod = SSECapability._('customMethod');
+
+  /// The transport reports an HTTP error response on the [SSEClient.stream]
+  /// as an [SseHttpError]. False for the browser native `EventSource` API,
+  /// which exposes no status codes; true for HTTP-based clients.
+  static const SSECapability httpErrors = SSECapability._('httpErrors');
 
   @override
   String toString() => 'SSECapability.$value';
@@ -156,6 +167,34 @@ abstract class SSEClient {
     mergedHeaders.addAll(headers);
     return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
         readTimeout, body, httpMethod.toString(), logger, uriProvider);
+  }
+
+  /// Factory constructor that always returns the HTTP-based implementation,
+  /// on every platform including web.
+  ///
+  /// On web, the [SSEClient] default factory uses the browser native
+  /// `EventSource`, which cannot send a request body, an HTTP method other
+  /// than `GET`, or custom headers, and which cannot report HTTP errors.
+  /// This constructor uses `package:http`, which streams with `fetch()` in
+  /// the browser, so it supports all of these. Use it when an application
+  /// needs those features on web.
+  ///
+  /// On web, a custom header must be allowed by the CORS configuration of
+  /// the server, or the browser blocks the request.
+  ///
+  /// The arguments have the same meaning as in the default factory.
+  factory SSEClient.http(Uri uri, Set<String> eventTypes,
+      {Map<String, String> headers = defaultHeaders,
+      Duration connectTimeout = defaultConnectTimeout,
+      Duration readTimeout = defaultReadTimeout,
+      String? body,
+      SseHttpMethod httpMethod = SseHttpMethod.get,
+      EventSourceLogger? logger,
+      Uri Function()? uriProvider}) {
+    final mergedHeaders = <String, String>{...defaultHeaders, ...headers};
+    return http_client.HttpSseClient(uri, eventTypes, mergedHeaders,
+        connectTimeout, readTimeout, body, httpMethod.toString(), logger,
+        uriProvider: uriProvider);
   }
 
   /// Get an SSE client for use in unit tests.

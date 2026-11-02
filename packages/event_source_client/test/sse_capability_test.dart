@@ -9,6 +9,21 @@ void main() {
       final client = SSEClient(Uri.parse('https://example.test'), {'put'});
       try {
         expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
+        expect(client.hasCapability(SSECapability.customMethod), isTrue);
+        expect(client.hasCapability(SSECapability.httpErrors), isTrue);
+      } finally {
+        client.close();
+      }
+    });
+  });
+
+  group('SSEClient.http', () {
+    test('reports every HTTP capability as supported', () {
+      final client = SSEClient.http(Uri.parse('https://example.test'), {'put'});
+      try {
+        expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
+        expect(client.hasCapability(SSECapability.customMethod), isTrue);
+        expect(client.hasCapability(SSECapability.httpErrors), isTrue);
       } finally {
         client.close();
       }
@@ -27,6 +42,16 @@ void main() {
       }
     });
 
+    test('defaults to the capabilities of the production HTTP client', () {
+      final client = SSEClient.testClient(Uri.parse('/x'), {'put'});
+      try {
+        expect(client.hasCapability(SSECapability.customMethod), isTrue);
+        expect(client.hasCapability(SSECapability.httpErrors), isTrue);
+      } finally {
+        client.close();
+      }
+    });
+
     test('honors an empty capability set to simulate the browser EventSource',
         () {
       final client = SSEClient.testClient(
@@ -36,6 +61,8 @@ void main() {
       );
       try {
         expect(client.hasCapability(SSECapability.requestHeaders), isFalse);
+        expect(client.hasCapability(SSECapability.customMethod), isFalse);
+        expect(client.hasCapability(SSECapability.httpErrors), isFalse);
       } finally {
         client.close();
       }

@@ -78,7 +78,12 @@ final class TestSseClient implements SSEClient {
     required this.httpMethod,
     Stream<Event>? sourceStream,
     Set<SSECapability>? capabilities,
-  }) : _capabilities = capabilities ?? {SSECapability.requestHeaders} {
+  }) : _capabilities = capabilities ??
+            {
+              SSECapability.requestHeaders,
+              SSECapability.customMethod,
+              SSECapability.httpErrors,
+            } {
     _sourceStream = sourceStream;
     _messageEventsController = StreamController<Event>.broadcast(
       onListen: () {
