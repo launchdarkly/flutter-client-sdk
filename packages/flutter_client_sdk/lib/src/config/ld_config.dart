@@ -94,6 +94,29 @@ final class LDConfig extends LDCommonConfig {
   /// [dataSystem] opts the SDK into the FDv2 data acquisition protocol.
   /// This feature is not stable, and not subject to any backwards
   /// compatibility guarantees or semantic versioning. It is in early access.
+  ///
+  /// [eventSourceFactory] supplies the SSE client that the SDK uses for
+  /// streaming. Most applications do not need it, and it is not a general
+  /// recommendation to use `usePost`, `useReport` or a custom client.
+  ///
+  /// On web, the default client is the browser `EventSource`. It cannot send
+  /// a request body or report an HTTP error. An application with a specific
+  /// need for these can opt in to an HTTP-based client:
+  ///
+  /// ```dart
+  /// LDConfig(credential, AutoEnvAttributes.enabled,
+  ///     eventSourceFactory: (request) => SSEClient.http(
+  ///         request.uriProvider(), request.eventTypes,
+  ///         headers: request.headers,
+  ///         body: request.body,
+  ///         httpMethod: request.method,
+  ///         logger: request.logger,
+  ///         uriProvider: request.uriProvider));
+  /// ```
+  ///
+  /// On web, the SDK does not send the application tags header on this path.
+  /// The CORS allow-list of the streaming service does not include it, and
+  /// the browser blocks a request that sends it.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
@@ -108,7 +131,8 @@ final class LDConfig extends LDCommonConfig {
       ApplicationEvents? applicationEvents,
       super.hooks,
       List<Plugin>? plugins,
-      super.dataSystem})
+      super.dataSystem,
+      super.eventSourceFactory})
       : applicationEvents = applicationEvents ?? ApplicationEvents(),
         plugins =
             plugins != null ? UnmodifiableListView(List.from(plugins)) : null;
