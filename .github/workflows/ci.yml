@@ -28,3 +28,75 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           flutter_version: ${{ matrix.versions.flutter }}
           dart_version: ${{ matrix.versions.dart }}
+
+  browser-contract-tests:
+    # Runs the SDK in headless Chrome with the HTTP-based SSE client. The default
+    # web client cannot send a request body or report an HTTP error.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Dart
+        uses: dart-lang/setup-dart@e51d8e571e22473a2ddebf0ef8a2123f0ab2c02c # v1
+        with:
+          sdk: '3.7.2'
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
+        with:
+          flutter-version: '3.29.3'
+          channel: 'stable'
+
+      - name: Install Melos
+        shell: bash
+        run: |
+          dart pub global activate melos
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Install Dependencies
+        shell: bash
+        run: melos bs
+
+      - name: Build the browser test entity
+        shell: bash
+        run: |
+          pushd apps/flutter_web_contract_test_service
+          flutter build web --release --base-href /app/ -t lib/main.dart
+
+      - name: Contract Tests (FDv1, browser)
+        shell: bash
+        env:
+          CHROME_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          pushd apps/flutter_web_contract_test_service
+          dart run bin/adapter.dart > adapter.log 2>&1 & disown
+      - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1.3.0
+        with:
+          test_service_port: 8080
+          token: ${{ secrets.GITHUB_TOKEN }}
+          enable_persistence_tests: false
+          extra_params: '-status-timeout 100 --skip-from=./apps/flutter_web_contract_test_service/testharness-suppressions.txt'
+
+      # The FDv1 run stops the adapter when it finishes, so start it again here.
+      - name: Contract Tests (FDv2, browser)
+        shell: bash
+        env:
+          CHROME_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          pushd apps/flutter_web_contract_test_service
+          dart run bin/adapter.dart > adapter-fdv2.log 2>&1 & disown
+      - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1.3.0
+        with:
+          test_service_port: 8080
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: 'v3'
+          branch: 'v3'
+          enable_persistence_tests: false
+          extra_params: '-status-timeout 100 --skip-from=./apps/flutter_web_contract_test_service/testharness-suppressions-fdv2.txt'
+
+      - name: Upload Adapter Logs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: browser-contract-test-adapter-logs
+          path: apps/flutter_web_contract_test_service/adapter*.log
