@@ -15,7 +15,14 @@ class TestApiImpl extends TestApi {
 
   @override
   Future<GetResponse> Get() async {
-    const capabilities = <String>['report', 'post', 'headers', 'restart'];
+    const capabilities = <String>[
+      'bom',
+      'report',
+      'post',
+      'headers',
+      'restart',
+      'server-directed-shutdown-request'
+    ];
     return GetResponse.response200(
         ServiceStatusResponse(capabilities: capabilities));
   }
@@ -63,6 +70,9 @@ class TestApiImpl extends TestApi {
         },
         body: body.body,
         httpMethod: method,
+        readTimeout: body.readTimeoutMs != null
+            ? Duration(milliseconds: body.readTimeoutMs!)
+            : SSEClient.defaultReadTimeout,
         headers: headers);
     final subscription = client.stream.listen((event) {
       switch (event) {
