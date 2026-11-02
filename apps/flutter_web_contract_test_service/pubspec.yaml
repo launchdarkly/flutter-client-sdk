@@ -1,0 +1,28 @@
+name: flutter_web_contract_test_service
+description: >-
+  Contract test service that runs the Flutter SDK in a browser, using the
+  HTTP-based SSE client.
+version: 1.0.0
+
+environment:
+  sdk: ^3.4.0
+  flutter: '>=3.22.0'
+
+publish_to: none
+
+dependencies:
+  flutter:
+    sdk: flutter
+  args: ^2.3.0
+  launchdarkly_dart_common:
+    path: ../../packages/common
+  launchdarkly_flutter_client_sdk:
+    path: ../../packages/flutter_client_sdk
+  shelf: ^1.4.0
+  shelf_static: ^1.1.0
+  shelf_web_socket: ^2.0.0
+  web_socket_channel: ^3.0.0
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.3
