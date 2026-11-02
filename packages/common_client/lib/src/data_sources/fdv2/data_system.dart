@@ -8,6 +8,7 @@ import '../../config/service_endpoints.dart';
 import '../../fdv2_connection_mode.dart';
 import '../data_source_manager.dart';
 import '../data_source_status_manager.dart';
+import '../sse_client_factory.dart';
 import 'built_in_modes.dart';
 import 'cache_initializer.dart';
 import 'entry_factories.dart';
@@ -40,7 +41,7 @@ final class FDv2DataSystem {
   final DataSourceStatusManager _statusManager;
   final Map<ConnectionModeId, ModeDefinition> _connectionModeOverrides;
   final CachedFlagsReader _cachedFlagsReader;
-  final FDv2SseClientFactory _sseClientFactory;
+  final SSEClientFactory? _sseClientFactory;
   final HttpClientFactory? _httpClientFactory;
 
   Selector _selector = Selector.empty;
@@ -55,10 +56,11 @@ final class FDv2DataSystem {
     required Duration defaultPollingInterval,
     required DataSourceStatusManager statusManager,
     required CachedFlagsReader cachedFlagsReader,
-    FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
+    SSEClientFactory? sseClientFactory,
     HttpClientFactory? httpClientFactory,
-    // Whether the platform's streaming transport can send a POST request.
-    // Defaults to the platform's capability; tests override it.
+    // Whether the streaming transport can send a POST request. Defaults to
+    // the platform's capability. With a custom client, the data source checks
+    // each client instead. Tests override it.
     bool? streamingPostSupported,
   })  : _credential = credential,
         _logger = logger,
@@ -67,7 +69,8 @@ final class FDv2DataSystem {
         _withReasons = withReasons,
         _usePost = config.usePost,
         _streamingPostSupported = streamingPostSupported ??
-            DefaultConfig.dataSourceConfig.streamingPostSupported,
+            (sseClientFactory != null ||
+                DefaultConfig.dataSourceConfig.streamingPostSupported),
         _defaultPollingInterval = defaultPollingInterval,
         _statusManager = statusManager,
         _cachedFlagsReader = cachedFlagsReader,

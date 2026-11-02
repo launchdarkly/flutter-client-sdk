@@ -65,4 +65,7 @@ final class DefaultDataSourceConfig {
   bool get streamingReportSupported => throw Exception('Stub implementation');
 
   bool get streamingPostSupported => throw Exception('Stub implementation');
+
+  bool get streamingTagsHeaderSupported =>
+      throw Exception('Stub implementation');
 }

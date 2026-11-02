@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
 
+import 'data_sources/sse_client_factory.dart';
 import 'hooks/hook.dart';
 import 'config/data_system_config.dart';
 import 'config/defaults/default_config.dart';
@@ -159,6 +160,15 @@ abstract class LDCommonConfig {
   /// https://launchdarkly.com/docs/sdk/features/data-saving-mode
   final DataSystemConfig? dataSystem;
 
+  /// Supplies the SSE client that the SDK uses for streaming. When it is not
+  /// set, the SDK uses the default client for the platform.
+  ///
+  /// This option is for applications with a specific need. For example, on
+  /// web the default client is the browser `EventSource`. It cannot send a
+  /// request body or report an HTTP error. A factory that returns
+  /// `SSEClient.http` removes these limits. Most applications do not need it.
+  final SSEClientFactory? eventSourceFactory;
+
   LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,
       {this.applicationInfo,
       HttpProperties? httpProperties,
@@ -171,7 +181,8 @@ abstract class LDCommonConfig {
       bool? allAttributesPrivate,
       List<String>? globalPrivateAttributes,
       List<Hook>? hooks,
-      this.dataSystem})
+      this.dataSystem,
+      this.eventSourceFactory})
       : httpProperties = httpProperties ?? HttpProperties(),
         serviceEndpoints = serviceEndpoints ?? ServiceEndpoints(),
         events = events ?? EventsConfig(),

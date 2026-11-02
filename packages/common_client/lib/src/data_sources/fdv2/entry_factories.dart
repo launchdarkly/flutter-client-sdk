@@ -6,6 +6,7 @@ import 'package:launchdarkly_event_source_client/launchdarkly_event_source_clien
 
 import '../../config/defaults/default_config.dart';
 import '../../config/service_endpoints.dart';
+import '../sse_client_factory.dart';
 import '../streaming_data_source.dart' show LDLoggerToEventSourceAdapter;
 import 'cache_initializer.dart' as cache_src;
 import 'endpoints.dart';
@@ -70,17 +71,6 @@ HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
 }
 
-/// Constructs the [SSEClient] used by a streaming source. [uriProvider]
-/// is re-invoked on every connection attempt so the `basis` query
-/// parameter reflects the current selector. Tests inject a fake.
-typedef FDv2SseClientFactory = SSEClient Function({
-  required Uri Function() uriProvider,
-  required HttpProperties httpProperties,
-  required String? body,
-  required SseHttpMethod method,
-  required EventSourceLogger logger,
-});
-
 /// FDv2 event names subscribed on the streaming connection. Includes the
 /// legacy `ping` bridge event.
 const Set<String> _fdv2StreamEventNames = {
@@ -94,21 +84,35 @@ const Set<String> _fdv2StreamEventNames = {
   'ping',
 };
 
-/// Constructs the production [SSEClient]. The default for the factory
-/// builders; tests inject a fake through the same parameter.
-SSEClient defaultSseClientFactory({
-  required Uri Function() uriProvider,
-  required HttpProperties httpProperties,
-  required String? body,
-  required SseHttpMethod method,
-  required EventSourceLogger logger,
+/// Builds the [SSEClient] for a streaming source.
+///
+/// When the context travels in a POST body, the client must report
+/// [SSECapability.customMethod]. Without it, this logs a warning, closes the
+/// client, and builds a new client that uses GET.
+SSEClient _buildSseClient({
+  required SSEClientFactory factory,
+  required bool customFactory,
+  required SourceFactoryContext ctx,
+  required Uri Function() Function(bool usePost) uriProviderFor,
 }) {
-  return SSEClient(uriProvider(), _fdv2StreamEventNames,
-      headers: httpProperties.baseHeaders,
-      body: body,
-      httpMethod: method,
-      logger: logger,
-      uriProvider: uriProvider);
+  SSEClient build(bool usePost) => factory(SSEClientRequest(
+        uriProvider: uriProviderFor(usePost),
+        eventTypes: _fdv2StreamEventNames,
+        headers: streamingRequestHeaders(ctx.httpProperties,
+            customFactory: customFactory),
+        body: usePost ? ctx.contextJson : null,
+        method: usePost ? SseHttpMethod.post : SseHttpMethod.get,
+        logger: LDLoggerToEventSourceAdapter(ctx.logger),
+      ));
+
+  final client = build(ctx.usePost);
+  if (ctx.usePost && !client.hasCapability(SSECapability.customMethod)) {
+    ctx.logger.warn(
+        'The SSE client cannot send POST requests. Streaming with GET instead.');
+    client.close();
+    return build(false);
+  }
+  return client;
 }
 
 /// Builds the streaming URI for the current state. Invoked per
@@ -202,7 +206,7 @@ InitializerFactory createInitializerFactoryFromEntry(
 SynchronizerFactory createSynchronizerFactoryFromEntry(
   mode.SynchronizerEntry entry,
   SourceFactoryContext ctx, {
-  FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
+  SSEClientFactory? sseClientFactory,
 }) {
   switch (entry) {
     case final mode.PollingSynchronizer e:
@@ -227,20 +231,18 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
         create: (SelectorGetter selectorGetter) {
           final endpointsResolved =
               mergeServiceEndpoints(ctx.serviceEndpoints, e.endpoints);
-          Uri uriProvider() => _buildStreamingUri(
-                endpoints: endpointsResolved,
-                contextEncoded: base64UrlEncode(utf8.encode(ctx.contextJson)),
-                usePost: ctx.usePost,
-                withReasons: ctx.withReasons,
-                basis: selectorGetter(),
-                additionalQueryParameters: ctx.additionalQueryParameters,
-              );
-          final sseClient = sseClientFactory(
-            uriProvider: uriProvider,
-            httpProperties: ctx.httpProperties,
-            body: ctx.usePost ? ctx.contextJson : null,
-            method: ctx.usePost ? SseHttpMethod.post : SseHttpMethod.get,
-            logger: LDLoggerToEventSourceAdapter(ctx.logger),
+          final sseClient = _buildSseClient(
+            factory: sseClientFactory ?? defaultSseClientFactory,
+            customFactory: sseClientFactory != null,
+            ctx: ctx,
+            uriProviderFor: (usePost) => () => _buildStreamingUri(
+                  endpoints: endpointsResolved,
+                  contextEncoded: base64UrlEncode(utf8.encode(ctx.contextJson)),
+                  usePost: usePost,
+                  withReasons: ctx.withReasons,
+                  basis: selectorGetter(),
+                  additionalQueryParameters: ctx.additionalQueryParameters,
+                ),
           );
 
           // Legacy ping events trigger a one-shot poll.
@@ -278,7 +280,7 @@ List<InitializerFactory> buildInitializerFactories(
 List<SynchronizerFactory> buildSynchronizerFactories(
   List<mode.SynchronizerEntry> entries,
   SourceFactoryContext ctx, {
-  FDv2SseClientFactory sseClientFactory = defaultSseClientFactory,
+  SSEClientFactory? sseClientFactory,
 }) {
   return entries
       .map((e) => createSynchronizerFactoryFromEntry(e, ctx,
