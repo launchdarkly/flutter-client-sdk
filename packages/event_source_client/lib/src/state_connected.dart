@@ -23,11 +23,12 @@ class StateConnected {
             ? UnmodifiableMapView(svo.connectHeaders!)
             : null));
 
-    // Completes when the connection must end. Closing the client does not end
-    // an open response body on every platform. The browser client aborts only
-    // requests that wait for response headers. So the response stream is also
-    // cancelled explicitly.
-    final stopReading = Completer<void>();
+    // Completes when the connection must end. On some platforms, closing the
+    // client does not end an open response body. The browser client aborts
+    // only requests that wait for response headers. For this reason, the
+    // response stream is also cancelled. The completer is synchronous, so the
+    // reader stops before the next state starts.
+    final stopReading = Completer<void>.sync();
 
     // wait for either the stream to terminate or desired connection change to transition
     final transition = await Future.any([
@@ -52,9 +53,10 @@ class StateConnected {
         .transform(utf8.decoder)
         .transform(
             StreamTransformer.fromHandlers(handleData: sseParser.parse)));
-    final stopped = stopReading.then((_) => false);
+    // Cancelling the iterator completes a pending moveNext with false.
+    stopReading.then((_) => events.cancel()).ignore();
     try {
-      while (await Future.any([events.moveNext(), stopped])) {
+      while (await events.moveNext()) {
         final event = events.current;
         // record active since timestamp when we have first communication
         if (!recordedActiveSince) {
@@ -96,8 +98,8 @@ class StateConnected {
         StateBackoff.run(svo);
       };
     } finally {
-      // Releases the response. It ends the connection when the reading
-      // stopped before the stream ended.
+      // An error in the loop body leaves the subscription open. Cancel it so
+      // that the response is released.
       await events.cancel();
     }
   }

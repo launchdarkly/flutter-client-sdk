@@ -16,6 +16,41 @@ import 'test_utils.dart';
 
 class MockClient extends Mock implements Client {}
 
+// Mutable state for one run of the connected state against an open response
+// stream.
+class _Harness {
+  final client = MockClient();
+  final desired = StreamController<bool>.broadcast();
+  final reset = StreamController<void>.broadcast();
+  final transitions = <dynamic>[];
+  final events = <Event>[];
+  var cancelled = false;
+  late final StreamController<List<int>> data;
+
+  _Harness({FutureOr<void> Function()? onCancel}) {
+    data = StreamController<List<int>>(onCancel: () {
+      cancelled = true;
+      return onCancel?.call();
+    });
+  }
+}
+
+// Accepts the open event and throws for a message event, like a closed sink.
+class _ThrowOnMessageSink implements EventSink<Event> {
+  @override
+  void add(Event event) {
+    if (event is MessageEvent) {
+      throw StateError('The sink is closed.');
+    }
+  }
+
+  @override
+  void addError(Object error, [StackTrace? stackTrace]) {}
+
+  @override
+  void close() {}
+}
+
 void main() {
   test('Test connected emits OpenEvent without headers when entered', () async {
     final transitionController = StreamController<dynamic>.broadcast();
@@ -106,56 +141,92 @@ void main() {
     verify(() => mockClient.close()).called(1);
   });
 
-  test('it cancels the response stream when the connection is not desired',
-      () async {
-    final transitionController = StreamController<dynamic>.broadcast();
-    final connectionController = StreamController<bool>.broadcast();
-    var cancelled = false;
-    final dataController =
-        StreamController<List<int>>(onCancel: () => cancelled = true);
-    final mockClient = MockClient();
+  group('when the connection must end while the response stream is open', () {
+    // Runs the connected state against an open response stream, then calls
+    // [stop]. The read timeout is long, because a short one would cancel the
+    // stream by itself.
+    Future<_Harness> runAndStop(void Function(_Harness h) stop,
+        {FutureOr<void> Function()? onCancel,
+        EventSink<Event>? eventSink}) async {
+      final h = _Harness(onCancel: onCancel);
+      final transitions = StreamController<dynamic>.broadcast();
+      final events = StreamController<Event>.broadcast();
+      transitions.stream.listen(h.transitions.add);
+      events.stream.listen(h.events.add);
 
-    final svo = TestUtils.makeMockStateValues(
-        connectionDesired: connectionController.stream,
-        transitionSink: transitionController,
-        // A short read timeout would cancel the stream on its own.
-        readTimeout: const Duration(minutes: 5),
-        clientFactory: () => mockClient);
+      final svo = TestUtils.makeMockStateValues(
+          eventTypes: {'put'},
+          connectionDesired: h.desired.stream,
+          resetStream: h.reset.stream,
+          transitionSink: transitions,
+          eventSink: eventSink ?? events.sink,
+          readTimeout: const Duration(minutes: 5));
 
-    final running = StateConnected.run(svo, mockClient, dataController.stream);
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-    connectionController.add(false);
-    await running;
-    await Future<void>.delayed(const Duration(milliseconds: 10));
+      final running = StateConnected.run(svo, h.client, h.data.stream);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      stop(h);
+      await running;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      return h;
+    }
 
-    // Closing the client alone does not end a response body on web.
-    expect(cancelled, isTrue);
-  });
+    void notDesired(_Harness h) => h.desired.add(false);
+    void resetRequested(_Harness h) => h.reset.add(null);
 
-  test('it cancels the response stream when a reset is requested', () async {
-    final transitionController = StreamController<dynamic>.broadcast();
-    final connectionController = StreamController<bool>.broadcast();
-    final resetController = StreamController<void>();
-    var cancelled = false;
-    final dataController =
-        StreamController<List<int>>(onCancel: () => cancelled = true);
-    final mockClient = MockClient();
+    for (final (name, stop, next) in [
+      ('connection is not desired', notDesired, StateIdle),
+      ('reset is requested', resetRequested, StateBackoff),
+    ]) {
+      test(
+          'it cancels the response stream and closes the client when the $name',
+          () async {
+        final h = await runAndStop(stop);
 
-    final svo = TestUtils.makeMockStateValues(
-        connectionDesired: connectionController.stream,
-        transitionSink: transitionController,
-        resetStream: resetController.stream.asBroadcastStream(),
-        // A short read timeout would cancel the stream on its own.
-        readTimeout: const Duration(minutes: 5),
-        clientFactory: () => mockClient);
+        // Closing the client alone does not end a response body on web.
+        expect(h.cancelled, isTrue);
+        verify(() => h.client.close()).called(1);
+        expect(h.transitions, [StateConnected, next]);
+      });
 
-    final running = StateConnected.run(svo, mockClient, dataController.stream);
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-    resetController.add(null);
-    await running;
-    await Future<void>.delayed(const Duration(milliseconds: 10));
+      test('it emits no event that arrives right after the $name', () async {
+        final h = await runAndStop((h) {
+          stop(h);
+          h.data.add(utf8.encode('event:put\ndata:late\n\n'));
+        });
 
-    expect(cancelled, isTrue);
+        expect(h.events, [OpenEvent()]);
+      });
+    }
+
+    test(
+        'it still moves to the next state when cancelling the response '
+        'stream throws', () async {
+      final h =
+          await runAndStop(notDesired, onCancel: () => throw StateError('x'));
+
+      expect(h.cancelled, isTrue);
+      expect(h.transitions, [StateConnected, StateIdle]);
+    });
+
+    test(
+        'it still moves to the next state when cancelling the response '
+        'stream never completes', () async {
+      final h = await runAndStop(notDesired,
+          onCancel: () => Completer<void>().future);
+
+      expect(h.cancelled, isTrue);
+      expect(h.transitions, [StateConnected, StateIdle]);
+    });
+
+    test('it cancels the response stream when handling an event throws',
+        () async {
+      final h = await runAndStop(
+          (h) => h.data.add(utf8.encode('event:put\ndata:x\n\n')),
+          eventSink: _ThrowOnMessageSink());
+
+      expect(h.cancelled, isTrue);
+      expect(h.transitions, [StateConnected, StateBackoff]);
+    });
   });
 
   test('it transitions to backoff when a reset is requested', () async {
