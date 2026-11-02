@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +27,20 @@ class MyApp extends StatelessWidget {
               // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
               CredentialSource.fromEnvironment(),
               AutoEnvAttributes.enabled,
+              // Optional, and only for applications with a specific need.
+              // On web the default streaming client is the browser
+              // EventSource, which cannot send a request body or report an
+              // HTTP error. This opts in to an HTTP-based client on web only.
+              // The application tags header is not sent on this path.
+              eventSourceFactory: kIsWeb
+                  ? (request) => SSEClient.http(
+                      request.uriProvider(), request.eventTypes,
+                      headers: request.headers,
+                      body: request.body,
+                      httpMethod: request.method,
+                      logger: request.logger,
+                      uriProvider: request.uriProvider)
+                  : null,
             ),
             // Here we are using a default user with 'user-key'.
             LDContextBuilder().kind('user', 'user-key').build()),
