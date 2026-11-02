@@ -20,11 +20,15 @@ import 'package:test/test.dart';
 
 class MockSseClient implements SSEClient {
   final Stream<Event> mockStream;
+  final bool supportsCustomMethod;
+  bool closed = false;
 
-  MockSseClient(this.mockStream);
+  MockSseClient(this.mockStream, {this.supportsCustomMethod = true});
 
   @override
-  Future close() async {}
+  Future close() async {
+    closed = true;
+  }
 
   @override
   void restart() {}
@@ -33,7 +37,8 @@ class MockSseClient implements SSEClient {
   Stream<Event> get stream => mockStream;
 
   @override
-  bool hasCapability(SSECapability capability) => true;
+  bool hasCapability(SSECapability capability) =>
+      capability != SSECapability.customMethod || supportsCustomMethod;
 }
 
 (
@@ -47,6 +52,8 @@ class MockSseClient implements SSEClient {
     bool withReasons = false,
     Duration? testingInterval,
     MockClient? mockHttpClient,
+    bool supportsCustomMethod = true,
+    MockSseClient? clientOverride,
     Function(Uri, HttpProperties, String?, SseHttpMethod?)? factoryCallback}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
   // We are not testing the data source status manager here, so we just want a
@@ -56,7 +63,8 @@ class MockSseClient implements SSEClient {
   final logger = LDLogger();
   final properties = inProperties ?? HttpProperties();
 
-  final client = MockSseClient(mockStream);
+  final client = clientOverride ??
+      MockSseClient(mockStream, supportsCustomMethod: supportsCustomMethod);
   const sdkKey = 'dummy-key';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
@@ -77,9 +85,9 @@ class MockSseClient implements SSEClient {
           ? (httpProps) => ld_common.HttpClient(
               client: mockHttpClient, httpProperties: httpProps)
           : null,
-      clientFactory: (Uri uri, HttpProperties properties, String? body,
-          SseHttpMethod? method, EventSourceLogger? logger) {
-        factoryCallback?.call(uri, properties, body, method);
+      clientFactory: (request) {
+        factoryCallback?.call(
+            request.uriProvider(), properties, request.body, request.method);
         return client;
       });
 
@@ -156,6 +164,37 @@ void main() {
 
       dataSource.start();
       controller.sink.add(MessageEvent('put', '{}', null));
+    });
+
+    test('it falls back to GET when the client cannot send REPORT', () {
+      final calls = <(Uri, String?, SseHttpMethod?)>[];
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
+          factoryCallback: (uri, properties, body, method) =>
+              calls.add((uri, body, method)),
+          useReport: true,
+          supportsCustomMethod: false);
+
+      dataSource.start();
+
+      expect(calls, hasLength(2));
+      expect(calls.first.$3, SseHttpMethod.report);
+      expect(calls.last.$3, SseHttpMethod.get);
+      expect(calls.last.$2, isNull);
+      expect(calls.last.$1.toString(),
+          'https://clientstream.launchdarkly.com/meval/eyJrZXkiOiJ0ZXN0Iiwia2luZCI6InVzZXIifQ==');
+    });
+
+    test('it keeps REPORT when the client can send it', () {
+      final calls = <SseHttpMethod?>[];
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
+          factoryCallback: (uri, properties, body, method) => calls.add(method),
+          useReport: true);
+
+      dataSource.start();
+
+      expect(calls, [SseHttpMethod.report]);
     });
 
     test('it uses the correct URL without reasons with REPORT', () {

@@ -65,4 +65,7 @@ final class DefaultDataSourceConfig {
 
   /// The streaming transport can send a POST request with a body.
   bool get streamingPostSupported => true;
+
+  /// The streaming service accepts the application tags header.
+  bool get streamingTagsHeaderSupported => true;
 }
