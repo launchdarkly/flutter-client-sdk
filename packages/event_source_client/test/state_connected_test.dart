@@ -106,6 +106,58 @@ void main() {
     verify(() => mockClient.close()).called(1);
   });
 
+  test('it cancels the response stream when the connection is not desired',
+      () async {
+    final transitionController = StreamController<dynamic>.broadcast();
+    final connectionController = StreamController<bool>.broadcast();
+    var cancelled = false;
+    final dataController =
+        StreamController<List<int>>(onCancel: () => cancelled = true);
+    final mockClient = MockClient();
+
+    final svo = TestUtils.makeMockStateValues(
+        connectionDesired: connectionController.stream,
+        transitionSink: transitionController,
+        // A short read timeout would cancel the stream on its own.
+        readTimeout: const Duration(minutes: 5),
+        clientFactory: () => mockClient);
+
+    final running = StateConnected.run(svo, mockClient, dataController.stream);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    connectionController.add(false);
+    await running;
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    // Closing the client alone does not end a response body on web.
+    expect(cancelled, isTrue);
+  });
+
+  test('it cancels the response stream when a reset is requested', () async {
+    final transitionController = StreamController<dynamic>.broadcast();
+    final connectionController = StreamController<bool>.broadcast();
+    final resetController = StreamController<void>();
+    var cancelled = false;
+    final dataController =
+        StreamController<List<int>>(onCancel: () => cancelled = true);
+    final mockClient = MockClient();
+
+    final svo = TestUtils.makeMockStateValues(
+        connectionDesired: connectionController.stream,
+        transitionSink: transitionController,
+        resetStream: resetController.stream.asBroadcastStream(),
+        // A short read timeout would cancel the stream on its own.
+        readTimeout: const Duration(minutes: 5),
+        clientFactory: () => mockClient);
+
+    final running = StateConnected.run(svo, mockClient, dataController.stream);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    resetController.add(null);
+    await running;
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    expect(cancelled, isTrue);
+  });
+
   test('it transitions to backoff when a reset is requested', () async {
     final transitionController = StreamController<dynamic>.broadcast();
     final connectionController = StreamController<bool>.broadcast();
