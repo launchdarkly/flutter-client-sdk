@@ -49,11 +49,23 @@ class SSECapability {
   /// The transport reports an HTTP error response on the [SSEClient.stream]
   /// as an [SseHttpError]. False for the browser native `EventSource` API,
   /// which exposes no status codes; true for HTTP-based clients.
+  ///
+  /// On web, an HTTP-based client sees a status code or response header only
+  /// when the CORS policy of the server allows it. A response that fails a
+  /// CORS check is a recoverable connection error, not an [SseHttpError].
   static const SSECapability httpErrors = SSECapability._('httpErrors');
 
   @override
   String toString() => 'SSECapability.$value';
 }
+
+/// True when compiled for a browser.
+const bool _isWeb = bool.fromEnvironment('dart.library.js_interop');
+
+/// Default headers of [SSEClient.http] on web. Only CORS-safelisted headers.
+const Map<String, String> _webDefaultHeaders = {
+  HttpHeaders.acceptHeader: MimeTypes.textEventStream,
+};
 
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
@@ -79,11 +91,12 @@ enum SseHttpMethod {
 /// In certain cases, unrecoverable errors will be reported on the [stream] at
 /// which point the stream will be done.
 ///
-/// On `html` platforms the client is incapable of reporting unrecoverable
-/// errors: the browser's native `EventSource` exposes no HTTP status codes
-/// or response headers, so every failure is treated as recoverable and
-/// retried with backoff indefinitely, and no error is ever reported on the
-/// [stream].
+/// On `html` platforms the default client is incapable of reporting
+/// unrecoverable errors: the browser's native `EventSource` exposes no HTTP
+/// status codes or response headers, so every failure is treated as
+/// recoverable and retried with backoff indefinitely, and no error is ever
+/// reported on the [stream]. The client from [SSEClient.http] does not have
+/// this limit, but see the CORS note on [SSECapability.httpErrors].
 ///
 /// The [SSEClient] will make best effort to maintain the streaming connection.
 abstract class SSEClient {
@@ -162,9 +175,7 @@ abstract class SSEClient {
       EventSourceLogger? logger,
       Uri Function()? uriProvider}) {
     // merge headers so consumer gets reasonable defaults
-    var mergedHeaders = <String, String>{};
-    mergedHeaders.addAll(defaultHeaders);
-    mergedHeaders.addAll(headers);
+    final mergedHeaders = <String, String>{...defaultHeaders, ...headers};
     return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
         readTimeout, body, httpMethod.toString(), logger, uriProvider);
   }
@@ -180,18 +191,27 @@ abstract class SSEClient {
   /// needs those features on web.
   ///
   /// On web, a custom header must be allowed by the CORS configuration of
-  /// the server, or the browser blocks the request.
+  /// the server, or the browser blocks the request. For this reason, on web
+  /// the default headers are only `accept`. The `user-agent` header is
+  /// forbidden in browsers, and `cache-control` is not CORS-safelisted, so
+  /// each would force a preflight request. This matches the browser SDKs.
+  /// Any header in [headers] is still sent.
   ///
-  /// The arguments have the same meaning as in the default factory.
+  /// The [headers], [connectTimeout], [readTimeout], [body], [httpMethod] and
+  /// [uriProvider] arguments are used on every platform. The other arguments
+  /// have the same meaning as in the default factory.
   factory SSEClient.http(Uri uri, Set<String> eventTypes,
-      {Map<String, String> headers = defaultHeaders,
+      {Map<String, String> headers = const {},
       Duration connectTimeout = defaultConnectTimeout,
       Duration readTimeout = defaultReadTimeout,
       String? body,
       SseHttpMethod httpMethod = SseHttpMethod.get,
       EventSourceLogger? logger,
       Uri Function()? uriProvider}) {
-    final mergedHeaders = <String, String>{...defaultHeaders, ...headers};
+    final mergedHeaders = <String, String>{
+      ..._isWeb ? _webDefaultHeaders : defaultHeaders,
+      ...headers
+    };
     return http_client.HttpSseClient(uri, eventTypes, mergedHeaders,
         connectTimeout, readTimeout, body, httpMethod.toString(), logger,
         uriProvider: uriProvider);
