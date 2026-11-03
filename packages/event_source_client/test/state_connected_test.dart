@@ -162,6 +162,18 @@ void main() {
           eventSink: eventSink ?? events.sink,
           readTimeout: const Duration(minutes: 5));
 
+      // Closing the control streams ends the next state. That state can still
+      // write one transition, so the sinks close after the queue is empty.
+      addTearDown(() async {
+        await h.desired.close();
+        await h.reset.close();
+        await pumpEventQueue();
+        await transitions.close();
+        await events.close();
+        // The response stream may have a cancel that never completes.
+        unawaited(h.data.close());
+      });
+
       final running = StateConnected.run(svo, h.client, h.data.stream);
       await Future<void>.delayed(const Duration(milliseconds: 10));
       stop(h);
