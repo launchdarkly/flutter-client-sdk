@@ -136,6 +136,27 @@ paths:
                           type: boolean
                         usePost:
                           type: boolean
+                    hooks:
+                      type: object
+                      properties:
+                        hooks:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              callbackUri:
+                                type: string
+                                description: The URI the hook posts its stage payloads to.
+                              data:
+                                type: object
+                                additionalProperties: true
+                                description: Data to add in each stage, keyed by stage name.
+                              errors:
+                                type: object
+                                additionalProperties: true
+                                description: An error message to raise in each stage, keyed by stage name.
                     dataSystem:
                       type: object
                       additionalProperties: true

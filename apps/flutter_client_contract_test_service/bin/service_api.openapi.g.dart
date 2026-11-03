@@ -521,6 +521,79 @@ Map<String, dynamic> _$PostSchemaConfigurationClientSideToJson(
   return val;
 }
 
+PostSchemaConfigurationHooksHooksData
+    _$PostSchemaConfigurationHooksHooksDataFromJson(
+            Map<String, dynamic> json) =>
+        PostSchemaConfigurationHooksHooksData();
+
+Map<String, dynamic> _$PostSchemaConfigurationHooksHooksDataToJson(
+        PostSchemaConfigurationHooksHooksData instance) =>
+    <String, dynamic>{};
+
+PostSchemaConfigurationHooksHooksErrors
+    _$PostSchemaConfigurationHooksHooksErrorsFromJson(
+            Map<String, dynamic> json) =>
+        PostSchemaConfigurationHooksHooksErrors();
+
+Map<String, dynamic> _$PostSchemaConfigurationHooksHooksErrorsToJson(
+        PostSchemaConfigurationHooksHooksErrors instance) =>
+    <String, dynamic>{};
+
+PostSchemaConfigurationHooksHooks _$PostSchemaConfigurationHooksHooksFromJson(
+        Map<String, dynamic> json) =>
+    PostSchemaConfigurationHooksHooks(
+      name: json['name'] as String?,
+      callbackUri: json['callbackUri'] as String?,
+      data: json['data'] == null
+          ? null
+          : PostSchemaConfigurationHooksHooksData.fromJson(
+              json['data'] as Map<String, dynamic>),
+      errors: json['errors'] == null
+          ? null
+          : PostSchemaConfigurationHooksHooksErrors.fromJson(
+              json['errors'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$PostSchemaConfigurationHooksHooksToJson(
+    PostSchemaConfigurationHooksHooks instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('name', instance.name);
+  writeNotNull('callbackUri', instance.callbackUri);
+  writeNotNull('data', instance.data);
+  writeNotNull('errors', instance.errors);
+  return val;
+}
+
+PostSchemaConfigurationHooks _$PostSchemaConfigurationHooksFromJson(
+        Map<String, dynamic> json) =>
+    PostSchemaConfigurationHooks(
+      hooks: (json['hooks'] as List<dynamic>?)
+          ?.map((e) => PostSchemaConfigurationHooksHooks.fromJson(
+              e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$PostSchemaConfigurationHooksToJson(
+    PostSchemaConfigurationHooks instance) {
+  final val = <String, dynamic>{};
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('hooks', instance.hooks);
+  return val;
+}
+
 PostSchemaConfigurationDataSystem _$PostSchemaConfigurationDataSystemFromJson(
         Map<String, dynamic> json) =>
     PostSchemaConfigurationDataSystem();
@@ -563,6 +636,10 @@ PostSchemaConfiguration _$PostSchemaConfigurationFromJson(
           ? null
           : PostSchemaConfigurationClientSide.fromJson(
               json['clientSide'] as Map<String, dynamic>),
+      hooks: json['hooks'] == null
+          ? null
+          : PostSchemaConfigurationHooks.fromJson(
+              json['hooks'] as Map<String, dynamic>),
       dataSystem: json['dataSystem'] == null
           ? null
           : PostSchemaConfigurationDataSystem.fromJson(
@@ -589,6 +666,7 @@ Map<String, dynamic> _$PostSchemaConfigurationToJson(
   writeNotNull('bigSegments', instance.bigSegments);
   writeNotNull('tags', instance.tags);
   writeNotNull('clientSide', instance.clientSide);
+  writeNotNull('hooks', instance.hooks);
   writeNotNull('dataSystem', instance.dataSystem);
   return val;
 }
