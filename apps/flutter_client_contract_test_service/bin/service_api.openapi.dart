@@ -1070,6 +1070,132 @@ class PostSchemaConfigurationClientSide implements OpenApiContent {
   String toString() => toJson().toString();
 }
 
+/// Data to add in each stage, keyed by stage name.
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class PostSchemaConfigurationHooksHooksData implements OpenApiContent {
+  PostSchemaConfigurationHooksHooksData();
+
+  factory PostSchemaConfigurationHooksHooksData.fromJson(
+          Map<String, dynamic> jsonMap) =>
+      _$PostSchemaConfigurationHooksHooksDataFromJson(jsonMap)
+        .._additionalProperties.addEntries(
+            jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
+
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
+
+  Map<String, dynamic> toJson() => Map.from(_additionalProperties)
+    ..addAll(_$PostSchemaConfigurationHooksHooksDataToJson(this));
+
+  @override
+  String toString() => toJson().toString();
+
+  void operator []=(
+    String key,
+    Object value,
+  ) =>
+      _additionalProperties[key] = value;
+
+  Object? operator [](String key) => _additionalProperties[key];
+}
+
+/// An error message to raise in each stage, keyed by stage name.
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class PostSchemaConfigurationHooksHooksErrors implements OpenApiContent {
+  PostSchemaConfigurationHooksHooksErrors();
+
+  factory PostSchemaConfigurationHooksHooksErrors.fromJson(
+          Map<String, dynamic> jsonMap) =>
+      _$PostSchemaConfigurationHooksHooksErrorsFromJson(jsonMap)
+        .._additionalProperties.addEntries(
+            jsonMap.entries.where((e) => !const <String>{}.contains(e.key)));
+
+  final Map<String, Object?> _additionalProperties = <String, Object?>{};
+
+  Map<String, dynamic> toJson() => Map.from(_additionalProperties)
+    ..addAll(_$PostSchemaConfigurationHooksHooksErrorsToJson(this));
+
+  @override
+  String toString() => toJson().toString();
+
+  void operator []=(
+    String key,
+    Object value,
+  ) =>
+      _additionalProperties[key] = value;
+
+  Object? operator [](String key) => _additionalProperties[key];
+}
+
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class PostSchemaConfigurationHooksHooks implements OpenApiContent {
+  PostSchemaConfigurationHooksHooks({
+    this.name,
+    this.callbackUri,
+    this.data,
+    this.errors,
+  });
+
+  factory PostSchemaConfigurationHooksHooks.fromJson(
+          Map<String, dynamic> jsonMap) =>
+      _$PostSchemaConfigurationHooksHooksFromJson(jsonMap);
+
+  @JsonKey(
+    name: 'name',
+    includeIfNull: false,
+  )
+  final String? name;
+
+  /// The URI the hook posts its stage payloads to.
+  @JsonKey(
+    name: 'callbackUri',
+    includeIfNull: false,
+  )
+  final String? callbackUri;
+
+  /// Data to add in each stage, keyed by stage name.
+  @JsonKey(
+    name: 'data',
+    includeIfNull: false,
+  )
+  final PostSchemaConfigurationHooksHooksData? data;
+
+  /// An error message to raise in each stage, keyed by stage name.
+  @JsonKey(
+    name: 'errors',
+    includeIfNull: false,
+  )
+  final PostSchemaConfigurationHooksHooksErrors? errors;
+
+  Map<String, dynamic> toJson() =>
+      _$PostSchemaConfigurationHooksHooksToJson(this);
+
+  @override
+  String toString() => toJson().toString();
+}
+
+@JsonSerializable()
+@ApiUuidJsonConverter()
+class PostSchemaConfigurationHooks implements OpenApiContent {
+  PostSchemaConfigurationHooks({this.hooks});
+
+  factory PostSchemaConfigurationHooks.fromJson(Map<String, dynamic> jsonMap) =>
+      _$PostSchemaConfigurationHooksFromJson(jsonMap);
+
+  @JsonKey(
+    name: 'hooks',
+    includeIfNull: false,
+  )
+  final List<PostSchemaConfigurationHooksHooks>? hooks;
+
+  Map<String, dynamic> toJson() => _$PostSchemaConfigurationHooksToJson(this);
+
+  @override
+  String toString() => toJson().toString();
+}
+
 /// FDv2 data system configuration.
 @JsonSerializable()
 @ApiUuidJsonConverter()
@@ -1113,6 +1239,7 @@ class PostSchemaConfiguration implements OpenApiContent {
     this.bigSegments,
     this.tags,
     this.clientSide,
+    this.hooks,
     this.dataSystem,
   });
 
@@ -1181,6 +1308,12 @@ class PostSchemaConfiguration implements OpenApiContent {
     includeIfNull: false,
   )
   final PostSchemaConfigurationClientSide? clientSide;
+
+  @JsonKey(
+    name: 'hooks',
+    includeIfNull: false,
+  )
+  final PostSchemaConfigurationHooks? hooks;
 
   /// FDv2 data system configuration.
   @JsonKey(

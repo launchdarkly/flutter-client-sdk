@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -32,6 +33,11 @@ class TestApiImpl extends SdkTestApi {
     'client-event-source-http-errors',
     'fdv1-fallback',
     'client-use-post',
+    'evaluation-hooks',
+    'track-hooks',
+    'hook-environment-id',
+    'polling-gzip',
+    'tls:verify-peer',
   ];
 
   static const clientUrlPrefix = '/client/';
@@ -39,6 +45,9 @@ class TestApiImpl extends SdkTestApi {
 
   final Map<int, LDClient> clientMap = {};
   var nextIdToGive = 0;
+
+  // Shared by the test hooks of every client.
+  final HttpClient hookHttpClient = HttpClient();
 
   StoppableProcessBase? process;
 
@@ -57,6 +66,17 @@ class TestApiImpl extends SdkTestApi {
     final mappedDataSystem = _mapDataSystem(
         body.configuration?.dataSystem?.toJson(),
         usePost: body.configuration?.clientSide?.usePost ?? false);
+    final hookPostQueue = _HookPostQueue(hookHttpClient);
+    final hooks = <Hook>[
+      for (final hook in body.configuration?.hooks?.hooks ?? const [])
+        if (hook.callbackUri case final callbackUri?)
+          _TestHook(
+              name: hook.name ?? '',
+              callbackUri: Uri.parse(callbackUri),
+              data: hook.data?.toJson() ?? const {},
+              errors: hook.errors?.toJson() ?? const {},
+              postQueue: hookPostQueue),
+    ];
     final config = LDConfig(
       body.configuration?.credential ?? '',
       AutoEnvAttributes.disabled,
@@ -87,6 +107,7 @@ class TestApiImpl extends SdkTestApi {
       globalPrivateAttributes:
           body.configuration?.events?.globalPrivateAttributes,
       dataSystem: mappedDataSystem?.config,
+      hooks: hooks,
     );
 
     final configuration = body.configuration!;
@@ -592,6 +613,135 @@ class TestApiImpl extends SdkTestApi {
     }
 
     return builder.build();
+  }
+}
+
+/// Sends hook payloads to the test harness one at a time, in the order the
+/// stages ran. The harness numbers callbacks in the order they arrive, so
+/// concurrent posts could break its ordering checks.
+final class _HookPostQueue {
+  final HttpClient _httpClient;
+  Future<void> _last = Future.value();
+
+  _HookPostQueue(this._httpClient);
+
+  void enqueue(Uri uri, Map<String, dynamic> payload) {
+    _last = _last.then((_) => _post(uri, payload));
+  }
+
+  Future<void> _post(Uri uri, Map<String, dynamic> payload) async {
+    try {
+      final request = await _httpClient.postUrl(uri);
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode(payload));
+      final response = await request.close();
+      await response.drain<void>();
+    } catch (error) {
+      // The test can finish before a post is sent, so failures are ignored.
+    }
+  }
+}
+
+/// A hook configured by the test harness. Each stage posts its inputs to the
+/// harness callback URI, adds the configured data for that stage, or throws
+/// the configured error for that stage instead.
+final class _TestHook extends Hook {
+  final HookMetadata _metadata;
+  final Uri _callbackUri;
+  final Map<String, dynamic> _data;
+  final Map<String, dynamic> _errors;
+  final _HookPostQueue _postQueue;
+
+  _TestHook(
+      {required String name,
+      required Uri callbackUri,
+      required Map<String, dynamic> data,
+      required Map<String, dynamic> errors,
+      required _HookPostQueue postQueue})
+      : _metadata = HookMetadata(name: name),
+        _callbackUri = callbackUri,
+        _data = data,
+        _errors = errors,
+        _postQueue = postQueue;
+
+  @override
+  HookMetadata get metadata => _metadata;
+
+  @override
+  UnmodifiableMapView<String, dynamic> beforeEvaluation(
+      EvaluationSeriesContext hookContext,
+      UnmodifiableMapView<String, dynamic> data) {
+    const stage = 'beforeEvaluation';
+    _throwIfConfigured(stage);
+    _postQueue.enqueue(_callbackUri, {
+      'evaluationSeriesContext': _evaluationSeriesContextToJson(hookContext),
+      'evaluationSeriesData': data,
+      'stage': stage,
+    });
+    return _addStageData(stage, data);
+  }
+
+  @override
+  UnmodifiableMapView<String, dynamic> afterEvaluation(
+      EvaluationSeriesContext hookContext,
+      UnmodifiableMapView<String, dynamic> data,
+      LDEvaluationDetail<LDValue> detail) {
+    const stage = 'afterEvaluation';
+    _throwIfConfigured(stage);
+    _postQueue.enqueue(_callbackUri, {
+      'evaluationSeriesContext': _evaluationSeriesContextToJson(hookContext),
+      'evaluationSeriesData': data,
+      'evaluationDetail': common.LDEvaluationDetailSerialization.toJson(detail),
+      'stage': stage,
+    });
+    return _addStageData(stage, data);
+  }
+
+  @override
+  void afterTrack(TrackSeriesContext hookContext) {
+    const stage = 'afterTrack';
+    _throwIfConfigured(stage);
+    _postQueue.enqueue(_callbackUri, {
+      'trackSeriesContext': {
+        'key': hookContext.key,
+        'context': common.LDContextSerialization.toJson(hookContext.context,
+            isEvent: false),
+        if (hookContext.data case final data?)
+          'data': common.LDValueSerialization.toJson(data),
+        if (hookContext.numericValue case final metricValue?)
+          'metricValue': metricValue,
+      },
+      'stage': stage,
+    });
+  }
+
+  void _throwIfConfigured(String stage) {
+    if (_errors[stage] case final String message) {
+      throw Exception(message);
+    }
+  }
+
+  UnmodifiableMapView<String, dynamic> _addStageData(
+      String stage, UnmodifiableMapView<String, dynamic> data) {
+    if (_data[stage] case final Map<String, dynamic> stageData) {
+      return UnmodifiableMapView({...data, ...stageData});
+    }
+    return data;
+  }
+
+  Map<String, dynamic> _evaluationSeriesContextToJson(
+      EvaluationSeriesContext hookContext) {
+    return {
+      'flagKey': hookContext.flagKey,
+      if (hookContext.context case final context?)
+        'context':
+            common.LDContextSerialization.toJson(context, isEvent: false),
+      'defaultValue':
+          common.LDValueSerialization.toJson(hookContext.defaultValue),
+      'method': hookContext.method,
+      if (hookContext.environmentId case final environmentId?)
+        'environmentId': environmentId,
+    };
   }
 }
 
