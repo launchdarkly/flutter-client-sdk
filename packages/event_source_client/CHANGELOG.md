@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [3.0.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v3.0.0...launchdarkly_event_source_client-v3.0.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* Close the streaming connection when the SSE client closes on web ([#362](https://github.com/launchdarkly/flutter-client-sdk/issues/362)) ([8778d19](https://github.com/launchdarkly/flutter-client-sdk/commit/8778d19aa1ac2f02930b15268fb7b4583d8bbe0f))
+
 ## [3.0.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v2.2.0...launchdarkly_event_source_client-v3.0.0) (2026-06-25)
 
 
