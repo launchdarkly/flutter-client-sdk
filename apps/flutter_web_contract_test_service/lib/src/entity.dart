@@ -102,11 +102,17 @@ final class Entity {
     final config = LDConfig(
       configuration['credential'] as String? ?? '',
       AutoEnvAttributes.disabled,
-      applicationInfo: tags?['applicationId'] != null
-          ? ApplicationInfo(
-              applicationId: tags!['applicationId'] as String,
-              applicationVersion: tags['applicationVersion'] as String?)
-          : null,
+      applicationInfo: switch (tags) {
+        // An empty application ID is invalid, so ApplicationInfo drops it.
+        // This keeps a version-only tag configuration working.
+        final t?
+            when t['applicationId'] != null ||
+                t['applicationVersion'] != null =>
+          ApplicationInfo(
+              applicationId: t['applicationId'] as String? ?? '',
+              applicationVersion: t['applicationVersion'] as String?),
+        _ => null,
+      },
       persistence: PersistenceConfig(maxCachedContexts: 0),
       serviceEndpoints: ServiceEndpoints.custom(
           polling: polling?['baseUri'] as String?,
