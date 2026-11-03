@@ -23,11 +23,18 @@ class StateConnected {
             ? UnmodifiableMapView(svo.connectHeaders!)
             : null));
 
+    // Completes when the connection must end. On some platforms, closing the
+    // client does not end an open response body. The browser client aborts
+    // only requests that wait for response headers. For this reason, the
+    // response stream is also cancelled. The completer is synchronous, so the
+    // reader stops before the next state starts.
+    final stopReading = Completer<void>.sync();
+
     // wait for either the stream to terminate or desired connection change to transition
     final transition = await Future.any([
-      _processStream(svo, stream),
-      _monitorConnectionNoLongerDesired(svo, client),
-      _monitorReset(svo, client),
+      _processStream(svo, stream, stopReading.future),
+      _monitorConnectionNoLongerDesired(svo, client, stopReading),
+      _monitorReset(svo, client, stopReading),
     ]);
     transition();
   }
@@ -37,16 +44,20 @@ class StateConnected {
   // this class if the source of connection loss was a deliberate connection close.  All
   // other errors at this point are considered recoverable.  That may not be the case
   // but the Connecting state will figure that out during the next attempt.
-  static Future<Function> _processStream(
-      StateValues svo, Stream<List<int>> stream) async {
+  static Future<Function> _processStream(StateValues svo,
+      Stream<List<int>> stream, Future<void> stopReading) async {
     var recordedActiveSince = false;
     final sseParser = StatefulSSEParser();
+    final events = StreamIterator(stream
+        .timeout(svo.readTimeout)
+        .transform(utf8.decoder)
+        .transform(
+            StreamTransformer.fromHandlers(handleData: sseParser.parse)));
+    // Cancelling the iterator completes a pending moveNext with false.
+    stopReading.then((_) => events.cancel()).ignore();
     try {
-      await for (final event in stream
-          .timeout(svo.readTimeout)
-          .transform(utf8.decoder)
-          .transform(
-              StreamTransformer.fromHandlers(handleData: sseParser.parse))) {
+      while (await events.moveNext()) {
+        final event = events.current;
         // record active since timestamp when we have first communication
         if (!recordedActiveSince) {
           svo.activeSince = DateTime.now().millisecondsSinceEpoch;
@@ -86,13 +97,17 @@ class StateConnected {
             'Connection error occurred, will retry with backoff. Error was: $error');
         StateBackoff.run(svo);
       };
+    } finally {
+      // An error in the loop body leaves the subscription open. Cancel it so
+      // that the response is released.
+      await events.cancel();
     }
   }
 
   /// This future will complete when we no longer desire to be connected.  The
   /// returned function will run the next state.
   static Future<Function> _monitorConnectionNoLongerDesired(
-      StateValues svo, http.Client client) async {
+      StateValues svo, http.Client client, Completer<void> stopReading) async {
     try {
       await svo.connectionDesired.where((desired) => !desired).first;
     } catch (err) {
@@ -100,6 +115,7 @@ class StateConnected {
     }
 
     return () {
+      stopReading.complete();
       client.close();
       svo.logger.debug('Connection no longer required.');
       StateIdle.run(svo);
@@ -107,13 +123,14 @@ class StateConnected {
   }
 
   static Future<Function> _monitorReset(
-      StateValues svo, http.Client client) async {
+      StateValues svo, http.Client client, Completer<void> stopReading) async {
     try {
       await svo.resetRequest.first;
     } catch (err) {
       // error indicates control stream has terminated, so we want to cleanup
     }
     return () {
+      stopReading.complete();
       client.close();
       StateBackoff.run(svo);
     };
