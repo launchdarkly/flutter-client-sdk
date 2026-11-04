@@ -41,13 +41,17 @@ void main() {
   Future<List<SSEClientRequest>> startAndCollect(
       LDCommonConfig Function(SSEClientFactory factory) makeConfig) async {
     final requests = <SSEClientRequest>[];
+    final firstRequest = Completer<void>();
     final client = _makeClient(makeConfig((request) {
       requests.add(request);
+      if (!firstRequest.isCompleted) {
+        firstRequest.complete();
+      }
       return SSEClient.testClient(request.uriProvider(), request.eventTypes);
     }));
     unawaited(client.start());
     // Streaming starts after the identify that start performs.
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    await firstRequest.future.timeout(const Duration(seconds: 5));
     await client.close();
     return requests;
   }

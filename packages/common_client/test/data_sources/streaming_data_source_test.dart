@@ -14,9 +14,11 @@ import 'package:launchdarkly_common_client/src/data_sources/streaming_data_sourc
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     as ld_common;
-import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:http/http.dart' as http;
+import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
+
+class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 class MockSseClient implements SSEClient {
   final Stream<Event> mockStream;
@@ -53,18 +55,18 @@ class MockSseClient implements SSEClient {
     Duration? testingInterval,
     MockClient? mockHttpClient,
     bool supportsCustomMethod = true,
-    MockSseClient? clientOverride,
+    // Receives every client the factory creates.
+    List<MockSseClient>? createdClients,
+    LDLogger? inLogger,
     Function(Uri, HttpProperties, String?, SseHttpMethod?)? factoryCallback}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
   // We are not testing the data source status manager here, so we just want a
   // fixed time to make events easy to get.
   final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
 
-  final logger = LDLogger();
+  final logger = inLogger ?? LDLogger();
   final properties = inProperties ?? HttpProperties();
 
-  final client = clientOverride ??
-      MockSseClient(mockStream, supportsCustomMethod: supportsCustomMethod);
   const sdkKey = 'dummy-key';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
@@ -88,6 +90,9 @@ class MockSseClient implements SSEClient {
       clientFactory: (request) {
         factoryCallback?.call(
             request.uriProvider(), properties, request.body, request.method);
+        final client = MockSseClient(mockStream,
+            supportsCustomMethod: supportsCustomMethod);
+        createdClients?.add(client);
         return client;
       });
 
@@ -114,6 +119,14 @@ class MockSseClient implements SSEClient {
 }
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(LDLogRecord(
+        level: LDLogLevel.debug,
+        message: '',
+        time: DateTime.now(),
+        logTag: ''));
+  });
+
   group('parameters are correctly calculated for the stream subscription', () {
     test('it uses the correct URL without reasons', () {
       final controller = StreamController<MessageEvent>();
@@ -168,10 +181,12 @@ void main() {
 
     test('it falls back to GET when the client cannot send REPORT', () {
       final calls = <(Uri, String?, SseHttpMethod?)>[];
+      final clients = <MockSseClient>[];
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
           factoryCallback: (uri, properties, body, method) =>
               calls.add((uri, body, method)),
+          createdClients: clients,
           useReport: true,
           supportsCustomMethod: false);
 
@@ -183,6 +198,28 @@ void main() {
       expect(calls.last.$2, isNull);
       expect(calls.last.$1.toString(),
           'https://clientstream.launchdarkly.com/meval/eyJrZXkiOiJ0ZXN0Iiwia2luZCI6InVzZXIifQ==');
+      expect(clients.first.closed, isTrue,
+          reason: 'the REPORT client is closed');
+      expect(clients.last.closed, isFalse, reason: 'the GET client is in use');
+    });
+
+    test('it logs a warning when it falls back to GET', () {
+      final adapter = MockLogAdapter();
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
+          inLogger: LDLogger(adapter: adapter),
+          useReport: true,
+          supportsCustomMethod: false);
+
+      dataSource.start();
+
+      final records = verify(() => adapter.log(captureAny()))
+          .captured
+          .cast<LDLogRecord>()
+          .where((record) => record.level == LDLogLevel.warn);
+      expect(records.map((record) => record.message), [
+        'The SSE client cannot send REPORT requests. Streaming with GET instead.'
+      ]);
     });
 
     test('it keeps REPORT when the client can send it', () {
@@ -195,6 +232,73 @@ void main() {
       dataSource.start();
 
       expect(calls, [SseHttpMethod.report]);
+    });
+
+    test('a ping poll keeps the configured REPORT method after the fallback',
+        () async {
+      // The polling request method follows the polling configuration. The
+      // stream fallback does not change it. A GET on the REPORT polling path
+      // would carry no context.
+      final pollRequests = <http.Request>[];
+      final innerHttpClient = MockClient((request) async {
+        pollRequests.add(request);
+        return http.Response('{}', 200);
+      });
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
+          mockHttpClient: innerHttpClient,
+          useReport: true,
+          supportsCustomMethod: false);
+
+      dataSource.start();
+      controller.sink.add(MessageEvent('ping', '', null));
+      await Future.delayed(Duration(milliseconds: 50));
+
+      expect(pollRequests, hasLength(1));
+      expect(pollRequests.single.method, 'REPORT');
+      expect(pollRequests.single.url.path, '/msdk/evalx/context');
+      expect(pollRequests.single.body, '{"key":"test","kind":"user"}');
+    });
+
+    test('it closes the client when it stops', () {
+      final clients = <MockSseClient>[];
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, _) =
+          makeDataSourceForTest(controller.stream, createdClients: clients);
+
+      dataSource.start();
+      dataSource.stop();
+
+      expect(clients.single.closed, isTrue);
+    });
+
+    test('it shuts down when the client factory throws', () async {
+      final adapter = MockLogAdapter();
+      final dataSource = StreamingDataSource(
+          credential: 'dummy-key',
+          context: LDContextBuilder().kind('user', 'test').build(),
+          endpoints: ServiceEndpoints(),
+          logger: LDLogger(adapter: adapter),
+          dataSourceConfig: StreamingDataSourceConfig(),
+          pollingDataSourceConfig: PollingDataSourceConfig(),
+          httpProperties: HttpProperties(),
+          clientFactory: (request) => throw StateError('no client'));
+      final events = <DataSourceEvent>[];
+      dataSource.events.listen(events.add);
+
+      dataSource.start();
+      await Future.delayed(Duration.zero);
+
+      expect(events, hasLength(1));
+      expect(events.single, isA<StatusEvent>());
+      expect((events.single as StatusEvent).kind, ErrorKind.unknown);
+      final errors = verify(() => adapter.log(captureAny()))
+          .captured
+          .cast<LDLogRecord>()
+          .where((record) => record.level == LDLogLevel.error);
+      expect(errors.map((record) => record.message), [
+        'The SSE client factory failed: "Bad state: no client", Shutting down.'
+      ]);
     });
 
     test('it uses the correct URL without reasons with REPORT', () {
