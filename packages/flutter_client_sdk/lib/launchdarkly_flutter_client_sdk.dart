@@ -87,7 +87,10 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         SSECapability,
         SseHttpMethod,
         SseHttpError,
-        EventSourceLogger;
+        EventSourceLogger,
+        Event,
+        MessageEvent,
+        OpenEvent;
 
 export 'src/ld_client.dart' show LDClient;
 export 'src/config/ld_config.dart' show LDConfig, ApplicationEvents;
