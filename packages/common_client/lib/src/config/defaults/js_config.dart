@@ -70,8 +70,6 @@ final class DefaultDataSourceConfig {
 
   ConnectionMode get defaultInitialConnectionMode => ConnectionMode.streaming;
 
-  bool get streamingReportSupported => false;
-
   /// The browser EventSource can only send GET requests without a body.
   bool get streamingPostSupported => false;
 

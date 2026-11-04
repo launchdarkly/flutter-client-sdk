@@ -14,7 +14,10 @@ export 'package:launchdarkly_event_source_client/launchdarkly_event_source_clien
         SSECapability,
         SseHttpMethod,
         SseHttpError,
-        EventSourceLogger;
+        EventSourceLogger,
+        Event,
+        MessageEvent,
+        OpenEvent;
 
 export 'src/config/data_system_config.dart'
     show DataSystemConfig, ConnectionModeId;

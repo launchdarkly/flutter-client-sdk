@@ -84,37 +84,6 @@ const Set<String> _fdv2StreamEventNames = {
   'ping',
 };
 
-/// Builds the [SSEClient] for a streaming source.
-///
-/// When the context travels in a POST body, the client must report
-/// [SSECapability.customMethod]. Without it, this logs a warning, closes the
-/// client, and builds a new client that uses GET.
-SSEClient _buildSseClient({
-  required SSEClientFactory factory,
-  required bool customFactory,
-  required SourceFactoryContext ctx,
-  required Uri Function() Function(bool usePost) uriProviderFor,
-}) {
-  SSEClient build(bool usePost) => factory(SSEClientRequest(
-        uriProvider: uriProviderFor(usePost),
-        eventTypes: _fdv2StreamEventNames,
-        headers: streamingRequestHeaders(ctx.httpProperties,
-            customFactory: customFactory),
-        body: usePost ? ctx.contextJson : null,
-        method: usePost ? SseHttpMethod.post : SseHttpMethod.get,
-        logger: LDLoggerToEventSourceAdapter(ctx.logger),
-      ));
-
-  final client = build(ctx.usePost);
-  if (ctx.usePost && !client.hasCapability(SSECapability.customMethod)) {
-    ctx.logger.warn(
-        'The SSE client cannot send POST requests. Streaming with GET instead.');
-    client.close();
-    return build(false);
-  }
-  return client;
-}
-
 /// Builds the streaming URI for the current state. Invoked per
 /// connection attempt so the `basis` parameter tracks the selector.
 Uri _buildStreamingUri({
@@ -231,18 +200,27 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
         create: (SelectorGetter selectorGetter) {
           final endpointsResolved =
               mergeServiceEndpoints(ctx.serviceEndpoints, e.endpoints);
-          final sseClient = _buildSseClient(
-            factory: sseClientFactory ?? defaultSseClientFactory,
-            customFactory: sseClientFactory != null,
-            ctx: ctx,
-            uriProviderFor: (usePost) => () => _buildStreamingUri(
-                  endpoints: endpointsResolved,
-                  contextEncoded: base64UrlEncode(utf8.encode(ctx.contextJson)),
-                  usePost: usePost,
-                  withReasons: ctx.withReasons,
-                  basis: selectorGetter(),
-                  additionalQueryParameters: ctx.additionalQueryParameters,
-                ),
+          // A client without the custom method capability streams with GET.
+          // The ping poll below keeps the configured method.
+          final (sseClient, _) = createSseClient(
+            factory: sseClientFactory,
+            useCustomMethod: ctx.usePost,
+            logger: ctx.logger,
+            requestFor: (usePost) => SSEClientRequest(
+              uriProvider: () => _buildStreamingUri(
+                endpoints: endpointsResolved,
+                contextEncoded: base64UrlEncode(utf8.encode(ctx.contextJson)),
+                usePost: usePost,
+                withReasons: ctx.withReasons,
+                basis: selectorGetter(),
+                additionalQueryParameters: ctx.additionalQueryParameters,
+              ),
+              eventTypes: _fdv2StreamEventNames,
+              headers: streamingRequestHeaders(ctx.httpProperties),
+              body: usePost ? ctx.contextJson : null,
+              method: usePost ? SseHttpMethod.post : SseHttpMethod.get,
+              logger: LDLoggerToEventSourceAdapter(ctx.logger),
+            ),
           );
 
           // Legacy ping events trigger a one-shot poll.
