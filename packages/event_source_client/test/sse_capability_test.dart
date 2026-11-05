@@ -3,38 +3,23 @@
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
-const _httpCapabilities = [
-  SSECapability.requestHeaders,
-  SSECapability.customMethod,
-  SSECapability.httpErrors,
-];
-
-void expectCapabilities(SSEClient client, {required bool supported}) {
-  for (final capability in _httpCapabilities) {
-    expect(client.hasCapability(capability), supported,
-        reason: capability.toString());
-  }
-}
-
 void main() {
-  // On web the default client is the browser EventSource, which has none of
-  // these capabilities.
   group('default HTTP SSE client', () {
-    test('reports every HTTP capability as supported', () {
+    test('reports SSECapability.requestHeaders as supported', () {
       final client = SSEClient(Uri.parse('https://example.test'), {'put'});
       try {
-        expectCapabilities(client, supported: true);
+        expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
       } finally {
         client.close();
       }
-    }, testOn: 'vm');
+    });
   });
 
   group('SSEClient.http', () {
-    test('reports every HTTP capability as supported', () {
+    test('reports SSECapability.requestHeaders as supported', () {
       final client = SSEClient.http(Uri.parse('https://example.test'), {'put'});
       try {
-        expectCapabilities(client, supported: true);
+        expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
       } finally {
         client.close();
       }
@@ -43,11 +28,11 @@ void main() {
 
   group('TestSseClient', () {
     test(
-        'defaults to the capabilities of the production HTTP client so '
-        'existing streaming tests behave like it', () {
+        'defaults to supporting SSECapability.requestHeaders so existing '
+        'streaming tests behave like the production HTTP client', () {
       final client = SSEClient.testClient(Uri.parse('/x'), {'put'});
       try {
-        expectCapabilities(client, supported: true);
+        expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
       } finally {
         client.close();
       }
@@ -61,7 +46,7 @@ void main() {
         capabilities: const {},
       );
       try {
-        expectCapabilities(client, supported: false);
+        expect(client.hasCapability(SSECapability.requestHeaders), isFalse);
       } finally {
         client.close();
       }
@@ -75,7 +60,6 @@ void main() {
       );
       try {
         expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
-        expect(client.hasCapability(SSECapability.customMethod), isFalse);
       } finally {
         client.close();
       }

@@ -41,20 +41,6 @@ class SSECapability {
   /// browser native `EventSource` API; true for HTTP-based clients.
   static const SSECapability requestHeaders = SSECapability._('requestHeaders');
 
-  /// The transport can use an HTTP method other than `GET` and can send a
-  /// request body (`POST` or `REPORT`). False for the browser native
-  /// `EventSource` API; true for HTTP-based clients.
-  static const SSECapability customMethod = SSECapability._('customMethod');
-
-  /// The transport reports an HTTP error response on the [SSEClient.stream]
-  /// as an [SseHttpError]. False for the browser native `EventSource` API,
-  /// which exposes no status codes; true for HTTP-based clients.
-  ///
-  /// On web, an HTTP-based client sees a status code or response header only
-  /// when the CORS policy of the server allows it. A response that fails a
-  /// CORS check is a recoverable connection error, not an [SseHttpError].
-  static const SSECapability httpErrors = SSECapability._('httpErrors');
-
   @override
   String toString() => 'SSECapability.$value';
 }
@@ -96,7 +82,9 @@ enum SseHttpMethod {
 /// status codes or response headers, so every failure is treated as
 /// recoverable and retried with backoff indefinitely, and no error is ever
 /// reported on the [stream]. The client from [SSEClient.http] does not have
-/// this limit, but see the CORS note on [SSECapability.httpErrors].
+/// this limit. On web, it sees a status code only when the CORS policy of the
+/// server allows it. A response that fails a CORS check is a recoverable
+/// connection error, not an [SseHttpError].
 ///
 /// The [SSEClient] will make best effort to maintain the streaming connection.
 abstract class SSEClient {

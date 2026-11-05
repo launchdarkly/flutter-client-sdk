@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:collection';
 
 import '../launchdarkly_event_source_client.dart';
-import 'sse_client_http.dart' show httpSseCapabilities;
 
 const String _simulatedErrorString =
     'an error has occurred, any potential string may be provided here and it should not be treated as an interface';
@@ -79,7 +78,7 @@ final class TestSseClient implements SSEClient {
     required this.httpMethod,
     Stream<Event>? sourceStream,
     Set<SSECapability>? capabilities,
-  }) : _capabilities = capabilities ?? httpSseCapabilities {
+  }) : _capabilities = capabilities ?? {SSECapability.requestHeaders} {
     _sourceStream = sourceStream;
     _messageEventsController = StreamController<Event>.broadcast(
       onListen: () {

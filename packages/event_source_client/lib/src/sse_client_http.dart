@@ -118,16 +118,8 @@ class HttpSseClient implements SSEClient {
 
   @override
   bool hasCapability(SSECapability capability) =>
-      httpSseCapabilities.contains(capability);
+      capability == SSECapability.requestHeaders;
 }
-
-/// The capabilities of every HTTP-based [SSEClient]. [TestSseClient] uses the
-/// same set as its default.
-const Set<SSECapability> httpSseCapabilities = {
-  SSECapability.requestHeaders,
-  SSECapability.customMethod,
-  SSECapability.httpErrors,
-};
 
 /// No op sink.  Exists to accommodate unit testing.
 class _NoOpSink implements Sink<dynamic> {
