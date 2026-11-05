@@ -73,12 +73,13 @@ runs:
 
     - name: Web Streaming Tests (Chrome)
       shell: bash
-      # The SSE client factory makes decisions that only apply on web: it
-      # removes the tags header and keeps streaming with a custom client.
-      # The Dart VM cannot run that code, so these tests run on Chrome.
+      # The streaming client selection makes decisions that only apply on
+      # web: it removes the tags header and falls back to GET or polling
+      # without useHttpStreamingOnWeb. The Dart VM cannot run that code, so
+      # these tests run on Chrome.
       run: |
         cd packages/common_client
-        dart test test/data_sources/sse_client_factory_web_test.dart -p chrome --test-randomize-ordering-seed=random
+        dart test test/data_sources/streaming_client_web_test.dart -p chrome --test-randomize-ordering-seed=random
 
     - name: Contract Tests (FDv1)
       shell: bash

@@ -152,9 +152,14 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         ctx,
-        sseClientFactory: (request) {
-          capturedUriProvider = request.uriProvider;
-          return SSEClient.testClient(request.uriProvider(), const {});
+        sseClientBuilder: (uri, eventTypes,
+            {required headers,
+            required body,
+            required httpMethod,
+            required logger,
+            required uriProvider}) {
+          capturedUriProvider = uriProvider;
+          return SSEClient.testClient(uri, const {});
         },
       );
       final sync = factory.create(() => selector);
@@ -197,9 +202,14 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         ctx,
-        sseClientFactory: (request) {
-          capturedUriProvider = request.uriProvider;
-          return SSEClient.testClient(request.uriProvider(), const {});
+        sseClientBuilder: (uri, eventTypes,
+            {required headers,
+            required body,
+            required httpMethod,
+            required logger,
+            required uriProvider}) {
+          capturedUriProvider = uriProvider;
+          return SSEClient.testClient(uri, const {});
         },
       );
       final sync = factory.create(() => selector);
@@ -336,11 +346,16 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         factoryContext(usePost: usePost),
-        sseClientFactory: (request) {
-          capturedMethod = request.method;
-          capturedBody = request.body;
-          capturedUriProvider = request.uriProvider;
-          return SSEClient.testClient(request.uriProvider(), const {});
+        sseClientBuilder: (uri, eventTypes,
+            {required headers,
+            required body,
+            required httpMethod,
+            required logger,
+            required uriProvider}) {
+          capturedMethod = httpMethod;
+          capturedBody = body;
+          capturedUriProvider = uriProvider;
+          return SSEClient.testClient(uri, const {});
         },
       );
       factory.create(_selectorGetter).close();
@@ -350,52 +365,6 @@ void main() {
         uri: capturedUriProvider()
       );
     }
-
-    test(
-        'the streaming connection falls back to GET when the client cannot '
-        'send POST', () {
-      final created = <({SseHttpMethod method, String? body, Uri uri})>[];
-      final clients = <TestSseClient>[];
-      final factory = createSynchronizerFactoryFromEntry(
-        StreamingSynchronizer(),
-        factoryContext(usePost: true),
-        sseClientFactory: (request) {
-          created.add((
-            method: request.method,
-            body: request.body,
-            uri: request.uriProvider()
-          ));
-          final client = SSEClient.testClient(request.uriProvider(), const {},
-              capabilities: const {SSECapability.requestHeaders});
-          clients.add(client);
-          return client;
-        },
-      );
-      factory.create(_selectorGetter).close();
-
-      expect(created, hasLength(2));
-      expect(created.first.method, equals(SseHttpMethod.post));
-      expect(created.last.method, equals(SseHttpMethod.get));
-      expect(created.last.body, isNull);
-      expect(created.last.uri.path, startsWith('/sdk/stream/eval/'));
-      expect(clients.first.isClosed, isTrue);
-    });
-
-    test('the streaming connection keeps POST when the client can send it', () {
-      var created = 0;
-      final factory = createSynchronizerFactoryFromEntry(
-        StreamingSynchronizer(),
-        factoryContext(usePost: true),
-        sseClientFactory: (request) {
-          created++;
-          return SSEClient.testClient(request.uriProvider(), const {},
-              capabilities: const {SSECapability.customMethod});
-        },
-      );
-      factory.create(_selectorGetter).close();
-
-      expect(created, equals(1));
-    });
 
     test('the streaming connection uses POST with the context as the body', () {
       final connection = connectStream(usePost: true);

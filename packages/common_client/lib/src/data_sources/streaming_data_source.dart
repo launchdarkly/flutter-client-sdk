@@ -10,7 +10,7 @@ import 'data_source.dart';
 import 'data_source_status.dart';
 import 'get_environment_id.dart';
 import 'requestor.dart';
-import 'sse_client_factory.dart';
+import 'streaming_client.dart';
 
 const String _pingEvent = 'ping';
 const String _patchEvent = 'patch';
@@ -28,7 +28,10 @@ final class StreamingDataSource implements DataSource {
 
   final StreamingDataSourceConfig _dataSourceConfig;
 
-  final SSEClientFactory? _clientFactory;
+  final SseClientBuilder _clientBuilder;
+
+  /// Whether the stream uses REPORT. False when the client cannot send it.
+  final bool _useReport;
 
   final String _plainContextString;
 
@@ -58,12 +61,10 @@ final class StreamingDataSource implements DataSource {
   /// Used to track if there has been an unrecoverable error.
   bool _permanentShutdown = false;
 
-  /// The [clientFactory] parameter supplies the SSE client. When it is not
-  /// set, the default client for the platform is used. When the
-  /// configuration asks for REPORT and the client does not report
-  /// [SSECapability.customMethod], the stream uses GET instead.
-  /// The [httpClientFactory] parameter is primarily intended for testing the
-  /// requestor used for ping events.
+  /// [useHttpStreamingOnWeb] selects the HTTP-based SSE client on web. The
+  /// [clientBuilder] parameter is for tests, which inject a fake client. The
+  /// [httpClientFactory] parameter is for tests of the requestor that serves
+  /// ping events.
   StreamingDataSource(
       {required String credential,
       required LDContext context,
@@ -72,7 +73,8 @@ final class StreamingDataSource implements DataSource {
       required StreamingDataSourceConfig dataSourceConfig,
       required PollingDataSourceConfig pollingDataSourceConfig,
       required HttpProperties httpProperties,
-      SSEClientFactory? clientFactory,
+      bool useHttpStreamingOnWeb = false,
+      SseClientBuilder? clientBuilder,
       HttpClientFactory? httpClientFactory})
       : this._(
             credential: credential,
@@ -81,7 +83,12 @@ final class StreamingDataSource implements DataSource {
             dataSourceConfig: dataSourceConfig,
             pollingDataSourceConfig: pollingDataSourceConfig,
             httpProperties: httpProperties,
-            clientFactory: clientFactory,
+            clientBuilder: clientBuilder ??
+                sseClientBuilderFor(
+                    useHttpStreamingOnWeb: useHttpStreamingOnWeb),
+            useReport: dataSourceConfig.useReport &&
+                streamingCustomMethodSupported(
+                    useHttpStreamingOnWeb: useHttpStreamingOnWeb),
             httpClientFactory: httpClientFactory ?? _defaultHttpClientFactory,
             plainContextString: jsonEncode(
                 LDContextSerialization.toJson(context, isEvent: false)));
@@ -93,12 +100,14 @@ final class StreamingDataSource implements DataSource {
       required StreamingDataSourceConfig dataSourceConfig,
       required PollingDataSourceConfig pollingDataSourceConfig,
       required HttpProperties httpProperties,
-      required SSEClientFactory? clientFactory,
+      required SseClientBuilder clientBuilder,
+      required bool useReport,
       required HttpClientFactory httpClientFactory,
       required String plainContextString})
       : _logger = logger,
         _dataSourceConfig = dataSourceConfig,
-        _clientFactory = clientFactory,
+        _clientBuilder = clientBuilder,
+        _useReport = useReport,
         _httpProperties = httpProperties,
         _credential = credential,
         _endpoints = endpoints,
@@ -115,14 +124,20 @@ final class StreamingDataSource implements DataSource {
             dataSourceConfig: pollingDataSourceConfig,
             endpoints: endpoints,
             credential: credential,
-            httpClientFactory: httpClientFactory);
+            httpClientFactory: httpClientFactory) {
+    if (dataSourceConfig.useReport && !_useReport) {
+      _logger.warn('The browser EventSource cannot send REPORT requests. '
+          'Streaming with GET instead. Set useHttpStreamingOnWeb to stream '
+          'with REPORT on web.');
+    }
+  }
 
   /// The streaming URI for the request method.
-  Uri _uriFor(bool useReport) {
-    final contextString = useReport
+  Uri _buildUri() {
+    final contextString = _useReport
         ? _plainContextString
         : base64UrlEncode(utf8.encode(_plainContextString));
-    final path = useReport
+    final path = _useReport
         ? _dataSourceConfig.streamingReportPath(_credential, contextString)
         : _dataSourceConfig.streamingGetPath(_credential, contextString);
 
@@ -133,48 +148,21 @@ final class StreamingDataSource implements DataSource {
     return Uri.parse(completeUrl);
   }
 
-  SSEClientRequest _requestFor(bool useReport) => SSEClientRequest(
-      uriProvider: () => _uriFor(useReport),
-      eventTypes: const {_putEvent, _patchEvent, _delete, _pingEvent},
-      headers: streamingRequestHeaders(_httpProperties),
-      body: useReport ? _plainContextString : null,
-      method: useReport ? SseHttpMethod.report : SseHttpMethod.get,
-      logger: LDLoggerToEventSourceAdapter(_logger));
-
-  /// Builds the client, or returns null after a failure. A failure shuts
-  /// the data source down. The factory is application code, so it can throw.
-  (SSEClient, bool)? _buildClient() {
-    try {
-      return createSseClient(
-          factory: _clientFactory,
-          requestFor: _requestFor,
-          useCustomMethod: _dataSourceConfig.useReport,
-          logger: _logger);
-    } catch (err) {
-      _permanentShutdown = true;
-      _logger.error('The SSE client factory failed: "$err", Shutting down.');
-      // The event must be added before calling stop, because stop closes
-      // the controller and adding an event after that throws a StateError.
-      _dataController.sink.add(StatusEvent(
-          ErrorKind.unknown, null, 'The SSE client factory failed'));
-      stop();
-      return null;
-    }
-  }
-
   @override
   void start() {
     if (_subscription != null || _permanentShutdown || _stopped) {
       return;
     }
     _stopped = false;
-    final built = _buildClient();
-    if (built == null) {
-      return;
-    }
-    final (client, useReport) = built;
-    _logger.debug(
-        'Establishing new streaming connection, uri: ${_uriFor(useReport)}');
+    final uri = _buildUri();
+    _logger.debug('Establishing new streaming connection, uri: $uri');
+    final client = _clientBuilder(
+        uri, const {_putEvent, _patchEvent, _delete, _pingEvent},
+        headers: streamingRequestHeaders(_httpProperties),
+        body: _useReport ? _plainContextString : null,
+        httpMethod: _useReport ? SseHttpMethod.report : SseHttpMethod.get,
+        logger: LDLoggerToEventSourceAdapter(_logger),
+        uriProvider: _buildUri);
     _client = client;
 
     _subscription = client.stream.listen((event) async {
@@ -257,10 +245,8 @@ final class StreamingDataSource implements DataSource {
     // to the method documentation.
     _subscription?.cancel();
     _subscription = null;
-    if (_client case final client?) {
-      closeSseClient(client, _logger);
-      _client = null;
-    }
+    _client?.close();
+    _client = null;
     _stopped = true;
     _dataController.close();
   }

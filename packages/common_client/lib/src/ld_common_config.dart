@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
 
-import 'data_sources/sse_client_factory.dart';
 import 'hooks/hook.dart';
 import 'config/data_system_config.dart';
 import 'config/defaults/default_config.dart';
@@ -160,14 +159,19 @@ abstract class LDCommonConfig {
   /// https://launchdarkly.com/docs/sdk/features/data-saving-mode
   final DataSystemConfig? dataSystem;
 
-  /// Supplies the SSE client that the SDK uses for streaming. When it is not
-  /// set, the SDK uses the default client for the platform.
+  /// Streams with the HTTP-based SSE client on web.
   ///
-  /// This option is for applications with a specific need. For example, on
-  /// web the default client is the browser `EventSource`. It cannot send a
-  /// request body or report an HTTP error. A factory that returns
-  /// `SSEClient.http` removes these limits. Most applications do not need it.
-  final SSEClientFactory? eventSourceFactory;
+  /// On web, the default streaming client is the browser `EventSource`. It
+  /// cannot send a request body or report an HTTP error, so `useReport` falls
+  /// back to GET and `usePost` falls back to polling. With this option, the
+  /// SDK streams with `fetch()` through `package:http` instead, and both
+  /// methods work on web. The option has no effect on other platforms, where
+  /// the default client is already HTTP-based.
+  ///
+  /// Most applications do not need this option. On web, the SDK does not
+  /// send the application tags header on streaming requests, because the
+  /// CORS allow-list of the streaming service does not include it.
+  final bool useHttpStreamingOnWeb;
 
   LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,
       {this.applicationInfo,
@@ -182,7 +186,7 @@ abstract class LDCommonConfig {
       List<String>? globalPrivateAttributes,
       List<Hook>? hooks,
       this.dataSystem,
-      this.eventSourceFactory})
+      this.useHttpStreamingOnWeb = false})
       : httpProperties = httpProperties ?? HttpProperties(),
         serviceEndpoints = serviceEndpoints ?? ServiceEndpoints(),
         events = events ?? EventsConfig(),

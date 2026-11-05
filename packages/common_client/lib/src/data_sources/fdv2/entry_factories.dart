@@ -6,7 +6,7 @@ import 'package:launchdarkly_event_source_client/launchdarkly_event_source_clien
 
 import '../../config/defaults/default_config.dart';
 import '../../config/service_endpoints.dart';
-import '../sse_client_factory.dart';
+import '../streaming_client.dart';
 import '../streaming_data_source.dart' show LDLoggerToEventSourceAdapter;
 import 'cache_initializer.dart' as cache_src;
 import 'endpoints.dart';
@@ -175,7 +175,7 @@ InitializerFactory createInitializerFactoryFromEntry(
 SynchronizerFactory createSynchronizerFactoryFromEntry(
   mode.SynchronizerEntry entry,
   SourceFactoryContext ctx, {
-  SSEClientFactory? sseClientFactory,
+  SseClientBuilder sseClientBuilder = SSEClient.new,
 }) {
   switch (entry) {
     case final mode.PollingSynchronizer e:
@@ -200,28 +200,21 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
         create: (SelectorGetter selectorGetter) {
           final endpointsResolved =
               mergeServiceEndpoints(ctx.serviceEndpoints, e.endpoints);
-          // A client without the custom method capability streams with GET.
-          // The ping poll below keeps the configured method.
-          final (sseClient, _) = createSseClient(
-            factory: sseClientFactory,
-            useCustomMethod: ctx.usePost,
-            logger: ctx.logger,
-            requestFor: (usePost) => SSEClientRequest(
-              uriProvider: () => _buildStreamingUri(
+          Uri uriProvider() => _buildStreamingUri(
                 endpoints: endpointsResolved,
                 contextEncoded: base64UrlEncode(utf8.encode(ctx.contextJson)),
-                usePost: usePost,
+                usePost: ctx.usePost,
                 withReasons: ctx.withReasons,
                 basis: selectorGetter(),
                 additionalQueryParameters: ctx.additionalQueryParameters,
-              ),
-              eventTypes: _fdv2StreamEventNames,
+              );
+          final sseClient = sseClientBuilder(
+              uriProvider(), _fdv2StreamEventNames,
               headers: streamingRequestHeaders(ctx.httpProperties),
-              body: usePost ? ctx.contextJson : null,
-              method: usePost ? SseHttpMethod.post : SseHttpMethod.get,
+              body: ctx.usePost ? ctx.contextJson : null,
+              httpMethod: ctx.usePost ? SseHttpMethod.post : SseHttpMethod.get,
               logger: LDLoggerToEventSourceAdapter(ctx.logger),
-            ),
-          );
+              uriProvider: uriProvider);
 
           // Legacy ping events trigger a one-shot poll.
           final pingPollingBase = _buildPollingBase(
@@ -258,10 +251,10 @@ List<InitializerFactory> buildInitializerFactories(
 List<SynchronizerFactory> buildSynchronizerFactories(
   List<mode.SynchronizerEntry> entries,
   SourceFactoryContext ctx, {
-  SSEClientFactory? sseClientFactory,
+  SseClientBuilder sseClientBuilder = SSEClient.new,
 }) {
   return entries
       .map((e) => createSynchronizerFactoryFromEntry(e, ctx,
-          sseClientFactory: sseClientFactory))
+          sseClientBuilder: sseClientBuilder))
       .toList();
 }

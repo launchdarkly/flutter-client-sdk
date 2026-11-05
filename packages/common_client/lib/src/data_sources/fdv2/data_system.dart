@@ -3,12 +3,11 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
 import 'package:meta/meta.dart';
 
 import '../../config/data_system_config.dart';
-import '../../config/defaults/default_config.dart';
 import '../../config/service_endpoints.dart';
 import '../../fdv2_connection_mode.dart';
 import '../data_source_manager.dart';
 import '../data_source_status_manager.dart';
-import '../sse_client_factory.dart';
+import '../streaming_client.dart';
 import 'built_in_modes.dart';
 import 'cache_initializer.dart';
 import 'entry_factories.dart';
@@ -41,7 +40,7 @@ final class FDv2DataSystem {
   final DataSourceStatusManager _statusManager;
   final Map<ConnectionModeId, ModeDefinition> _connectionModeOverrides;
   final CachedFlagsReader _cachedFlagsReader;
-  final SSEClientFactory? _sseClientFactory;
+  final SseClientBuilder _sseClientBuilder;
   final HttpClientFactory? _httpClientFactory;
 
   Selector _selector = Selector.empty;
@@ -56,11 +55,13 @@ final class FDv2DataSystem {
     required Duration defaultPollingInterval,
     required DataSourceStatusManager statusManager,
     required CachedFlagsReader cachedFlagsReader,
-    SSEClientFactory? sseClientFactory,
+    // Selects the HTTP-based SSE client on web.
+    bool useHttpStreamingOnWeb = false,
+    // Builds the SSE client. Tests inject a fake.
+    SseClientBuilder? sseClientBuilder,
     HttpClientFactory? httpClientFactory,
-    // Whether the streaming transport can send a POST request. Defaults to
-    // the platform's capability. With a custom client, the data source checks
-    // each client instead. Tests override it.
+    // Whether the streaming client can send a POST request. Defaults to the
+    // capability of the selected client. Tests override it.
     bool? streamingPostSupported,
   })  : _credential = credential,
         _logger = logger,
@@ -69,19 +70,20 @@ final class FDv2DataSystem {
         _withReasons = withReasons,
         _usePost = config.usePost,
         _streamingPostSupported = streamingPostSupported ??
-            (sseClientFactory != null ||
-                DefaultConfig.dataSourceConfig.streamingPostSupported),
+            streamingCustomMethodSupported(
+                useHttpStreamingOnWeb: useHttpStreamingOnWeb),
         _defaultPollingInterval = defaultPollingInterval,
         _statusManager = statusManager,
         _cachedFlagsReader = cachedFlagsReader,
-        _sseClientFactory = sseClientFactory,
+        _sseClientBuilder = sseClientBuilder ??
+            sseClientBuilderFor(useHttpStreamingOnWeb: useHttpStreamingOnWeb),
         _httpClientFactory = httpClientFactory,
         _connectionModeOverrides = config.connectionModes {
     if (_usePost && !_streamingPostSupported) {
-      _logger.warn(
-          'The streaming transport on this platform cannot send POST requests. '
-          'Streaming sources are skipped while usePost is set, so the SDK '
-          'polls instead.');
+      _logger
+          .warn('The browser EventSource cannot send POST requests. Streaming '
+              'sources are skipped while usePost is set, so the SDK polls '
+              'instead. Set useHttpStreamingOnWeb to stream with POST on web.');
     }
   }
 
@@ -182,7 +184,7 @@ final class FDv2DataSystem {
 
       final synchronizerSlots = buildSynchronizerFactories(
               modeDefinition.synchronizers, factoryContext,
-              sseClientFactory: _sseClientFactory)
+              sseClientBuilder: _sseClientBuilder)
           .map((factory) => SynchronizerSlot(factory: factory))
           .toList();
 
