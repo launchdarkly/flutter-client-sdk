@@ -11,11 +11,13 @@ const int _defaultWaitTimeMillis = 5000;
 
 /// Runs the SDK in the browser for the contract test harness.
 ///
-/// The browser streams with [SSEClient.http], not with the browser native
-/// `EventSource`. The native client cannot send a request body or report an
-/// HTTP error.
+/// The SDK streams with the HTTP-based SSE client, not with the browser
+/// native `EventSource`. The native client cannot send a request body or
+/// report an HTTP error.
 final class Entity {
-  static const List<String> _baseCapabilities = [
+  /// The last two capabilities need the HTTP-based SSE client, which
+  /// `useHttpStreamingOnWeb` selects below.
+  static const List<String> capabilities = [
     'client-side',
     'strongly-typed',
     'context-comparison',
@@ -28,27 +30,12 @@ final class Entity {
     'client-prereq-events',
     'client-prereq-cycle-detection',
     'fdv1-fallback',
+    'client-event-source-http-errors',
+    'client-use-post',
   ];
 
   final Map<int, LDClient> _clients = {};
   int _nextClientId = 0;
-
-  /// The capabilities that depend on the streaming transport are listed only
-  /// when the SSE client in use reports the matching capability. A client that
-  /// is never subscribed to does not open a connection.
-  List<String> get capabilities {
-    final probe = SSEClient.http(Uri.parse('http://localhost'), const {});
-    try {
-      return [
-        ..._baseCapabilities,
-        if (probe.hasCapability(SSECapability.httpErrors))
-          'client-event-source-http-errors',
-        if (probe.hasCapability(SSECapability.customMethod)) 'client-use-post',
-      ];
-    } finally {
-      probe.close();
-    }
-  }
 
   /// Handles one request from the adapter and returns the response. The
   /// response has a `status` that mirrors the HTTP status for the harness.
@@ -135,13 +122,7 @@ final class Entity {
               ?.map((attribute) => attribute as String)
               .toList(),
       dataSystem: mappedDataSystem?.config,
-      eventSourceFactory: (request) => SSEClient.http(
-          request.uriProvider(), request.eventTypes,
-          headers: request.headers,
-          body: request.body,
-          httpMethod: request.method,
-          logger: request.logger,
-          uriProvider: request.uriProvider),
+      useHttpStreamingOnWeb: true,
     );
 
     final context = _flattenedListToContext(_serializedContextToFlattenedList(
