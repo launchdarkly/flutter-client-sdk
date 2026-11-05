@@ -63,8 +63,9 @@ final class DataSourceConfig {
   final PollingConfig polling;
 
   /// [useReport] determines if the data source will attempt to use the
-  /// REPORT http method if possible. For streaming requests on the web
-  /// platform report is not supported. The default value is `false`.
+  /// REPORT http method if possible. On web, the default streaming client
+  /// cannot send REPORT, so the SDK streams with GET and logs a warning
+  /// unless [useHttpStreamingOnWeb] is set. The default value is `false`.
   /// This option has no effect when the FDv2 data system is enabled (a
   /// [DataSystemConfig] is provided); use [DataSystemConfig.usePost] in
   /// that case.
@@ -168,9 +169,12 @@ abstract class LDCommonConfig {
   /// methods work on web. The option has no effect on other platforms, where
   /// the default client is already HTTP-based.
   ///
-  /// Most applications do not need this option. On web, the SDK does not
-  /// send the application tags header on streaming requests, because the
-  /// CORS allow-list of the streaming service does not include it.
+  /// Most applications do not need this option. With or without it, the
+  /// SDK does not send the application tags header on web streaming
+  /// requests, because the CORS allow-list of the streaming service does not
+  /// include it. With this option, the SDK sends the other base headers on
+  /// web streaming requests, and each one must pass the CORS check of the
+  /// streaming service.
   final bool useHttpStreamingOnWeb;
 
   LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,

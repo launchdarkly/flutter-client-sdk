@@ -8,6 +8,7 @@ import 'package:launchdarkly_common_client/src/data_sources/fdv2/mode_definition
 import 'package:launchdarkly_common_client/src/fdv2_connection_mode.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -17,6 +18,7 @@ FDv2DataSystem makeDataSystem({
   DataSystemConfig config = const DataSystemConfig(),
   bool? streamingPostSupported,
   LDLogger? logger,
+  bool useHttpStreamingOnWeb = false,
 }) =>
     FDv2DataSystem(
       config: config,
@@ -29,6 +31,7 @@ FDv2DataSystem makeDataSystem({
       statusManager: DataSourceStatusManager(),
       cachedFlagsReader: (_) async => null,
       streamingPostSupported: streamingPostSupported,
+      useHttpStreamingOnWeb: useHttpStreamingOnWeb,
     );
 
 LDContext _context() => LDContextBuilder().kind('user', 'bob').build();
@@ -97,6 +100,17 @@ void main() {
     });
     final factories = makeDataSystem(config: config).buildFactories();
     expect(factories.keys, hasLength(4));
+  });
+
+  group('useHttpStreamingOnWeb', () {
+    test('selects the default SSE client without the option', () {
+      expect(makeDataSystem().sseClientBuilder, same(SSEClient.new));
+    });
+
+    test('selects the HTTP SSE client with the option', () {
+      expect(makeDataSystem(useHttpStreamingOnWeb: true).sseClientBuilder,
+          same(SSEClient.http));
+    });
   });
 
   test('usePost is off by default', () {

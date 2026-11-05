@@ -32,8 +32,9 @@ const String _tagsHeader = 'x-launchdarkly-tags';
 
 /// Returns the headers for a streaming request.
 ///
-/// On a platform where the streaming service rejects the application tags
-/// header, the tags header is removed.
+/// On web, the function removes the application tags header. The CORS
+/// allow-list of the streaming service does not include it, so a browser
+/// blocks a request that sends it.
 Map<String, String> streamingRequestHeaders(HttpProperties httpProperties) {
   final headers = httpProperties.baseHeaders;
   if (DefaultConfig.dataSourceConfig.streamingTagsHeaderSupported) {
