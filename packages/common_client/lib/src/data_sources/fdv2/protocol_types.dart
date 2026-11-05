@@ -152,8 +152,8 @@ final class GoodbyeEvent {
   /// When present, the server is directing a protocol fallback (FDv2 to
   /// FDv1) in-band -- the same signal as the `x-ld-fd-fallback` response
   /// header, for transports that cannot read response headers. The value
-  /// is how long to remain on the fallback before retrying; [Duration.zero]
-  /// means indefinitely. `null` means no fallback was directed.
+  /// is how long to remain on the fallback before retrying, unvalidated
+  /// (see `resolveFallbackTtl`). `null` means no fallback was directed.
   final Duration? protocolFallbackTtl;
 
   const GoodbyeEvent({

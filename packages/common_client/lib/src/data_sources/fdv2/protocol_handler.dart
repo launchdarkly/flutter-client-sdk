@@ -56,9 +56,9 @@ final class ActionGoodbye extends ProtocolAction {
   final String reason;
 
   /// When present, the goodbye carries an in-band protocol-fallback
-  /// directive (FDv2 to FDv1) with this time-to-live; [Duration.zero]
-  /// means remain on the fallback indefinitely. `null` means an ordinary
-  /// disconnect with no fallback directive.
+  /// directive (FDv2 to FDv1) with this unvalidated time-to-live (see
+  /// `resolveFallbackTtl`). `null` means an ordinary disconnect with no
+  /// fallback directive.
   final Duration? protocolFallbackTtl;
 
   const ActionGoodbye(this.reason, {this.protocolFallbackTtl});

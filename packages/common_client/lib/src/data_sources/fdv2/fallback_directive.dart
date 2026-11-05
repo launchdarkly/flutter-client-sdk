@@ -1,7 +1,14 @@
+import 'dart:math';
+
+/// The longest server-supplied fallback TTL that is honored, and the
+/// (jittered) default used when the server gives no usable TTL.
+const Duration maxFallbackTtl = Duration(hours: 1);
+
 /// The FDv1 fallback directive parsed from a connection's response
 /// headers. Its presence means the server asked the SDK to fall back;
-/// [ttl] is how long to remain on the fallback before retrying FDv2
-/// (null when the server gave no TTL; [Duration.zero] means indefinitely).
+/// [ttl] is the server-supplied time to remain on the fallback before
+/// retrying FDv2, unvalidated (null when absent or not an integer). See
+/// [resolveFallbackTtl].
 final class FallbackDirective {
   final Duration? ttl;
   const FallbackDirective(this.ttl);
@@ -17,4 +24,19 @@ FallbackDirective? readFallbackDirective(Map<String, String> headers) {
   final raw = headers['x-ld-fd-fallback-ttl'];
   final seconds = raw == null ? null : int.tryParse(raw);
   return FallbackDirective(seconds == null ? null : Duration(seconds: seconds));
+}
+
+/// Returns how long to remain on the fallback before retrying FDv2. A
+/// server-supplied [ttl] in (0, [maxFallbackTtl]] is used as-is. Anything
+/// else (absent, zero, negative, or too long) uses [maxFallbackTtl] minus
+/// a uniformly random jitter of up to half of it, so SDKs that fell back
+/// together do not all retry at once. Fallback is never indefinite.
+Duration resolveFallbackTtl(Duration? ttl, [Random? random]) {
+  if (ttl case final valid?
+      when valid > Duration.zero && valid <= maxFallbackTtl) {
+    return valid;
+  }
+  final maxJitterSeconds = maxFallbackTtl.inSeconds ~/ 2;
+  final jitterSeconds = (random ?? Random()).nextInt(maxJitterSeconds + 1);
+  return maxFallbackTtl - Duration(seconds: jitterSeconds);
 }
