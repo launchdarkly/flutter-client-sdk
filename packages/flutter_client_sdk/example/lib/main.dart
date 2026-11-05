@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:launchdarkly_flutter_client_sdk/launchdarkly_flutter_client_sdk.dart';
 import 'package:provider/provider.dart';
@@ -30,16 +29,9 @@ class MyApp extends StatelessWidget {
               // Optional. Most applications do not need it. On web, the
               // default streaming client is the browser EventSource. It
               // cannot send a request body or report an HTTP error. The
-              // example uses an HTTP-based client on web to show the option.
-              eventSourceFactory: kIsWeb
-                  ? (request) => SSEClient.http(
-                      request.uriProvider(), request.eventTypes,
-                      headers: request.headers,
-                      body: request.body,
-                      httpMethod: request.method,
-                      logger: request.logger,
-                      uriProvider: request.uriProvider)
-                  : null,
+              // example streams with the HTTP-based client on web to show
+              // the option. It has no effect on other platforms.
+              useHttpStreamingOnWeb: true,
             ),
             // Here we are using a default user with 'user-key'.
             LDContextBuilder().kind('user', 'user-key').build()),

@@ -80,14 +80,7 @@ export 'package:launchdarkly_common_client/launchdarkly_common_client.dart'
         StreamingInitializer,
         PollingSynchronizer,
         StreamingSynchronizer,
-        Fdv1FallbackConfig,
-        SSEClient,
-        SSEClientFactory,
-        SSEClientRequest,
-        SSECapability,
-        SseHttpMethod,
-        SseHttpError,
-        EventSourceLogger;
+        Fdv1FallbackConfig;
 
 export 'src/ld_client.dart' show LDClient;
 export 'src/config/ld_config.dart' show LDConfig, ApplicationEvents;
