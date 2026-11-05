@@ -26,12 +26,6 @@ class MyApp extends StatelessWidget {
               // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
               CredentialSource.fromEnvironment(),
               AutoEnvAttributes.enabled,
-              // Optional. Most applications do not need it. On web, the
-              // default streaming client is the browser EventSource. It
-              // cannot send a request body or report an HTTP error. The
-              // example streams with the HTTP-based client on web to show
-              // the option. It has no effect on other platforms.
-              useHttpStreamingOnWeb: true,
             ),
             // Here we are using a default user with 'user-key'.
             LDContextBuilder().kind('user', 'user-key').build()),
