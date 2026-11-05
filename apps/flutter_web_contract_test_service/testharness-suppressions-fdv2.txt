@@ -1,8 +1,9 @@
 # FDv2 run (harness v3). Same list as the JS browser SDK data system runs
 # (js-core, packages/sdk/browser/contract-tests/suppressions_datamode_changes.txt).
 #
-# SSEClient.http drops the x-launchdarkly-tags header on web, to avoid CORS
-# preflight failures, so the stream tags assertions cannot pass. The poll tags
+# On web, the SDK drops the x-launchdarkly-tags header from streaming
+# requests, to avoid CORS preflight failures, so the stream tags assertions
+# cannot pass. The poll tags
 # assertions are skipped for the same reason as in the JS browser SDK.
 tags/FDv1 fallback directive requests
 tags/disallowed characters

@@ -1,9 +1,9 @@
 Contract test service that runs the Flutter SDK in a browser.
 
-The SDK streams with `SSEClient.http`, not with the browser native
-`EventSource`. The native client cannot send a request body or report an HTTP
-error. So this service is the only contract test run that covers `usePost` and
-HTTP error handling for streaming on web.
+The SDK streams with the HTTP-based SSE client (`useHttpStreamingOnWeb`), not
+with the browser native `EventSource`. The native client cannot send a request
+body or report an HTTP error. So this service is the only contract test run
+that covers `usePost` and HTTP error handling for streaming on web.
 
 # How it works
 
@@ -16,9 +16,9 @@ requests. So the service has two parts:
 - `lib/main.dart` is a Flutter web app. It runs in the browser, connects to
   the adapter, and runs each request with the SDK.
 
-The browser tells the adapter which capabilities it has when it connects. The
-capabilities that depend on the streaming transport (`client-use-post` and
-`client-event-source-http-errors`) come from the SSE client in use.
+The browser tells the adapter which capabilities it has when it connects.
+`client-use-post` and `client-event-source-http-errors` need the HTTP-based
+SSE client.
 
 # Running it
 
