@@ -95,29 +95,12 @@ final class LDConfig extends LDCommonConfig {
   /// This feature is not stable, and not subject to any backwards
   /// compatibility guarantees or semantic versioning. It is in early access.
   ///
-  /// [eventSourceFactory] supplies the SSE client that the SDK uses for
-  /// streaming. Most applications do not need this option. Use it only when
-  /// the default client cannot meet a specific need, for example
-  /// [DataSourceConfig.useReport] or [DataSystemConfig.usePost] on web.
-  ///
-  /// On web, the default client is the browser `EventSource`. It cannot send
-  /// a request body or report an HTTP error. An application can opt in to an
-  /// HTTP-based client:
-  ///
-  /// ```dart
-  /// LDConfig(credential, AutoEnvAttributes.enabled,
-  ///     eventSourceFactory: (request) => SSEClient.http(
-  ///         request.uriProvider(), request.eventTypes,
-  ///         headers: request.headers,
-  ///         body: request.body,
-  ///         httpMethod: request.method,
-  ///         logger: request.logger,
-  ///         uriProvider: request.uriProvider));
-  /// ```
-  ///
-  /// See [SSEClientFactory] for how the SDK uses the client and for the
-  /// limits on web. [SSEClientRequest] carries the SDK credential and the
-  /// evaluation context. Do not log them.
+  /// [useHttpStreamingOnWeb] streams with the HTTP-based SSE client on web.
+  /// The default client on web is the browser `EventSource`. It cannot send
+  /// a request body or report an HTTP error, so [DataSourceConfig.useReport]
+  /// falls back to GET and [DataSystemConfig.usePost] falls back to polling.
+  /// With this option, both methods work on web. The option has no effect on
+  /// other platforms. Most applications do not need it.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
@@ -133,7 +116,7 @@ final class LDConfig extends LDCommonConfig {
       super.hooks,
       List<Plugin>? plugins,
       super.dataSystem,
-      super.eventSourceFactory})
+      super.useHttpStreamingOnWeb})
       : applicationEvents = applicationEvents ?? ApplicationEvents(),
         plugins =
             plugins != null ? UnmodifiableListView(List.from(plugins)) : null;
