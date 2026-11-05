@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
+import 'package:meta/meta.dart';
 
 import '../config/data_source_config.dart';
 import '../config/defaults/default_config.dart';
@@ -57,6 +58,10 @@ final class StreamingDataSource implements DataSource {
   /// Used to track if there has been an unrecoverable error.
   bool _permanentShutdown = false;
 
+  /// The builder that [start] uses for the SSE client.
+  @visibleForTesting
+  SseClientBuilder get clientBuilder => _clientBuilder;
+
   /// [useHttpStreamingOnWeb] selects the HTTP-based SSE client on web. The
   /// [clientBuilder] parameter is for tests, which inject a fake client. The
   /// [httpClientFactory] parameter is for tests of the requestor that serves
@@ -88,7 +93,7 @@ final class StreamingDataSource implements DataSource {
     if (_dataSourceConfig.useReport && !_useReport) {
       _logger
           .warn('The streaming transport on this platform cannot send REPORT '
-              'requests. Streaming with GET instead.');
+              'requests. The SDK streams with GET instead.');
     }
 
     _contextString = _useReport

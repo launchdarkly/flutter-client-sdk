@@ -73,10 +73,10 @@ runs:
 
     - name: Web Streaming Tests (Chrome)
       shell: bash
-      # The streaming client selection makes decisions that only apply on
-      # web: it removes the tags header and falls back to GET or polling
-      # without useHttpStreamingOnWeb. The Dart VM cannot run that code, so
-      # these tests run on Chrome.
+      # On web, the SDK removes the tags header from streaming requests.
+      # Without useHttpStreamingOnWeb, it also streams with GET or polls
+      # instead of streaming with REPORT or POST. The Dart VM resolves the
+      # web-only configuration to the io branch, so these tests run on Chrome.
       run: |
         cd packages/common_client
         dart test test/data_sources/streaming_client_web_test.dart -p chrome --test-randomize-ordering-seed=random

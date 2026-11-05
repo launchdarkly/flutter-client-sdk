@@ -43,6 +43,10 @@ final class FDv2DataSystem {
   final SseClientBuilder _sseClientBuilder;
   final HttpClientFactory? _httpClientFactory;
 
+  /// The builder that the streaming synchronizers use.
+  @visibleForTesting
+  SseClientBuilder get sseClientBuilder => _sseClientBuilder;
+
   Selector _selector = Selector.empty;
 
   FDv2DataSystem({

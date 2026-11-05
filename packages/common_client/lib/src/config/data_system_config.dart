@@ -95,9 +95,10 @@ final class DataSystemConfig {
   /// source keeps the context out of the URL the same way, with the REPORT
   /// method that the FDv1 endpoints accept.
   ///
-  /// The browser EventSource cannot send a POST request. On web the SDK
-  /// skips streaming sources when this option is set and logs a warning,
-  /// so a mode that would stream polls instead.
+  /// On web, the default streaming client cannot send a POST request. The
+  /// SDK then skips the streaming sources, logs a warning, and a mode that
+  /// would stream polls instead. Set `useHttpStreamingOnWeb` on the client
+  /// configuration to stream with POST on web.
   final bool usePost;
 
   const DataSystemConfig({

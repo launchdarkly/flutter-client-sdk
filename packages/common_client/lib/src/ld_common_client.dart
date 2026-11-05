@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:meta/meta.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import '../src/config/common_platform.dart';
@@ -81,7 +82,10 @@ final class IdentifyError implements IdentifyResult {
 typedef DataSourceFactoriesFn = Map<ConnectionMode, DataSourceFactory> Function(
     LDCommonConfig config, LDLogger logger, HttpProperties httpProperties);
 
-Map<ConnectionMode, DataSourceFactory> _defaultFactories(
+/// Builds the FDv1 streaming and polling data source factories from the
+/// client configuration.
+@visibleForTesting
+Map<ConnectionMode, DataSourceFactory> defaultDataSourceFactories(
     LDCommonConfig config, LDLogger logger, HttpProperties httpProperties) {
   final useReport = config.dataSourceConfig.useReport;
   final withReasons = config.dataSourceConfig.evaluationReasons;
@@ -272,7 +276,8 @@ final class LDCommonClient {
         _dataSourceStatusManager = DataSourceStatusManager(),
         _initialUndecoratedContext = context,
         // Data source factories is primarily a mechanism for testing.
-        _dataSourceFactories = dataSourceFactories ?? _defaultFactories,
+        _dataSourceFactories =
+            dataSourceFactories ?? defaultDataSourceFactories,
         _eventProcessorFactory =
             eventProcessorFactory ?? _defaultEventProcessorFactory,
         _sdkData = sdkData {
