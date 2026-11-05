@@ -96,12 +96,13 @@ final class LDConfig extends LDCommonConfig {
   /// compatibility guarantees or semantic versioning. It is in early access.
   ///
   /// [eventSourceFactory] supplies the SSE client that the SDK uses for
-  /// streaming. Most applications do not need it, and it is not a general
-  /// recommendation to use `usePost`, `useReport` or a custom client.
+  /// streaming. Most applications do not need this option. Use it only when
+  /// the default client cannot meet a specific need, for example
+  /// [DataSourceConfig.useReport] or [DataSystemConfig.usePost] on web.
   ///
   /// On web, the default client is the browser `EventSource`. It cannot send
-  /// a request body or report an HTTP error. An application with a specific
-  /// need for these can opt in to an HTTP-based client:
+  /// a request body or report an HTTP error. An application can opt in to an
+  /// HTTP-based client:
   ///
   /// ```dart
   /// LDConfig(credential, AutoEnvAttributes.enabled,
@@ -114,9 +115,9 @@ final class LDConfig extends LDCommonConfig {
   ///         uriProvider: request.uriProvider));
   /// ```
   ///
-  /// On web, the SDK does not send the application tags header on this path.
-  /// The CORS allow-list of the streaming service does not include it, and
-  /// the browser blocks a request that sends it.
+  /// See [SSEClientFactory] for how the SDK uses the client and for the
+  /// limits on web. [SSEClientRequest] carries the SDK credential and the
+  /// evaluation context. Do not log them.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
