@@ -6,19 +6,6 @@ export 'src/ld_common_config.dart'
         AutoEnvAttributes,
         PollingConfig;
 
-export 'src/data_sources/sse_client_factory.dart'
-    show SSEClientFactory, SSEClientRequest;
-export 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart'
-    show
-        SSEClient,
-        SSECapability,
-        SseHttpMethod,
-        SseHttpError,
-        EventSourceLogger,
-        Event,
-        MessageEvent,
-        OpenEvent;
-
 export 'src/config/data_system_config.dart'
     show DataSystemConfig, ConnectionModeId;
 export 'src/data_sources/fdv2/mode_definition.dart'
