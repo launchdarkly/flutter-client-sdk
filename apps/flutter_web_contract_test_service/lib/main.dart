@@ -33,7 +33,7 @@ Future<void> _run() async {
 
   final entity = Entity();
   channel.sink.add(
-      jsonEncode({'type': helloType, 'capabilities': entity.capabilities}));
+      jsonEncode({'type': helloType, 'capabilities': Entity.capabilities}));
 
   channel.stream.listen((data) async {
     final request = jsonDecode(data as String) as Map<String, dynamic>;
