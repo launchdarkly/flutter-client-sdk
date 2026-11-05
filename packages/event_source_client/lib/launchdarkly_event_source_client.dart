@@ -10,6 +10,7 @@ import 'src/events.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
+import 'src/http_sse_headers.dart';
 import 'src/sse_client_http.dart' as http_client show HttpSseClient;
 import 'src/test_sse_client.dart';
 
@@ -44,14 +45,6 @@ class SSECapability {
   @override
   String toString() => 'SSECapability.$value';
 }
-
-/// True when compiled for a browser.
-const bool _isWeb = bool.fromEnvironment('dart.library.js_interop');
-
-/// Default headers of [SSEClient.http] on web. Only CORS-safelisted headers.
-const Map<String, String> _webDefaultHeaders = {
-  HttpHeaders.acceptHeader: MimeTypes.textEventStream,
-};
 
 /// HTTP methods supported by the event source client.
 enum SseHttpMethod {
@@ -179,11 +172,14 @@ abstract class SSEClient {
   /// needs those features on web.
   ///
   /// On web, a custom header must be allowed by the CORS configuration of
-  /// the server, or the browser blocks the request. For this reason, on web
-  /// the default headers are only `accept`. The `user-agent` header is
-  /// forbidden in browsers, and `cache-control` is not CORS-safelisted, so
-  /// each would force a preflight request. This matches the browser SDKs.
-  /// Any header in [headers] is still sent.
+  /// the server, or the browser blocks the request. On web, the default
+  /// headers are `accept` and `cache-control`. The `user-agent` header is
+  /// left out, because a browser forbids it. The `cache-control` header
+  /// stops a browser from serving a cached stream response on a reconnect.
+  /// It is not CORS-safelisted, so the browser sends a preflight request,
+  /// which the server must allow. The LaunchDarkly streaming service allows
+  /// it. This matches the LaunchDarkly browser SDK. Any header in [headers]
+  /// is still sent.
   ///
   /// The [headers], [connectTimeout], [readTimeout], [body], [httpMethod] and
   /// [uriProvider] arguments are used on every platform. The other arguments
@@ -196,12 +192,15 @@ abstract class SSEClient {
       SseHttpMethod httpMethod = SseHttpMethod.get,
       EventSourceLogger? logger,
       Uri Function()? uriProvider}) {
-    final mergedHeaders = <String, String>{
-      ..._isWeb ? _webDefaultHeaders : defaultHeaders,
-      ...headers
-    };
-    return http_client.HttpSseClient(uri, eventTypes, mergedHeaders,
-        connectTimeout, readTimeout, body, httpMethod.toString(), logger,
+    return http_client.HttpSseClient(
+        uri,
+        eventTypes,
+        httpSseClientHeaders(headers),
+        connectTimeout,
+        readTimeout,
+        body,
+        httpMethod.toString(),
+        logger,
         uriProvider: uriProvider);
   }
 
