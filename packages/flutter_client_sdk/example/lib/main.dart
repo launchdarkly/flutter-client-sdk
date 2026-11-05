@@ -27,11 +27,10 @@ class MyApp extends StatelessWidget {
               // Alternatively `CredentialSource.fromEnvironment()` can be replaced with your mobile key.
               CredentialSource.fromEnvironment(),
               AutoEnvAttributes.enabled,
-              // Optional, and only for applications with a specific need.
-              // On web the default streaming client is the browser
-              // EventSource, which cannot send a request body or report an
-              // HTTP error. This opts in to an HTTP-based client on web only.
-              // The application tags header is not sent on this path.
+              // Optional. Most applications do not need it. On web, the
+              // default streaming client is the browser EventSource. It
+              // cannot send a request body or report an HTTP error. The
+              // example uses an HTTP-based client on web to show the option.
               eventSourceFactory: kIsWeb
                   ? (request) => SSEClient.http(
                       request.uriProvider(), request.eventTypes,
