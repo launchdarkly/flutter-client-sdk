@@ -157,8 +157,10 @@ void main() {
             required body,
             required httpMethod,
             required logger,
-            required uriProvider}) {
-          capturedUriProvider = uriProvider;
+            uriProvider}) {
+          if (uriProvider case final provider?) {
+            capturedUriProvider = provider;
+          }
           return SSEClient.testClient(uri, const {});
         },
       );
@@ -207,8 +209,10 @@ void main() {
             required body,
             required httpMethod,
             required logger,
-            required uriProvider}) {
-          capturedUriProvider = uriProvider;
+            uriProvider}) {
+          if (uriProvider case final provider?) {
+            capturedUriProvider = provider;
+          }
           return SSEClient.testClient(uri, const {});
         },
       );
@@ -351,10 +355,12 @@ void main() {
             required body,
             required httpMethod,
             required logger,
-            required uriProvider}) {
+            uriProvider}) {
           capturedMethod = httpMethod;
           capturedBody = body;
-          capturedUriProvider = uriProvider;
+          if (uriProvider case final provider?) {
+            capturedUriProvider = provider;
+          }
           return SSEClient.testClient(uri, const {});
         },
       );

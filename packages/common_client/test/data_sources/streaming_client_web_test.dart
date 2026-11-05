@@ -1,18 +1,12 @@
 @TestOn('browser')
 library;
 
-import 'dart:async';
-
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/config/data_source_config.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/data_system.dart';
 import 'package:launchdarkly_common_client/src/data_sources/streaming_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/streaming_data_source.dart';
-import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
-    as ld_common;
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
@@ -26,17 +20,15 @@ typedef _Call = ({
   SseHttpMethod method
 });
 
-/// A builder that records its arguments and returns a test client. Events
-/// on [source] reach the data source through the client.
-SseClientBuilder _recording(List<_Call> calls, {Stream<Event>? source}) =>
-    (uri, eventTypes,
+/// A builder that records its arguments and returns a test client.
+SseClientBuilder _recording(List<_Call> calls) => (uri, eventTypes,
         {required headers,
         required body,
         required httpMethod,
         required logger,
-        required uriProvider}) {
+        uriProvider}) {
       calls.add((uri: uri, headers: headers, body: body, method: httpMethod));
-      return SSEClient.testClient(uri, eventTypes, sourceStream: source);
+      return SSEClient.testClient(uri, eventTypes);
     };
 
 void main() {
@@ -119,9 +111,7 @@ void main() {
 
   group('FDv1 with useReport', () {
     StreamingDataSource makeDataSource(List<_Call> calls,
-            {bool useHttpStreamingOnWeb = false,
-            Stream<Event>? source,
-            MockClient? httpClient}) =>
+            {bool useHttpStreamingOnWeb = false}) =>
         StreamingDataSource(
             credential: 'the-credential',
             context: LDContextBuilder().kind('user', 'test').build(),
@@ -132,11 +122,7 @@ void main() {
             httpProperties:
                 HttpProperties(baseHeaders: {'X-LaunchDarkly-Tags': 'a/b'}),
             useHttpStreamingOnWeb: useHttpStreamingOnWeb,
-            clientBuilder: _recording(calls, source: source),
-            httpClientFactory: httpClient == null
-                ? null
-                : (properties) => ld_common.HttpClient(
-                    client: httpClient, httpProperties: properties));
+            clientBuilder: _recording(calls));
 
     test('the browser EventSource streams with GET and the context in the URI',
         () {
@@ -163,32 +149,6 @@ void main() {
       expect(calls.single.uri.path, '/eval/the-credential');
       expect(calls.single.headers, isNot(contains('X-LaunchDarkly-Tags')));
       dataSource.stop();
-    });
-
-    test('a ping poll keeps REPORT when the stream falls back to GET',
-        () async {
-      // A GET on the REPORT polling path would carry no context.
-      final pollRequests = <http.Request>[];
-      final httpClient = MockClient((request) async {
-        pollRequests.add(request);
-        return http.Response('{}', 200);
-      });
-      final source = StreamController<Event>();
-      final calls = <_Call>[];
-      final dataSource =
-          makeDataSource(calls, source: source.stream, httpClient: httpClient);
-
-      dataSource.start();
-      source.add(const MessageEvent('ping', '', null));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
-      expect(calls.single.method, SseHttpMethod.get);
-      expect(pollRequests, hasLength(1));
-      expect(pollRequests.single.method, 'REPORT');
-      expect(pollRequests.single.url.path, '/sdk/evalx/the-credential/context');
-      expect(pollRequests.single.body, '{"key":"test","kind":"user"}');
-      dataSource.stop();
-      await source.close();
     });
   });
 }
