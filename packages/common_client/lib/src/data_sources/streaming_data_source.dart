@@ -30,30 +30,26 @@ final class StreamingDataSource implements DataSource {
 
   final SseClientBuilder _clientBuilder;
 
-  /// Whether the stream uses REPORT. False when the client cannot send it.
-  final bool _useReport;
+  late final Uri _uri;
 
-  final String _plainContextString;
+  late final HttpProperties _httpProperties;
 
-  final ServiceEndpoints _endpoints;
-
-  final HttpProperties _httpProperties;
-
-  final String _credential;
-
-  /// Polls for all flags when the stream sends a ping. Its method follows
-  /// the polling configuration, not the method of the stream.
-  final Requestor _requestor;
-
+  late final String _contextString;
   bool _stopped = false;
 
   StreamSubscription<Event>? _subscription;
 
   final StreamController<DataSourceEvent> _dataController = StreamController();
 
+  late final bool _useReport;
+
   SSEClient? _client;
 
   String? _environmentId;
+
+  final String _credential;
+
+  late final Requestor _requestor;
 
   @override
   Stream<DataSourceEvent> get events => _dataController.stream;
@@ -76,76 +72,50 @@ final class StreamingDataSource implements DataSource {
       bool useHttpStreamingOnWeb = false,
       SseClientBuilder? clientBuilder,
       HttpClientFactory? httpClientFactory})
-      : this._(
-            credential: credential,
-            endpoints: endpoints,
-            logger: logger.subLogger('StreamingDataSource'),
-            dataSourceConfig: dataSourceConfig,
-            pollingDataSourceConfig: pollingDataSourceConfig,
-            httpProperties: httpProperties,
-            clientBuilder: clientBuilder ??
-                sseClientBuilderFor(
-                    useHttpStreamingOnWeb: useHttpStreamingOnWeb),
-            useReport: dataSourceConfig.useReport &&
-                streamingCustomMethodSupported(
-                    useHttpStreamingOnWeb: useHttpStreamingOnWeb),
-            httpClientFactory: httpClientFactory ?? _defaultHttpClientFactory,
-            plainContextString: jsonEncode(
-                LDContextSerialization.toJson(context, isEvent: false)));
-
-  StreamingDataSource._(
-      {required String credential,
-      required ServiceEndpoints endpoints,
-      required LDLogger logger,
-      required StreamingDataSourceConfig dataSourceConfig,
-      required PollingDataSourceConfig pollingDataSourceConfig,
-      required HttpProperties httpProperties,
-      required SseClientBuilder clientBuilder,
-      required bool useReport,
-      required HttpClientFactory httpClientFactory,
-      required String plainContextString})
-      : _logger = logger,
+      : _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
-        _clientBuilder = clientBuilder,
-        _useReport = useReport,
+        _clientBuilder = clientBuilder ??
+            sseClientBuilderFor(useHttpStreamingOnWeb: useHttpStreamingOnWeb),
         _httpProperties = httpProperties,
-        _credential = credential,
-        _endpoints = endpoints,
-        _plainContextString = plainContextString,
-        _requestor = Requestor(
-            logger: logger,
-            contextString: pollingDataSourceConfig.useReport
-                ? plainContextString
-                : base64UrlEncode(utf8.encode(plainContextString)),
-            method: pollingDataSourceConfig.useReport
-                ? RequestMethod.report
-                : RequestMethod.get,
-            httpProperties: httpProperties,
-            dataSourceConfig: pollingDataSourceConfig,
-            endpoints: endpoints,
-            credential: credential,
-            httpClientFactory: httpClientFactory) {
-    if (dataSourceConfig.useReport && !_useReport) {
-      _logger.warn('The browser EventSource cannot send REPORT requests. '
-          'Streaming with GET instead. Set useHttpStreamingOnWeb to stream '
-          'with REPORT on web.');
+        _credential = credential {
+    final plainContextString =
+        jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
+
+    _useReport = _dataSourceConfig.useReport &&
+        streamingCustomMethodSupported(
+            useHttpStreamingOnWeb: useHttpStreamingOnWeb);
+
+    if (_dataSourceConfig.useReport && !_useReport) {
+      _logger
+          .warn('The streaming transport on this platform cannot send REPORT '
+              'requests. Streaming with GET instead.');
     }
-  }
 
-  /// The streaming URI for the request method.
-  Uri _buildUri() {
-    final contextString = _useReport
-        ? _plainContextString
-        : base64UrlEncode(utf8.encode(_plainContextString));
+    _contextString = _useReport
+        ? plainContextString
+        : base64UrlEncode(utf8.encode(plainContextString));
+
     final path = _useReport
-        ? _dataSourceConfig.streamingReportPath(_credential, contextString)
-        : _dataSourceConfig.streamingGetPath(_credential, contextString);
+        ? _dataSourceConfig.streamingReportPath(credential, _contextString)
+        : _dataSourceConfig.streamingGetPath(credential, _contextString);
 
-    var completeUrl = appendPath(_endpoints.streaming, path);
+    String completeUrl = appendPath(endpoints.streaming, path);
+
     if (_dataSourceConfig.withReasons) {
       completeUrl = '$completeUrl?withReasons=true';
     }
-    return Uri.parse(completeUrl);
+
+    _uri = Uri.parse(completeUrl);
+
+    _requestor = Requestor(
+        logger: logger,
+        contextString: _contextString,
+        method: _useReport ? RequestMethod.report : RequestMethod.get,
+        httpProperties: httpProperties,
+        dataSourceConfig: pollingDataSourceConfig,
+        endpoints: endpoints,
+        credential: _credential,
+        httpClientFactory: httpClientFactory ?? _defaultHttpClientFactory);
   }
 
   @override
@@ -154,15 +124,13 @@ final class StreamingDataSource implements DataSource {
       return;
     }
     _stopped = false;
-    final uri = _buildUri();
-    _logger.debug('Establishing new streaming connection, uri: $uri');
+    _logger.debug('Establishing new streaming connection, uri: $_uri');
     final client = _clientBuilder(
-        uri, const {_putEvent, _patchEvent, _delete, _pingEvent},
+        _uri, const {_putEvent, _patchEvent, _delete, _pingEvent},
         headers: streamingRequestHeaders(_httpProperties),
-        body: _useReport ? _plainContextString : null,
+        body: _useReport ? _contextString : null,
         httpMethod: _useReport ? SseHttpMethod.report : SseHttpMethod.get,
-        logger: LDLoggerToEventSourceAdapter(_logger),
-        uriProvider: _buildUri);
+        logger: LDLoggerToEventSourceAdapter(_logger));
     _client = client;
 
     _subscription = client.stream.listen((event) async {
@@ -245,8 +213,6 @@ final class StreamingDataSource implements DataSource {
     // to the method documentation.
     _subscription?.cancel();
     _subscription = null;
-    _client?.close();
-    _client = null;
     _stopped = true;
     _dataController.close();
   }

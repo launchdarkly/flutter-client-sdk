@@ -12,7 +12,7 @@ typedef SseClientBuilder = SSEClient Function(Uri uri, Set<String> eventTypes,
     required String? body,
     required SseHttpMethod httpMethod,
     required EventSourceLogger logger,
-    required Uri Function() uriProvider});
+    Uri Function()? uriProvider});
 
 /// Returns the builder for the configuration.
 ///

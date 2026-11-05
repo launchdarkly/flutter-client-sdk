@@ -20,14 +20,11 @@ import 'package:test/test.dart';
 
 class MockSseClient implements SSEClient {
   final Stream<Event> mockStream;
-  bool closed = false;
 
   MockSseClient(this.mockStream);
 
   @override
-  Future close() async {
-    closed = true;
-  }
+  Future close() async {}
 
   @override
   void restart() {}
@@ -50,8 +47,6 @@ class MockSseClient implements SSEClient {
     bool withReasons = false,
     Duration? testingInterval,
     MockClient? mockHttpClient,
-    // Receives every client the builder creates.
-    List<MockSseClient>? createdClients,
     Function(Uri, HttpProperties, String?, SseHttpMethod?)? factoryCallback}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
   // We are not testing the data source status manager here, so we just want a
@@ -61,6 +56,7 @@ class MockSseClient implements SSEClient {
   final logger = LDLogger();
   final properties = inProperties ?? HttpProperties();
 
+  final client = MockSseClient(mockStream);
   const sdkKey = 'dummy-key';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
@@ -86,10 +82,8 @@ class MockSseClient implements SSEClient {
           required body,
           required httpMethod,
           required logger,
-          required uriProvider}) {
+          uriProvider}) {
         factoryCallback?.call(uri, properties, body, httpMethod);
-        final client = MockSseClient(mockStream);
-        createdClients?.add(client);
         return client;
       });
 
@@ -166,18 +160,6 @@ void main() {
 
       dataSource.start();
       controller.sink.add(MessageEvent('put', '{}', null));
-    });
-
-    test('it closes the client when it stops', () {
-      final clients = <MockSseClient>[];
-      final controller = StreamController<MessageEvent>();
-      final (dataSource, _, _) =
-          makeDataSourceForTest(controller.stream, createdClients: clients);
-
-      dataSource.start();
-      dataSource.stop();
-
-      expect(clients.single.closed, isTrue);
     });
 
     test('it uses the correct URL without reasons with REPORT', () {

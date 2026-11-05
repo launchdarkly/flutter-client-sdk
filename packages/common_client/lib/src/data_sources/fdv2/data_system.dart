@@ -80,10 +80,10 @@ final class FDv2DataSystem {
         _httpClientFactory = httpClientFactory,
         _connectionModeOverrides = config.connectionModes {
     if (_usePost && !_streamingPostSupported) {
-      _logger
-          .warn('The browser EventSource cannot send POST requests. Streaming '
-              'sources are skipped while usePost is set, so the SDK polls '
-              'instead. Set useHttpStreamingOnWeb to stream with POST on web.');
+      _logger.warn(
+          'The streaming transport on this platform cannot send POST requests. '
+          'Streaming sources are skipped while usePost is set, so the SDK '
+          'polls instead.');
     }
   }
 
