@@ -94,6 +94,13 @@ final class LDConfig extends LDCommonConfig {
   /// [dataSystem] opts the SDK into the FDv2 data acquisition protocol.
   /// This feature is not stable, and not subject to any backwards
   /// compatibility guarantees or semantic versioning. It is in early access.
+  ///
+  /// [useHttpStreamingOnWeb] streams with the HTTP-based SSE client on web.
+  /// The default client on web is the browser `EventSource`. It cannot send
+  /// a request body or report an HTTP error, so [DataSourceConfig.useReport]
+  /// falls back to GET and [DataSystemConfig.usePost] falls back to polling.
+  /// With this option, both methods work on web. The option has no effect on
+  /// other platforms. Most applications do not need it.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
@@ -108,7 +115,8 @@ final class LDConfig extends LDCommonConfig {
       ApplicationEvents? applicationEvents,
       super.hooks,
       List<Plugin>? plugins,
-      super.dataSystem})
+      super.dataSystem,
+      super.useHttpStreamingOnWeb})
       : applicationEvents = applicationEvents ?? ApplicationEvents(),
         plugins =
             plugins != null ? UnmodifiableListView(List.from(plugins)) : null;
