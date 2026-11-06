@@ -1,8 +1,12 @@
 @TestOn('browser')
 library;
 
+import 'dart:async';
+import 'dart:collection';
+
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/config/data_source_config.dart';
+import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/data_system.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/entry_factories.dart';
@@ -15,6 +19,23 @@ import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 class MockLogAdapter extends Mock implements LDLogAdapter {}
+
+/// A client that replays a scripted event stream.
+class _ScriptedClient implements SSEClient {
+  @override
+  final Stream<Event> stream;
+
+  _ScriptedClient(this.stream);
+
+  @override
+  Future<void> close() async {}
+
+  @override
+  void restart() {}
+
+  @override
+  bool hasCapability(SSECapability capability) => true;
+}
 
 // These tests cover the decisions the SDK makes only on web. Run them with
 // `dart test test/data_sources/streaming_client_web_test.dart -p chrome`.
@@ -223,6 +244,42 @@ void main() {
       expect(calls.single.headers,
           containsPair('x-launchdarkly-user-agent', 'ua'));
       dataSource.stop();
+    });
+  });
+
+  group('FDv1 environment ID', () {
+    test(
+        'falls back to the client-side ID when the connection headers lack '
+        'the environment ID header', () async {
+      final events = StreamController<Event>();
+      final dataSource = StreamingDataSource(
+          credential: 'the-credential',
+          context: LDContextBuilder().kind('user', 'test').build(),
+          endpoints: ServiceEndpoints(),
+          logger: LDLogger(level: LDLogLevel.none),
+          dataSourceConfig: StreamingDataSourceConfig(),
+          pollingDataSourceConfig: PollingDataSourceConfig(),
+          httpProperties: HttpProperties(),
+          useHttpStreamingOnWeb: true,
+          clientBuilder: (uri, eventTypes,
+                  {required headers,
+                  required body,
+                  required httpMethod,
+                  required logger,
+                  uriProvider}) =>
+              _ScriptedClient(events.stream));
+      final firstData =
+          dataSource.events.firstWhere((event) => event is DataEvent);
+
+      dataSource.start();
+      // The browser exposes only the headers the CORS policy allows.
+      events.sink.add(OpenEvent(
+          headers: UnmodifiableMapView({'content-type': 'text/event-stream'})));
+      events.sink.add(MessageEvent('put', '{}', null));
+
+      expect((await firstData as DataEvent).environmentId, 'the-credential');
+      dataSource.stop();
+      await events.close();
     });
   });
 }
