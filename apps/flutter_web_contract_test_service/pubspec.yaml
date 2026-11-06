@@ -20,11 +20,10 @@ dependencies:
     path: ../../packages/flutter_client_sdk
   shelf: ^1.4.0
   shelf_static: ^1.1.0
-  # Version 1 is needed so the oldest tested Dart SDK can resolve `test`.
+  # The range starts low so the oldest tested Dart SDK can resolve it.
   shelf_web_socket: '>=1.0.0 <4.0.0'
-  # Version 2 is needed so the oldest tested Dart SDK can resolve `test`.
+  # The range starts low so the oldest tested Dart SDK can resolve it.
   web_socket_channel: '>=2.0.0 <4.0.0'
 
 dev_dependencies:
   lints: ^3.0.0
-  test: ^1.24.3
