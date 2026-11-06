@@ -178,12 +178,10 @@ final class StreamingDataSource implements DataSource {
           }
         case OpenEvent():
           _logger.debug('Received connect event, data: ${event.headers}');
-          if (event.headers != null) {
-            _environmentId = getEnvironmentId(event.headers);
-          } else {
-            _environmentId = DefaultConfig.credentialConfig
-                .environmentIdFallback(_credential);
-          }
+          // A browser can hide the environment ID header, so the fallback
+          // also applies when the headers are present but lack it.
+          _environmentId = getEnvironmentId(event.headers) ??
+              DefaultConfig.credentialConfig.environmentIdFallback(_credential);
       }
     })
       ..onError((err) {
