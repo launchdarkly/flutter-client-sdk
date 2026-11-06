@@ -22,9 +22,10 @@ SSE client.
 
 # Running it
 
-You need Chrome. The adapter uses the `CHROME_EXECUTABLE` variable or the
-`--chrome` option first. Otherwise it uses the Chrome app on macOS, and
-`google-chrome` from your `PATH` on other platforms.
+You need Chrome. The `--chrome` option sets the path to Chrome. Without the
+option, the adapter uses the `CHROME_EXECUTABLE` variable. Otherwise it uses
+the Chrome app on macOS, and `google-chrome` from your `PATH` on other
+platforms.
 
 ```
 $ cd apps/flutter_web_contract_test_service/
@@ -54,5 +55,6 @@ From the repository root, `melos run client-web-contract-tests` (FDv1) and
 adapter, and run the harness.
 
 `testharness-suppressions.txt` (FDv1) and `testharness-suppressions-fdv2.txt`
-(FDv2) list the harness tests that this service skips. They match the lists of
-the JS browser SDK runs that use the fetch based event source.
+(FDv2) list the harness tests that this service skips. They start from the
+lists of the JS browser SDK runs that use the fetch-based event source, and
+each file states where it differs.
