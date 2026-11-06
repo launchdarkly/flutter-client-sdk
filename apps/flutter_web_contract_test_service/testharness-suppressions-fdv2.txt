@@ -1,16 +1,23 @@
-# FDv2 run (harness v3). Same list as the JS browser SDK data system runs
+# FDv2 run (harness v3). Based on the JS browser SDK data system list
 # (js-core, packages/sdk/browser/contract-tests/suppressions_datamode_changes.txt).
+# Each difference from that list is stated below.
 #
-# On web, the SDK drops the x-launchdarkly-tags header from streaming
-# requests, to avoid CORS preflight failures, so the stream tags assertions
-# cannot pass. The poll tags
-# assertions are skipped for the same reason as in the JS browser SDK.
+# On web, the SDK removes the x-launchdarkly-tags header from streaming
+# requests. The CORS allow-list of the LaunchDarkly streaming service does not
+# include it, so a browser preflight with it fails. The stream tags tests
+# expect the header, so they cannot pass. The default FDv2 data system
+# streams, so the fallback directive test and the disallowed characters test
+# fail the same way. The poll tags tests also fail this way, because the
+# harness pairs the polling initializer with a streaming synchronizer for a
+# JavaScript-kind SDK and checks the synchronizer request.
+#
+# The JS list also skips "streaming/fdv2/FDv1 fallback directive/directive
+# without FDv1 fallback configured halts the data system". The Flutter SDK
+# passes that test, so it is not listed here.
 tags/FDv1 fallback directive requests
 tags/disallowed characters
 tags/stream requests/{"applicationId":null,"applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
 tags/stream requests/{"applicationId":null,"applicationVersion":"________________________________________________________________"}
-tags/stream requests/{"applicationId":"","applicationVersion":null}
-tags/stream requests/{"applicationId":"","applicationVersion":""}
 tags/stream requests/{"applicationId":"","applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
 tags/stream requests/{"applicationId":"","applicationVersion":"________________________________________________________________"}
 tags/stream requests/{"applicationId":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678","applicationVersion":null}
@@ -33,3 +40,8 @@ tags/poll requests/{"applicationId":"___________________________________________
 tags/poll requests/{"applicationId":"________________________________________________________________","applicationVersion":""}
 tags/poll requests/{"applicationId":"________________________________________________________________","applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
 tags/poll requests/{"applicationId":"________________________________________________________________","applicationVersion":"________________________________________________________________"}
+
+# Not in the JS list. The Flutter SDK treats a null context kind as the
+# default kind "user". The existing Flutter contract test service skips this
+# test for the same reason.
+context type/convert/invalid context/{"kind": null, "key": "x"}
