@@ -83,6 +83,7 @@ final class Adapter {
         return;
       }
       stderr.writeln('The browser exited with code $code.');
+      _capabilities = null;
       if (!_ready.isCompleted) {
         _ready.completeError(StateError('The browser exited with code $code.'));
       }
@@ -120,6 +121,7 @@ final class Adapter {
       // A newer connection may already own the relay.
       if (identical(_channel, channel)) {
         _channel = null;
+        _capabilities = null;
         _failPending('The browser disconnected.');
       }
     });
@@ -204,13 +206,16 @@ final class Adapter {
       body: jsonEncode(body),
       headers: {HttpHeaders.contentTypeHeader: 'application/json'});
 
-  /// Stops the browser, deletes its profile, and closes the server. Safe to
+  /// Closes the server, stops the browser, and deletes its profile. Safe to
   /// call more than once.
   Future<void> shutdown() async {
     if (_stopping) {
       return _stopped.future;
     }
     _stopping = true;
+    // Release the port first. The next harness run binds it while the
+    // browser is still on its way out.
+    await _server.close();
     final browser = _browser;
     if (browser != null) {
       browser.kill();
@@ -221,7 +226,6 @@ final class Adapter {
       await profile.delete(recursive: true).catchError((_) => profile);
     }
     await _channel?.sink.close();
-    await _server.close();
     _stopped.complete();
   }
 }
