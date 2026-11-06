@@ -15,11 +15,13 @@ const int _defaultWaitTimeMillis = 5000;
 /// native `EventSource`. The native client cannot send a request body or
 /// report an HTTP error.
 final class Entity {
-  /// The last two capabilities need the HTTP-based SSE client, which
-  /// `useHttpStreamingOnWeb` selects below.
+  /// `client-event-source-http-errors` and `client-use-post` need the
+  /// HTTP-based SSE client. Keep `useHttpStreamingOnWeb: true` in [_create]
+  /// while the list declares them.
   static const List<String> capabilities = [
     'client-side',
     'strongly-typed',
+    'context-type',
     'context-comparison',
     'service-endpoints',
     'tags',
@@ -30,6 +32,7 @@ final class Entity {
     'client-prereq-events',
     'client-prereq-cycle-detection',
     'fdv1-fallback',
+    'polling-gzip',
     'client-event-source-http-errors',
     'client-use-post',
   ];
@@ -498,8 +501,10 @@ final class Entity {
   LDContext _flattenedListToContext(List<Map<String, dynamic>> flattened) {
     final builder = LDContextBuilder();
     for (final attributes in flattened) {
-      final attrsBuilder =
-          builder.kind(attributes['kind'] ?? 'user', attributes['key']);
+      // Explicit casts, because a release web build omits the implicit ones
+      // and would accept a key that is not a string.
+      final attrsBuilder = builder.kind(attributes['kind'] as String? ?? 'user',
+          attributes['key'] as String?);
       for (final a in attributes.entries) {
         if (a.key == 'kind' || a.key == 'key') {
           continue;
