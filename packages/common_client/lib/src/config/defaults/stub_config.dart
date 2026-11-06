@@ -62,7 +62,8 @@ final class DefaultDataSourceConfig {
   ConnectionMode get defaultInitialConnectionMode =>
       throw Exception('Stub implementation');
 
-  bool get streamingReportSupported => throw Exception('Stub implementation');
-
   bool get streamingPostSupported => throw Exception('Stub implementation');
+
+  bool get streamingTagsHeaderSupported =>
+      throw Exception('Stub implementation');
 }

@@ -152,15 +152,16 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         ctx,
-        sseClientFactory: ({
-          required Uri Function() uriProvider,
-          required HttpProperties httpProperties,
-          required String? body,
-          required SseHttpMethod method,
-          required EventSourceLogger logger,
-        }) {
-          capturedUriProvider = uriProvider;
-          return SSEClient.testClient(uriProvider(), const {});
+        sseClientBuilder: (uri, eventTypes,
+            {required headers,
+            required body,
+            required httpMethod,
+            required logger,
+            uriProvider}) {
+          if (uriProvider case final provider?) {
+            capturedUriProvider = provider;
+          }
+          return SSEClient.testClient(uri, const {});
         },
       );
       final sync = factory.create(() => selector);
@@ -203,15 +204,16 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         ctx,
-        sseClientFactory: ({
-          required Uri Function() uriProvider,
-          required HttpProperties httpProperties,
-          required String? body,
-          required SseHttpMethod method,
-          required EventSourceLogger logger,
-        }) {
-          capturedUriProvider = uriProvider;
-          return SSEClient.testClient(uriProvider(), const {});
+        sseClientBuilder: (uri, eventTypes,
+            {required headers,
+            required body,
+            required httpMethod,
+            required logger,
+            uriProvider}) {
+          if (uriProvider case final provider?) {
+            capturedUriProvider = provider;
+          }
+          return SSEClient.testClient(uri, const {});
         },
       );
       final sync = factory.create(() => selector);
@@ -348,17 +350,18 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         factoryContext(usePost: usePost),
-        sseClientFactory: ({
-          required Uri Function() uriProvider,
-          required HttpProperties httpProperties,
-          required String? body,
-          required SseHttpMethod method,
-          required EventSourceLogger logger,
-        }) {
-          capturedMethod = method;
+        sseClientBuilder: (uri, eventTypes,
+            {required headers,
+            required body,
+            required httpMethod,
+            required logger,
+            uriProvider}) {
+          capturedMethod = httpMethod;
           capturedBody = body;
-          capturedUriProvider = uriProvider;
-          return SSEClient.testClient(uriProvider(), const {});
+          if (uriProvider case final provider?) {
+            capturedUriProvider = provider;
+          }
+          return SSEClient.testClient(uri, const {});
         },
       );
       factory.create(_selectorGetter).close();

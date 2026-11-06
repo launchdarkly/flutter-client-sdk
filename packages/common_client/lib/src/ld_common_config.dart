@@ -63,8 +63,9 @@ final class DataSourceConfig {
   final PollingConfig polling;
 
   /// [useReport] determines if the data source will attempt to use the
-  /// REPORT http method if possible. For streaming requests on the web
-  /// platform report is not supported. The default value is `false`.
+  /// REPORT http method if possible. On web, the default streaming client
+  /// cannot send REPORT, so the SDK streams with GET and logs a warning
+  /// unless [useHttpStreamingOnWeb] is set. The default value is `false`.
   /// This option has no effect when the FDv2 data system is enabled (a
   /// [DataSystemConfig] is provided); use [DataSystemConfig.usePost] in
   /// that case.
@@ -159,6 +160,23 @@ abstract class LDCommonConfig {
   /// https://launchdarkly.com/docs/sdk/features/data-saving-mode
   final DataSystemConfig? dataSystem;
 
+  /// Streams with the HTTP-based SSE client on web.
+  ///
+  /// On web, the default streaming client is the browser `EventSource`. It
+  /// cannot send a request body or report an HTTP error, so `useReport` falls
+  /// back to GET and `usePost` falls back to polling. With this option, the
+  /// SDK streams with `fetch()` through `package:http` instead, and both
+  /// methods work on web. The option has no effect on other platforms, where
+  /// the default client is already HTTP-based.
+  ///
+  /// Most applications do not need this option. With or without it, the
+  /// SDK does not send the application tags header on web streaming
+  /// requests, because the CORS allow-list of the streaming service does not
+  /// include it. With this option, the SDK sends the other base headers on
+  /// web streaming requests, and each one must pass the CORS check of the
+  /// streaming service.
+  final bool useHttpStreamingOnWeb;
+
   LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,
       {this.applicationInfo,
       HttpProperties? httpProperties,
@@ -171,7 +189,8 @@ abstract class LDCommonConfig {
       bool? allAttributesPrivate,
       List<String>? globalPrivateAttributes,
       List<Hook>? hooks,
-      this.dataSystem})
+      this.dataSystem,
+      this.useHttpStreamingOnWeb = false})
       : httpProperties = httpProperties ?? HttpProperties(),
         serviceEndpoints = serviceEndpoints ?? ServiceEndpoints(),
         events = events ?? EventsConfig(),
