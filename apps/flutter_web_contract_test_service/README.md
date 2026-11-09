@@ -1,7 +1,7 @@
 Contract test service that runs the Flutter SDK in a browser.
 
-The SDK streams with the HTTP-based SSE client (`useHttpStreamingOnWeb`), not
-with the browser native `EventSource`. The native client cannot send a request
+The SDK streams with the HTTP-based SSE client (`eventSource: SSEClient.http`),
+not with the browser native `EventSource`. The native client cannot send a request
 body or report an HTTP error. So this service is the only contract test run
 that covers `usePost` and HTTP error handling for streaming on web.
 
