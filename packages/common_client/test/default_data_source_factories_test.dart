@@ -2,12 +2,10 @@ import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/streaming_data_source.dart';
 import 'package:launchdarkly_common_client/src/ld_common_client.dart'
     show defaultDataSourceFactories;
-import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:test/test.dart';
 
 final class TestConfig extends LDCommonConfig {
-  TestConfig(super.sdkCredential, super.autoEnvAttributes,
-      {super.useHttpStreamingOnWeb});
+  TestConfig(super.sdkCredential, super.autoEnvAttributes, {super.eventSource});
 }
 
 void main() {
@@ -28,15 +26,15 @@ void main() {
       final source =
           streamingSourceFor(TestConfig('key', AutoEnvAttributes.disabled));
 
-      expect(source.clientBuilder, same(SSEClient.new));
+      expect(source.eventSource, same(SSEClient.new));
     });
 
-    test('the streaming source uses the HTTP SSE client with the option', () {
+    test('the streaming source uses the supplied SSE client builder', () {
       final source = streamingSourceFor(TestConfig(
           'key', AutoEnvAttributes.disabled,
-          useHttpStreamingOnWeb: true));
+          eventSource: SSEClient.http));
 
-      expect(source.clientBuilder, same(SSEClient.http));
+      expect(source.eventSource, same(SSEClient.http));
     });
   });
 }

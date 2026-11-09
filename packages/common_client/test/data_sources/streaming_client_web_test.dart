@@ -88,30 +88,19 @@ void main() {
     });
   });
 
-  group('sseClientBuilderFor', () {
-    test('selects the browser EventSource without the option', () {
-      expect(sseClientBuilderFor(useHttpStreamingOnWeb: false), SSEClient.new);
-    });
-
-    test('selects the HTTP client with the option', () {
-      expect(sseClientBuilderFor(useHttpStreamingOnWeb: true), SSEClient.http);
-    });
-  });
-
   group('streamingCustomMethodSupported', () {
-    test('is false for the browser EventSource', () {
-      expect(streamingCustomMethodSupported(useHttpStreamingOnWeb: false),
-          isFalse);
+    test('is false for the default client, the browser EventSource', () {
+      expect(streamingCustomMethodSupported(eventSource: null), isFalse);
     });
 
-    test('is true with the HTTP client', () {
+    test('is true with a supplied builder', () {
       expect(
-          streamingCustomMethodSupported(useHttpStreamingOnWeb: true), isTrue);
+          streamingCustomMethodSupported(eventSource: SSEClient.http), isTrue);
     });
   });
 
   group('FDv2 with usePost', () {
-    FDv2DataSystem makeDataSystem({bool useHttpStreamingOnWeb = false}) =>
+    FDv2DataSystem makeDataSystem({SseClientBuilder? eventSource}) =>
         FDv2DataSystem(
           config: const DataSystemConfig(usePost: true),
           credential: 'the-credential',
@@ -122,7 +111,7 @@ void main() {
           defaultPollingInterval: const Duration(seconds: 300),
           statusManager: DataSourceStatusManager(),
           cachedFlagsReader: (_) async => null,
-          useHttpStreamingOnWeb: useHttpStreamingOnWeb,
+          eventSource: eventSource,
         );
 
     test(
@@ -135,8 +124,8 @@ void main() {
           definition.synchronizers.whereType<StreamingSynchronizer>(), isEmpty);
     });
 
-    test('the HTTP client keeps the streaming entries', () {
-      final definition = makeDataSystem(useHttpStreamingOnWeb: true)
+    test('a supplied client keeps the streaming entries', () {
+      final definition = makeDataSystem(eventSource: SSEClient.http)
           .resolvedDefinition(ConnectionModeId.streaming);
 
       expect(definition.synchronizers.whereType<StreamingSynchronizer>(),
@@ -174,8 +163,11 @@ void main() {
   });
 
   group('FDv1 with useReport', () {
+    // The recording builder stands in for the default client when
+    // [streamingReportSupported] is false, and for a supplied client when it
+    // is null.
     StreamingDataSource makeDataSource(List<_Call> calls,
-            {bool useHttpStreamingOnWeb = false, LDLogger? logger}) =>
+            {bool? streamingReportSupported, LDLogger? logger}) =>
         StreamingDataSource(
             credential: 'the-credential',
             context: LDContextBuilder().kind('user', 'test').build(),
@@ -187,14 +179,15 @@ void main() {
               'X-LaunchDarkly-Tags': 'a/b',
               'x-launchdarkly-user-agent': 'ua',
             }),
-            useHttpStreamingOnWeb: useHttpStreamingOnWeb,
-            clientBuilder: _recording(calls));
+            eventSource: _recording(calls),
+            streamingReportSupported: streamingReportSupported);
 
     test('warns once when the stream falls back to GET', () {
       final adapter = MockLogAdapter();
       when(() => adapter.log(any())).thenReturn(null);
 
       makeDataSource(<_Call>[],
+          streamingReportSupported: false,
           logger: LDLogger(adapter: adapter, level: LDLogLevel.warn));
 
       final records =
@@ -204,21 +197,19 @@ void main() {
       expect(records.single.message, contains('REPORT'));
     });
 
-    test('does not warn with the HTTP client', () {
+    test('does not warn with a supplied client', () {
       final adapter = MockLogAdapter();
       when(() => adapter.log(any())).thenReturn(null);
 
       makeDataSource(<_Call>[],
-          useHttpStreamingOnWeb: true,
           logger: LDLogger(adapter: adapter, level: LDLogLevel.debug));
 
       verifyNever(() => adapter.log(any()));
     });
 
-    test('the browser EventSource streams with GET and the context in the URI',
-        () {
+    test('the default client streams with GET and the context in the URI', () {
       final calls = <_Call>[];
-      final dataSource = makeDataSource(calls);
+      final dataSource = makeDataSource(calls, streamingReportSupported: false);
 
       dataSource.start();
 
@@ -231,9 +222,10 @@ void main() {
       dataSource.stop();
     });
 
-    test('the HTTP client streams with REPORT and the context in the body', () {
+    test('a supplied client streams with REPORT and the context in the body',
+        () {
       final calls = <_Call>[];
-      final dataSource = makeDataSource(calls, useHttpStreamingOnWeb: true);
+      final dataSource = makeDataSource(calls);
 
       dataSource.start();
 
@@ -260,8 +252,7 @@ void main() {
           dataSourceConfig: StreamingDataSourceConfig(),
           pollingDataSourceConfig: PollingDataSourceConfig(),
           httpProperties: HttpProperties(),
-          useHttpStreamingOnWeb: true,
-          clientBuilder: (uri, eventTypes,
+          eventSource: (uri, eventTypes,
                   {required headers,
                   required body,
                   required httpMethod,

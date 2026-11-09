@@ -6,7 +6,9 @@ import '../config/defaults/default_config.dart';
 /// Builds the SSE client for a streaming connection.
 ///
 /// The type has the shape of the [SSEClient] constructors, so [SSEClient.new]
-/// and [SSEClient.http] are builders. Tests inject a fake.
+/// and [SSEClient.http] are builders. The SDK calls the builder once for each
+/// streaming connection it needs, and closes the client when it stops
+/// streaming.
 typedef SseClientBuilder = SSEClient Function(Uri uri, Set<String> eventTypes,
     {required Map<String, String> headers,
     required String? body,
@@ -14,18 +16,14 @@ typedef SseClientBuilder = SSEClient Function(Uri uri, Set<String> eventTypes,
     required EventSourceLogger logger,
     Uri Function()? uriProvider});
 
-/// Returns the builder for the configuration.
-///
-/// With [useHttpStreamingOnWeb], the SDK streams with the HTTP-based client
-/// on every platform. Without it, the SDK uses the default client for the
-/// platform. On platforms other than web, both are the HTTP-based client.
-SseClientBuilder sseClientBuilderFor({required bool useHttpStreamingOnWeb}) =>
-    useHttpStreamingOnWeb ? SSEClient.http : SSEClient.new;
-
 /// Whether the streaming client can send a POST or REPORT request with a
-/// body. The browser `EventSource` cannot. The HTTP-based client can.
-bool streamingCustomMethodSupported({required bool useHttpStreamingOnWeb}) =>
-    useHttpStreamingOnWeb ||
+/// body.
+///
+/// The SDK treats a supplied [eventSource] as able to. Without one, the SDK
+/// uses the default client for the platform. On web, that is the browser
+/// `EventSource`, which cannot.
+bool streamingCustomMethodSupported({required SseClientBuilder? eventSource}) =>
+    eventSource != null ||
     DefaultConfig.dataSourceConfig.streamingPostSupported;
 
 const String _tagsHeader = 'x-launchdarkly-tags';

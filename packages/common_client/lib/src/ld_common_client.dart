@@ -105,7 +105,7 @@ Map<ConnectionMode, DataSourceFactory> defaultDataSourceFactories(
             useReport: useReport, withReasons: withReasons),
         pollingDataSourceConfig: foregroundPollingConfig,
         httpProperties: httpProperties,
-        useHttpStreamingOnWeb: config.useHttpStreamingOnWeb);
+        eventSource: config.eventSource);
   }
 
   return {
@@ -452,7 +452,7 @@ final class LDCommonClient {
               _config.dataSourceConfig.polling.pollingInterval,
           statusManager: _dataSourceStatusManager,
           cachedFlagsReader: _flagManager.readCached,
-          useHttpStreamingOnWeb: _config.useHttpStreamingOnWeb,
+          eventSource: _config.eventSource,
         );
         _dataSourceManager.setFactories(dataSystem.buildFactories());
         // FDv2 loads the cache through its pipeline and clears the held

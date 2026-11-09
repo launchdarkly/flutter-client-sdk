@@ -60,12 +60,13 @@ final class StreamingDataSource implements DataSource {
 
   /// The builder that [start] uses for the SSE client.
   @visibleForTesting
-  SseClientBuilder get clientBuilder => _clientBuilder;
+  SseClientBuilder get eventSource => _clientBuilder;
 
-  /// [useHttpStreamingOnWeb] selects the HTTP-based SSE client on web. The
-  /// [clientBuilder] parameter is for tests, which inject a fake client. The
-  /// [httpClientFactory] parameter is for tests of the requestor that serves
-  /// ping events.
+  /// [eventSource] builds the SSE client. When it is null, the data source
+  /// uses the default client for the platform. Tests inject a fake client.
+  /// The [streamingReportSupported] parameter overrides whether the client
+  /// can send REPORT. Tests set it. The [httpClientFactory] parameter is for
+  /// tests of the requestor that serves ping events.
   StreamingDataSource(
       {required String credential,
       required LDContext context,
@@ -74,21 +75,20 @@ final class StreamingDataSource implements DataSource {
       required StreamingDataSourceConfig dataSourceConfig,
       required PollingDataSourceConfig pollingDataSourceConfig,
       required HttpProperties httpProperties,
-      bool useHttpStreamingOnWeb = false,
-      SseClientBuilder? clientBuilder,
+      SseClientBuilder? eventSource,
+      bool? streamingReportSupported,
       HttpClientFactory? httpClientFactory})
       : _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
-        _clientBuilder = clientBuilder ??
-            sseClientBuilderFor(useHttpStreamingOnWeb: useHttpStreamingOnWeb),
+        _clientBuilder = eventSource ?? SSEClient.new,
         _httpProperties = httpProperties,
         _credential = credential {
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
 
     _useReport = _dataSourceConfig.useReport &&
-        streamingCustomMethodSupported(
-            useHttpStreamingOnWeb: useHttpStreamingOnWeb);
+        (streamingReportSupported ??
+            streamingCustomMethodSupported(eventSource: eventSource));
 
     if (_dataSourceConfig.useReport && !_useReport) {
       _logger

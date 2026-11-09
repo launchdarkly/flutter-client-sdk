@@ -74,7 +74,7 @@ runs:
     - name: Web Streaming Tests (Chrome)
       shell: bash
       # On web, the SDK removes the tags header from streaming requests.
-      # Without useHttpStreamingOnWeb, it also streams with GET or polls
+      # Without a supplied eventSource, it also streams with GET or polls
       # instead of streaming with REPORT or POST. The Dart VM resolves the
       # web-only configuration to the io branch, so these tests run on Chrome.
       run: |

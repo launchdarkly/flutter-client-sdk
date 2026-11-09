@@ -1,5 +1,6 @@
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:meta/meta.dart';
 
 import '../../config/data_system_config.dart';
@@ -45,7 +46,7 @@ final class FDv2DataSystem {
 
   /// The builder that the streaming synchronizers use.
   @visibleForTesting
-  SseClientBuilder get sseClientBuilder => _sseClientBuilder;
+  SseClientBuilder get eventSource => _sseClientBuilder;
 
   Selector _selector = Selector.empty;
 
@@ -59,10 +60,9 @@ final class FDv2DataSystem {
     required Duration defaultPollingInterval,
     required DataSourceStatusManager statusManager,
     required CachedFlagsReader cachedFlagsReader,
-    // Selects the HTTP-based SSE client on web.
-    bool useHttpStreamingOnWeb = false,
-    // Builds the SSE client. Tests inject a fake.
-    SseClientBuilder? sseClientBuilder,
+    // Builds the SSE client. When it is null, the data system uses the
+    // default client for the platform. Tests inject a fake.
+    SseClientBuilder? eventSource,
     HttpClientFactory? httpClientFactory,
     // Whether the streaming client can send a POST request. Defaults to the
     // capability of the selected client. Tests override it.
@@ -74,13 +74,11 @@ final class FDv2DataSystem {
         _withReasons = withReasons,
         _usePost = config.usePost,
         _streamingPostSupported = streamingPostSupported ??
-            streamingCustomMethodSupported(
-                useHttpStreamingOnWeb: useHttpStreamingOnWeb),
+            streamingCustomMethodSupported(eventSource: eventSource),
         _defaultPollingInterval = defaultPollingInterval,
         _statusManager = statusManager,
         _cachedFlagsReader = cachedFlagsReader,
-        _sseClientBuilder = sseClientBuilder ??
-            sseClientBuilderFor(useHttpStreamingOnWeb: useHttpStreamingOnWeb),
+        _sseClientBuilder = eventSource ?? SSEClient.new,
         _httpClientFactory = httpClientFactory,
         _connectionModeOverrides = config.connectionModes {
     if (_usePost && !_streamingPostSupported) {

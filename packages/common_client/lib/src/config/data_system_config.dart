@@ -97,8 +97,8 @@ final class DataSystemConfig {
   ///
   /// On web, the default streaming client cannot send a POST request. The
   /// SDK then skips the streaming sources, logs a warning, and a mode that
-  /// would stream polls instead. Set `useHttpStreamingOnWeb` on the client
-  /// configuration to stream with POST on web.
+  /// would stream polls instead. Pass `SSEClient.http` as the `eventSource`
+  /// option of the client configuration to stream with POST on web.
   final bool usePost;
 
   const DataSystemConfig({

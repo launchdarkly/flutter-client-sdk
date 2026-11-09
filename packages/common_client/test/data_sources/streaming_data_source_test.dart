@@ -79,7 +79,7 @@ class MockSseClient implements SSEClient {
           ? (httpProps) => ld_common.HttpClient(
               client: mockHttpClient, httpProperties: httpProps)
           : null,
-      clientBuilder: (uri, eventTypes,
+      eventSource: (uri, eventTypes,
           {required headers,
           required body,
           required httpMethod,
@@ -596,7 +596,7 @@ void main() {
 
   group('client builder selection', () {
     StreamingDataSource make(
-            {bool useHttpStreamingOnWeb = false,
+            {SseClientBuilder? eventSource,
             bool useReport = false,
             LDLogger? logger}) =>
         StreamingDataSource(
@@ -607,7 +607,7 @@ void main() {
             dataSourceConfig: StreamingDataSourceConfig(useReport: useReport),
             pollingDataSourceConfig: PollingDataSourceConfig(),
             httpProperties: HttpProperties(),
-            useHttpStreamingOnWeb: useHttpStreamingOnWeb);
+            eventSource: eventSource);
 
     setUpAll(() {
       registerFallbackValue(LDLogRecord(
@@ -617,13 +617,13 @@ void main() {
           logTag: ''));
     });
 
-    test('it uses the default SSE client without the option', () {
-      expect(make().clientBuilder, same(SSEClient.new));
+    test('it uses the default SSE client without a supplied builder', () {
+      expect(make().eventSource, same(SSEClient.new));
     });
 
-    test('it uses the HTTP SSE client with the option', () {
-      expect(make(useHttpStreamingOnWeb: true).clientBuilder,
-          same(SSEClient.http));
+    test('it uses the supplied SSE client builder', () {
+      expect(
+          make(eventSource: SSEClient.http).eventSource, same(SSEClient.http));
     });
 
     test('it does not warn about REPORT on a platform that supports it', () {
