@@ -93,6 +93,12 @@ void main() {
       expect(streamingCustomMethodSupported(eventSource: null), isFalse);
     });
 
+    test('is false for an explicit SSEClient.new, which is the same client',
+        () {
+      expect(
+          streamingCustomMethodSupported(eventSource: SSEClient.new), isFalse);
+    });
+
     test('is true with a supplied builder', () {
       expect(
           streamingCustomMethodSupported(eventSource: SSEClient.http), isTrue);
@@ -119,6 +125,14 @@ void main() {
         'dropped', () {
       final definition =
           makeDataSystem().resolvedDefinition(ConnectionModeId.streaming);
+
+      expect(
+          definition.synchronizers.whereType<StreamingSynchronizer>(), isEmpty);
+    });
+
+    test('an explicit SSEClient.new also drops the streaming entries', () {
+      final definition = makeDataSystem(eventSource: SSEClient.new)
+          .resolvedDefinition(ConnectionModeId.streaming);
 
       expect(
           definition.synchronizers.whereType<StreamingSynchronizer>(), isEmpty);
@@ -194,6 +208,26 @@ void main() {
           verify(() => adapter.log(captureAny())).captured.cast<LDLogRecord>();
       expect(records, hasLength(1));
       expect(records.single.level, LDLogLevel.warn);
+      expect(records.single.message, contains('REPORT'));
+    });
+
+    test('warns when an explicit SSEClient.new falls back to GET', () {
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+
+      // The data source is not started, so no browser EventSource opens.
+      StreamingDataSource(
+          credential: 'the-credential',
+          context: LDContextBuilder().kind('user', 'test').build(),
+          endpoints: ServiceEndpoints(),
+          logger: LDLogger(adapter: adapter, level: LDLogLevel.warn),
+          dataSourceConfig: StreamingDataSourceConfig(useReport: true),
+          pollingDataSourceConfig: PollingDataSourceConfig(useReport: true),
+          httpProperties: HttpProperties(),
+          eventSource: SSEClient.new);
+
+      final records =
+          verify(() => adapter.log(captureAny())).captured.cast<LDLogRecord>();
       expect(records.single.message, contains('REPORT'));
     });
 

@@ -173,7 +173,9 @@ abstract class LDCommonConfig {
   /// `SSEClient.http`.
   ///
   /// The SDK treats a supplied builder as able to send a request body with
-  /// the POST and REPORT methods.
+  /// the POST and REPORT methods. Pass only a client that can. On web, the
+  /// SDK recognizes `SSEClient.new` and treats it as the default client, but
+  /// it cannot recognize a function that wraps the default client.
   ///
   /// Most applications do not need this option. The compiler removes the
   /// HTTP-based client from a web build that does not reference it, so an

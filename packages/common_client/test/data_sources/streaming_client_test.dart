@@ -13,6 +13,8 @@ void main() {
         'client is HTTP-based', () {
       expect(streamingCustomMethodSupported(eventSource: null), isTrue);
       expect(
+          streamingCustomMethodSupported(eventSource: SSEClient.new), isTrue);
+      expect(
           streamingCustomMethodSupported(eventSource: SSEClient.http), isTrue);
     });
   });

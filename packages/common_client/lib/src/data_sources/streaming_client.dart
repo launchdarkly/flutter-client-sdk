@@ -19,11 +19,14 @@ typedef SseClientBuilder = SSEClient Function(Uri uri, Set<String> eventTypes,
 /// Whether the streaming client can send a POST or REPORT request with a
 /// body.
 ///
-/// The SDK treats a supplied [eventSource] as able to. Without one, the SDK
-/// uses the default client for the platform. On web, that is the browser
-/// `EventSource`, which cannot.
+/// The SDK treats a supplied [eventSource] as able to send a body. The
+/// default client, [SSEClient.new], has the capability of the platform. This
+/// is true when it is passed as the builder and when [eventSource] is null.
+/// On web, the default client is the browser `EventSource`, which cannot
+/// send a body. The SDK cannot recognize a function that wraps the default
+/// client.
 bool streamingCustomMethodSupported({required SseClientBuilder? eventSource}) =>
-    eventSource != null ||
+    (eventSource != null && !identical(eventSource, SSEClient.new)) ||
     DefaultConfig.dataSourceConfig.streamingPostSupported;
 
 const String _tagsHeader = 'x-launchdarkly-tags';
