@@ -101,8 +101,9 @@ final class LDConfig extends LDCommonConfig {
   /// or report an HTTP error, so [DataSourceConfig.useReport] falls back to
   /// GET and [DataSystemConfig.usePost] falls back to polling. Pass
   /// `SSEClient.http` to stream with `fetch()` instead. Both methods then
-  /// work on web. Most applications do not need this option. A web build
-  /// that leaves it null does not include the HTTP-based client.
+  /// work on web. Pass only a client that can send a request body. Most
+  /// applications do not need this option. A web build that leaves it null
+  /// does not include the HTTP-based client.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
