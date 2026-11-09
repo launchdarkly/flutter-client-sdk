@@ -95,12 +95,14 @@ final class LDConfig extends LDCommonConfig {
   /// This feature is not stable, and not subject to any backwards
   /// compatibility guarantees or semantic versioning. It is in early access.
   ///
-  /// [useHttpStreamingOnWeb] streams with the HTTP-based SSE client on web.
-  /// The default client on web is the browser `EventSource`. It cannot send
-  /// a request body or report an HTTP error, so [DataSourceConfig.useReport]
-  /// falls back to GET and [DataSystemConfig.usePost] falls back to polling.
-  /// With this option, both methods work on web. The option has no effect on
-  /// other platforms. Most applications do not need it.
+  /// [eventSource] builds the SSE client that the SDK uses for streaming.
+  /// When it is null, the SDK uses the default client for the platform. On
+  /// web, that is the browser `EventSource`. It cannot send a request body
+  /// or report an HTTP error, so [DataSourceConfig.useReport] falls back to
+  /// GET and [DataSystemConfig.usePost] falls back to polling. Pass
+  /// `SSEClient.http` to stream with `fetch()` instead. Both methods then
+  /// work on web. Most applications do not need this option. A web build
+  /// that leaves it null does not include the HTTP-based client.
   LDConfig(super.sdkCredential, super.autoEnvAttributes,
       {super.applicationInfo,
       super.httpProperties,
@@ -116,7 +118,7 @@ final class LDConfig extends LDCommonConfig {
       super.hooks,
       List<Plugin>? plugins,
       super.dataSystem,
-      super.useHttpStreamingOnWeb})
+      super.eventSource})
       : applicationEvents = applicationEvents ?? ApplicationEvents(),
         plugins =
             plugins != null ? UnmodifiableListView(List.from(plugins)) : null;
