@@ -16,7 +16,7 @@ const int _defaultWaitTimeMillis = 5000;
 /// report an HTTP error.
 final class Entity {
   /// `client-event-source-http-errors` and `client-use-post` need the
-  /// HTTP-based SSE client. Keep `useHttpStreamingOnWeb: true` in [_create]
+  /// HTTP-based SSE client. Keep `eventSource: SSEClient.http` in [_create]
   /// while the list declares them.
   static const List<String> capabilities = [
     'client-side',
@@ -125,7 +125,7 @@ final class Entity {
               ?.map((attribute) => attribute as String)
               .toList(),
       dataSystem: mappedDataSystem?.config,
-      useHttpStreamingOnWeb: true,
+      eventSource: SSEClient.http,
     );
 
     final context = _flattenedListToContext(_serializedContextToFlattenedList(
