@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [3.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v3.0.1...launchdarkly_event_source_client-v3.1.0) (2026-11-10)
+
+
+### Features
+
+* Add an HTTP-based SSE client that works on web ([#357](https://github.com/launchdarkly/flutter-client-sdk/issues/357)) ([0636568](https://github.com/launchdarkly/flutter-client-sdk/commit/0636568cdaa95a83cf6a4bf734ce2daebb57b47e))
+
 ## [3.0.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v3.0.0...launchdarkly_event_source_client-v3.0.1) (2026-11-03)
 
 
