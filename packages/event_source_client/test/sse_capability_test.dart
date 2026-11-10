@@ -15,6 +15,17 @@ void main() {
     });
   });
 
+  group('SSEClient.http', () {
+    test('reports SSECapability.requestHeaders as supported', () {
+      final client = SSEClient.http(Uri.parse('https://example.test'), {'put'});
+      try {
+        expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
+      } finally {
+        client.close();
+      }
+    });
+  });
+
   group('TestSseClient', () {
     test(
         'defaults to supporting SSECapability.requestHeaders so existing '

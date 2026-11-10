@@ -54,6 +54,14 @@ runs:
       shell: bash
       run: melos run test
 
+    - name: Web SSE Client Header Tests (Chrome)
+      shell: bash
+      # SSEClient.http sends different default headers on web. The Dart VM
+      # cannot run that code, so this test runs on Chrome.
+      run: |
+        cd packages/event_source_client
+        dart test test/http_sse_headers_test.dart -p chrome --test-randomize-ordering-seed=random
+
     - name: Platform Canonicalization Tests (Chrome)
       shell: bash
       # Run RFC 8785 canonicalization tests on Chrome to verify platform-independent behavior.

@@ -10,6 +10,8 @@ import 'src/events.dart';
 import 'src/sse_client_stub.dart'
     if (dart.library.io) 'src/sse_client_http.dart'
     if (dart.library.js_interop) 'src/sse_client_html.dart';
+import 'src/http_sse_headers.dart';
+import 'src/sse_client_http.dart' as http_client show HttpSseClient;
 import 'src/test_sse_client.dart';
 
 export 'src/errors.dart' show SseHttpError;
@@ -68,11 +70,14 @@ enum SseHttpMethod {
 /// In certain cases, unrecoverable errors will be reported on the [stream] at
 /// which point the stream will be done.
 ///
-/// On `html` platforms the client is incapable of reporting unrecoverable
-/// errors: the browser's native `EventSource` exposes no HTTP status codes
-/// or response headers, so every failure is treated as recoverable and
-/// retried with backoff indefinitely, and no error is ever reported on the
-/// [stream].
+/// On `html` platforms the default client is incapable of reporting
+/// unrecoverable errors: the browser's native `EventSource` exposes no HTTP
+/// status codes or response headers, so every failure is treated as
+/// recoverable and retried with backoff indefinitely, and no error is ever
+/// reported on the [stream]. The client from [SSEClient.http] does not have
+/// this limit. On web, it sees a status code only when the CORS policy of the
+/// server allows it. A response that fails a CORS check is a recoverable
+/// connection error, not an [SseHttpError].
 ///
 /// The [SSEClient] will make best effort to maintain the streaming connection.
 abstract class SSEClient {
@@ -151,11 +156,52 @@ abstract class SSEClient {
       EventSourceLogger? logger,
       Uri Function()? uriProvider}) {
     // merge headers so consumer gets reasonable defaults
-    var mergedHeaders = <String, String>{};
-    mergedHeaders.addAll(defaultHeaders);
-    mergedHeaders.addAll(headers);
+    final mergedHeaders = <String, String>{...defaultHeaders, ...headers};
     return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
         readTimeout, body, httpMethod.toString(), logger, uriProvider);
+  }
+
+  /// Factory constructor that always returns the HTTP-based implementation,
+  /// on every platform including web.
+  ///
+  /// On web, the [SSEClient] default factory uses the browser native
+  /// `EventSource`, which cannot send a request body, an HTTP method other
+  /// than `GET`, or custom headers, and which cannot report HTTP errors.
+  /// This constructor uses `package:http`, which streams with `fetch()` in
+  /// the browser, so it supports all of these. Use it when an application
+  /// needs those features on web.
+  ///
+  /// On web, a custom header must be allowed by the CORS configuration of
+  /// the server, or the browser blocks the request. On web, the default
+  /// headers are `accept` and `cache-control`. The `user-agent` header is
+  /// left out, because a browser forbids it. The `cache-control` header
+  /// stops a browser from serving a cached stream response on a reconnect.
+  /// It is not CORS-safelisted, so the browser sends a preflight request,
+  /// which the server must allow. The LaunchDarkly streaming service allows
+  /// it. This matches the LaunchDarkly browser SDK. Any header in [headers]
+  /// is still sent.
+  ///
+  /// The [headers], [connectTimeout], [readTimeout], [body], [httpMethod] and
+  /// [uriProvider] arguments are used on every platform. The other arguments
+  /// have the same meaning as in the default factory.
+  factory SSEClient.http(Uri uri, Set<String> eventTypes,
+      {Map<String, String> headers = const {},
+      Duration connectTimeout = defaultConnectTimeout,
+      Duration readTimeout = defaultReadTimeout,
+      String? body,
+      SseHttpMethod httpMethod = SseHttpMethod.get,
+      EventSourceLogger? logger,
+      Uri Function()? uriProvider}) {
+    return http_client.HttpSseClient(
+        uri,
+        eventTypes,
+        httpSseClientHeaders(headers),
+        connectTimeout,
+        readTimeout,
+        body,
+        httpMethod.toString(),
+        logger,
+        uriProvider: uriProvider);
   }
 
   /// Get an SSE client for use in unit tests.

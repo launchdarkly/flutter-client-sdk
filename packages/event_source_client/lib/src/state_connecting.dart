@@ -98,7 +98,7 @@ class StateConnecting {
     } on TimeoutException {
       // didn't connect in a timely manner, so backoff then we'll try again
 
-      client.close;
+      client.close();
       return () {
         svo.logger.info(
             'Connection TimeoutException occurred, will retry with backoff.');

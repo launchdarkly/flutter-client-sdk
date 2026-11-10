@@ -245,10 +245,10 @@ packages:
     dependency: "direct dev"
     description:
       name: http
-      sha256: "759d1a329847dd0f39226c688d3e06a6b8679668e350e2891a6474f8b4bb8525"
+      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.0"
+    version: "1.6.0"
   http_multi_server:
     dependency: transitive
     description:
@@ -311,7 +311,7 @@ packages:
       path: "../../packages/event_source_client"
       relative: true
     source: path
-    version: "2.0.1"
+    version: "3.0.1"
   lints:
     dependency: "direct dev"
     description:
