@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.22.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.21.1...4.22.0) (2026-11-12)
+
+
+### Features
+
+* Add eventSource to LDConfig ([#359](https://github.com/launchdarkly/flutter-client-sdk/issues/359)) ([3f36279](https://github.com/launchdarkly/flutter-client-sdk/commit/3f362792fab1595be432578ad344163171733d51))
+
 ## [4.21.1](https://github.com/launchdarkly/flutter-client-sdk/compare/4.21.0...4.21.1) (2026-11-04)
 
 
