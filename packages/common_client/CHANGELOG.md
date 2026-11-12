@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.16.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.15.1...launchdarkly_common_client-v1.16.0) (2026-11-12)
+
+
+### Features
+
+* Add an eventSource option that supplies the SSE client used for streaming ([#358](https://github.com/launchdarkly/flutter-client-sdk/issues/358)) ([b1e0b13](https://github.com/launchdarkly/flutter-client-sdk/commit/b1e0b137542e7917f61e12df368694022110931b))
+
 ## [1.15.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.15.0...launchdarkly_common_client-v1.15.1) (2026-11-04)
 
 
