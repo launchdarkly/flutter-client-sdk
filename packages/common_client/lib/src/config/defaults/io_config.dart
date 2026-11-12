@@ -61,8 +61,10 @@ final class DefaultDataSourceConfig {
 
   ConnectionMode get defaultInitialConnectionMode => ConnectionMode.streaming;
 
-  bool get streamingReportSupported => true;
-
-  /// The streaming transport can send a POST request with a body.
+  /// The default streaming client can send a POST or REPORT request with a
+  /// body.
   bool get streamingPostSupported => true;
+
+  /// The streaming service accepts the application tags header.
+  bool get streamingTagsHeaderSupported => true;
 }

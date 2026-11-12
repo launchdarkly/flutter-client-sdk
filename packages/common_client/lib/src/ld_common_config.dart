@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
 
+import 'data_sources/streaming_client.dart';
 import 'hooks/hook.dart';
 import 'config/data_system_config.dart';
 import 'config/defaults/default_config.dart';
@@ -63,8 +64,10 @@ final class DataSourceConfig {
   final PollingConfig polling;
 
   /// [useReport] determines if the data source will attempt to use the
-  /// REPORT http method if possible. For streaming requests on the web
-  /// platform report is not supported. The default value is `false`.
+  /// REPORT http method if possible. On web, the default streaming client
+  /// cannot send REPORT, so the SDK streams with GET and logs a warning
+  /// unless [LDCommonConfig.eventSource] supplies a client that can. The
+  /// default value is `false`.
   /// This option has no effect when the FDv2 data system is enabled (a
   /// [DataSystemConfig] is provided); use [DataSystemConfig.usePost] in
   /// that case.
@@ -159,6 +162,32 @@ abstract class LDCommonConfig {
   /// https://launchdarkly.com/docs/sdk/features/data-saving-mode
   final DataSystemConfig? dataSystem;
 
+  /// Builds the SSE client that the SDK uses for streaming.
+  ///
+  /// When this is null, the SDK uses the default client for the platform. On
+  /// web, the default client is the browser `EventSource`. It cannot send a
+  /// request body or report an HTTP error, so `useReport` falls back to GET
+  /// and `usePost` falls back to polling. Pass `SSEClient.http` to stream
+  /// with `fetch()` through `package:http` instead. Both methods then work
+  /// on web. On other platforms, the default client is already
+  /// `SSEClient.http`.
+  ///
+  /// The SDK treats a supplied builder as able to send a request body with
+  /// the POST and REPORT methods. Pass only a client that can. On web, the
+  /// SDK recognizes `SSEClient.new` and treats it as the default client, but
+  /// it cannot recognize a function that wraps the default client.
+  ///
+  /// Most applications do not need this option. The compiler removes the
+  /// HTTP-based client from a web build that does not reference it, so an
+  /// application that leaves this null does not ship that code.
+  ///
+  /// With or without this option, the SDK does not send the application tags
+  /// header on web streaming requests, because the CORS allow-list of the
+  /// streaming service does not include it. With `SSEClient.http`, the SDK
+  /// sends the other base headers on web streaming requests, and each one
+  /// must pass the CORS check of the streaming service.
+  final SseClientBuilder? eventSource;
+
   LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,
       {this.applicationInfo,
       HttpProperties? httpProperties,
@@ -171,7 +200,8 @@ abstract class LDCommonConfig {
       bool? allAttributesPrivate,
       List<String>? globalPrivateAttributes,
       List<Hook>? hooks,
-      this.dataSystem})
+      this.dataSystem,
+      this.eventSource})
       : httpProperties = httpProperties ?? HttpProperties(),
         serviceEndpoints = serviceEndpoints ?? ServiceEndpoints(),
         events = events ?? EventsConfig(),

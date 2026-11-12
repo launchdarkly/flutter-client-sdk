@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
+import 'package:meta/meta.dart';
 
 import '../config/data_source_config.dart';
 import '../config/defaults/default_config.dart';
@@ -10,6 +11,7 @@ import 'data_source.dart';
 import 'data_source_status.dart';
 import 'get_environment_id.dart';
 import 'requestor.dart';
+import 'streaming_client.dart';
 
 const String _pingEvent = 'ping';
 const String _patchEvent = 'patch';
@@ -18,22 +20,6 @@ const String _delete = 'delete';
 
 typedef MessageHandler = void Function(MessageEvent);
 typedef ErrorHandler = void Function(dynamic);
-typedef SseClientFactory = SSEClient Function(
-    Uri uri,
-    HttpProperties httpProperties,
-    String? body,
-    SseHttpMethod? method,
-    EventSourceLogger? logger);
-
-SSEClient _defaultClientFactory(Uri uri, HttpProperties httpProperties,
-    String? body, SseHttpMethod? method, EventSourceLogger? logger) {
-  return SSEClient(uri, {_putEvent, _patchEvent, _delete, _pingEvent},
-      headers: httpProperties.baseHeaders,
-      body: body,
-      httpMethod: method ?? SseHttpMethod.get,
-      logger: logger);
-}
-
 HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
 }
@@ -43,7 +29,7 @@ final class StreamingDataSource implements DataSource {
 
   final StreamingDataSourceConfig _dataSourceConfig;
 
-  final SseClientFactory _clientFactory;
+  final SseClientBuilder _clientBuilder;
 
   late final Uri _uri;
 
@@ -72,12 +58,15 @@ final class StreamingDataSource implements DataSource {
   /// Used to track if there has been an unrecoverable error.
   bool _permanentShutdown = false;
 
-  /// The [clientFactory] parameter is primarily intended for testing, but it also
-  /// could be used for customized SSE clients which support functionality
-  /// our default client support does not, or for alternative implementations
-  /// which are not based on SSE.
-  /// The [httpClientFactory] parameter is primarily intended for testing the
-  /// requestor used for ping events.
+  /// The builder that [start] uses for the SSE client.
+  @visibleForTesting
+  SseClientBuilder get eventSource => _clientBuilder;
+
+  /// [eventSource] builds the SSE client. When it is null, the data source
+  /// uses the default client for the platform. Tests inject a fake client.
+  /// The [streamingReportSupported] parameter overrides whether the client
+  /// can send REPORT. Tests set it. The [httpClientFactory] parameter is for
+  /// tests of the requestor that serves ping events.
   StreamingDataSource(
       {required String credential,
       required LDContext context,
@@ -86,24 +75,26 @@ final class StreamingDataSource implements DataSource {
       required StreamingDataSourceConfig dataSourceConfig,
       required PollingDataSourceConfig pollingDataSourceConfig,
       required HttpProperties httpProperties,
-      SseClientFactory clientFactory = _defaultClientFactory,
+      SseClientBuilder? eventSource,
+      bool? streamingReportSupported,
       HttpClientFactory? httpClientFactory})
       : _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
-        _clientFactory = clientFactory,
+        _clientBuilder = eventSource ?? SSEClient.new,
         _httpProperties = httpProperties,
         _credential = credential {
     final plainContextString =
         jsonEncode(LDContextSerialization.toJson(context, isEvent: false));
 
-    if (_dataSourceConfig.useReport &&
-        !DefaultConfig.dataSourceConfig.streamingReportSupported) {
-      _logger.warn(
-          'REPORT is currently not supported for streaming on web targets');
-    }
-
     _useReport = _dataSourceConfig.useReport &&
-        DefaultConfig.dataSourceConfig.streamingReportSupported;
+        (streamingReportSupported ??
+            streamingCustomMethodSupported(eventSource: eventSource));
+
+    if (_dataSourceConfig.useReport && !_useReport) {
+      _logger
+          .warn('The streaming transport on this platform cannot send REPORT '
+              'requests. The SDK streams with GET instead.');
+    }
 
     _contextString = _useReport
         ? plainContextString
@@ -139,14 +130,15 @@ final class StreamingDataSource implements DataSource {
     }
     _stopped = false;
     _logger.debug('Establishing new streaming connection, uri: $_uri');
-    _client = _clientFactory(
-        _uri,
-        _httpProperties,
-        _useReport ? _contextString : null,
-        _useReport ? SseHttpMethod.report : SseHttpMethod.get,
-        LDLoggerToEventSourceAdapter(_logger));
+    final client = _clientBuilder(
+        _uri, const {_putEvent, _patchEvent, _delete, _pingEvent},
+        headers: streamingRequestHeaders(_httpProperties),
+        body: _useReport ? _contextString : null,
+        httpMethod: _useReport ? SseHttpMethod.report : SseHttpMethod.get,
+        logger: LDLoggerToEventSourceAdapter(_logger));
+    _client = client;
 
-    _subscription = _client!.stream.listen((event) async {
+    _subscription = client.stream.listen((event) async {
       if (_stopped) {
         return;
       }
@@ -186,12 +178,10 @@ final class StreamingDataSource implements DataSource {
           }
         case OpenEvent():
           _logger.debug('Received connect event, data: ${event.headers}');
-          if (event.headers != null) {
-            _environmentId = getEnvironmentId(event.headers);
-          } else {
-            _environmentId = DefaultConfig.credentialConfig
-                .environmentIdFallback(_credential);
-          }
+          // A browser can hide the environment ID header, so the fallback
+          // also applies when the headers are present but lack it.
+          _environmentId = getEnvironmentId(event.headers) ??
+              DefaultConfig.credentialConfig.environmentIdFallback(_credential);
       }
     })
       ..onError((err) {

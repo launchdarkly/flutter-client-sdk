@@ -70,8 +70,11 @@ final class DefaultDataSourceConfig {
 
   ConnectionMode get defaultInitialConnectionMode => ConnectionMode.streaming;
 
-  bool get streamingReportSupported => false;
-
-  /// The browser EventSource can only send GET requests without a body.
+  /// The default streaming client on web is the browser EventSource. It can
+  /// only send GET requests without a body.
   bool get streamingPostSupported => false;
+
+  /// The CORS allow-list of the streaming service does not include the
+  /// application tags header. A browser blocks a request that sends it.
+  bool get streamingTagsHeaderSupported => false;
 }

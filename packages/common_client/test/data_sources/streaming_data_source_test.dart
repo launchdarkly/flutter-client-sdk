@@ -16,7 +16,10 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     as ld_common;
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:http/http.dart' as http;
+import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
+
+class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 class MockSseClient implements SSEClient {
   final Stream<Event> mockStream;
@@ -36,18 +39,17 @@ class MockSseClient implements SSEClient {
   bool hasCapability(SSECapability capability) => true;
 }
 
-(
-  StreamingDataSource,
-  FlagManager,
-  DataSourceStatusManager
-) makeDataSourceForTest(Stream<Event> mockStream,
-    {LDContext? inContext,
-    HttpProperties? inProperties,
-    bool useReport = false,
-    bool withReasons = false,
-    Duration? testingInterval,
-    MockClient? mockHttpClient,
-    Function(Uri, HttpProperties, String?, SseHttpMethod?)? factoryCallback}) {
+(StreamingDataSource, FlagManager, DataSourceStatusManager)
+    makeDataSourceForTest(Stream<Event> mockStream,
+        {LDContext? inContext,
+        HttpProperties? inProperties,
+        bool useReport = false,
+        bool withReasons = false,
+        Duration? testingInterval,
+        MockClient? mockHttpClient,
+        // Receives the arguments that the builder received.
+        Function(Uri, Map<String, String>, String?, SseHttpMethod?)?
+            factoryCallback}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
   // We are not testing the data source status manager here, so we just want a
   // fixed time to make events easy to get.
@@ -77,9 +79,13 @@ class MockSseClient implements SSEClient {
           ? (httpProps) => ld_common.HttpClient(
               client: mockHttpClient, httpProperties: httpProps)
           : null,
-      clientFactory: (Uri uri, HttpProperties properties, String? body,
-          SseHttpMethod? method, EventSourceLogger? logger) {
-        factoryCallback?.call(uri, properties, body, method);
+      eventSource: (uri, eventTypes,
+          {required headers,
+          required body,
+          required httpMethod,
+          required logger,
+          uriProvider}) {
+        factoryCallback?.call(uri, headers, body, httpMethod);
         return client;
       });
 
@@ -110,7 +116,7 @@ void main() {
     test('it uses the correct URL without reasons', () {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) = makeDataSourceForTest(
-          controller.stream, factoryCallback: (uri, properties, body, method) {
+          controller.stream, factoryCallback: (uri, headers, body, method) {
         expect(uri.toString(),
             'https://clientstream.launchdarkly.com/meval/eyJrZXkiOiJ0ZXN0Iiwia2luZCI6InVzZXIifQ==');
       });
@@ -127,7 +133,7 @@ void main() {
     test('is includes no body when not using REPORT', () {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) = makeDataSourceForTest(
-          controller.stream, factoryCallback: (uri, properties, body, method) {
+          controller.stream, factoryCallback: (uri, headers, body, method) {
         expect(method, SseHttpMethod.get);
         expect(body, isNull);
       });
@@ -144,7 +150,7 @@ void main() {
     test('is includes a body when using REPORT', () {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) = makeDataSourceForTest(
-          controller.stream, factoryCallback: (uri, properties, body, method) {
+          controller.stream, factoryCallback: (uri, headers, body, method) {
         expect(body, '{"key":"test","kind":"user"}');
         expect(method, SseHttpMethod.report);
       }, useReport: true);
@@ -158,10 +164,27 @@ void main() {
       controller.sink.add(MessageEvent('put', '{}', null));
     });
 
+    test('it passes the base headers to the client', () {
+      final controller = StreamController<MessageEvent>();
+      final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
+          inProperties: HttpProperties(baseHeaders: {
+            'X-LaunchDarkly-Tags': 'application-id/app',
+            'x-custom': 'value',
+          }), factoryCallback: (uri, headers, body, method) {
+        // This platform has no CORS check, so every header is sent.
+        expect(
+            headers, containsPair('X-LaunchDarkly-Tags', 'application-id/app'));
+        expect(headers, containsPair('x-custom', 'value'));
+      });
+
+      dataSource.start();
+      dataSource.stop();
+    });
+
     test('it uses the correct URL without reasons with REPORT', () {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) = makeDataSourceForTest(
-          controller.stream, factoryCallback: (uri, properties, body, method) {
+          controller.stream, factoryCallback: (uri, headers, body, method) {
         expect(uri.toString(), 'https://clientstream.launchdarkly.com/meval');
       }, useReport: true);
 
@@ -178,7 +201,7 @@ void main() {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) =
           makeDataSourceForTest(controller.stream, withReasons: true,
-              factoryCallback: (uri, properties, body, method) {
+              factoryCallback: (uri, headers, body, method) {
         expect(uri.toString(),
             'https://clientstream.launchdarkly.com/meval/eyJrZXkiOiJ0ZXN0Iiwia2luZCI6InVzZXIifQ==?withReasons=true');
       });
@@ -196,7 +219,7 @@ void main() {
       final controller = StreamController<MessageEvent>();
       final (dataSource, _, statusManager) =
           makeDataSourceForTest(controller.stream, withReasons: true,
-              factoryCallback: (uri, properties, body, method) {
+              factoryCallback: (uri, headers, body, method) {
         expect(uri.toString(),
             'https://clientstream.launchdarkly.com/meval?withReasons=true');
       }, useReport: true);
@@ -216,7 +239,7 @@ void main() {
     final controller =
         StreamController<MessageEvent>(onCancel: () => cancelled = true);
     final (dataSource, _, _) = makeDataSourceForTest(controller.stream,
-        withReasons: true, factoryCallback: (uri, properties, body, method) {});
+        withReasons: true, factoryCallback: (uri, headers, body, method) {});
 
     dataSource.start();
     dataSource.stop();
@@ -568,6 +591,50 @@ void main() {
       // A mobile key does not identify an environment, so the fallback
       // is null on this platform.
       expect(flagManager.environmentId, isNull);
+    });
+  });
+
+  group('client builder selection', () {
+    StreamingDataSource make(
+            {SseClientBuilder? eventSource,
+            bool useReport = false,
+            LDLogger? logger}) =>
+        StreamingDataSource(
+            credential: 'dummy-key',
+            context: LDContextBuilder().kind('user', 'test').build(),
+            endpoints: ServiceEndpoints(),
+            logger: logger ?? LDLogger(level: LDLogLevel.none),
+            dataSourceConfig: StreamingDataSourceConfig(useReport: useReport),
+            pollingDataSourceConfig: PollingDataSourceConfig(),
+            httpProperties: HttpProperties(),
+            eventSource: eventSource);
+
+    setUpAll(() {
+      registerFallbackValue(LDLogRecord(
+          level: LDLogLevel.debug,
+          message: '',
+          time: DateTime.now(),
+          logTag: ''));
+    });
+
+    test('it uses the default SSE client without a supplied builder', () {
+      expect(make().eventSource, same(SSEClient.new));
+    });
+
+    test('it uses the supplied SSE client builder', () {
+      expect(
+          make(eventSource: SSEClient.http).eventSource, same(SSEClient.http));
+    });
+
+    test('it does not warn about REPORT on a platform that supports it', () {
+      final adapter = MockLogAdapter();
+      when(() => adapter.log(any())).thenReturn(null);
+
+      make(
+          useReport: true,
+          logger: LDLogger(adapter: adapter, level: LDLogLevel.debug));
+
+      verifyNever(() => adapter.log(any()));
     });
   });
 }

@@ -5,9 +5,11 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source_status_m
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/built_in_modes.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/data_system.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/mode_definition.dart';
+import 'package:launchdarkly_common_client/src/data_sources/streaming_client.dart';
 import 'package:launchdarkly_common_client/src/fdv2_connection_mode.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     hide ServiceEndpoints;
+import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -17,6 +19,7 @@ FDv2DataSystem makeDataSystem({
   DataSystemConfig config = const DataSystemConfig(),
   bool? streamingPostSupported,
   LDLogger? logger,
+  SseClientBuilder? eventSource,
 }) =>
     FDv2DataSystem(
       config: config,
@@ -29,6 +32,7 @@ FDv2DataSystem makeDataSystem({
       statusManager: DataSourceStatusManager(),
       cachedFlagsReader: (_) async => null,
       streamingPostSupported: streamingPostSupported,
+      eventSource: eventSource,
     );
 
 LDContext _context() => LDContextBuilder().kind('user', 'bob').build();
@@ -97,6 +101,17 @@ void main() {
     });
     final factories = makeDataSystem(config: config).buildFactories();
     expect(factories.keys, hasLength(4));
+  });
+
+  group('eventSource', () {
+    test('uses the default SSE client without a supplied builder', () {
+      expect(makeDataSystem().eventSource, same(SSEClient.new));
+    });
+
+    test('uses the supplied SSE client builder', () {
+      expect(makeDataSystem(eventSource: SSEClient.http).eventSource,
+          same(SSEClient.http));
+    });
   });
 
   test('usePost is off by default', () {

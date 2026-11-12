@@ -6,6 +6,10 @@ export 'src/ld_common_config.dart'
         AutoEnvAttributes,
         PollingConfig;
 
+export 'src/data_sources/streaming_client.dart' show SseClientBuilder;
+export 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart'
+    show SSEClient;
+
 export 'src/config/data_system_config.dart'
     show DataSystemConfig, ConnectionModeId;
 export 'src/data_sources/fdv2/mode_definition.dart'
