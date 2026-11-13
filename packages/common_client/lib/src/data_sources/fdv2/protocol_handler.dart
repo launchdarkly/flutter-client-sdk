@@ -246,7 +246,9 @@ final class FDv2ProtocolHandler {
       );
     }
 
-    if (data.state.isEmpty || data.version == null) {
+    final state = data.state;
+    final version = data.version;
+    if (state == null || version == null) {
       _logger.warn('Ignoring payload-transferred with missing fields: '
           'state=${data.state}, version=${data.version}');
       reset();
@@ -254,7 +256,9 @@ final class FDv2ProtocolHandler {
     }
 
     final result = ActionPayload(Payload(
-      selector: Selector(state: data.state, version: data.version!),
+      selector: state.isEmpty
+          ? Selector.empty
+          : Selector(state: state, version: version),
       type: _tempType,
       updates: _tempUpdates,
     ));

@@ -126,7 +126,8 @@ final class DeleteObjectEvent {
 
 /// A payload-transferred event marking the end of a transfer batch.
 final class PayloadTransferredEvent {
-  final String state;
+  /// Null if the field was missing from the JSON. An empty string is valid.
+  final String? state;
 
   /// Null if the field was missing from the JSON.
   final int? version;
@@ -138,7 +139,7 @@ final class PayloadTransferredEvent {
 
   factory PayloadTransferredEvent.fromJson(Map<String, dynamic> json) {
     return PayloadTransferredEvent(
-      state: json['state'] as String? ?? '',
+      state: json['state'] as String?,
       version: (json['version'] as num?)?.toInt(),
     );
   }
