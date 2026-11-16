@@ -79,7 +79,9 @@ class TestApiImpl extends SdkTestApi {
     ];
     final config = LDConfig(
       body.configuration?.credential ?? '',
-      AutoEnvAttributes.disabled,
+      (body.configuration?.clientSide?.includeEnvironmentAttributes ?? false)
+          ? AutoEnvAttributes.enabled
+          : AutoEnvAttributes.disabled,
       applicationInfo: body.configuration?.tags?.applicationId != null
           ? ApplicationInfo(
               applicationId: body.configuration!.tags!.applicationId!,

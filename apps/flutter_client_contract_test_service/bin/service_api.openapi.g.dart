@@ -501,6 +501,8 @@ PostSchemaConfigurationClientSide _$PostSchemaConfigurationClientSideFromJson(
       evaluationReasons: json['evaluationReasons'] as bool?,
       useReport: json['useReport'] as bool?,
       usePost: json['usePost'] as bool?,
+      includeEnvironmentAttributes:
+          json['includeEnvironmentAttributes'] as bool?,
     );
 
 Map<String, dynamic> _$PostSchemaConfigurationClientSideToJson(
@@ -518,6 +520,8 @@ Map<String, dynamic> _$PostSchemaConfigurationClientSideToJson(
   writeNotNull('evaluationReasons', instance.evaluationReasons);
   writeNotNull('useReport', instance.useReport);
   writeNotNull('usePost', instance.usePost);
+  writeNotNull(
+      'includeEnvironmentAttributes', instance.includeEnvironmentAttributes);
   return val;
 }
 

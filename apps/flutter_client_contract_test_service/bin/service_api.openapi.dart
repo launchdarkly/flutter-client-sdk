@@ -1027,6 +1027,7 @@ class PostSchemaConfigurationClientSide implements OpenApiContent {
     this.evaluationReasons,
     this.useReport,
     this.usePost,
+    this.includeEnvironmentAttributes,
   });
 
   factory PostSchemaConfigurationClientSide.fromJson(
@@ -1062,6 +1063,12 @@ class PostSchemaConfigurationClientSide implements OpenApiContent {
     includeIfNull: false,
   )
   final bool? usePost;
+
+  @JsonKey(
+    name: 'includeEnvironmentAttributes',
+    includeIfNull: false,
+  )
+  final bool? includeEnvironmentAttributes;
 
   Map<String, dynamic> toJson() =>
       _$PostSchemaConfigurationClientSideToJson(this);
