@@ -124,6 +124,26 @@ final class DataSourceManager {
     _identifyCompleter = null;
   }
 
+  /// Fails the pending identify, if any, with [message]. Only the first call
+  /// completes it.
+  void _maybeFailIdentify(String message) {
+    final completer = _identifyCompleter;
+    if (completer == null) {
+      return;
+    }
+    if (!completer.isCompleted) {
+      completer.completeError(Exception(message));
+    }
+    _identifyCompleter = null;
+  }
+
+  /// True when the active data source polls. A polling source gets new data
+  /// only at its next poll. A restart does not request the data again.
+  bool get _activeSourcePolls => switch (_activeConnectionMode) {
+        FDv2Polling() || FDv2Background() => true,
+        _ => false,
+      };
+
   DataSource? _createDataSource(FDv2ConnectionMode mode) {
     if (_activeContext != null) {
       if (_dataSourceFactories[mode] == null) {
@@ -179,6 +199,11 @@ final class DataSourceManager {
               environmentId: event.environmentId);
           if (handled == MessageStatus.messageHandled) {
             _maybeCompleteIdentify();
+          } else if (handled == MessageStatus.invalidMessage &&
+              _activeSourcePolls) {
+            // The identify fails, as for a failed poll. Otherwise it waits
+            // for the next poll, and later identify calls wait behind it.
+            _maybeFailIdentify('The poll response contained invalid data');
           }
           return handled;
         case PayloadEvent():
@@ -208,10 +233,7 @@ final class DataSourceManager {
           _maybeCompleteIdentify();
           return MessageStatus.messageHandled;
         case StatusEvent():
-          if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {
-            _identifyCompleter!.completeError(Exception(event.message));
-            _identifyCompleter = null;
-          }
+          _maybeFailIdentify(event.message);
           if (event.statusCode != null) {
             _statusManager.setErrorResponse(event.statusCode!, event.message,
                 shutdown: event.shutdown);

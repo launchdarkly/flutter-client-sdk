@@ -17,11 +17,16 @@ final class MockDataSource implements DataSource {
   final StreamController<DataSourceEvent> controller = StreamController();
   final List<DataSourceEvent> _startEvents;
 
+  /// When true, a restart delivers new data, as a streaming source does when
+  /// it reconnects. A polling source has no connection to restart.
+  final bool deliversDataOnRestart;
+
   bool startCalled = false;
   bool stopCalled = false;
   bool restartCalled = false;
 
-  MockDataSource({List<DataSourceEvent>? startEvents})
+  MockDataSource(
+      {List<DataSourceEvent>? startEvents, this.deliversDataOnRestart = true})
       : _startEvents = startEvents ?? [DataEvent('put', '{}')];
 
   @override
@@ -44,6 +49,9 @@ final class MockDataSource implements DataSource {
   @override
   void restart() {
     restartCalled = true;
+    if (!deliversDataOnRestart) {
+      return;
+    }
     Future.delayed(Duration(milliseconds: 10))
         .then((_) => controller.sink.add(DataEvent('put', '{}')));
   }
@@ -331,6 +339,49 @@ void main() {
 
     expect(createdDataSource.controller.hasListener, isTrue);
     expect(createdDataSource.restartCalled, isTrue);
+  });
+
+  test('an invalid poll response fails the pending identify', () async {
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(),
+      const FDv2Polling(): (_) => MockDataSource(
+          startEvents: [DataEvent('put', '{"flag": {sorry')],
+          deliversDataOnRestart: false),
+      const FDv2Background(): (_) => MockDataSource(),
+    };
+    final manager = makeManager(context, factories);
+    manager.setMode(const ResolvedPolling());
+    final completer = Completer<void>();
+
+    // Identify when the poll response is not valid JSON.
+    manager.identify(context, completer);
+    final failure = expectLater(completer.future, throwsA(isA<Exception>()));
+    await pumpEventQueue();
+
+    // The identify fails at once, so that it does not hold back later
+    // identify calls until the next poll.
+    expect(completer.isCompleted, isTrue);
+    await failure;
+  });
+
+  test('an invalid stream message keeps the identify for the restarted stream',
+      () async {
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) =>
+          MockDataSource(startEvents: [DataEvent('put', '{"flag": {sorry')]),
+      const FDv2Polling(): (_) => MockDataSource(),
+      const FDv2Background(): (_) => MockDataSource(),
+    };
+    final manager = makeManager(context, factories);
+    final completer = Completer<void>();
+
+    // Identify when the first stream message is not valid JSON.
+    manager.identify(context, completer);
+
+    // The restarted stream delivers valid data, and the identify completes.
+    await expectLater(completer.future, completes);
   });
 
   ChangeSet aChangeSet({Selector selector = Selector.empty}) =>

@@ -1,14 +1,35 @@
 import 'dart:async';
 
 import 'package:launchdarkly_common_client/src/data_sources/data_manager.dart';
+import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_event_handler.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
+import 'package:launchdarkly_common_client/src/fdv2_connection_mode.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_common_client/src/offline_detail.dart';
 import 'package:launchdarkly_common_client/src/resolved_connection_mode.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
+
+import '../mock_persistence.dart';
+
+/// A polling source whose only response is not valid JSON.
+final class _InvalidPollSource implements DataSource {
+  final _controller = StreamController<DataSourceEvent>();
+
+  @override
+  Stream<DataSourceEvent> get events => _controller.stream;
+
+  @override
+  void start() => _controller.add(DataEvent('put', '{"flag": {sorry'));
+
+  @override
+  void stop() => _controller.close();
+
+  @override
+  void restart() {}
+}
 
 /// A data source manager with no factories. Its identify is a no-op
 /// connection-wise (no factory builds a source), which is all these tests
@@ -61,6 +82,39 @@ void main() {
 
       // Two identifies cleared; the offline/streaming switches did not.
       expect(clears, 2);
+    });
+  });
+
+  group('FDv1DataManager', () {
+    test('a cached identify does not report a later invalid poll as an error',
+        () async {
+      final logger = LDLogger(level: LDLogLevel.none);
+      final flagManager = FlagManager(
+          sdkKey: 'sdk-key',
+          maxCachedContexts: 5,
+          logger: logger,
+          persistence: MockPersistence());
+      await flagManager.init(_ctx('a'), {});
+      final statusManager = DataSourceStatusManager();
+      final dataSourceManager = DataSourceManager(
+        statusManager: statusManager,
+        dataSourceEventHandler: DataSourceEventHandler(
+            flagManager: flagManager,
+            statusManager: statusManager,
+            logger: logger),
+        logger: logger,
+      );
+      dataSourceManager
+          .setFactories({const FDv2Polling(): (_) => _InvalidPollSource()});
+      dataSourceManager.setMode(const ResolvedPolling());
+      final manager = FDv1DataManager(dataSourceManager, flagManager);
+
+      // The identify resolves on the cached flags.
+      await manager.identify(_ctx('a'), waitForNetworkResults: false);
+
+      // The poll response arrives after the identify. The test fails if the
+      // invalid data becomes an unhandled error.
+      await pumpEventQueue();
     });
   });
 }

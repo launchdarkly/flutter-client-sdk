@@ -35,6 +35,9 @@ final class FDv1DataManager implements DataManager {
     final loadedFromCache = await _flagManager.loadCached(context);
     _dataSourceManager.identify(context, completer);
     if (loadedFromCache && !waitForNetworkResults) {
+      // The identify resolves on the cached flags. A later data source
+      // failure must not become an unhandled error.
+      completer.future.ignore();
       return;
     }
     return completer.future;
