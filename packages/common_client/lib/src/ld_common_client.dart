@@ -308,8 +308,18 @@ final class LDCommonClient {
 
   Future<EnvironmentReport> _makeEnvironmentReport() async {
     final reporterBuilder = PrioritizedEnvReportBuilder();
+    // The configured application info needs a valid application ID. Without
+    // one, the configured info is not used, and the platform layer supplies
+    // the application info if automatic attributes are on.
+    var configuredApplicationInfo = _config.applicationInfo;
+    if (configuredApplicationInfo != null &&
+        configuredApplicationInfo.applicationId == null) {
+      _logger.info('A valid applicationId was not provided, so the configured '
+          'application info is not used.');
+      configuredApplicationInfo = null;
+    }
     reporterBuilder.setConfigLayer(ConcreteEnvReporter(
-        applicationInfo: Future.value(_config.applicationInfo),
+        applicationInfo: Future.value(configuredApplicationInfo),
         osInfo: Future.value(null),
         deviceInfo: Future.value(null),
         locale: Future.value(null)));

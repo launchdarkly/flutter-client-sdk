@@ -136,6 +136,8 @@ paths:
                           type: boolean
                         usePost:
                           type: boolean
+                        includeEnvironmentAttributes:
+                          type: boolean
                     hooks:
                       type: object
                       properties:

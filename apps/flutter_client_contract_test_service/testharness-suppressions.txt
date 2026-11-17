@@ -1,3 +1,2 @@
 context type/convert/invalid context/{"kind": null, "key": "x"}
-tags/disallowed characters
 autoEnvAttributes/

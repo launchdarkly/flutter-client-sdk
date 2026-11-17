@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
+    show ConcreteEnvReporter;
 import 'package:test/test.dart';
 
 import 'mock_eventprocessor.dart';
@@ -462,6 +464,82 @@ void main() {
         'flagA',
         ['flagD', 'flagB', 'flagD', 'flagC', 'flagA'],
       );
+    });
+  });
+
+  group('given configured application info', () {
+    final platformApplicationInfo = ApplicationInfo(
+        applicationId: 'platform-id', applicationVersion: 'platform-version');
+
+    Future<String?> tagsHeaderFor(ApplicationInfo applicationInfo,
+        AutoEnvAttributes autoEnvAttributes) async {
+      final headers = Completer<Map<String, String>>();
+      final client = LDCommonClient(
+          TestConfig('the-sdk-key', autoEnvAttributes,
+              applicationInfo: applicationInfo,
+              events: EventsConfig(disabled: true)),
+          CommonPlatform(
+              persistence: MockPersistence(),
+              platformEnvReporter: ConcreteEnvReporter(
+                  applicationInfo: Future.value(platformApplicationInfo),
+                  osInfo: Future.value(null),
+                  deviceInfo: Future.value(null),
+                  locale: Future.value(null))),
+          LDContextBuilder().kind('user', 'bob').build(),
+          DiagnosticSdkData(name: '', version: ''), dataSourceFactories:
+              (LDCommonConfig config, LDLogger logger,
+                  HttpProperties properties) {
+        if (!headers.isCompleted) {
+          headers.complete(properties.baseHeaders);
+        }
+        return {
+          ConnectionMode.streaming: (LDContext context) => TestDataSource(),
+          ConnectionMode.polling: (LDContext context) => TestDataSource(),
+        };
+      });
+      await client.start();
+      final tags = (await headers.future)['X-LaunchDarkly-Tags'];
+      await client.close();
+      return tags;
+    }
+
+    test('uses the configured application info over the platform values',
+        () async {
+      // Start with a valid configured ID while automatic attributes are on.
+      final tags = await tagsHeaderFor(
+          ApplicationInfo(
+              applicationId: 'configured-id',
+              applicationVersion: 'configured-version'),
+          AutoEnvAttributes.enabled);
+      // The configured values are sent.
+      expect(tags,
+          'application-id/configured-id application-version/configured-version');
+    });
+
+    test('uses the platform application info when the configured ID is invalid',
+        () async {
+      // Start with an ID that has a disallowed character.
+      final tags = await tagsHeaderFor(
+          ApplicationInfo(
+              applicationId: 'invalid#id',
+              applicationVersion: 'configured-version'),
+          AutoEnvAttributes.enabled);
+      // The platform ID and version are sent in place of the configured info.
+      expect(tags,
+          'application-id/platform-id application-version/platform-version');
+    });
+
+    test(
+        'sends no application info when the configured ID is invalid and '
+        'automatic attributes are off', () async {
+      // Start with an ID that has a disallowed character.
+      final tags = await tagsHeaderFor(
+          ApplicationInfo(
+              applicationId: 'invalid#id',
+              applicationVersion: 'configured-version'),
+          AutoEnvAttributes.disabled);
+      // The configured version is not sent without an ID.
+      expect(tags, isNull);
     });
   });
 }
