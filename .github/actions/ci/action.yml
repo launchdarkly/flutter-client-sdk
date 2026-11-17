@@ -21,7 +21,7 @@ runs:
   using: composite
   steps:
     - name: Install Dart
-      uses: dart-lang/setup-dart@e51d8e571e22473a2ddebf0ef8a2123f0ab2c02c # v1
+      uses: dart-lang/setup-dart@2286a0c042b44434fe26d292bbce8d34f7ec662b # v1.8.2
       with:
         sdk: ${{ inputs.dart_version }}
 
@@ -125,7 +125,7 @@ runs:
         token: ${{ inputs.github_token }}
 
     - name: Upload Test Service Logs
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       if: always()
       with:
         name: test-service-${{ inputs.flutter_version }}-${{ inputs.dart_version }}.log
