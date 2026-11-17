@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.16.1](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.16.0...launchdarkly_common_client-v1.16.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* Fall back to automatic application info when the configured application ID is invalid ([#374](https://github.com/launchdarkly/flutter-client-sdk/issues/374)) ([5f88fee](https://github.com/launchdarkly/flutter-client-sdk/commit/5f88fee2467fc5aa5616f9b906c3d1ff8ea99a13))
+
 ## [1.16.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.15.1...launchdarkly_common_client-v1.16.0) (2026-11-12)
 
 
