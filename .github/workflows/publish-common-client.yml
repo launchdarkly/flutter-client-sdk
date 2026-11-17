@@ -11,7 +11,7 @@ jobs:
       id-token: write # This is required for authentication using OIDC
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: Publish Common Client Package
         uses: ./.github/actions/publish
         with:
