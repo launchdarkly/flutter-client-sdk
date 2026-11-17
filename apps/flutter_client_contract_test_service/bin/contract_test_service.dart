@@ -87,9 +87,12 @@ class TestApiImpl extends SdkTestApi {
           : null,
       persistence: PersistenceConfig(maxCachedContexts: 0),
       serviceEndpoints: ServiceEndpoints.custom(
-          polling: body.configuration?.polling?.baseUri,
-          streaming: body.configuration?.streaming?.baseUri,
-          events: body.configuration?.events?.baseUri),
+          polling: body.configuration?.polling?.baseUri ??
+              body.configuration?.serviceEndpoints?.polling,
+          streaming: body.configuration?.streaming?.baseUri ??
+              body.configuration?.serviceEndpoints?.streaming,
+          events: body.configuration?.events?.baseUri ??
+              body.configuration?.serviceEndpoints?.events),
       dataSourceConfig: DataSourceConfig(
           initialConnectionMode: mappedDataSystem?.initialConnectionMode ??
               (body.configuration?.streaming != null
