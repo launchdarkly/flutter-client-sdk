@@ -287,6 +287,7 @@ void main() {
     });
 
     stream.listen((request) {
+      expect(request.url, Uri.parse('events/diagnostics'));
       final decodedAsLdValue =
           LDValueSerialization.fromJson(jsonDecode(request.body));
       expect(decodedAsLdValue.getFor('kind').stringValue(), 'diagnostic-init');

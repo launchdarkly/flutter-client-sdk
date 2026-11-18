@@ -204,7 +204,7 @@ final class DefaultEventProcessor implements EventProcessor {
     }
 
     try {
-      final response = await _client.request(RequestMethod.post, _eventsUri,
+      final response = await _client.request(RequestMethod.post, uri,
           body: jsonEncode(payload), additionalHeaders: additionalHeaders);
 
       if (response.headers.containsKey('date')) {
