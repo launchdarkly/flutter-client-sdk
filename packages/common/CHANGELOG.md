@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Dart Common will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.8.3](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.8.2...launchdarkly_dart_common-v1.8.3) (2026-11-18)
+
+
+### Bug Fixes
+
+* send diagnostic events to their configured endpoint ([#380](https://github.com/launchdarkly/flutter-client-sdk/issues/380)) ([9d129cf](https://github.com/launchdarkly/flutter-client-sdk/commit/9d129cfae79d58603a2e21d6af0a9b3bff8d1e1c))
+
 ## [1.8.2](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_dart_common-v1.8.1...launchdarkly_dart_common-v1.8.2) (2026-08-26)
 
 
