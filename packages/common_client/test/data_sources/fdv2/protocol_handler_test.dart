@@ -377,15 +377,50 @@ void main() {
           equals(ProtocolErrorKind.protocolError));
     });
 
-    test('ignored with empty state', () {
+    test('emits selectorless full payload with empty id and zero target', () {
+      final handler = makeHandler();
+      handler.processEvent(serverIntent('xfer-full', id: '', target: 0));
+      handler.processEvent(putObject('flag-1'));
+      final action =
+          handler.processEvent(payloadTransferred(state: '', version: 0));
+      expect(action, isA<ActionPayload>());
+      final payload = (action as ActionPayload).payload;
+      expect(payload.type, PayloadType.full);
+      expect(payload.selector.isEmpty, isTrue);
+      expect(payload.selector.state, isNull);
+      expect(payload.updates.single.key, 'flag-1');
+      expect(handler.state, ProtocolState.changes);
+    });
+
+    test('emits an empty selectorless full payload', () {
+      final handler = makeHandler();
+      handler.processEvent(serverIntent('xfer-full', id: '', target: 0));
+      final action =
+          handler.processEvent(payloadTransferred(state: '', version: 0));
+      expect(action, isA<ActionPayload>());
+      final payload = (action as ActionPayload).payload;
+      expect(payload.type, PayloadType.full);
+      expect(payload.selector.isEmpty, isTrue);
+      expect(payload.updates, isEmpty);
+    });
+
+    test('ignored with missing state', () {
+      final handler = makeHandler();
+      handler.processEvent(serverIntent('xfer-full'));
+      final action = handler.processEvent(FDv2Event(
+          event: FDv2EventTypes.payloadTransferred, data: {'version': 0}));
+      expect(action, isA<ActionNone>());
+      expect(handler.state, equals(ProtocolState.inactive));
+    });
+
+    test('ignored with null state', () {
       final handler = makeHandler();
       handler.processEvent(serverIntent('xfer-full'));
       final action = handler.processEvent(FDv2Event(
           event: FDv2EventTypes.payloadTransferred,
-          data: {'state': '', 'version': 1}));
+          data: {'state': null, 'version': 0}));
       expect(action, isA<ActionNone>());
-      // Should have reset to inactive
-      expect(handler.state, equals(ProtocolState.inactive));
+      expect(handler.state, ProtocolState.inactive);
     });
 
     test('ignored with missing version', () {

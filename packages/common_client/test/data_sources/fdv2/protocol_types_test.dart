@@ -141,6 +141,15 @@ void main() {
   });
 
   group('PayloadTransferredEvent', () {
+    test('fromJson distinguishes empty state from missing state', () {
+      final empty =
+          PayloadTransferredEvent.fromJson({'state': '', 'version': 0});
+      final missing = PayloadTransferredEvent.fromJson({'version': 0});
+      expect(empty.state, '');
+      expect(empty.version, 0);
+      expect(missing.state, isNull);
+    });
+
     test('fromJson preserves null for missing version', () {
       final event = PayloadTransferredEvent.fromJson({
         'state': 'sel-1',

@@ -5,8 +5,11 @@ import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/entry_factories.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/flag_eval_mapper.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/orchestrator.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/protocol_handler.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv2/protocol_types.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/selector.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/source.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/source_manager.dart';
@@ -123,7 +126,93 @@ final class Harness {
   }
 }
 
+ChangeSetResult wireFullPayload(String key, {String state = ''}) {
+  final handler = FDv2ProtocolHandler(
+    objProcessors: {'flag-eval': processFlagEval},
+    logger: LDLogger(level: LDLogLevel.none),
+  );
+  final version = state.isEmpty ? 0 : 1;
+  handler.processEvent(FDv2Event(event: FDv2EventTypes.serverIntent, data: {
+    'payloads': [
+      {
+        'id': state,
+        'target': version,
+        'intentCode': 'xfer-full',
+        'reason': 'test'
+      }
+    ]
+  }));
+  handler.processEvent(FDv2Event(event: FDv2EventTypes.putObject, data: {
+    'kind': 'flag-eval',
+    'key': key,
+    'version': 1,
+    'object': {'value': true, 'variation': 0, 'flagVersion': 1},
+  }));
+  final action = handler.processEvent(FDv2Event(
+      event: FDv2EventTypes.payloadTransferred,
+      data: {'state': state, 'version': version}));
+  return ChangeSetResult(
+      changeSet: translatePayload((action as ActionPayload).payload),
+      persist: true);
+}
+
 void main() {
+  test('wire selectorless initializers continue and initialize at exhaustion',
+      () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final secondCreated = <FakeInitializer>[];
+    final harness = Harness(initializerFactories: [
+      initializerFactory(wireFullPayload('first')),
+      initializerFactory(wireFullPayload('second'), created: secondCreated),
+    ], synchronizerSlots: [
+      synchronizerSlot(synchronizers)
+    ]);
+
+    harness.orchestrator.start();
+    await harness.pump();
+
+    expect(secondCreated.single.runCount, 1);
+    final payloads = harness.events.whereType<PayloadEvent>().toList();
+    expect(payloads, hasLength(2));
+    expect(payloads[0].changeSet.updates, contains('first'));
+    expect(payloads[1].changeSet.updates, contains('second'));
+    expect(harness.events[2], isA<InitializedEvent>());
+    expect(harness.events.whereType<InitializedEvent>(), hasLength(1));
+    expect(harness.selector.isEmpty, isTrue);
+
+    harness.orchestrator.stop();
+  });
+
+  test(
+      'wire selectorless synchronizer full initializes and clears held selector',
+      () async {
+    final synchronizers = <FakeSynchronizer>[];
+    final harness = Harness(
+        initializerFactories: [],
+        synchronizerSlots: [synchronizerSlot(synchronizers)]);
+    harness.orchestrator.start();
+    await harness.pump();
+    expect(harness.events.whereType<InitializedEvent>(), isEmpty);
+
+    synchronizers.single.controller.add(wireFullPayload('first'));
+    await harness.pump();
+    expect(harness.events.whereType<InitializedEvent>(), hasLength(1));
+    expect(harness.selector.isEmpty, isTrue);
+
+    synchronizers.single.controller
+        .add(wireFullPayload('basis', state: 'initial'));
+    await harness.pump();
+    expect(harness.selector.state, 'initial');
+    synchronizers.single.controller.add(wireFullPayload('replacement'));
+    await harness.pump();
+    expect(harness.selector.isEmpty, isTrue);
+    expect(harness.events.whereType<PayloadEvent>().last.changeSet.updates,
+        contains('replacement'));
+    expect(harness.events.whereType<InitializedEvent>(), hasLength(1));
+
+    harness.orchestrator.stop();
+  });
+
   test('runs initializers in order until one returns data with a selector',
       () async {
     final firstCreated = <FakeInitializer>[];
