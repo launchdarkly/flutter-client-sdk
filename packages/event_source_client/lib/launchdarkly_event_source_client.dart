@@ -14,7 +14,7 @@ import 'src/http_sse_headers.dart';
 import 'src/sse_client_http.dart' as http_client show HttpSseClient;
 import 'src/test_sse_client.dart';
 
-export 'src/errors.dart' show SseHttpError;
+export 'src/errors.dart' show SseConnectionError, SseHttpError;
 export 'src/events.dart' show Event, MessageEvent, OpenEvent;
 export 'src/test_sse_client.dart' show TestSseClient;
 export 'src/logging.dart'
@@ -147,6 +147,9 @@ abstract class SSEClient {
   /// only when no provider is given. This allows query parameters to
   /// vary between attempts (e.g. a state selector that advances as data
   /// is received). Supported on all platforms.
+  ///
+  /// An optional [autoReconnect], true by default. When false, the client
+  /// reports the first failure on the [stream] and does not reconnect.
   factory SSEClient(Uri uri, Set<String> eventTypes,
       {Map<String, String> headers = defaultHeaders,
       Duration connectTimeout = defaultConnectTimeout,
@@ -154,11 +157,21 @@ abstract class SSEClient {
       String? body,
       SseHttpMethod httpMethod = SseHttpMethod.get,
       EventSourceLogger? logger,
-      Uri Function()? uriProvider}) {
+      Uri Function()? uriProvider,
+      bool autoReconnect = true}) {
     // merge headers so consumer gets reasonable defaults
     final mergedHeaders = <String, String>{...defaultHeaders, ...headers};
-    return getSSEClient(uri, eventTypes, mergedHeaders, connectTimeout,
-        readTimeout, body, httpMethod.toString(), logger, uriProvider);
+    return getSSEClient(
+        uri,
+        eventTypes,
+        mergedHeaders,
+        connectTimeout,
+        readTimeout,
+        body,
+        httpMethod.toString(),
+        logger,
+        uriProvider,
+        autoReconnect);
   }
 
   /// Factory constructor that always returns the HTTP-based implementation,
@@ -191,7 +204,8 @@ abstract class SSEClient {
       String? body,
       SseHttpMethod httpMethod = SseHttpMethod.get,
       EventSourceLogger? logger,
-      Uri Function()? uriProvider}) {
+      Uri Function()? uriProvider,
+      bool autoReconnect = true}) {
     return http_client.HttpSseClient(
         uri,
         eventTypes,
@@ -201,7 +215,8 @@ abstract class SSEClient {
         body,
         httpMethod.toString(),
         logger,
-        uriProvider: uriProvider);
+        uriProvider: uriProvider,
+        autoReconnect: autoReconnect);
   }
 
   /// Get an SSE client for use in unit tests.
@@ -222,6 +237,7 @@ abstract class SSEClient {
     Duration readTimeout = defaultReadTimeout,
     String? body,
     SseHttpMethod httpMethod = SseHttpMethod.get,
+    bool autoReconnect = true,
     Stream<Event>? sourceStream,
     Set<SSECapability>? capabilities,
   }) {
@@ -231,6 +247,7 @@ abstract class SSEClient {
         readTimeout: readTimeout,
         body: body,
         httpMethod: httpMethod,
+        autoReconnect: autoReconnect,
         sourceStream: sourceStream,
         capabilities: capabilities);
   }

@@ -65,7 +65,7 @@ class StateConnecting {
             ErrorUtils.isHttpStatusCodeRecoverable(response.statusCode);
         final error = SseHttpError(response.statusCode, response.headers,
             recoverable: recoverable);
-        if (!recoverable) {
+        if (!recoverable || !svo.autoReconnect) {
           // Not retried: report the error and go idle until something
           // changes.
           return () => StateIdle.run(svo, errorCause: error);
@@ -88,7 +88,10 @@ class StateConnecting {
         return () {
           svo.logger.info(
               'Connection received non-event-stream content type, will retry with backoff.');
-          StateBackoff.run(svo);
+          svo.autoReconnect
+              ? StateBackoff.run(svo)
+              : StateIdle.run(svo,
+                  errorCause: const SseConnectionError('wrong content type'));
         };
       }
 
@@ -102,11 +105,14 @@ class StateConnecting {
       return () {
         svo.logger.info(
             'Connection TimeoutException occurred, will retry with backoff.');
-        StateBackoff.run(svo);
+        svo.autoReconnect
+            ? StateBackoff.run(svo)
+            : StateIdle.run(svo,
+                errorCause: const SseConnectionError('connect timeout'));
       };
     } catch (err) {
       client.close();
-      if (!ErrorUtils.isConnectionErrorRecoverable(err)) {
+      if (svo.autoReconnect && !ErrorUtils.isConnectionErrorRecoverable(err)) {
         // go to idle relaying the error that caused us to go idle.
         return () => StateIdle.run(svo, errorCause: err);
       }
@@ -114,7 +120,10 @@ class StateConnecting {
       // we err on the side of caution and say that errors are recoverable.  The worst
       // thing that happens is we retry wastefully.  The alternative of assuming
       // errors are NOT recoverable is far worse!
-      return () => StateBackoff.run(svo);
+      return () => svo.autoReconnect
+          ? StateBackoff.run(svo)
+          : StateIdle.run(svo,
+              errorCause: const SseConnectionError('transport error'));
     }
   }
 

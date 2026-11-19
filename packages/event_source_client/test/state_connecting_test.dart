@@ -2,8 +2,10 @@
 
 import 'dart:async';
 
+import 'package:http/http.dart' show ClientException;
+import 'package:http/testing.dart' show MockClient;
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart'
-    show Event, SseHttpError;
+    show Event, SseConnectionError, SseHttpError;
 import 'package:launchdarkly_event_source_client/src/state_backoff.dart';
 import 'package:launchdarkly_event_source_client/src/state_connected.dart';
 import 'package:launchdarkly_event_source_client/src/state_connecting.dart';
@@ -87,4 +89,72 @@ void main() {
         emitsInOrder([StateConnecting, StateIdle]));
     await StateConnecting.run(svo);
   });
+
+  MockClient throwingClient(String message) =>
+      MockClient.streaming((request, body) => throw ClientException(message));
+
+  final failures = [
+    (
+      'a 503 response',
+      () => TestUtils.makeMockHttpClient(httpStatusCode: 503),
+      isA<SseHttpError>().having((e) => e.recoverable, 'recoverable', true)
+    ),
+    (
+      'a wrong content type',
+      () => TestUtils.makeMockHttpClient(
+          headers: const {'content-type': 'text/html'}),
+      isA<SseConnectionError>()
+    ),
+    (
+      'a connect timeout',
+      () => TestUtils.makeMockHttpClient(blocking: true),
+      isA<SseConnectionError>()
+    ),
+    (
+      'a transport error',
+      () => throwingClient('connection reset'),
+      isA<SseConnectionError>()
+    ),
+    (
+      'a redirect loop',
+      () => throwingClient('Redirect loop detected'),
+      isA<SseConnectionError>()
+    ),
+  ];
+
+  for (final (name, clientFactory, error) in failures) {
+    test('$name goes idle and reports an error when autoReconnect is off',
+        () async {
+      final transitionController = StreamController<dynamic>.broadcast();
+      final eventController = StreamController<Event>.broadcast();
+
+      final svo = TestUtils.makeMockStateValues(
+          transitionSink: transitionController,
+          eventSink: eventController,
+          clientFactory: clientFactory,
+          autoReconnect: false);
+
+      // The client stops and reports the failure.
+      expectLater(transitionController.stream,
+          emitsInOrder([StateConnecting, StateIdle]));
+      expectLater(eventController.stream, emitsError(error));
+      // Connect with a client that fails.
+      await StateConnecting.run(svo);
+    });
+  }
+
+  for (final (name, clientFactory, _) in failures.sublist(1, 4)) {
+    test('$name backs off when autoReconnect is on', () async {
+      final transitionController = StreamController<dynamic>.broadcast();
+
+      final svo = TestUtils.makeMockStateValues(
+          transitionSink: transitionController, clientFactory: clientFactory);
+
+      // The client retries.
+      expectLater(transitionController.stream,
+          emitsInOrder([StateConnecting, StateBackoff]));
+      // Connect with a client that fails.
+      await StateConnecting.run(svo);
+    });
+  }
 }

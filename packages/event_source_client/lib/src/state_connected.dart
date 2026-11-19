@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'errors.dart';
 import 'events.dart';
 import 'state_backoff.dart';
 import 'state_idle.dart';
@@ -83,19 +84,29 @@ class StateConnected {
 
       return () {
         svo.logger.info('Connection closed, will retry with backoff.');
-        StateBackoff.run(svo);
+        svo.autoReconnect
+            ? StateBackoff.run(svo)
+            : StateIdle.run(svo,
+                errorCause:
+                    const SseConnectionError('stream closed by the server'));
       };
     } on TimeoutException {
       return () {
         svo.logger.info(
             'Connection TimeoutException occurred, will retry with backoff.');
-        StateBackoff.run(svo);
+        svo.autoReconnect
+            ? StateBackoff.run(svo)
+            : StateIdle.run(svo,
+                errorCause: const SseConnectionError('read timeout'));
       };
     } catch (error) {
       return () {
         svo.logger.info(
             'Connection error occurred, will retry with backoff. Error was: $error');
-        StateBackoff.run(svo);
+        svo.autoReconnect
+            ? StateBackoff.run(svo)
+            : StateIdle.run(svo,
+                errorCause: const SseConnectionError('transport error'));
       };
     } finally {
       // An error in the loop body leaves the subscription open. Cancel it so

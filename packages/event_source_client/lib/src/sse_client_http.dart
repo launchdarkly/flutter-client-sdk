@@ -40,7 +40,8 @@ class HttpSseClient implements SSEClient {
       String? body,
       String httpMethod,
       EventSourceLogger? logger,
-      {Uri Function()? uriProvider})
+      {Uri Function()? uriProvider,
+      bool autoReconnect = true})
       : this.internal(
             uri,
             eventTypes,
@@ -53,7 +54,8 @@ class HttpSseClient implements SSEClient {
             body,
             httpMethod,
             logger,
-            uriProvider: uriProvider);
+            uriProvider: uriProvider,
+            autoReconnect: autoReconnect);
 
   /// An internal constructor for injecting necessary dependencies for testing.
   HttpSseClient.internal(
@@ -68,7 +70,8 @@ class HttpSseClient implements SSEClient {
       String? body,
       String httpMethod,
       EventSourceLogger? logger,
-      {Uri Function()? uriProvider}) {
+      {Uri Function()? uriProvider,
+      bool autoReconnect = true}) {
     _logger = logger ?? NoOpLogger();
     _messageEventsController = StreamController<Event>.broadcast(
       // this is triggered when first listener subscribes
@@ -92,7 +95,8 @@ class HttpSseClient implements SSEClient {
         httpMethod,
         _resetRequest.stream,
         logger ?? NoOpLogger(),
-        uriProvider: uriProvider));
+        uriProvider: uriProvider,
+        autoReconnect: autoReconnect));
   }
 
   /// Subscribe to this [stream] to receive events and sometimes errors.  The first
@@ -139,7 +143,8 @@ SSEClient getSSEClient(
         String? body,
         String method,
         EventSourceLogger? logger,
-        Uri Function()? uriProvider) =>
+        Uri Function()? uriProvider,
+        bool autoReconnect) =>
     HttpSseClient(uri, eventTypes, headers, connectTimeout, readTimeout, body,
         method, logger,
-        uriProvider: uriProvider);
+        uriProvider: uriProvider, autoReconnect: autoReconnect);

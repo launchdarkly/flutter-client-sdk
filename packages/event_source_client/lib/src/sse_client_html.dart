@@ -31,6 +31,7 @@ class HtmlSseClient implements SSEClient {
   final Uri _uri;
   final Uri Function()? _uriProvider;
   final Set<String> _eventTypes;
+  final bool _autoReconnect;
 
   int? _activeSince;
   Timer? _retryTimer;
@@ -42,10 +43,11 @@ class HtmlSseClient implements SSEClient {
   /// a provider is given. The fixed [uri] is used only when no provider
   /// is given.
   HtmlSseClient(Uri uri, Set<String> eventTypes, EventSourceLogger? logger,
-      {Uri Function()? uriProvider})
+      {Uri Function()? uriProvider, bool autoReconnect = true})
       : _uri = uri,
         _uriProvider = uriProvider,
-        _eventTypes = eventTypes {
+        _eventTypes = eventTypes,
+        _autoReconnect = autoReconnect {
     _logger = logger ?? NoOpLogger();
     _messageEventsController =
         StreamController<ld_message_event.Event>.broadcast(
@@ -82,6 +84,13 @@ class HtmlSseClient implements SSEClient {
   }
 
   void _handleError(web.Event event) {
+    if (!_autoReconnect) {
+      // The browser EventSource reconnects by itself unless it is closed.
+      _closeConnection();
+      _messageEventsController.sink
+          .addError(const SseConnectionError('EventSource error'));
+      return;
+    }
     // The browser event source errors are reasonably opaque, if we could
     // determine the type of condition, then this is where we would
     // determine if this was a temporary or permanent failure.
@@ -147,6 +156,8 @@ SSEClient getSSEClient(
         String? body,
         String method,
         EventSourceLogger? logger,
-        Uri Function()? uriProvider) =>
+        Uri Function()? uriProvider,
+        bool autoReconnect) =>
     // dropping unsupported configuration options
-    HtmlSseClient(uri, eventTypes, logger, uriProvider: uriProvider);
+    HtmlSseClient(uri, eventTypes, logger,
+        uriProvider: uriProvider, autoReconnect: autoReconnect);

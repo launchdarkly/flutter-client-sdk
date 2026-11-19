@@ -190,4 +190,33 @@ void main() {
     expect((res.positionalArguments[0] as http.Request).headers,
         {'test-header': 'test-value'});
   });
+
+  test('with autoReconnect off, a retryable status stops the client', () async {
+    final transitionController = StreamController<dynamic>.broadcast();
+
+    // The client goes idle instead of backing off.
+    expectLater(transitionController.stream,
+        emitsInOrder([StateIdle, StateConnecting, StateIdle]));
+
+    final sseClientUnderTest = HttpSseClient.internal(
+        Uri.parse('/path'),
+        {'put'},
+        {},
+        Duration(days: 99),
+        Duration(days: 99),
+        transitionController.sink,
+        () => TestUtils.makeMockHttpClient(httpStatusCode: 503),
+        math.Random(),
+        null,
+        'GET',
+        const NoOpLogger(),
+        autoReconnect: false);
+
+    // Subscribing connects, and the 503 is reported as recoverable.
+    await expectLater(
+        sseClientUnderTest.stream,
+        emitsError(isA<SseHttpError>()
+            .having((e) => e.recoverable, 'recoverable', true)));
+    await sseClientUnderTest.close();
+  });
 }
