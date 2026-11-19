@@ -60,11 +60,17 @@ class StateConnecting {
             'HTTP connection error occurred with status code ${response.statusCode}');
         // Report every error response with its status and headers (which
         // may carry a service directive). The recoverable flag tells the
-        // consumer whether we will retry on our own.
+        // consumer whether a retry is likely to help.
         final recoverable =
             ErrorUtils.isHttpStatusCodeRecoverable(response.statusCode);
         final error = SseHttpError(response.statusCode, response.headers,
             recoverable: recoverable);
+        if (!svo.autoReconnect) {
+          // Release the unread response body.
+          response.stream.listen(null).cancel().ignore();
+          client.close();
+          return () => StateIdle.run(svo, errorCause: error);
+        }
         if (!recoverable) {
           // Not retried: report the error and go idle until something
           // changes.
@@ -84,6 +90,13 @@ class StateConnecting {
           e.key.toLowerCase() == HttpHeaders.contentTypeHeader &&
           e.value.toLowerCase().contains(MimeTypes.textEventStream));
       if (!isEventStream) {
+        if (!svo.autoReconnect) {
+          // Release the unread response body.
+          response.stream.listen(null).cancel().ignore();
+          client.close();
+          return () => StateIdle.run(svo,
+              errorCause: const SseConnectionError('wrong content type'));
+        }
         // non event-stream content types are considered recoverable since it may be a service issue.
         return () {
           svo.logger.info(
@@ -99,6 +112,10 @@ class StateConnecting {
       // didn't connect in a timely manner, so backoff then we'll try again
 
       client.close();
+      if (!svo.autoReconnect) {
+        return () => StateIdle.run(svo,
+            errorCause: const SseConnectionError('connect timeout'));
+      }
       return () {
         svo.logger.info(
             'Connection TimeoutException occurred, will retry with backoff.');
@@ -106,6 +123,10 @@ class StateConnecting {
       };
     } catch (err) {
       client.close();
+      if (!svo.autoReconnect) {
+        return () => StateIdle.run(svo,
+            errorCause: const SseConnectionError('transport error'));
+      }
       if (!ErrorUtils.isConnectionErrorRecoverable(err)) {
         // go to idle relaying the error that caused us to go idle.
         return () => StateIdle.run(svo, errorCause: err);

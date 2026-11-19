@@ -5,6 +5,7 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:http/http.dart';
+import 'package:launchdarkly_event_source_client/src/errors.dart';
 import 'package:launchdarkly_event_source_client/src/events.dart';
 import 'package:launchdarkly_event_source_client/src/state_backoff.dart';
 import 'package:launchdarkly_event_source_client/src/state_connected.dart';
@@ -298,4 +299,65 @@ void main() {
     dataController
         .add(utf8.encode('id:2\nevent:patch\ndata:second-message\n\n'));
   });
+
+  final readFailures = [
+    (
+      'the server closing the stream',
+      const Duration(minutes: 5),
+      (StreamController<List<int>> data) => data.close()
+    ),
+    ('a read timeout', Duration.zero, (StreamController<List<int>> data) {}),
+    (
+      'a stream error',
+      const Duration(minutes: 5),
+      (StreamController<List<int>> data) => data.addError(Exception('reset'))
+    ),
+  ];
+
+  for (final (name, readTimeout, breakStream) in readFailures) {
+    test('$name goes idle and reports an error when autoReconnect is off',
+        () async {
+      final transitionController = StreamController<dynamic>.broadcast();
+      final eventController = StreamController<Event>.broadcast();
+      final dataController = StreamController<List<int>>();
+      final client = MockClient();
+
+      final svo = TestUtils.makeMockStateValues(
+          transitionSink: transitionController,
+          eventSink: eventController.sink,
+          readTimeout: readTimeout,
+          autoReconnect: false);
+
+      // The client stops and reports the failure.
+      expectLater(transitionController.stream,
+          emitsInOrder([StateConnected, StateIdle]));
+      expectLater(
+          eventController.stream,
+          emitsInOrder(
+              [isA<OpenEvent>(), emitsError(isA<SseConnectionError>())]));
+      // Break the open stream.
+      final running = StateConnected.run(svo, client, dataController.stream);
+      breakStream(dataController);
+      await running;
+      // The state releases the HTTP client.
+      verify(() => client.close()).called(1);
+    });
+
+    test('$name backs off when autoReconnect is on', () async {
+      final transitionController = StreamController<dynamic>.broadcast();
+      final dataController = StreamController<List<int>>();
+
+      final svo = TestUtils.makeMockStateValues(
+          transitionSink: transitionController, readTimeout: readTimeout);
+
+      // The client retries.
+      expectLater(transitionController.stream,
+          emitsInOrder([StateConnected, StateBackoff]));
+      // Break the open stream.
+      final running =
+          StateConnected.run(svo, MockClient(), dataController.stream);
+      breakStream(dataController);
+      await running;
+    });
+  }
 }

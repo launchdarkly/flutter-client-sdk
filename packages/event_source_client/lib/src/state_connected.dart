@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'errors.dart';
 import 'events.dart';
 import 'state_backoff.dart';
 import 'state_idle.dart';
@@ -32,7 +33,7 @@ class StateConnected {
 
     // wait for either the stream to terminate or desired connection change to transition
     final transition = await Future.any([
-      _processStream(svo, stream, stopReading.future),
+      _processStream(svo, client, stream, stopReading.future),
       _monitorConnectionNoLongerDesired(svo, client, stopReading),
       _monitorReset(svo, client, stopReading),
     ]);
@@ -44,7 +45,7 @@ class StateConnected {
   // this class if the source of connection loss was a deliberate connection close.  All
   // other errors at this point are considered recoverable.  That may not be the case
   // but the Connecting state will figure that out during the next attempt.
-  static Future<Function> _processStream(StateValues svo,
+  static Future<Function> _processStream(StateValues svo, http.Client client,
       Stream<List<int>> stream, Future<void> stopReading) async {
     var recordedActiveSince = false;
     final sseParser = StatefulSSEParser();
@@ -81,17 +82,39 @@ class StateConnected {
         }
       }
 
+      if (!svo.autoReconnect) {
+        return () {
+          client.close();
+          StateIdle.run(svo,
+              errorCause:
+                  const SseConnectionError('stream closed by the server'));
+        };
+      }
       return () {
         svo.logger.info('Connection closed, will retry with backoff.');
         StateBackoff.run(svo);
       };
     } on TimeoutException {
+      if (!svo.autoReconnect) {
+        return () {
+          client.close();
+          StateIdle.run(svo,
+              errorCause: const SseConnectionError('read timeout'));
+        };
+      }
       return () {
         svo.logger.info(
             'Connection TimeoutException occurred, will retry with backoff.');
         StateBackoff.run(svo);
       };
     } catch (error) {
+      if (!svo.autoReconnect) {
+        return () {
+          client.close();
+          StateIdle.run(svo,
+              errorCause: const SseConnectionError('transport error'));
+        };
+      }
       return () {
         svo.logger.info(
             'Connection error occurred, will retry with backoff. Error was: $error');

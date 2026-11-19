@@ -46,6 +46,9 @@ class StateValues {
   final Backoff backoff;
   final EventSourceLogger logger;
 
+  /// When false, stop after the first failure instead of reconnecting.
+  final bool autoReconnect;
+
   // Transient data
 
   /// The timestamp when the last active connection was established.
@@ -75,6 +78,7 @@ class StateValues {
       this.httpMethod,
       this.resetRequest,
       this.logger,
-      {this.uriProvider})
+      {this.uriProvider,
+      this.autoReconnect = true})
       : backoff = Backoff(random);
 }

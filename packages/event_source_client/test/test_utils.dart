@@ -31,7 +31,8 @@ class TestUtils {
       ClientFactory? clientFactory,
       math.Random? random,
       Stream<void>? resetStream,
-      EventSourceLogger? logger}) {
+      EventSourceLogger? logger,
+      bool autoReconnect = true}) {
     return StateValues(
         uri ?? Uri.parse(defaultUri),
         eventTypes ?? defaultEventTypes,
@@ -47,7 +48,8 @@ class TestUtils {
         'GET',
         resetStream ?? StreamController<void>.broadcast().stream,
         logger ?? NoOpLogger(),
-        uriProvider: uriProvider);
+        uriProvider: uriProvider,
+        autoReconnect: autoReconnect);
   }
 
   static MockClient makeMockHttpClient(
