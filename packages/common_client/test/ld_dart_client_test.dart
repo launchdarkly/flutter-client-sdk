@@ -24,7 +24,20 @@ final class TestConfig extends LDCommonConfig {
 }
 
 final class TestDataSource implements DataSource {
+  static const defaultPayload = '{"flagA":{'
+      '"version":11,'
+      '"flagVersion":1,'
+      '"value":"datasource",'
+      '"variation":0,'
+      '"reason":{"kind":"OFF"}'
+      '}}';
+
   final StreamController<DataSourceEvent> _eventController = StreamController();
+
+  /// The data of the put event that this data source sends when it starts.
+  final String payload;
+
+  TestDataSource({this.payload = defaultPayload});
 
   @override
   Stream<DataSourceEvent> get events => _eventController.stream;
@@ -35,15 +48,7 @@ final class TestDataSource implements DataSource {
   @override
   void start() {
     Timer(Duration(milliseconds: 10), () {
-      _eventController.sink.add(DataEvent(
-          'put',
-          '{"flagA":{'
-              '"version":11,'
-              '"flagVersion":1,'
-              '"value":"datasource",'
-              '"variation":0,'
-              '"reason":{"kind":"OFF"}'
-              '}}'));
+      _eventController.sink.add(DataEvent('put', payload));
     });
   }
 
@@ -465,6 +470,63 @@ void main() {
         ['flagD', 'flagB', 'flagD', 'flagC', 'flagA'],
       );
     });
+  });
+
+  group('given a flag with no value', () {
+    late LDCommonClient client;
+
+    Future<void> startWithFlag(String flagJson) async {
+      client = LDCommonClient(
+          TestConfig('the-sdk-key', AutoEnvAttributes.disabled,
+              events: EventsConfig(disabled: true)),
+          CommonPlatform(persistence: MockPersistence()),
+          LDContextBuilder().kind('user', 'bob').build(),
+          DiagnosticSdkData(name: '', version: ''), dataSourceFactories:
+              (LDCommonConfig config, LDLogger logger,
+                  HttpProperties properties) {
+        return {
+          ConnectionMode.streaming: (LDContext context) =>
+              TestDataSource(payload: '{"flagA":$flagJson}'),
+          ConnectionMode.polling: (LDContext context) =>
+              TestDataSource(payload: '{"flagA":$flagJson}'),
+        };
+      });
+      await client.start(waitForNetworkResults: true);
+    }
+
+    tearDown(() async {
+      await client.close();
+    });
+
+    for (final (name, flagJson) in [
+      (
+        'a null value',
+        '{"version":1,"value":null,"variation":null,"reason":{"kind":"OFF"}}'
+      ),
+      ('an omitted value', '{"version":1,"reason":{"kind":"OFF"}}'),
+    ]) {
+      test('jsonVariation returns the default value for $name', () async {
+        await startWithFlag(flagJson);
+        // Evaluate the flag without a type.
+        final value =
+            client.jsonVariation('flagA', LDValue.ofString('default'));
+        // The application gets its default value, not JSON null.
+        expect(value, LDValue.ofString('default'));
+      });
+
+      test(
+          'jsonVariationDetail returns the default value and the flag reason '
+          'for $name', () async {
+        await startWithFlag(flagJson);
+        // Evaluate the flag without a type, with details.
+        final detail =
+            client.jsonVariationDetail('flagA', LDValue.ofString('default'));
+        // The value is the default value, and the reason comes from the flag.
+        expect(detail.value, LDValue.ofString('default'));
+        expect(detail.variationIndex, isNull);
+        expect(detail.reason, LDEvaluationReason.off());
+      });
+    }
   });
 
   group('given configured application info', () {

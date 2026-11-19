@@ -757,7 +757,7 @@ final class LDCommonClient {
 
   /// Returns the value of flag [flagKey] for the current context as an [LDValue].
   ///
-  /// Will return the provided [defaultValue] if the flag is missing, or if some error occurs.
+  /// Will return the provided [defaultValue] if the flag is missing, has no value, or if some error occurs.
   LDValue jsonVariation(String flagKey, LDValue defaultValue) {
     return _hookRunner
         .withEvaluation(
@@ -848,6 +848,12 @@ final class LDCommonClient {
             : null,
         version: evalResult?.flag?.flagVersion ?? evalResult?.version));
 
+    // When the flag has no value, the application gets the default value.
+    // The evaluation event keeps the value of the flag.
+    if (detail.value.type == LDValueType.nullType) {
+      return LDEvaluationDetail(
+          defaultValue, detail.variationIndex, detail.reason);
+    }
     return detail;
   }
 
