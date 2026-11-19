@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [3.2.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v3.1.0...launchdarkly_event_source_client-v3.2.0) (2026-11-19)
+
+
+### Features
+
+* Add an autoReconnect option to the SSE client ([#388](https://github.com/launchdarkly/flutter-client-sdk/issues/388)) ([f91d3fe](https://github.com/launchdarkly/flutter-client-sdk/commit/f91d3fe85b53ec287a42ef4fc6f64d8968dc1730))
+
 ## [3.1.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v3.0.1...launchdarkly_event_source_client-v3.1.0) (2026-11-10)
 
 
