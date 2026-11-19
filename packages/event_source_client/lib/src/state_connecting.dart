@@ -66,6 +66,8 @@ class StateConnecting {
         final error = SseHttpError(response.statusCode, response.headers,
             recoverable: recoverable);
         if (!svo.autoReconnect) {
+          // Release the unread response body.
+          response.stream.listen(null).cancel().ignore();
           client.close();
           return () => StateIdle.run(svo, errorCause: error);
         }
@@ -89,6 +91,8 @@ class StateConnecting {
           e.value.toLowerCase().contains(MimeTypes.textEventStream));
       if (!isEventStream) {
         if (!svo.autoReconnect) {
+          // Release the unread response body.
+          response.stream.listen(null).cancel().ignore();
           client.close();
           return () => StateIdle.run(svo,
               errorCause: const SseConnectionError('wrong content type'));
