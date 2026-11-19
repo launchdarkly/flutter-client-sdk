@@ -104,6 +104,11 @@ class TestApiImpl extends SdkTestApi {
           useReport: body.configuration?.clientSide?.useReport),
       events: EventsConfig(
           eventCapacity: body.configuration?.events?.capacity?.toInt(),
+          flushInterval: switch (body.configuration?.events?.flushIntervalMs) {
+            final flushIntervalMs? =>
+              Duration(milliseconds: flushIntervalMs.toInt()),
+            null => null,
+          },
           disabled: body.configuration?.events == null,
           diagnosticOptOut:
               !(body.configuration?.events?.enableDiagnostics ?? true)),
