@@ -2,7 +2,8 @@
 
 import 'dart:async';
 
-import 'package:http/http.dart' show ClientException;
+import 'package:http/http.dart'
+    show BaseClient, BaseRequest, Client, ClientException, StreamedResponse;
 import 'package:http/testing.dart' show MockClient;
 import 'package:launchdarkly_event_source_client/launchdarkly_event_source_client.dart'
     show Event, SseConnectionError, SseHttpError;
@@ -157,4 +158,36 @@ void main() {
       await StateConnecting.run(svo);
     });
   }
+
+  for (final (name, statusCode, headers) in [
+    ('an error status', 503, TestUtils.defaultHeaders),
+    ('a wrong content type', 200, const {'content-type': 'text/html'}),
+  ]) {
+    test('$name closes the HTTP client when autoReconnect is off', () async {
+      final client = _RecordingClient(TestUtils.makeMockHttpClient(
+          httpStatusCode: statusCode, headers: headers));
+
+      final svo = TestUtils.makeMockStateValues(
+          clientFactory: () => client, autoReconnect: false);
+
+      // Connect with a client that fails.
+      await StateConnecting.run(svo);
+      // The state releases the HTTP client.
+      expect(client.closed, isTrue);
+    });
+  }
+}
+
+/// Sends requests with another client and records whether it is closed.
+class _RecordingClient extends BaseClient {
+  final Client _inner;
+  var closed = false;
+
+  _RecordingClient(this._inner);
+
+  @override
+  Future<StreamedResponse> send(BaseRequest request) => _inner.send(request);
+
+  @override
+  void close() => closed = true;
 }

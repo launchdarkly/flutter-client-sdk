@@ -320,6 +320,7 @@ void main() {
       final transitionController = StreamController<dynamic>.broadcast();
       final eventController = StreamController<Event>.broadcast();
       final dataController = StreamController<List<int>>();
+      final client = MockClient();
 
       final svo = TestUtils.makeMockStateValues(
           transitionSink: transitionController,
@@ -335,10 +336,11 @@ void main() {
           emitsInOrder(
               [isA<OpenEvent>(), emitsError(isA<SseConnectionError>())]));
       // Break the open stream.
-      final running =
-          StateConnected.run(svo, MockClient(), dataController.stream);
+      final running = StateConnected.run(svo, client, dataController.stream);
       breakStream(dataController);
       await running;
+      // The state releases the HTTP client.
+      verify(() => client.close()).called(1);
     });
 
     test('$name backs off when autoReconnect is on', () async {
