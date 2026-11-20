@@ -1,3 +1,5 @@
+import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
+
 import 'data_source_status.dart';
 import 'fdv2/payload.dart';
 
@@ -9,6 +11,14 @@ final class DataEvent implements DataSourceEvent {
   final String? environmentId;
 
   DataEvent(this.type, this.data, {this.environmentId});
+}
+
+/// A parsed FDv1 payload that replaces every flag.
+final class PutEvent implements DataSourceEvent {
+  final Map<String, LDEvaluationResult> flags;
+  final String? environmentId;
+
+  PutEvent(this.flags, {this.environmentId});
 }
 
 /// An FDv2 change set produced by the data source orchestrator. Carries

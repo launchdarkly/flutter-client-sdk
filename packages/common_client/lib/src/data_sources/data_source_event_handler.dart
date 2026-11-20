@@ -117,21 +117,37 @@ final class DataSourceEventHandler {
     }
   }
 
-  Future<MessageStatus> _processPut(
-      LDContext context, dynamic parsed, String? environmentId) async {
+  /// Replaces every flag for [context] with [flags].
+  Future<MessageStatus> handlePut(
+      LDContext context, Map<String, LDEvaluationResult> flags,
+      {String? environmentId}) async {
     try {
-      final putData = LDEvaluationResultsSerialization.fromJson(parsed).map(
-          (key, value) => MapEntry(
-              key, ItemDescriptor(version: value.version, flag: value)));
+      final putData = flags.map((key, value) =>
+          MapEntry(key, ItemDescriptor(version: value.version, flag: value)));
       await _flagManager.init(context, putData, environmentId: environmentId);
       _statusManager.setValid();
       return MessageStatus.messageHandled;
     } catch (err) {
-      _logger.error('put message contained an invalid payload: $err');
-      _statusManager.setErrorByKind(
-          ErrorKind.invalidData, 'PUT message contained invalid data');
-      return MessageStatus.invalidMessage;
+      return _rejectPut(err);
     }
+  }
+
+  Future<MessageStatus> _processPut(
+      LDContext context, dynamic parsed, String? environmentId) async {
+    final Map<String, LDEvaluationResult> flags;
+    try {
+      flags = LDEvaluationResultsSerialization.fromJson(parsed);
+    } catch (err) {
+      return _rejectPut(err);
+    }
+    return handlePut(context, flags, environmentId: environmentId);
+  }
+
+  MessageStatus _rejectPut(Object err) {
+    _logger.error('put message contained an invalid payload: $err');
+    _statusManager.setErrorByKind(
+        ErrorKind.invalidData, 'PUT message contained invalid data');
+    return MessageStatus.invalidMessage;
   }
 
   Future<MessageStatus> _processPatch(LDContext context, dynamic parsed) async {

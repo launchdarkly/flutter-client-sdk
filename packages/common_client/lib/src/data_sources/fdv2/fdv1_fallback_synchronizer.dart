@@ -5,13 +5,6 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
 
 import '../../config/data_source_config.dart';
 import '../../item_descriptor.dart';
-import '../data_source.dart'
-    show
-        DataEvent,
-        DataSourceEvent,
-        InitializedEvent,
-        PayloadEvent,
-        StatusEvent;
 import '../requestor.dart' as fdv1;
 import 'entry_factories.dart' show SynchronizerFactory, mergeServiceEndpoints;
 import 'mode_definition.dart';
@@ -82,7 +75,7 @@ HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) =>
 /// Translates an FDv1 polling result into an FDv2 source result. Results
 /// always carry `fdv1Fallback: false` (the default), so the fallback tier can
 /// never re-trigger fallback.
-FDv2SourceResult _translate(DataSourceEvent? event) {
+FDv2SourceResult _translate(fdv1.PollResult? event) {
   switch (event) {
     case null:
       // 304 Not Modified: the SDK's data is confirmed current.
@@ -90,10 +83,10 @@ FDv2SourceResult _translate(DataSourceEvent? event) {
         changeSet: ChangeSet(type: PayloadType.none, updates: {}),
         persist: false,
       );
-    case DataEvent():
+    case fdv1.PollPayload():
       try {
         final results =
-            LDEvaluationResultsSerialization.fromJson(jsonDecode(event.data));
+            LDEvaluationResultsSerialization.fromJson(jsonDecode(event.body));
         final updates = results.map((key, value) =>
             MapEntry(key, ItemDescriptor(version: value.version, flag: value)));
         // FDv1 carries no selector; every poll is a complete snapshot.
@@ -108,20 +101,13 @@ FDv2SourceResult _translate(DataSourceEvent? event) {
           message: 'Could not parse FDv1 fallback payload',
         );
       }
-    case StatusEvent():
+    case fdv1.PollError():
       return StatusResult(
-        state: event.shutdown
+        state: event.unexpected
             ? SourceState.terminalError
             : SourceState.interrupted,
         message: event.message,
         statusCode: event.statusCode?.toInt(),
-      );
-    case PayloadEvent():
-    case InitializedEvent():
-      // The FDv1 requestor only produces DataEvent / StatusEvent / null.
-      return const StatusResult(
-        state: SourceState.interrupted,
-        message: 'Unexpected event from the FDv1 fallback poller',
       );
   }
 }

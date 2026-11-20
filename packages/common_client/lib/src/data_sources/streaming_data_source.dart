@@ -154,9 +154,10 @@ final class StreamingDataSource implements DataSource {
               case null:
                 // No update, so things stay the same.
                 return;
-              case DataEvent():
-                _dataController.sink.add(res);
-              case StatusEvent():
+              case PollPayload():
+                _dataController.sink.add(DataEvent('put', res.body,
+                    environmentId: res.environmentId));
+              case PollError():
                 final message = res.kind == ErrorKind.errorResponse
                     ? 'received unexpected status code when polling in response to a ping event'
                     : 'encountered error with polling request in response to a ping event';
@@ -164,12 +165,9 @@ final class StreamingDataSource implements DataSource {
                     ? res.statusCode
                     : res.message;
                 _logger.error('$message: $argument');
-                _dataController.sink.add(res);
-              case PayloadEvent():
-              case InitializedEvent():
-                // The FDv1 requestor never produces FDv2 payload or lifecycle
-                // events.
-                break;
+                _dataController.sink.add(StatusEvent(
+                    res.kind, res.statusCode, res.message,
+                    shutdown: res.unexpected));
             }
           } else {
             _logger.debug('Received message event, data: ${event.data}');
