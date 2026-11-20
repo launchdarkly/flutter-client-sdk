@@ -90,6 +90,7 @@ final class Entity {
         usePost: usePost);
     final startWait = (configuration['startWaitTimeMs'] as num?)?.toInt() ??
         _defaultWaitTimeMillis;
+    final flushIntervalMs = (events?['flushIntervalMs'] as num?)?.toInt();
 
     final config = LDConfig(
       configuration['credential'] as String? ?? '',
@@ -122,6 +123,9 @@ final class Entity {
           useReport: clientSide['useReport'] as bool?),
       events: EventsConfig(
           eventCapacity: (events?['capacity'] as num?)?.toInt(),
+          flushInterval: flushIntervalMs == null
+              ? null
+              : Duration(milliseconds: flushIntervalMs),
           disabled: events == null,
           diagnosticOptOut: !(events?['enableDiagnostics'] as bool? ?? true)),
       allAttributesPrivate: events?['allAttributesPrivate'] as bool? ?? false,
