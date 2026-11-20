@@ -82,6 +82,8 @@ final class Entity {
     final polling = configuration['polling'] as Map<String, dynamic>?;
     final streaming = configuration['streaming'] as Map<String, dynamic>?;
     final events = configuration['events'] as Map<String, dynamic>?;
+    final serviceEndpoints =
+        configuration['serviceEndpoints'] as Map<String, dynamic>?;
     final usePost = clientSide['usePost'] as bool? ?? false;
     final mappedDataSystem = _mapDataSystem(
         configuration['dataSystem'] as Map<String, dynamic>?,
@@ -105,9 +107,12 @@ final class Entity {
       },
       persistence: PersistenceConfig(maxCachedContexts: 0),
       serviceEndpoints: ServiceEndpoints.custom(
-          polling: polling?['baseUri'] as String?,
-          streaming: streaming?['baseUri'] as String?,
-          events: events?['baseUri'] as String?),
+          polling: polling?['baseUri'] as String? ??
+              serviceEndpoints?['polling'] as String?,
+          streaming: streaming?['baseUri'] as String? ??
+              serviceEndpoints?['streaming'] as String?,
+          events: events?['baseUri'] as String? ??
+              serviceEndpoints?['events'] as String?),
       dataSourceConfig: DataSourceConfig(
           initialConnectionMode: mappedDataSystem?.initialConnectionMode ??
               (streaming != null
