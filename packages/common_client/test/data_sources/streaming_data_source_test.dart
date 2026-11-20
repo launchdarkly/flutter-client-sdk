@@ -23,6 +23,7 @@ class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 class MockSseClient implements SSEClient {
   final Stream<Event> mockStream;
+  var restartCount = 0;
 
   MockSseClient(this.mockStream);
 
@@ -30,7 +31,9 @@ class MockSseClient implements SSEClient {
   Future close() async {}
 
   @override
-  void restart() {}
+  void restart() {
+    restartCount++;
+  }
 
   @override
   Stream<Event> get stream => mockStream;
@@ -47,6 +50,7 @@ class MockSseClient implements SSEClient {
         bool withReasons = false,
         Duration? testingInterval,
         MockClient? mockHttpClient,
+        MockSseClient? sseClient,
         // Receives the arguments that the factory received.
         Function(Uri, Map<String, String>, String?, SseHttpMethod?)?
             factoryCallback}) {
@@ -58,7 +62,7 @@ class MockSseClient implements SSEClient {
   final logger = LDLogger();
   final properties = inProperties ?? HttpProperties();
 
-  final client = MockSseClient(mockStream);
+  final client = sseClient ?? MockSseClient(mockStream);
   const sdkKey = 'dummy-key';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
@@ -87,9 +91,13 @@ class MockSseClient implements SSEClient {
 
   streaming.events.asyncMap((event) async {
     switch (event) {
-      case DataEvent():
-        return eventHandler.handleMessage(context, event.type, event.data,
+      case PutEvent():
+        return eventHandler.handlePut(context, event.flags,
             environmentId: event.environmentId);
+      case PatchEvent():
+        return eventHandler.handlePatch(context, event.key, event.flag);
+      case DeleteEvent():
+        return eventHandler.handleDelete(context, event.key, event.version);
       case StatusEvent():
         if (event.statusCode != null) {
           statusManager.setErrorResponse(event.statusCode!, event.message,
@@ -98,7 +106,6 @@ class MockSseClient implements SSEClient {
           statusManager.setErrorByKind(event.kind, event.message,
               shutdown: event.shutdown);
         }
-      case PutEvent():
       case PayloadEvent():
       case InitializedEvent():
         break;
@@ -286,6 +293,30 @@ void main() {
 
     expect(thirdChange.keys, ['my-boolean-flag']);
     expect(flagManager.get('my-boolean-flag')!.flag, isNull);
+  });
+
+  test('a message that does not parse reports invalid data and restarts',
+      () async {
+    final controller = StreamController<MessageEvent>();
+    final client = MockSseClient(controller.stream);
+    final (dataSource, _, statusManager) =
+        makeDataSourceForTest(controller.stream, sseClient: client);
+
+    // Send a patch that is not JSON.
+    dataSource.start();
+    controller.sink.add(MessageEvent('patch', '#*(*@@', null));
+    // The status reports the bad data, and the connection restarts.
+    expect(
+        await statusManager.changes.first,
+        DataSourceStatus(
+            state: DataSourceState.initializing,
+            stateSince: DateTime(1),
+            lastError: DataSourceStatusErrorInfo(
+                kind: ErrorKind.invalidData,
+                statusCode: null,
+                message: 'Could not parse PATCH message',
+                time: DateTime(1))));
+    expect(client.restartCount, 1);
   });
 
   group('ping event handling', () {

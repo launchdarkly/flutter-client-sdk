@@ -1,12 +1,16 @@
+import 'dart:convert';
+
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_event_handler.dart';
-import 'package:launchdarkly_common_client/src/data_sources/data_source_status.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source_status_manager.dart';
 import 'package:launchdarkly_common_client/src/data_sources/fdv2/payload.dart';
 import 'package:launchdarkly_common_client/src/flag_manager/flag_manager.dart';
 import 'package:launchdarkly_common_client/src/item_descriptor.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
+
+Map<String, LDEvaluationResult> _flags(String json) =>
+    LDEvaluationResultsSerialization.fromJson(jsonDecode(json));
 
 void main() {
   final logger = LDLogger();
@@ -40,14 +44,14 @@ void main() {
       expectLater(flagManager!.changes,
           emits(FlagsChangedEvent(keys: ['HasBob', 'killswitch'])));
 
-      eventHandler!.handleMessage(
+      eventHandler!.handlePut(
           context,
-          'put',
-          '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
+          _flags(
+              '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
               '"trackEvents":false},'
               '"killswitch":{"version":10,"flagVersion":4,"value":true,'
               '"variation":0,"trackEvents":false}'
-              '}');
+              '}'));
 
       final bob = flagManager!.get('HasBob')!.flag!;
       expect(bob.version, 11);
@@ -71,13 +75,13 @@ void main() {
       expectLater(flagManager!.changes,
           emits(FlagsChangedEvent(keys: ['HasBob', 'killswitch'])));
 
-      eventHandler!.handleMessage(
+      eventHandler!.handlePut(
           context,
-          'put',
-          '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
+          _flags(
+              '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
               '"trackEvents":false,"reason":{"kind":"FALLTHROUGH"}},'
               '"killswitch":{"version":10,"flagVersion":4,"value":true,'
-              '"variation":0,"trackEvents":false,"reason":{"kind":"FALLTHROUGH"}}}');
+              '"variation":0,"trackEvents":false,"reason":{"kind":"FALLTHROUGH"}}}'));
 
       final bob = flagManager!.get('HasBob')!.flag!;
       expect(bob.version, 11);
@@ -101,11 +105,11 @@ void main() {
       expectLater(
           flagManager!.changes, emits(FlagsChangedEvent(keys: ['HasBob'])));
 
-      eventHandler!.handleMessage(
+      eventHandler!.handlePut(
           context,
-          'put',
-          '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
-              '"trackEvents":false}}',
+          _flags(
+              '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
+              '"trackEvents":false}}'),
           environmentId: 'test-env-123');
 
       final bob = flagManager!.get('HasBob')!.flag!;
@@ -126,11 +130,11 @@ void main() {
       expectLater(
           flagManager!.changes, emits(FlagsChangedEvent(keys: ['HasBob'])));
 
-      eventHandler!.handleMessage(
+      eventHandler!.handlePut(
           context,
-          'put',
-          '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
-              '"trackEvents":false}}');
+          _flags(
+              '{"HasBob":{"version":11,"flagVersion":5,"value":false,"variation":1,'
+              '"trackEvents":false}}'));
 
       final bob = flagManager!.get('HasBob')!.flag!;
       expect(bob.version, 11);
@@ -141,118 +145,26 @@ void main() {
       expect(flagManager!.environmentId, null);
     });
 
-    test('it can handle bad json on PUT', () {
-      expectLater(
-          statusManager!.changes,
-          emits(DataSourceStatus(
-              lastError: DataSourceStatusErrorInfo(
-                  kind: ErrorKind.invalidData,
-                  message: 'Could not parse PUT message',
-                  statusCode: null,
-                  time: DateTime(2)),
-              state: DataSourceState.initializing,
-              stateSince: DateTime(1))));
-
-      eventHandler!.handleMessage(
-          context, 'put', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
-    });
-
-    test('it can handle bad json on PATCH', () {
-      expectLater(
-          statusManager!.changes,
-          emits(DataSourceStatus(
-              lastError: DataSourceStatusErrorInfo(
-                  kind: ErrorKind.invalidData,
-                  message: 'Could not parse PATCH message',
-                  statusCode: null,
-                  time: DateTime(2)),
-              state: DataSourceState.initializing,
-              stateSince: DateTime(1))));
-
-      eventHandler!.handleMessage(
-          context, 'patch', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
-    });
-
-    test('it can handle bad json on DELETE', () {
-      expectLater(
-          statusManager!.changes,
-          emits(DataSourceStatus(
-              lastError: DataSourceStatusErrorInfo(
-                  kind: ErrorKind.invalidData,
-                  message: 'Could not parse DELETE message',
-                  statusCode: null,
-                  time: DateTime(2)),
-              state: DataSourceState.initializing,
-              stateSince: DateTime(1))));
-
-      eventHandler!.handleMessage(
-          context, 'delete', '{"HasBob":{"ve#%()#*()*{"kind":"FALLTHROUGH"}}}');
-    });
-
-    test('it can handle an invalid, but well formed on PUT, payload', () {
-      expectLater(
-          statusManager!.changes,
-          emits(DataSourceStatus(
-              lastError: DataSourceStatusErrorInfo(
-                  kind: ErrorKind.invalidData,
-                  message: 'PUT message contained invalid data',
-                  statusCode: null,
-                  time: DateTime(2)),
-              state: DataSourceState.initializing,
-              stateSince: DateTime(1))));
-
-      eventHandler!.handleMessage(context, 'put', '{"HasBob":17}');
-    });
-
-    test('it can handle an invalid, but well formed on PATCH, payload', () {
-      expectLater(
-          statusManager!.changes,
-          emits(DataSourceStatus(
-              lastError: DataSourceStatusErrorInfo(
-                  kind: ErrorKind.invalidData,
-                  message: 'PATCH message contained invalid data',
-                  statusCode: null,
-                  time: DateTime(2)),
-              state: DataSourceState.initializing,
-              stateSince: DateTime(1))));
-
-      eventHandler!.handleMessage(context, 'patch', '{"HasBob":17}');
-    });
-
-    test('it can handle an invalid, but well formed on DELETE, payload', () {
-      expectLater(
-          statusManager!.changes,
-          emits(DataSourceStatus(
-              lastError: DataSourceStatusErrorInfo(
-                  kind: ErrorKind.invalidData,
-                  message: 'DELETE message contained invalid data',
-                  statusCode: null,
-                  time: DateTime(2)),
-              state: DataSourceState.initializing,
-              stateSince: DateTime(1))));
-
-      eventHandler!.handleMessage(context, 'delete', '{"HasBob":17}');
-    });
-
     group('given a handler which has received a put', () {
       setUp(() async {
-        await eventHandler!.handleMessage(
+        await eventHandler!.handlePut(
             context,
-            'put',
-            '{"my-boolean-flag":{"version":11,"flagVersion":5,"value":false,"variation":1,'
+            _flags(
+                '{"my-boolean-flag":{"version":11,"flagVersion":5,"value":false,"variation":1,'
                 '"trackEvents":false},'
                 '"killswitch":{"version":10,"flagVersion":4,"value":true,'
                 '"variation":0,"trackEvents":false}'
-                '}');
+                '}'));
       });
 
       test('it handles a PATCH message without reasons', () async {
         expect(
-            await eventHandler!.handleMessage(
+            await eventHandler!.handlePatch(
                 context,
-                'patch',
-                '{"key": "my-boolean-flag", "version": 681, "flagVersion": 53,'
-                    ' "value": true, "variation": 1, "trackEvents": false}'),
+                'my-boolean-flag',
+                LDEvaluationResultSerialization.fromJson(jsonDecode(
+                    '{"version": 681, "flagVersion": 53,'
+                    ' "value": true, "variation": 1, "trackEvents": false}'))),
             MessageStatus.messageHandled);
 
         final updated = flagManager!.get('my-boolean-flag')!;
@@ -262,12 +174,13 @@ void main() {
 
       test('it handles a PATCH message with reasons', () async {
         expect(
-            await eventHandler!.handleMessage(
+            await eventHandler!.handlePatch(
                 context,
-                'patch',
-                '{"key":"my-boolean-flag","version":681,"flagVersion":56,'
-                    '"value":true,"variation":0,"trackEvents":false,'
-                    '"reason":{"kind":"FALLTHROUGH"}}'),
+                'my-boolean-flag',
+                LDEvaluationResultSerialization.fromJson(
+                    jsonDecode('{"version":681,"flagVersion":56,'
+                        '"value":true,"variation":0,"trackEvents":false,'
+                        '"reason":{"kind":"FALLTHROUGH"}}'))),
             MessageStatus.messageHandled);
 
         final updated = flagManager!.get('my-boolean-flag')!;
@@ -278,8 +191,7 @@ void main() {
 
       test('it handles a DELETE message', () async {
         expect(
-            await eventHandler!.handleMessage(
-                context, 'delete', '{"key":"my-boolean-flag","version":681}'),
+            await eventHandler!.handleDelete(context, 'my-boolean-flag', 681),
             MessageStatus.messageHandled);
 
         final updated = flagManager!.get('my-boolean-flag')!;

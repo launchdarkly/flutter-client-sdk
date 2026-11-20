@@ -9,6 +9,7 @@ import '../config/data_source_config.dart';
 import '../config/defaults/default_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
+import 'fdv1_payloads.dart';
 import 'get_environment_id.dart';
 import 'requestor.dart';
 import 'streaming_client.dart';
@@ -16,7 +17,7 @@ import 'streaming_client.dart';
 const String _pingEvent = 'ping';
 const String _patchEvent = 'patch';
 const String _putEvent = 'put';
-const String _delete = 'delete';
+const String _deleteEvent = 'delete';
 
 typedef MessageHandler = void Function(MessageEvent);
 typedef ErrorHandler = void Function(dynamic);
@@ -132,7 +133,7 @@ final class StreamingDataSource implements DataSource {
     _logger.debug('Establishing new streaming connection, uri: $_uri');
     final client = _clientFactory(SseClientOptions(
         uri: _uri,
-        eventTypes: const {_putEvent, _patchEvent, _delete, _pingEvent},
+        eventTypes: const {_putEvent, _patchEvent, _deleteEvent, _pingEvent},
         headers: streamingRequestHeaders(_httpProperties),
         body: _useReport ? _contextString : null,
         httpMethod: _useReport ? SseHttpMethod.report : SseHttpMethod.get,
@@ -156,7 +157,7 @@ final class StreamingDataSource implements DataSource {
                 // No update, so things stay the same.
                 return;
               case PollPayload():
-                _dataController.sink.add(DataEvent('put', res.body,
+                _emitParsed(parsePut(res.body, _logger,
                     environmentId: res.environmentId));
               case PollError():
                 final message = res.kind == ErrorKind.errorResponse
@@ -172,8 +173,15 @@ final class StreamingDataSource implements DataSource {
             }
           } else {
             _logger.debug('Received message event, data: ${event.data}');
-            _dataController.sink.add(DataEvent(event.type, event.data,
-                environmentId: _environmentId));
+            switch (event.type) {
+              case _putEvent:
+                _emitParsed(parsePut(event.data, _logger,
+                    environmentId: _environmentId));
+              case _patchEvent:
+                _emitParsed(parsePatch(event.data, _logger));
+              case _deleteEvent:
+                _emitParsed(parseDelete(event.data, _logger));
+            }
           }
         case OpenEvent():
           _logger.debug('Received connect event, data: ${event.headers}');
@@ -202,6 +210,14 @@ final class StreamingDataSource implements DataSource {
             'Encountered unrecoverable error streaming'));
         stop();
       });
+  }
+
+  /// Emits [event], and restarts the connection if the message did not parse.
+  void _emitParsed(DataSourceEvent event) {
+    _dataController.sink.add(event);
+    if (event is StatusEvent) {
+      _client?.restart();
+    }
   }
 
   @override

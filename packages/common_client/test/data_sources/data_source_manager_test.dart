@@ -22,7 +22,7 @@ final class MockDataSource implements DataSource {
   bool restartCalled = false;
 
   MockDataSource({List<DataSourceEvent>? startEvents})
-      : _startEvents = startEvents ?? [DataEvent('put', '{}')];
+      : _startEvents = startEvents ?? [PutEvent({})];
 
   @override
   Stream<DataSourceEvent> get events => controller.stream;
@@ -45,7 +45,7 @@ final class MockDataSource implements DataSource {
   void restart() {
     restartCalled = true;
     Future.delayed(Duration(milliseconds: 10))
-        .then((_) => controller.sink.add(DataEvent('put', '{}')));
+        .then((_) => controller.sink.add(PutEvent({})));
   }
 }
 
@@ -287,50 +287,6 @@ void main() {
     expect(createdDataSource!.controller.hasListener, isFalse);
     expect(createdDataSource.startCalled, isTrue);
     expect(createdDataSource.stopCalled, isTrue);
-  });
-
-  test('it restarts the data source on bad data', () async {
-    final statusManager = DataSourceStatusManager(stamper: () => DateTime(1));
-    final dataSources = <FDv2ConnectionMode, MockDataSource>{};
-    final context = LDContextBuilder().kind('user', 'bob').build();
-    final manager = makeManager(context, defaultFactories(dataSources),
-        inStatusManager: statusManager);
-    final completer = Completer<void>();
-
-    manager.identify(context, completer);
-    final createdDataSource = dataSources[const FDv2Streaming()];
-
-    expect(
-        await statusManager.changes.first,
-        DataSourceStatus(
-            state: DataSourceState.valid, stateSince: DateTime(1)));
-
-    createdDataSource!.controller.sink.add(DataEvent('patch', '#*(*@@'));
-
-    expect(
-        await statusManager.changes.first,
-        DataSourceStatus(
-            state: DataSourceState.interrupted,
-            stateSince: DateTime(1),
-            lastError: DataSourceStatusErrorInfo(
-                kind: ErrorKind.invalidData,
-                statusCode: null,
-                message: 'Could not parse PATCH message',
-                time: DateTime(1))));
-
-    expect(
-        await statusManager.changes.first,
-        DataSourceStatus(
-            state: DataSourceState.valid,
-            stateSince: DateTime(1),
-            lastError: DataSourceStatusErrorInfo(
-                kind: ErrorKind.invalidData,
-                statusCode: null,
-                message: 'Could not parse PATCH message',
-                time: DateTime(1))));
-
-    expect(createdDataSource.controller.hasListener, isTrue);
-    expect(createdDataSource.restartCalled, isTrue);
   });
 
   ChangeSet aChangeSet({Selector selector = Selector.empty}) =>

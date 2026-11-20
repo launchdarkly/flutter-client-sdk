@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import '../flag_manager/flag_manager.dart';
@@ -8,94 +6,12 @@ import 'data_source_status.dart';
 import 'data_source_status_manager.dart';
 import 'fdv2/payload.dart';
 
-enum MessageStatus { messageHandled, invalidMessage, unhandledVerb }
-
-/// Represents patch JSON from the LaunchDarkly service.
-final class _PatchData {
-  final String key;
-  final LDEvaluationResult flag;
-
-  _PatchData(this.key, this.flag);
-}
-
-/// Represents delete JSON from the LaunchDarkly service.
-final class _DeleteData {
-  final String key;
-  num version;
-
-  _DeleteData(this.key, this.version);
-}
-
-final class _PatchDataSerialization {
-  static _PatchData fromJson(dynamic json) {
-    final key = json['key'] as String;
-    final flag = LDEvaluationResultSerialization.fromJson(json);
-    return _PatchData(key, flag);
-  }
-}
-
-final class _DeleteDataSerialization {
-  static _DeleteData fromJson(dynamic json) {
-    final key = json['key'] as String;
-    final version = json['version'] as num;
-    return _DeleteData(key, version);
-  }
-}
-
-/// The put data doesn't have a representation here because it is a map of
-/// evaluation results.
+enum MessageStatus { messageHandled, invalidMessage }
 
 final class DataSourceEventHandler {
   final FlagManager _flagManager;
   final DataSourceStatusManager _statusManager;
   final LDLogger _logger;
-
-  Future<MessageStatus> handleMessage(
-      LDContext context, String type, String data,
-      {String? environmentId}) async {
-    switch (type) {
-      case 'put':
-        {
-          try {
-            final parsed = jsonDecode(data);
-            return _processPut(context, parsed, environmentId);
-          } catch (err) {
-            _logger.error('put message contained invalid json: $err');
-            _statusManager.setErrorByKind(
-                ErrorKind.invalidData, 'Could not parse PUT message');
-            return MessageStatus.invalidMessage;
-          }
-        }
-      case 'patch':
-        {
-          try {
-            final parsed = jsonDecode(data);
-            return _processPatch(context, parsed);
-          } catch (err) {
-            _logger.error('patch message contained invalid json: $err');
-            _statusManager.setErrorByKind(
-                ErrorKind.invalidData, 'Could not parse PATCH message');
-            return MessageStatus.invalidMessage;
-          }
-        }
-      case 'delete':
-        {
-          try {
-            final parsed = jsonDecode(data);
-            return _processDelete(context, parsed);
-          } catch (err) {
-            _logger.error('delete message contained invalid json: $err');
-            _statusManager.setErrorByKind(
-                ErrorKind.invalidData, 'Could not parse DELETE message');
-            return MessageStatus.invalidMessage;
-          }
-        }
-      default:
-        {
-          return MessageStatus.unhandledVerb;
-        }
-    }
-  }
 
   /// Applies an FDv2 change set to the flag store.
   ///
@@ -128,58 +44,38 @@ final class DataSourceEventHandler {
       _statusManager.setValid();
       return MessageStatus.messageHandled;
     } catch (err) {
-      return _rejectPut(err);
+      return _reject('put', err);
     }
   }
 
-  Future<MessageStatus> _processPut(
-      LDContext context, dynamic parsed, String? environmentId) async {
-    final Map<String, LDEvaluationResult> flags;
+  /// Adds or replaces the flag [key] for [context].
+  Future<MessageStatus> handlePatch(
+      LDContext context, String key, LDEvaluationResult flag) async {
     try {
-      flags = LDEvaluationResultsSerialization.fromJson(parsed);
-    } catch (err) {
-      return _rejectPut(err);
-    }
-    return handlePut(context, flags, environmentId: environmentId);
-  }
-
-  MessageStatus _rejectPut(Object err) {
-    _logger.error('put message contained an invalid payload: $err');
-    _statusManager.setErrorByKind(
-        ErrorKind.invalidData, 'PUT message contained invalid data');
-    return MessageStatus.invalidMessage;
-  }
-
-  Future<MessageStatus> _processPatch(LDContext context, dynamic parsed) async {
-    try {
-      final patchData = _PatchDataSerialization.fromJson(parsed);
       await _flagManager.upsert(
-          context,
-          patchData.key,
-          ItemDescriptor(
-              version: patchData.flag.version, flag: patchData.flag));
+          context, key, ItemDescriptor(version: flag.version, flag: flag));
       return MessageStatus.messageHandled;
     } catch (err) {
-      _logger.error('patch message contained an invalid payload: $err');
-      _statusManager.setErrorByKind(
-          ErrorKind.invalidData, 'PATCH message contained invalid data');
-      return MessageStatus.invalidMessage;
+      return _reject('patch', err);
     }
   }
 
-  Future<MessageStatus> _processDelete(
-      LDContext context, dynamic parsed) async {
+  /// Deletes the flag [key] for [context].
+  Future<MessageStatus> handleDelete(
+      LDContext context, String key, int version) async {
     try {
-      final deleteData = _DeleteDataSerialization.fromJson(parsed);
-      await _flagManager.upsert(context, deleteData.key,
-          ItemDescriptor(version: deleteData.version.toInt()));
+      await _flagManager.upsert(context, key, ItemDescriptor(version: version));
       return MessageStatus.messageHandled;
     } catch (err) {
-      _logger.error('delete message contained an invalid payload: $err');
-      _statusManager.setErrorByKind(
-          ErrorKind.invalidData, 'DELETE message contained invalid data');
-      return MessageStatus.invalidMessage;
+      return _reject('delete', err);
     }
+  }
+
+  MessageStatus _reject(String type, Object err) {
+    _logger.error('$type message contained an invalid payload: $err');
+    _statusManager.setErrorByKind(ErrorKind.invalidData,
+        '${type.toUpperCase()} message contained invalid data');
+    return MessageStatus.invalidMessage;
   }
 
   DataSourceEventHandler(

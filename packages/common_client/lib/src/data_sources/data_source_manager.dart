@@ -124,6 +124,14 @@ final class DataSourceManager {
     _identifyCompleter = null;
   }
 
+  /// Resolves the pending identify if [status] shows that the data applied.
+  MessageStatus _completeIdentifyIfHandled(MessageStatus status) {
+    if (status == MessageStatus.messageHandled) {
+      _maybeCompleteIdentify();
+    }
+    return status;
+  }
+
   DataSource? _createDataSource(FDv2ConnectionMode mode) {
     if (_activeContext != null) {
       if (_dataSourceFactories[mode] == null) {
@@ -173,22 +181,16 @@ final class DataSourceManager {
         return MessageStatus.messageHandled;
       }
       switch (event) {
-        case DataEvent():
-          var handled = await _dataSourceEventHandler.handleMessage(
-              _activeContext!, event.type, event.data,
-              environmentId: event.environmentId);
-          if (handled == MessageStatus.messageHandled) {
-            _maybeCompleteIdentify();
-          }
-          return handled;
         case PutEvent():
-          var handled = await _dataSourceEventHandler.handlePut(
-              _activeContext!, event.flags,
-              environmentId: event.environmentId);
-          if (handled == MessageStatus.messageHandled) {
-            _maybeCompleteIdentify();
-          }
-          return handled;
+          return _completeIdentifyIfHandled(await _dataSourceEventHandler
+              .handlePut(_activeContext!, event.flags,
+                  environmentId: event.environmentId));
+        case PatchEvent():
+          return _completeIdentifyIfHandled(await _dataSourceEventHandler
+              .handlePatch(_activeContext!, event.key, event.flag));
+        case DeleteEvent():
+          return _completeIdentifyIfHandled(await _dataSourceEventHandler
+              .handleDelete(_activeContext!, event.key, event.version));
         case PayloadEvent():
           var handled = await _dataSourceEventHandler.handlePayload(
               _activeContext!, event.changeSet,
