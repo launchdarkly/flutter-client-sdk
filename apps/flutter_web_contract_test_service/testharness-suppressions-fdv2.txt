@@ -41,6 +41,17 @@ tags/poll requests/{"applicationId":"___________________________________________
 tags/poll requests/{"applicationId":"________________________________________________________________","applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
 tags/poll requests/{"applicationId":"________________________________________________________________","applicationVersion":"________________________________________________________________"}
 
+# The Flutter SDK drops the configured application info when the application
+# ID is missing or invalid, even when automatic environment attributes are
+# off. The web service does not declare auto-env-attributes, so the harness
+# expects the version to be sent without an ID. The JS browser SDK sends it.
+# The poll tests above are skipped for another reason. These event post tests
+# fail because of this difference.
+tags/event posts/{"applicationId":null,"applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
+tags/event posts/{"applicationId":null,"applicationVersion":"________________________________________________________________"}
+tags/event posts/{"applicationId":"","applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
+tags/event posts/{"applicationId":"","applicationVersion":"________________________________________________________________"}
+
 # Not in the JS list. The Flutter SDK treats a null context kind as the
 # default kind "user". The existing Flutter contract test service skips this
 # test for the same reason.
