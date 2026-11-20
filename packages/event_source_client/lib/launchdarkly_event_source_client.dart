@@ -62,6 +62,57 @@ enum SseHttpMethod {
   }
 }
 
+/// The settings for an [SSEClient].
+final class SseClientOptions {
+  /// Where to connect.
+  final Uri uri;
+
+  /// The event types that the client emits.
+  final Set<String> eventTypes;
+
+  /// The HTTP headers of the connection request.
+  final Map<String, String> headers;
+
+  /// How long to try to establish the connection.
+  final Duration connectTimeout;
+
+  /// How long the connection can be silent before the client tears it down.
+  final Duration readTimeout;
+
+  /// The request body. Use it only with `REPORT` or `POST`. A `GET` with a
+  /// body is non-standard.
+  final String? body;
+
+  /// The HTTP method of the connection request.
+  final SseHttpMethod httpMethod;
+
+  /// The logger for the client. When it is null, the client uses a
+  /// [NoOpLogger].
+  final EventSourceLogger? logger;
+
+  /// A function that the client calls before every connection attempt: the
+  /// first connect and each automatic reconnect. Its result replaces [uri]
+  /// for that attempt, so query parameters can change between attempts. For
+  /// example, a state selector can advance as data arrives.
+  final Uri Function()? uriProvider;
+
+  /// Whether the client reconnects by itself after a failure. When it is
+  /// false, the client reports the first failure on its stream and stops.
+  final bool autoReconnect;
+
+  const SseClientOptions(
+      {required this.uri,
+      required this.eventTypes,
+      this.headers = const {},
+      this.connectTimeout = SSEClient.defaultConnectTimeout,
+      this.readTimeout = SSEClient.defaultReadTimeout,
+      this.body,
+      this.httpMethod = SseHttpMethod.get,
+      this.logger,
+      this.uriProvider,
+      this.autoReconnect = true});
+}
+
 /// An [SSEClient] that works to maintain a SSE connection to a server.
 ///
 /// You can receive [Events]s by listening to the [stream] object. The SSEClient
@@ -115,63 +166,30 @@ abstract class SSEClient {
   /// support.
   bool hasCapability(SSECapability capability) => false;
 
-  /// Factory constructor to return the platform implementation.
+  /// Factory constructor to return the platform implementation, configured by
+  /// [options].
   ///
-  /// On all platforms, the [uri] and [eventTypes] arguments are required.
-  /// On majority of platforms, the optional arguments are used. On web,
-  /// the [headers], [connectTimeout], [readTimeout], [body], and
-  /// [httpMethod] arguments are not used; the standard `EventSource`
-  /// does not support them.
-  ///
-  /// The [uri] specifies where to connect.  The [eventTypes] determines which
-  /// event types will be emitted.  For non-web platforms, pass in [headers] to
-  /// customize the HTTP headers of the connection request.  The [connectTimeout]
-  /// is how long to try establishing the connection and the [readTimeout] is how
-  /// long the connection can be silent before it is torn down.
-  ///
-  /// An optional [body]. It is recommended only to use the body with `REPORT`
-  /// or `POST` methods. A `GET` accompanied by a body is non-standard. On `html`
-  /// platforms the body will be ignored, as the `html` implementation uses
-  /// the standard `EventSource` which does not support a body.
-  ///
-  /// An optional [httpMethod], if not included then the `GET` method will be
-  /// used. On `html` platforms the httpMethod will be ignored, as the `html`
-  /// implementation uses the standard `EventSource` which only uses `GET`.
-  ///
-  /// An optional [logger] for controlling logging output from the SSE client.
-  /// If not provided, a [NoOpLogger] will be used.
-  ///
-  /// An optional [uriProvider]. When provided, it is invoked before every
-  /// connection attempt -- the first connect and each automatic
-  /// reconnect -- and its result is used for that attempt; [uri] is used
-  /// only when no provider is given. This allows query parameters to
-  /// vary between attempts (e.g. a state selector that advances as data
-  /// is received). Supported on all platforms.
-  ///
-  /// An optional [autoReconnect], true by default. When false, the client
-  /// reports the first failure on the [stream] and does not reconnect.
-  factory SSEClient(Uri uri, Set<String> eventTypes,
-      {Map<String, String> headers = defaultHeaders,
-      Duration connectTimeout = defaultConnectTimeout,
-      Duration readTimeout = defaultReadTimeout,
-      String? body,
-      SseHttpMethod httpMethod = SseHttpMethod.get,
-      EventSourceLogger? logger,
-      Uri Function()? uriProvider,
-      bool autoReconnect = true}) {
+  /// On web, the standard `EventSource` does not support
+  /// [SseClientOptions.headers], [SseClientOptions.connectTimeout],
+  /// [SseClientOptions.readTimeout], [SseClientOptions.body], or
+  /// [SseClientOptions.httpMethod]. The client ignores them and uses `GET`.
+  factory SSEClient(SseClientOptions options) {
     // merge headers so consumer gets reasonable defaults
-    final mergedHeaders = <String, String>{...defaultHeaders, ...headers};
+    final mergedHeaders = <String, String>{
+      ...defaultHeaders,
+      ...options.headers
+    };
     return getSSEClient(
-        uri,
-        eventTypes,
+        options.uri,
+        options.eventTypes,
         mergedHeaders,
-        connectTimeout,
-        readTimeout,
-        body,
-        httpMethod.toString(),
-        logger,
-        uriProvider,
-        autoReconnect);
+        options.connectTimeout,
+        options.readTimeout,
+        options.body,
+        options.httpMethod.toString(),
+        options.logger,
+        options.uriProvider,
+        options.autoReconnect);
   }
 
   /// Factory constructor that always returns the HTTP-based implementation,
@@ -191,32 +209,22 @@ abstract class SSEClient {
   /// stops a browser from serving a cached stream response on a reconnect.
   /// It is not CORS-safelisted, so the browser sends a preflight request,
   /// which the server must allow. The LaunchDarkly streaming service allows
-  /// it. This matches the LaunchDarkly browser SDK. Any header in [headers]
-  /// is still sent.
+  /// it. This matches the LaunchDarkly browser SDK. Any header in
+  /// [SseClientOptions.headers] is still sent.
   ///
-  /// The [headers], [connectTimeout], [readTimeout], [body], [httpMethod] and
-  /// [uriProvider] arguments are used on every platform. The other arguments
-  /// have the same meaning as in the default factory.
-  factory SSEClient.http(Uri uri, Set<String> eventTypes,
-      {Map<String, String> headers = const {},
-      Duration connectTimeout = defaultConnectTimeout,
-      Duration readTimeout = defaultReadTimeout,
-      String? body,
-      SseHttpMethod httpMethod = SseHttpMethod.get,
-      EventSourceLogger? logger,
-      Uri Function()? uriProvider,
-      bool autoReconnect = true}) {
+  /// This client uses every field of [options] on every platform.
+  factory SSEClient.http(SseClientOptions options) {
     return http_client.HttpSseClient(
-        uri,
-        eventTypes,
-        httpSseClientHeaders(headers),
-        connectTimeout,
-        readTimeout,
-        body,
-        httpMethod.toString(),
-        logger,
-        uriProvider: uriProvider,
-        autoReconnect: autoReconnect);
+        options.uri,
+        options.eventTypes,
+        httpSseClientHeaders(options.headers),
+        options.connectTimeout,
+        options.readTimeout,
+        options.body,
+        options.httpMethod.toString(),
+        options.logger,
+        uriProvider: options.uriProvider,
+        autoReconnect: options.autoReconnect);
   }
 
   /// Get an SSE client for use in unit tests.

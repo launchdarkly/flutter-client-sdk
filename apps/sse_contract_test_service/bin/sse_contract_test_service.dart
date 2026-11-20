@@ -58,9 +58,9 @@ class TestApiImpl extends TestApi {
 
     // TODO: it would be nice if we didn't have to specify all the event types, but because the web
     // event source must specify them, we are doomed to this purgatory.
-    final client = SSEClient(
-        streamUri,
-        {
+    final client = SSEClient(SseClientOptions(
+        uri: streamUri,
+        eventTypes: {
           'put',
           'patch',
           'delete',
@@ -73,7 +73,7 @@ class TestApiImpl extends TestApi {
         readTimeout: body.readTimeoutMs != null
             ? Duration(milliseconds: body.readTimeoutMs!)
             : SSEClient.defaultReadTimeout,
-        headers: headers);
+        headers: headers));
     final subscription = client.stream.listen((event) {
       switch (event) {
         case MessageEvent():

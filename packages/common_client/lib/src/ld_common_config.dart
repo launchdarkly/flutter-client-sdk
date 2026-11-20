@@ -172,7 +172,7 @@ abstract class LDCommonConfig {
   /// on web. On other platforms, the default client is already
   /// `SSEClient.http`.
   ///
-  /// The SDK treats a supplied builder as able to send a request body with
+  /// The SDK treats a supplied factory as able to send a request body with
   /// the POST and REPORT methods. Pass only a client that can. On web, the
   /// SDK recognizes `SSEClient.new` and treats it as the default client, but
   /// it cannot recognize a function that wraps the default client.
@@ -186,7 +186,7 @@ abstract class LDCommonConfig {
   /// streaming service does not include it. With `SSEClient.http`, the SDK
   /// sends the other base headers on web streaming requests, and each one
   /// must pass the CORS check of the streaming service.
-  final SseClientBuilder? eventSource;
+  final SseClientFactory? eventSource;
 
   LDCommonConfig(this.sdkCredential, this.autoEnvAttributes,
       {this.applicationInfo,

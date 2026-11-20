@@ -175,7 +175,7 @@ InitializerFactory createInitializerFactoryFromEntry(
 SynchronizerFactory createSynchronizerFactoryFromEntry(
   mode.SynchronizerEntry entry,
   SourceFactoryContext ctx, {
-  SseClientBuilder sseClientBuilder = SSEClient.new,
+  SseClientFactory sseClientFactory = SSEClient.new,
 }) {
   switch (entry) {
     case final mode.PollingSynchronizer e:
@@ -208,13 +208,14 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
                 basis: selectorGetter(),
                 additionalQueryParameters: ctx.additionalQueryParameters,
               );
-          final sseClient = sseClientBuilder(
-              uriProvider(), _fdv2StreamEventNames,
+          final sseClient = sseClientFactory(SseClientOptions(
+              uri: uriProvider(),
+              eventTypes: _fdv2StreamEventNames,
               headers: streamingRequestHeaders(ctx.httpProperties),
               body: ctx.usePost ? ctx.contextJson : null,
               httpMethod: ctx.usePost ? SseHttpMethod.post : SseHttpMethod.get,
               logger: LDLoggerToEventSourceAdapter(ctx.logger),
-              uriProvider: uriProvider);
+              uriProvider: uriProvider));
 
           // Legacy ping events trigger a one-shot poll.
           final pingPollingBase = _buildPollingBase(
@@ -251,10 +252,10 @@ List<InitializerFactory> buildInitializerFactories(
 List<SynchronizerFactory> buildSynchronizerFactories(
   List<mode.SynchronizerEntry> entries,
   SourceFactoryContext ctx, {
-  SseClientBuilder sseClientBuilder = SSEClient.new,
+  SseClientFactory sseClientFactory = SSEClient.new,
 }) {
   return entries
       .map((e) => createSynchronizerFactoryFromEntry(e, ctx,
-          sseClientBuilder: sseClientBuilder))
+          sseClientFactory: sseClientFactory))
       .toList();
 }

@@ -19,7 +19,7 @@ FDv2DataSystem makeDataSystem({
   DataSystemConfig config = const DataSystemConfig(),
   bool? streamingPostSupported,
   LDLogger? logger,
-  SseClientBuilder? eventSource,
+  SseClientFactory? eventSource,
 }) =>
     FDv2DataSystem(
       config: config,

@@ -79,13 +79,9 @@ class MockSseClient implements SSEClient {
           ? (httpProps) => ld_common.HttpClient(
               client: mockHttpClient, httpProperties: httpProps)
           : null,
-      eventSource: (uri, eventTypes,
-          {required headers,
-          required body,
-          required httpMethod,
-          required logger,
-          uriProvider}) {
-        factoryCallback?.call(uri, headers, body, httpMethod);
+      eventSource: (options) {
+        factoryCallback?.call(
+            options.uri, options.headers, options.body, options.httpMethod);
         return client;
       });
 
@@ -595,9 +591,9 @@ void main() {
     });
   });
 
-  group('client builder selection', () {
+  group('client factory selection', () {
     StreamingDataSource make(
-            {SseClientBuilder? eventSource,
+            {SseClientFactory? eventSource,
             bool useReport = false,
             LDLogger? logger}) =>
         StreamingDataSource(
