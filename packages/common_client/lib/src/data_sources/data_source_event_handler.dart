@@ -49,6 +49,19 @@ final class DataSourceEventHandler {
   final FlagManager _flagManager;
   final DataSourceStatusManager _statusManager;
   final LDLogger _logger;
+  bool _stopped = false;
+
+  /// Stops all later status updates. Work that started before the stop can
+  /// complete after it, and must not change the status.
+  void stop() {
+    _stopped = true;
+  }
+
+  void _setInvalidData(String message) {
+    if (!_stopped) {
+      _statusManager.setErrorByKind(ErrorKind.invalidData, message);
+    }
+  }
 
   Future<MessageStatus> handleMessage(
       LDContext context, String type, String data,
@@ -61,8 +74,7 @@ final class DataSourceEventHandler {
             return _processPut(context, parsed, environmentId);
           } catch (err) {
             _logger.error('put message contained invalid json: $err');
-            _statusManager.setErrorByKind(
-                ErrorKind.invalidData, 'Could not parse PUT message');
+            _setInvalidData('Could not parse PUT message');
             return MessageStatus.invalidMessage;
           }
         }
@@ -73,8 +85,7 @@ final class DataSourceEventHandler {
             return _processPatch(context, parsed);
           } catch (err) {
             _logger.error('patch message contained invalid json: $err');
-            _statusManager.setErrorByKind(
-                ErrorKind.invalidData, 'Could not parse PATCH message');
+            _setInvalidData('Could not parse PATCH message');
             return MessageStatus.invalidMessage;
           }
         }
@@ -85,8 +96,7 @@ final class DataSourceEventHandler {
             return _processDelete(context, parsed);
           } catch (err) {
             _logger.error('delete message contained invalid json: $err');
-            _statusManager.setErrorByKind(
-                ErrorKind.invalidData, 'Could not parse DELETE message');
+            _setInvalidData('Could not parse DELETE message');
             return MessageStatus.invalidMessage;
           }
         }
@@ -111,8 +121,7 @@ final class DataSourceEventHandler {
       return MessageStatus.messageHandled;
     } catch (err) {
       _logger.error('Failed to apply an FDv2 change set: ${err.runtimeType}');
-      _statusManager.setErrorByKind(
-          ErrorKind.invalidData, 'Failed to apply an FDv2 change set');
+      _setInvalidData('Failed to apply an FDv2 change set');
       return MessageStatus.invalidMessage;
     }
   }
@@ -124,12 +133,13 @@ final class DataSourceEventHandler {
           (key, value) => MapEntry(
               key, ItemDescriptor(version: value.version, flag: value)));
       await _flagManager.init(context, putData, environmentId: environmentId);
-      _statusManager.setValid();
+      if (!_stopped) {
+        _statusManager.setValid();
+      }
       return MessageStatus.messageHandled;
     } catch (err) {
       _logger.error('put message contained an invalid payload: $err');
-      _statusManager.setErrorByKind(
-          ErrorKind.invalidData, 'PUT message contained invalid data');
+      _setInvalidData('PUT message contained invalid data');
       return MessageStatus.invalidMessage;
     }
   }
@@ -145,8 +155,7 @@ final class DataSourceEventHandler {
       return MessageStatus.messageHandled;
     } catch (err) {
       _logger.error('patch message contained an invalid payload: $err');
-      _statusManager.setErrorByKind(
-          ErrorKind.invalidData, 'PATCH message contained invalid data');
+      _setInvalidData('PATCH message contained invalid data');
       return MessageStatus.invalidMessage;
     }
   }
@@ -160,8 +169,7 @@ final class DataSourceEventHandler {
       return MessageStatus.messageHandled;
     } catch (err) {
       _logger.error('delete message contained an invalid payload: $err');
-      _statusManager.setErrorByKind(
-          ErrorKind.invalidData, 'DELETE message contained invalid data');
+      _setInvalidData('DELETE message contained invalid data');
       return MessageStatus.invalidMessage;
     }
   }

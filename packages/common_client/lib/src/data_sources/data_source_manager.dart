@@ -166,6 +166,11 @@ final class DataSourceManager {
 
     _activeDataSource = _createDataSource(_activeConnectionMode);
     _subscription = _activeDataSource?.events.asyncMap((event) async {
+      // Events that arrive after a stop must not change the status or
+      // complete an identify.
+      if (_stopped) {
+        return MessageStatus.messageHandled;
+      }
       if (_activeContext == null) {
         _logger.error(
             'No active context when handling an event from a data source.'
@@ -177,6 +182,9 @@ final class DataSourceManager {
           var handled = await _dataSourceEventHandler.handleMessage(
               _activeContext!, event.type, event.data,
               environmentId: event.environmentId);
+          if (_stopped) {
+            return handled;
+          }
           if (handled == MessageStatus.messageHandled) {
             _maybeCompleteIdentify();
           }
@@ -185,6 +193,9 @@ final class DataSourceManager {
           var handled = await _dataSourceEventHandler.handlePayload(
               _activeContext!, event.changeSet,
               environmentId: event.environmentId);
+          if (_stopped) {
+            return handled;
+          }
           if (handled == MessageStatus.messageHandled) {
             // Applying any change set from a live source marks it valid --
             // including a no-change response, which restores valid after an
@@ -230,6 +241,7 @@ final class DataSourceManager {
 
   void stop() {
     _stopped = true;
+    _dataSourceEventHandler.stop();
     _stopConnection();
   }
 }
