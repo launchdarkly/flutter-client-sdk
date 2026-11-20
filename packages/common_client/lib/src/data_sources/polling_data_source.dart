@@ -88,55 +88,48 @@ final class PollingDataSource implements DataSource {
     _pollStopwatch.reset();
     _pollStopwatch.start();
 
-    final event = await _requestor.requestAllFlags();
+    final result = await _requestor.requestAllFlags();
 
     if (_stopped) {
       return;
     }
 
-    switch (event) {
+    switch (result) {
       case null:
         // No change (e.g. 304 Not Modified). Fall through to schedule
         // the next poll -- returning here would leave the timer
         // unset and silently stop polling after the first unchanged
         // response.
         _retry.recordSuccess();
-      case DataEvent():
-        final parsed = _parse(event);
+      case PollPayload():
+        final parsed = _parse(result);
         _eventController.sink.add(parsed);
         if (parsed is PutEvent) {
           _retry.recordSuccess();
         } else {
           _retry.recordFailure(unexpected: false);
         }
-      case StatusEvent():
-        // Clear the shutdown field, since we don't treat unexpected failures as terminal.
+      case PollError():
         _eventController.sink
-            .add(StatusEvent(event.kind, event.statusCode, event.message));
-        final message = event.kind == ErrorKind.errorResponse
+            .add(StatusEvent(result.kind, result.statusCode, result.message));
+        final message = result.kind == ErrorKind.errorResponse
             ? 'received unexpected status code when polling'
             : 'encountered error with polling request';
-        final argument = event.kind == ErrorKind.errorResponse
-            ? event.statusCode
-            : event.message;
+        final argument = result.kind == ErrorKind.errorResponse
+            ? result.statusCode
+            : result.message;
         _logger.error('$message: $argument, will retry');
-        // The requestor marks an unexpected status as a shutdown.
-        _retry.recordFailure(unexpected: event.shutdown);
-      case PutEvent():
-      case PayloadEvent():
-      case InitializedEvent():
-        // The FDv1 requestor never produces these events.
-        break;
+        _retry.recordFailure(unexpected: !result.recoverable);
     }
 
     _schedulePoll();
   }
 
-  /// Parses the payload of [event], or describes why it is unusable.
-  DataSourceEvent _parse(DataEvent event) {
+  /// Parses the body of [payload], or describes why it is unusable.
+  DataSourceEvent _parse(PollPayload payload) {
     final dynamic json;
     try {
-      json = jsonDecode(event.data);
+      json = jsonDecode(payload.body);
     } catch (err) {
       _logger.error('polling response contained invalid json: $err');
       return StatusEvent(
@@ -144,7 +137,7 @@ final class PollingDataSource implements DataSource {
     }
     try {
       return PutEvent(LDEvaluationResultsSerialization.fromJson(json),
-          environmentId: event.environmentId);
+          environmentId: payload.environmentId);
     } catch (err) {
       _logger.error('polling response contained an invalid payload: $err');
       return StatusEvent(

@@ -5,7 +5,6 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 
 import '../config/data_source_config.dart';
 import '../config/defaults/default_config.dart';
-import 'data_source.dart';
 import 'data_source_status.dart';
 import 'get_environment_id.dart';
 
@@ -13,6 +12,29 @@ typedef HttpClientFactory = HttpClient Function(HttpProperties httpProperties);
 
 HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
   return HttpClient(httpProperties: httpProperties);
+}
+
+sealed class PollResult {}
+
+/// A 200 response.
+final class PollPayload implements PollResult {
+  final String body;
+  final String? environmentId;
+
+  PollPayload(this.body, {this.environmentId});
+}
+
+/// A request that failed, or a response with an error status.
+final class PollError implements PollResult {
+  final ErrorKind kind;
+  final num? statusCode;
+  final String message;
+
+  /// Whether a retry is likely to help.
+  final bool recoverable;
+
+  PollError(this.kind, this.statusCode, this.message,
+      {this.recoverable = true});
 }
 
 final class Requestor {
@@ -55,7 +77,7 @@ final class Requestor {
     _uri = Uri.parse(completeUrl);
   }
 
-  Future<DataSourceEvent?> requestAllFlags() async {
+  Future<PollResult?> requestAllFlags() async {
     try {
       _logger.debug(
           'Making polling request, method: $_method, hasEtag: ${_lastEtag != null}');
@@ -74,11 +96,11 @@ final class Requestor {
       // Categorize into a fixed message and use that everywhere.
       final sanitized = _describeError(err);
       _logger.warn('Polling request failed: $sanitized');
-      return StatusEvent(ErrorKind.networkError, null, sanitized);
+      return PollError(ErrorKind.networkError, null, sanitized);
     }
   }
 
-  Future<DataSourceEvent?> _handleResponse(http.Response res) async {
+  Future<PollResult?> _handleResponse(http.Response res) async {
     if (res.statusCode == 304) {
       // Server confirmed our cached payload is still current.
       return null;
@@ -98,15 +120,11 @@ final class Requestor {
       final environmentId = getEnvironmentId(res.headers) ??
           DefaultConfig.credentialConfig.environmentIdFallback(_credential);
 
-      return DataEvent('put', res.body, environmentId: environmentId);
+      return PollPayload(res.body, environmentId: environmentId);
     }
-    if (isHttpGloballyRecoverable(res.statusCode)) {
-      return StatusEvent(ErrorKind.errorResponse, res.statusCode,
-          'Received unexpected status code: ${res.statusCode}');
-    }
-    return StatusEvent(ErrorKind.errorResponse, res.statusCode,
+    return PollError(ErrorKind.errorResponse, res.statusCode,
         'Received unexpected status code: ${res.statusCode}',
-        shutdown: true);
+        recoverable: isHttpGloballyRecoverable(res.statusCode));
   }
 
   String _describeError(Object err) {
