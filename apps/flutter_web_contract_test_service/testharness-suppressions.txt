@@ -19,6 +19,22 @@ tags/stream requests/{"applicationId":"_________________________________________
 tags/stream requests/{"applicationId":"________________________________________________________________","applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
 tags/stream requests/{"applicationId":"________________________________________________________________","applicationVersion":"________________________________________________________________"}
 
+# The Flutter SDK drops the configured application info when the application
+# ID is missing or invalid, and it does this when automatic environment
+# attributes are off. The web service does not declare auto-env-attributes,
+# so the harness expects each tag to be validated on its own and expects the
+# version to be sent without an ID. The JS browser SDK does this and passes.
+# The Flutter SDK sends no tags header for these cases.
+tags/poll requests/{"applicationId":null,"applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
+tags/poll requests/{"applicationId":null,"applicationVersion":"________________________________________________________________"}
+tags/poll requests/{"applicationId":"","applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
+tags/poll requests/{"applicationId":"","applicationVersion":"________________________________________________________________"}
+tags/event posts/{"applicationId":null,"applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
+tags/event posts/{"applicationId":null,"applicationVersion":"________________________________________________________________"}
+tags/event posts/{"applicationId":"","applicationVersion":"._-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"}
+tags/event posts/{"applicationId":"","applicationVersion":"________________________________________________________________"}
+tags/disallowed characters
+
 # Not in the JS list. The Flutter SDK treats a null context kind as the
 # default kind "user". The existing Flutter contract test service skips this
 # test for the same reason.
