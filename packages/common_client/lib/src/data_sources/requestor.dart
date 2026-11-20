@@ -30,11 +30,11 @@ final class PollError implements PollResult {
   final num? statusCode;
   final String message;
 
-  /// Whether a retry is likely to help.
-  final bool recoverable;
+  /// Whether a retry is unlikely to help soon, as after a 401.
+  final bool unexpected;
 
   PollError(this.kind, this.statusCode, this.message,
-      {this.recoverable = true});
+      {this.unexpected = false});
 }
 
 final class Requestor {
@@ -124,7 +124,7 @@ final class Requestor {
     }
     return PollError(ErrorKind.errorResponse, res.statusCode,
         'Received unexpected status code: ${res.statusCode}',
-        recoverable: isHttpGloballyRecoverable(res.statusCode));
+        unexpected: !isHttpGloballyRecoverable(res.statusCode));
   }
 
   String _describeError(Object err) {

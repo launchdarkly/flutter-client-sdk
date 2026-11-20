@@ -119,7 +119,7 @@ final class PollingDataSource implements DataSource {
             ? result.statusCode
             : result.message;
         _logger.error('$message: $argument, will retry');
-        _retry.recordFailure(unexpected: !result.recoverable);
+        _retry.recordFailure(unexpected: result.unexpected);
     }
 
     _schedulePoll();

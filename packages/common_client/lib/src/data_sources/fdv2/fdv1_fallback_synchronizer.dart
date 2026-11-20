@@ -103,9 +103,9 @@ FDv2SourceResult _translate(fdv1.PollResult? event) {
       }
     case fdv1.PollError():
       return StatusResult(
-        state: event.recoverable
-            ? SourceState.interrupted
-            : SourceState.terminalError,
+        state: event.unexpected
+            ? SourceState.terminalError
+            : SourceState.interrupted,
         message: event.message,
         statusCode: event.statusCode?.toInt(),
       );

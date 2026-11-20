@@ -167,7 +167,7 @@ final class StreamingDataSource implements DataSource {
                 _logger.error('$message: $argument');
                 _dataController.sink.add(StatusEvent(
                     res.kind, res.statusCode, res.message,
-                    shutdown: !res.recoverable));
+                    shutdown: res.unexpected));
             }
           } else {
             _logger.debug('Received message event, data: ${event.data}');
