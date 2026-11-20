@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
-import 'dart:math';
 
 import '../config/data_source_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
+import 'polling_retry_state.dart';
 import 'requestor.dart';
 
 HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
@@ -25,6 +26,8 @@ final class PollingDataSource implements DataSource {
 
   late final Duration _pollingInterval;
 
+  late final PollingRetryState _retry;
+
   late final String _contextString;
 
   bool _stopped = false;
@@ -37,9 +40,6 @@ final class PollingDataSource implements DataSource {
 
   @override
   Stream<DataSourceEvent> get events => _eventController.stream;
-
-  /// Used to track if there has been an unrecoverable error.
-  bool _permanentShutdown = false;
 
   /// The [httpClientFactory] parameter is primarily intended for testing, but it also
   /// could be used for customized clients which support functionality
@@ -60,6 +60,7 @@ final class PollingDataSource implements DataSource {
       : _logger = logger.subLogger('PollingDataSource'),
         _credential = credential {
     _pollingInterval = testingInterval ?? dataSourceConfig.pollingInterval;
+    _retry = PollingRetryState(_pollingInterval);
 
     final method =
         dataSourceConfig.useReport ? RequestMethod.report : RequestMethod.get;
@@ -99,30 +100,56 @@ final class PollingDataSource implements DataSource {
         // the next poll -- returning here would leave the timer
         // unset and silently stop polling after the first unchanged
         // response.
-        break;
+        _retry.recordSuccess();
       case DataEvent():
-        _eventController.sink.add(event);
+        final parsed = _parse(event);
+        _eventController.sink.add(parsed);
+        if (parsed is PutEvent) {
+          _retry.recordSuccess();
+        } else {
+          _retry.recordFailure(unexpected: false);
+        }
       case StatusEvent():
-        _eventController.sink.add(event);
-        final suffix = event.shutdown ? 'stopping polling' : 'will retry';
+        // Clear the shutdown field, since we don't treat unexpected failures as terminal.
+        _eventController.sink
+            .add(StatusEvent(event.kind, event.statusCode, event.message));
         final message = event.kind == ErrorKind.errorResponse
             ? 'received unexpected status code when polling'
             : 'encountered error with polling request';
         final argument = event.kind == ErrorKind.errorResponse
             ? event.statusCode
             : event.message;
-        _logger.error('$message: $argument, $suffix');
-        if (event.shutdown) {
-          _permanentShutdown = true;
-          stop();
-        }
+        _logger.error('$message: $argument, will retry');
+        // The requestor marks an unexpected status as a shutdown.
+        _retry.recordFailure(unexpected: event.shutdown);
+      case PutEvent():
       case PayloadEvent():
       case InitializedEvent():
-        // The FDv1 requestor never produces FDv2 payload or lifecycle events.
+        // The FDv1 requestor never produces these events.
         break;
     }
 
     _schedulePoll();
+  }
+
+  /// Parses the payload of [event], or describes why it is unusable.
+  DataSourceEvent _parse(DataEvent event) {
+    final dynamic json;
+    try {
+      json = jsonDecode(event.data);
+    } catch (err) {
+      _logger.error('polling response contained invalid json: $err');
+      return StatusEvent(
+          ErrorKind.invalidData, null, 'Could not parse PUT message');
+    }
+    try {
+      return PutEvent(LDEvaluationResultsSerialization.fromJson(json),
+          environmentId: event.environmentId);
+    } catch (err) {
+      _logger.error('polling response contained an invalid payload: $err');
+      return StatusEvent(
+          ErrorKind.invalidData, null, 'PUT message contained invalid data');
+    }
   }
 
   void _schedulePoll() {
@@ -131,22 +158,19 @@ final class PollingDataSource implements DataSource {
     }
     _pollStopwatch.stop();
     final timeSincePoll = _pollStopwatch.elapsed;
-    // Calculate a delay based on the polling interval and the duration elapsed
+    // Calculate a delay based on the retry delay and the duration elapsed
     // since the last poll.
 
-    // Example: If the poll took 5 seconds, and the interval is 30 seconds, then
+    // Example: If the poll took 5 seconds, and the delay is 30 seconds, then
     // we want to poll after 25 seconds.
-    final delay = Duration(
-        milliseconds: min(
-            _pollingInterval.inMilliseconds - timeSincePoll.inMilliseconds,
-            _pollingInterval.inMilliseconds));
+    final delay = _retry.nextDelay() - timeSincePoll;
 
     _pollTimer = Timer(delay, _doPoll);
   }
 
   @override
   void start() {
-    if (_permanentShutdown || _stopped) {
+    if (_stopped) {
       return;
     }
 

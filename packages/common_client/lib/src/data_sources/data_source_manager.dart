@@ -181,6 +181,14 @@ final class DataSourceManager {
             _maybeCompleteIdentify();
           }
           return handled;
+        case PutEvent():
+          var handled = await _dataSourceEventHandler.handlePut(
+              _activeContext!, event.flags,
+              environmentId: event.environmentId);
+          if (handled == MessageStatus.messageHandled) {
+            _maybeCompleteIdentify();
+          }
+          return handled;
         case PayloadEvent():
           var handled = await _dataSourceEventHandler.handlePayload(
               _activeContext!, event.changeSet,

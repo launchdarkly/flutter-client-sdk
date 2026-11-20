@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:http/testing.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/config/data_source_config.dart';
@@ -57,6 +58,9 @@ class MockLogAdapter extends Mock implements LDLogAdapter {}
     switch (event) {
       case DataEvent():
         return eventHandler.handleMessage(context, event.type, event.data);
+      case PutEvent():
+        return eventHandler.handlePut(context, event.flags,
+            environmentId: event.environmentId);
       case StatusEvent():
         if (event.statusCode != null) {
           statusManager.setErrorResponse(event.statusCode!, event.message,
@@ -95,7 +99,7 @@ void main() {
     polling.start();
   });
 
-  test('permanent failure is reported for a 404', () {
+  test('a 404 is reported without shutting down', () {
     var methodCalled = false;
     final innerClient = MockClient((request) async {
       methodCalled = true;
@@ -110,7 +114,7 @@ void main() {
     expectLater(
         statusManager.changes,
         emits(DataSourceStatus(
-            state: DataSourceState.shutdown,
+            state: DataSourceState.initializing,
             stateSince: DateTime(1),
             lastError: DataSourceStatusErrorInfo(
                 kind: ErrorKind.errorResponse,
@@ -119,6 +123,25 @@ void main() {
                 statusCode: 404))));
 
     polling.start();
+  });
+
+  test('it keeps polling after a 404', () {
+    fakeAsync((async) {
+      var requests = 0;
+      final innerClient = MockClient((request) async {
+        requests++;
+        return http.Response('{}', 404);
+      });
+
+      final (polling, _, _) = makeDataSourceForTest(innerClient);
+
+      // Start polling, and wait out the longest first backoff.
+      polling.start();
+      async.elapse(const Duration(minutes: 5));
+      polling.stop();
+      // The data source polls again.
+      expect(requests, 2);
+    });
   });
 
   test('it includes the content-type header for REPORT requests', () {
@@ -396,6 +419,33 @@ void main() {
     polling.start();
   });
 
+  test('a rejected payload does not count as a successful poll', () {
+    fakeAsync((async) {
+      var requests = 0;
+      final innerClient = MockClient((request) async {
+        requests++;
+        return switch (requests) {
+          1 => http.Response('{}', 401),
+          2 => http.Response('{}', 200),
+          _ => http.Response(')(&&*^', 200),
+        };
+      });
+
+      final (polling, _, _) = makeDataSourceForTest(innerClient);
+
+      // Fail with a 401, then poll until a valid and an invalid payload arrive.
+      polling.start();
+      for (var i = 0; i < 600 && requests < 3; i++) {
+        async.elapse(const Duration(seconds: 1));
+      }
+      // Wait longer than the poll interval.
+      async.elapse(const Duration(seconds: 31));
+      polling.stop();
+      // Only one poll succeeded, so the backoff is still in effect.
+      expect(requests, 3);
+    });
+  });
+
   test('it extracts environment ID from response headers', () async {
     final flagData = '{"testFlag":{"version":1,"value":true,"variation":0}}';
     var receivedEnvironmentId = '';
@@ -434,6 +484,10 @@ void main() {
         case DataEvent():
           receivedEnvironmentId = event.environmentId ?? '';
           return eventHandler.handleMessage(context, event.type, event.data,
+              environmentId: event.environmentId);
+        case PutEvent():
+          receivedEnvironmentId = event.environmentId ?? '';
+          return eventHandler.handlePut(context, event.flags,
               environmentId: event.environmentId);
         case StatusEvent():
           if (event.statusCode != null) {
@@ -498,6 +552,10 @@ void main() {
         case DataEvent():
           receivedEnvironmentId = event.environmentId ?? 'null-received';
           return eventHandler.handleMessage(context, event.type, event.data,
+              environmentId: event.environmentId);
+        case PutEvent():
+          receivedEnvironmentId = event.environmentId ?? 'null-received';
+          return eventHandler.handlePut(context, event.flags,
               environmentId: event.environmentId);
         case StatusEvent():
           if (event.statusCode != null) {

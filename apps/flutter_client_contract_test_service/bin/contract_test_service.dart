@@ -38,6 +38,7 @@ class TestApiImpl extends SdkTestApi {
     'hook-environment-id',
     'polling-gzip',
     'tls:verify-peer',
+    'retry-conformance-fdv1-polling',
   ];
 
   static const clientUrlPrefix = '/client/';

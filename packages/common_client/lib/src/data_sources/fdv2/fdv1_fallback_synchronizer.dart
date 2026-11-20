@@ -11,6 +11,7 @@ import '../data_source.dart'
         DataSourceEvent,
         InitializedEvent,
         PayloadEvent,
+        PutEvent,
         StatusEvent;
 import '../requestor.dart' as fdv1;
 import 'entry_factories.dart' show SynchronizerFactory, mergeServiceEndpoints;
@@ -116,6 +117,7 @@ FDv2SourceResult _translate(DataSourceEvent? event) {
         message: event.message,
         statusCode: event.statusCode?.toInt(),
       );
+    case PutEvent():
     case PayloadEvent():
     case InitializedEvent():
       // The FDv1 requestor only produces DataEvent / StatusEvent / null.
