@@ -137,6 +137,7 @@ final class StreamingDataSource implements DataSource {
         headers: streamingRequestHeaders(_httpProperties),
         body: _useReport ? _contextString : null,
         httpMethod: _useReport ? SseHttpMethod.report : SseHttpMethod.get,
+        autoReconnect: true,
         logger: LDLoggerToEventSourceAdapter(_logger)));
     _client = client;
 

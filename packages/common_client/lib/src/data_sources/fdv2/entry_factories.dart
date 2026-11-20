@@ -214,6 +214,7 @@ SynchronizerFactory createSynchronizerFactoryFromEntry(
               headers: streamingRequestHeaders(ctx.httpProperties),
               body: ctx.usePost ? ctx.contextJson : null,
               httpMethod: ctx.usePost ? SseHttpMethod.post : SseHttpMethod.get,
+              autoReconnect: true,
               logger: LDLoggerToEventSourceAdapter(ctx.logger),
               uriProvider: uriProvider));
 
