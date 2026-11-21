@@ -111,6 +111,30 @@ final class SseClientOptions {
       this.logger,
       this.uriProvider,
       this.autoReconnect = true});
+
+  /// Returns a copy of these options with the given fields replaced.
+  SseClientOptions copyWith(
+          {Uri? uri,
+          Set<String>? eventTypes,
+          Map<String, String>? headers,
+          Duration? connectTimeout,
+          Duration? readTimeout,
+          String? body,
+          SseHttpMethod? httpMethod,
+          EventSourceLogger? logger,
+          Uri Function()? uriProvider,
+          bool? autoReconnect}) =>
+      SseClientOptions(
+          uri: uri ?? this.uri,
+          eventTypes: eventTypes ?? this.eventTypes,
+          headers: headers ?? this.headers,
+          connectTimeout: connectTimeout ?? this.connectTimeout,
+          readTimeout: readTimeout ?? this.readTimeout,
+          body: body ?? this.body,
+          httpMethod: httpMethod ?? this.httpMethod,
+          logger: logger ?? this.logger,
+          uriProvider: uriProvider ?? this.uriProvider,
+          autoReconnect: autoReconnect ?? this.autoReconnect);
 }
 
 /// An [SSEClient] that works to maintain a SSE connection to a server.
