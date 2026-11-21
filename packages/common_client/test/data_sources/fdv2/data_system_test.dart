@@ -104,11 +104,11 @@ void main() {
   });
 
   group('eventSource', () {
-    test('uses the default SSE client without a supplied builder', () {
+    test('uses the default SSE client without a supplied factory', () {
       expect(makeDataSystem().eventSource, same(SSEClient.new));
     });
 
-    test('uses the supplied SSE client builder', () {
+    test('uses the supplied SSE client factory', () {
       expect(makeDataSystem(eventSource: SSEClient.http).eventSource,
           same(SSEClient.http));
     });

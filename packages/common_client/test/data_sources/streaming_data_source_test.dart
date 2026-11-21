@@ -47,7 +47,7 @@ class MockSseClient implements SSEClient {
         bool withReasons = false,
         Duration? testingInterval,
         MockClient? mockHttpClient,
-        // Receives the arguments that the builder received.
+        // Receives the arguments that the factory received.
         Function(Uri, Map<String, String>, String?, SseHttpMethod?)?
             factoryCallback}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
@@ -614,11 +614,11 @@ void main() {
           logTag: ''));
     });
 
-    test('it uses the default SSE client without a supplied builder', () {
+    test('it uses the default SSE client without a supplied factory', () {
       expect(make().eventSource, same(SSEClient.new));
     });
 
-    test('it uses the supplied SSE client builder', () {
+    test('it uses the supplied SSE client factory', () {
       expect(
           make(eventSource: SSEClient.http).eventSource, same(SSEClient.http));
     });

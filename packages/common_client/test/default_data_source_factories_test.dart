@@ -29,7 +29,7 @@ void main() {
       expect(source.eventSource, same(SSEClient.new));
     });
 
-    test('the streaming source uses the supplied SSE client builder', () {
+    test('the streaming source uses the supplied SSE client factory', () {
       final source = streamingSourceFor(TestConfig(
           'key', AutoEnvAttributes.disabled,
           eventSource: SSEClient.http));

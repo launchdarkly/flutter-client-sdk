@@ -99,7 +99,7 @@ void main() {
           streamingCustomMethodSupported(eventSource: SSEClient.new), isFalse);
     });
 
-    test('is true with a supplied builder', () {
+    test('is true with a supplied factory', () {
       expect(
           streamingCustomMethodSupported(eventSource: SSEClient.http), isTrue);
     });
@@ -177,7 +177,7 @@ void main() {
   });
 
   group('FDv1 with useReport', () {
-    // The recording builder stands in for the default client when
+    // The recording factory stands in for the default client when
     // [streamingReportSupported] is false, and for a supplied client when it
     // is null.
     StreamingDataSource makeDataSource(List<_Call> calls,
