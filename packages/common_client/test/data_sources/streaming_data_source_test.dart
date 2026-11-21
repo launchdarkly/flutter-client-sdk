@@ -47,7 +47,7 @@ class MockSseClient implements SSEClient {
         bool withReasons = false,
         Duration? testingInterval,
         MockClient? mockHttpClient,
-        // Receives the arguments that the builder received.
+        // Receives the arguments that the factory received.
         Function(Uri, Map<String, String>, String?, SseHttpMethod?)?
             factoryCallback}) {
   final context = inContext ?? LDContextBuilder().kind('user', 'test').build();
@@ -79,13 +79,9 @@ class MockSseClient implements SSEClient {
           ? (httpProps) => ld_common.HttpClient(
               client: mockHttpClient, httpProperties: httpProps)
           : null,
-      eventSource: (uri, eventTypes,
-          {required headers,
-          required body,
-          required httpMethod,
-          required logger,
-          uriProvider}) {
-        factoryCallback?.call(uri, headers, body, httpMethod);
+      eventSource: (options) {
+        factoryCallback?.call(
+            options.uri, options.headers, options.body, options.httpMethod);
         return client;
       });
 
@@ -595,9 +591,9 @@ void main() {
     });
   });
 
-  group('client builder selection', () {
+  group('client factory selection', () {
     StreamingDataSource make(
-            {SseClientBuilder? eventSource,
+            {SseClientFactory? eventSource,
             bool useReport = false,
             LDLogger? logger}) =>
         StreamingDataSource(
@@ -618,11 +614,11 @@ void main() {
           logTag: ''));
     });
 
-    test('it uses the default SSE client without a supplied builder', () {
+    test('it uses the default SSE client without a supplied factory', () {
       expect(make().eventSource, same(SSEClient.new));
     });
 
-    test('it uses the supplied SSE client builder', () {
+    test('it uses the supplied SSE client factory', () {
       expect(
           make(eventSource: SSEClient.http).eventSource, same(SSEClient.http));
     });

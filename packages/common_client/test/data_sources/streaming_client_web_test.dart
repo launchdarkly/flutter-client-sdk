@@ -47,15 +47,15 @@ typedef _Call = ({
   SseHttpMethod method
 });
 
-/// A builder that records its arguments and returns a test client.
-SseClientBuilder _recording(List<_Call> calls) => (uri, eventTypes,
-        {required headers,
-        required body,
-        required httpMethod,
-        required logger,
-        uriProvider}) {
-      calls.add((uri: uri, headers: headers, body: body, method: httpMethod));
-      return SSEClient.testClient(uri, eventTypes);
+/// A factory that records its options and returns a test client.
+SseClientFactory _recording(List<_Call> calls) => (options) {
+      calls.add((
+        uri: options.uri,
+        headers: options.headers,
+        body: options.body,
+        method: options.httpMethod
+      ));
+      return SSEClient.testClient(options.uri, options.eventTypes);
     };
 
 void main() {
@@ -99,14 +99,14 @@ void main() {
           streamingCustomMethodSupported(eventSource: SSEClient.new), isFalse);
     });
 
-    test('is true with a supplied builder', () {
+    test('is true with a supplied factory', () {
       expect(
           streamingCustomMethodSupported(eventSource: SSEClient.http), isTrue);
     });
   });
 
   group('FDv2 with usePost', () {
-    FDv2DataSystem makeDataSystem({SseClientBuilder? eventSource}) =>
+    FDv2DataSystem makeDataSystem({SseClientFactory? eventSource}) =>
         FDv2DataSystem(
           config: const DataSystemConfig(usePost: true),
           credential: 'the-credential',
@@ -166,7 +166,7 @@ void main() {
       );
 
       createSynchronizerFactoryFromEntry(StreamingSynchronizer(), ctx,
-              sseClientBuilder: _recording(calls))
+              sseClientFactory: _recording(calls))
           .create(() => Selector.empty)
           .close();
 
@@ -177,7 +177,7 @@ void main() {
   });
 
   group('FDv1 with useReport', () {
-    // The recording builder stands in for the default client when
+    // The recording factory stands in for the default client when
     // [streamingReportSupported] is false, and for a supplied client when it
     // is null.
     StreamingDataSource makeDataSource(List<_Call> calls,
@@ -286,13 +286,7 @@ void main() {
           dataSourceConfig: StreamingDataSourceConfig(),
           pollingDataSourceConfig: PollingDataSourceConfig(),
           httpProperties: HttpProperties(),
-          eventSource: (uri, eventTypes,
-                  {required headers,
-                  required body,
-                  required httpMethod,
-                  required logger,
-                  uriProvider}) =>
-              _ScriptedClient(events.stream));
+          eventSource: (options) => _ScriptedClient(events.stream));
       final firstData =
           dataSource.events.firstWhere((event) => event is DataEvent);
 

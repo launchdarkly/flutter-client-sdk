@@ -152,16 +152,11 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         ctx,
-        sseClientBuilder: (uri, eventTypes,
-            {required headers,
-            required body,
-            required httpMethod,
-            required logger,
-            uriProvider}) {
-          if (uriProvider case final provider?) {
+        sseClientFactory: (options) {
+          if (options.uriProvider case final provider?) {
             capturedUriProvider = provider;
           }
-          return SSEClient.testClient(uri, const {});
+          return SSEClient.testClient(options.uri, const {});
         },
       );
       final sync = factory.create(() => selector);
@@ -204,16 +199,11 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         ctx,
-        sseClientBuilder: (uri, eventTypes,
-            {required headers,
-            required body,
-            required httpMethod,
-            required logger,
-            uriProvider}) {
-          if (uriProvider case final provider?) {
+        sseClientFactory: (options) {
+          if (options.uriProvider case final provider?) {
             capturedUriProvider = provider;
           }
-          return SSEClient.testClient(uri, const {});
+          return SSEClient.testClient(options.uri, const {});
         },
       );
       final sync = factory.create(() => selector);
@@ -350,18 +340,13 @@ void main() {
       final factory = createSynchronizerFactoryFromEntry(
         StreamingSynchronizer(),
         factoryContext(usePost: usePost),
-        sseClientBuilder: (uri, eventTypes,
-            {required headers,
-            required body,
-            required httpMethod,
-            required logger,
-            uriProvider}) {
-          capturedMethod = httpMethod;
-          capturedBody = body;
-          if (uriProvider case final provider?) {
+        sseClientFactory: (options) {
+          capturedMethod = options.httpMethod;
+          capturedBody = options.body;
+          if (options.uriProvider case final provider?) {
             capturedUriProvider = provider;
           }
-          return SSEClient.testClient(uri, const {});
+          return SSEClient.testClient(options.uri, const {});
         },
       );
       factory.create(_selectorGetter).close();
