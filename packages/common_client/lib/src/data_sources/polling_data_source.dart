@@ -7,7 +7,7 @@ import '../config/data_source_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
 import 'fdv1_payloads.dart';
-import 'polling_retry_state.dart';
+import 'retry_state.dart';
 import 'requestor.dart';
 
 HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {

@@ -12,6 +12,7 @@ import 'data_source_status.dart';
 import 'fdv1_payloads.dart';
 import 'get_environment_id.dart';
 import 'requestor.dart';
+import 'retry_state.dart';
 import 'streaming_client.dart';
 
 const String _pingEvent = 'ping';
@@ -32,6 +33,8 @@ final class StreamingDataSource implements DataSource {
 
   final SseClientFactory _clientFactory;
 
+  final StreamingRetryState _retry;
+
   late final Uri _uri;
 
   late final HttpProperties _httpProperties;
@@ -40,6 +43,8 @@ final class StreamingDataSource implements DataSource {
   bool _stopped = false;
 
   StreamSubscription<Event>? _subscription;
+
+  Timer? _reconnectTimer;
 
   final StreamController<DataSourceEvent> _dataController = StreamController();
 
@@ -56,9 +61,6 @@ final class StreamingDataSource implements DataSource {
   @override
   Stream<DataSourceEvent> get events => _dataController.stream;
 
-  /// Used to track if there has been an unrecoverable error.
-  bool _permanentShutdown = false;
-
   /// The factory that [start] uses for the SSE client.
   @visibleForTesting
   SseClientFactory get eventSource => _clientFactory;
@@ -67,7 +69,8 @@ final class StreamingDataSource implements DataSource {
   /// uses the default client for the platform. Tests inject a fake client.
   /// The [streamingReportSupported] parameter overrides whether the client
   /// can send REPORT. Tests set it. The [httpClientFactory] parameter is for
-  /// tests of the requestor that serves ping events.
+  /// tests of the requestor that serves ping events. The [now] parameter
+  /// supplies the current time. Tests set it.
   StreamingDataSource(
       {required String credential,
       required LDContext context,
@@ -78,10 +81,12 @@ final class StreamingDataSource implements DataSource {
       required HttpProperties httpProperties,
       SseClientFactory? eventSource,
       bool? streamingReportSupported,
-      HttpClientFactory? httpClientFactory})
+      HttpClientFactory? httpClientFactory,
+      DateTime Function()? now})
       : _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
         _clientFactory = eventSource ?? SSEClient.new,
+        _retry = StreamingRetryState(now: now),
         _httpProperties = httpProperties,
         _credential = credential {
     final plainContextString =
@@ -126,10 +131,14 @@ final class StreamingDataSource implements DataSource {
 
   @override
   void start() {
-    if (_subscription != null || _permanentShutdown || _stopped) {
+    if (_subscription != null || _stopped) {
       return;
     }
     _stopped = false;
+    _connect();
+  }
+
+  void _connect() {
     _logger.debug('Establishing new streaming connection, uri: $_uri');
     final client = _clientFactory(SseClientOptions(
         uri: _uri,
@@ -137,7 +146,7 @@ final class StreamingDataSource implements DataSource {
         headers: streamingRequestHeaders(_httpProperties),
         body: _useReport ? _contextString : null,
         httpMethod: _useReport ? SseHttpMethod.report : SseHttpMethod.get,
-        autoReconnect: true,
+        autoReconnect: false,
         logger: LDLoggerToEventSourceAdapter(_logger)));
     _client = client;
 
@@ -148,6 +157,7 @@ final class StreamingDataSource implements DataSource {
 
       switch (event) {
         case MessageEvent():
+          _retry.recordMessage();
           if (event.type == _pingEvent) {
             final res = await _requestor.requestAllFlags();
             if (_stopped) {
@@ -168,9 +178,8 @@ final class StreamingDataSource implements DataSource {
                     ? res.statusCode
                     : res.message;
                 _logger.error('$message: $argument');
-                _dataController.sink.add(StatusEvent(
-                    res.kind, res.statusCode, res.message,
-                    shutdown: res.unexpected));
+                _dataController.sink
+                    .add(StatusEvent(res.kind, res.statusCode, res.message));
             }
           } else {
             _logger.debug('Received message event, data: ${event.data}');
@@ -192,42 +201,54 @@ final class StreamingDataSource implements DataSource {
               DefaultConfig.credentialConfig.environmentIdFallback(_credential);
       }
     })
-      ..onError((err) {
-        if (_permanentShutdown) {
-          return;
-        }
-        // The SSE client retries recoverable responses on its own (and
-        // logs them), so this source is not shutting down -- let the retry
-        // run.
-        if (err is SseHttpError && err.recoverable) {
-          return;
-        }
-        _permanentShutdown = true;
-        _logger.error(
-            'Encountered an unrecoverable error: "$err", Shutting down.');
-        // The event must be added before calling stop, because stop closes
-        // the controller and adding an event after that throws a StateError.
-        _dataController.sink.add(StatusEvent(ErrorKind.unknown, null,
-            'Encountered unrecoverable error streaming'));
-        stop();
-      });
+      ..onError(_handleError);
   }
 
-  /// Emits [event], and restarts the connection if the message did not parse.
+  /// Reports a failed connection, and connects again after the retry delay.
+  void _handleError(Object err) {
+    final status = switch (err) {
+      SseHttpError(:final statusCode) => StatusEvent(ErrorKind.errorResponse,
+          statusCode, 'Received unexpected status code: $statusCode'),
+      SseConnectionError(:final message) =>
+        StatusEvent(ErrorKind.networkError, null, message),
+      _ => StatusEvent(
+          ErrorKind.networkError, null, 'Streaming connection failed'),
+    };
+    _logger.error('${status.message}, will retry');
+    _dataController.sink.add(status);
+    _reconnect(unexpected: err is SseHttpError && !err.recoverable);
+  }
+
+  /// Emits [event], and reconnects if the message did not parse.
   void _emitParsed(DataSourceEvent event) {
     _dataController.sink.add(event);
     if (event is StatusEvent) {
-      _client?.restart();
+      _reconnect(unexpected: false);
     }
+  }
+
+  /// Records a failure, closes the connection, and connects again later.
+  void _reconnect({required bool unexpected}) {
+    if (_stopped) {
+      return;
+    }
+    _retry.recordFailure(unexpected: unexpected);
+    _subscription?.cancel();
+    _subscription = null;
+    _client?.close();
+    _client = null;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(_retry.nextDelay(), _connect);
   }
 
   @override
   void restart() {
-    _client?.restart();
+    _reconnect(unexpected: false);
   }
 
   @override
   void stop() {
+    _reconnectTimer?.cancel();
     // Cancel is async, but it should only be for the cleanup portion, according
     // to the method documentation.
     _subscription?.cancel();

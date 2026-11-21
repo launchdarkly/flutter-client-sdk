@@ -40,6 +40,7 @@ class TestApiImpl extends SdkTestApi {
     'diagnostic-events',
     'tls:verify-peer',
     'retry-conformance-fdv1-polling',
+    'retry-conformance-fdv1-streaming',
   ];
 
   static const clientUrlPrefix = '/client/';

@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:http/testing.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/config/data_source_config.dart';
@@ -23,17 +24,18 @@ class MockLogAdapter extends Mock implements LDLogAdapter {}
 
 class MockSseClient implements SSEClient {
   final Stream<Event> mockStream;
-  var restartCount = 0;
+  final bool autoReconnect;
+  var closed = false;
 
-  MockSseClient(this.mockStream);
-
-  @override
-  Future close() async {}
+  MockSseClient(this.mockStream, {this.autoReconnect = true});
 
   @override
-  void restart() {
-    restartCount++;
+  Future close() async {
+    closed = true;
   }
+
+  @override
+  void restart() {}
 
   @override
   Stream<Event> get stream => mockStream;
@@ -50,7 +52,8 @@ class MockSseClient implements SSEClient {
         bool withReasons = false,
         Duration? testingInterval,
         MockClient? mockHttpClient,
-        MockSseClient? sseClient,
+        SseClientFactory? eventSource,
+        DateTime Function()? now,
         // Receives the arguments that the factory received.
         Function(Uri, Map<String, String>, String?, SseHttpMethod?)?
             factoryCallback}) {
@@ -62,7 +65,7 @@ class MockSseClient implements SSEClient {
   final logger = LDLogger();
   final properties = inProperties ?? HttpProperties();
 
-  final client = sseClient ?? MockSseClient(mockStream);
+  final client = MockSseClient(mockStream);
   const sdkKey = 'dummy-key';
   final flagManager =
       FlagManager(sdkKey: sdkKey, logger: logger, maxCachedContexts: 5);
@@ -74,6 +77,7 @@ class MockSseClient implements SSEClient {
       context: context,
       endpoints: ServiceEndpoints(),
       logger: logger,
+      now: now,
       dataSourceConfig: StreamingDataSourceConfig(
           withReasons: withReasons, useReport: useReport),
       pollingDataSourceConfig: PollingDataSourceConfig(
@@ -83,11 +87,12 @@ class MockSseClient implements SSEClient {
           ? (httpProps) => ld_common.HttpClient(
               client: mockHttpClient, httpProperties: httpProps)
           : null,
-      eventSource: (options) {
-        factoryCallback?.call(
-            options.uri, options.headers, options.body, options.httpMethod);
-        return client;
-      });
+      eventSource: eventSource ??
+          (options) {
+            factoryCallback?.call(
+                options.uri, options.headers, options.body, options.httpMethod);
+            return client;
+          });
 
   streaming.events.asyncMap((event) async {
     switch (event) {
@@ -293,30 +298,6 @@ void main() {
 
     expect(thirdChange.keys, ['my-boolean-flag']);
     expect(flagManager.get('my-boolean-flag')!.flag, isNull);
-  });
-
-  test('a message that does not parse reports invalid data and restarts',
-      () async {
-    final controller = StreamController<MessageEvent>();
-    final client = MockSseClient(controller.stream);
-    final (dataSource, _, statusManager) =
-        makeDataSourceForTest(controller.stream, sseClient: client);
-
-    // Send a patch that is not JSON.
-    dataSource.start();
-    controller.sink.add(MessageEvent('patch', '#*(*@@', null));
-    // The status reports the bad data, and the connection restarts.
-    expect(
-        await statusManager.changes.first,
-        DataSourceStatus(
-            state: DataSourceState.initializing,
-            stateSince: DateTime(1),
-            lastError: DataSourceStatusErrorInfo(
-                kind: ErrorKind.invalidData,
-                statusCode: null,
-                message: 'Could not parse PATCH message',
-                time: DateTime(1))));
-    expect(client.restartCount, 1);
   });
 
   group('ping event handling', () {
@@ -555,25 +536,163 @@ void main() {
     });
   });
 
-  group('stream error handling', () {
-    test(
-        'it emits a status event without throwing when the stream reports an '
-        'unrecoverable error', () async {
-      final controller = StreamController<Event>();
-      final (dataSource, _, statusManager) =
-          makeDataSourceForTest(controller.stream);
+  group('failures and retries', () {
+    // The stream and client of each connection, in order.
+    late List<StreamController<Event>> streams;
+    late List<MockSseClient> clients;
 
-      final statusChange = expectLater(
-          statusManager.changes,
-          emits(predicate<DataSourceStatus>((status) =>
-              status.lastError?.kind == ErrorKind.unknown &&
-              status.lastError?.message ==
-                  'Encountered unrecoverable error streaming')));
+    (StreamingDataSource, DataSourceStatusManager) make(
+        {MockClient? mockHttpClient, DateTime Function()? now}) {
+      streams = [];
+      clients = [];
+      final (dataSource, _, statusManager) = makeDataSourceForTest(
+          const Stream.empty(),
+          mockHttpClient: mockHttpClient,
+          now: now, eventSource: (options) {
+        final stream = StreamController<Event>();
+        final client =
+            MockSseClient(stream.stream, autoReconnect: options.autoReconnect);
+        streams.add(stream);
+        clients.add(client);
+        return client;
+      });
+      return (dataSource, statusManager);
+    }
 
-      dataSource.start();
-      controller.sink.addError(Exception('Unable to make request'));
+    test('an error from a custom client is reported without a shutdown', () {
+      fakeAsync((async) {
+        final (dataSource, statusManager) = make();
 
-      await statusChange;
+        // Fail the connection with an error that the SSE client does not make.
+        dataSource.start();
+        streams.single.addError(Exception('Unable to make request'));
+        async.flushMicrotasks();
+        // The status reports a network error with a fixed message.
+        expect(statusManager.status.state, DataSourceState.initializing);
+        expect(statusManager.status.lastError?.kind, ErrorKind.networkError);
+        expect(statusManager.status.lastError?.message,
+            'Streaming connection failed');
+      });
+    });
+
+    test('a transport failure reconnects after the normal backoff', () {
+      fakeAsync((async) {
+        final (dataSource, statusManager) = make();
+
+        dataSource.start();
+        // Fail the connection.
+        streams.single.addError(const SseConnectionError('transport error'));
+        // Look just before the shortest wait ends.
+        async.elapse(const Duration(milliseconds: 499));
+        final connectionsAtShortest = clients.length;
+        // Look when the longest wait ends.
+        async.elapse(const Duration(milliseconds: 501));
+        // The failure is reported, and one new client replaces the old one.
+        expect(statusManager.status.lastError?.kind, ErrorKind.networkError);
+        expect(connectionsAtShortest, 1);
+        expect(clients.length, 2);
+        expect(clients.first.closed, isTrue);
+        expect(clients.map((client) => client.autoReconnect).toList(),
+            [false, false]);
+      });
+    });
+
+    test('a 401 reconnects after the extended backoff without a shutdown', () {
+      fakeAsync((async) {
+        final (dataSource, statusManager) = make();
+
+        dataSource.start();
+        // Reject the connection with a 401.
+        streams.single
+            .addError(const SseHttpError(401, {}, recoverable: false));
+        // Look just before the shortest wait ends.
+        async.elapse(const Duration(minutes: 2, seconds: 29));
+        final connectionsAtShortest = clients.length;
+        // Look when the longest wait ends.
+        async.elapse(const Duration(minutes: 2, seconds: 31));
+        // The 401 is reported without a shutdown, and one new client connects.
+        expect(statusManager.status.state, DataSourceState.initializing);
+        expect(statusManager.status.lastError?.statusCode, 401);
+        expect(connectionsAtShortest, 1);
+        expect(clients.length, 2);
+      });
+    });
+
+    test('a message that does not parse reconnects after the normal backoff',
+        () {
+      fakeAsync((async) {
+        final (dataSource, statusManager) = make();
+
+        dataSource.start();
+        // Send a patch that is not JSON.
+        streams.single.add(MessageEvent('patch', '#*(*@@', null));
+        // Wait until the longest normal wait ends.
+        async.elapse(const Duration(seconds: 1));
+        // The bad data is reported, and one new client replaces the old one.
+        expect(statusManager.status.lastError?.message,
+            'Could not parse PATCH message');
+        expect(clients.length, 2);
+        expect(clients.first.closed, isTrue);
+      });
+    });
+
+    test('a 401 from the poll after a ping is reported without a shutdown', () {
+      fakeAsync((async) {
+        final (dataSource, statusManager) = make(
+            mockHttpClient:
+                MockClient((request) async => http.Response('', 401)));
+
+        // Send a ping, which polls and gets a 401.
+        dataSource.start();
+        streams.single.add(MessageEvent('ping', '', null));
+        async.flushMicrotasks();
+        // The 401 is reported without a shutdown.
+        expect(statusManager.status.state, DataSourceState.initializing);
+        expect(statusManager.status.lastError?.statusCode, 401);
+      });
+    });
+
+    test('stop cancels a pending reconnect', () {
+      fakeAsync((async) {
+        final (dataSource, _) = make();
+
+        dataSource.start();
+        // Fail the connection, which schedules a reconnect.
+        streams.single.addError(const SseConnectionError('transport error'));
+        async.flushMicrotasks();
+        // Stop the data source.
+        dataSource.stop();
+        // Wait until the longest normal wait ends.
+        async.elapse(const Duration(seconds: 1));
+        // No new client connects.
+        expect(clients.length, 1);
+      });
+    });
+
+    test('the backoff resets after 60 seconds of healthy streaming', () {
+      fakeAsync((async) {
+        final (dataSource, _) = make(
+            mockHttpClient:
+                MockClient((request) async => http.Response('', 304)),
+            now: () => DateTime(1).add(async.elapsed));
+
+        dataSource.start();
+        // Reject the first connection with a 401.
+        streams.single
+            .addError(const SseHttpError(401, {}, recoverable: false));
+        // Wait until the second connection opens.
+        async.elapse(const Duration(minutes: 5));
+        // Send a ping, which starts the healthy period.
+        streams.last.add(MessageEvent('ping', '', null));
+        // Stay healthy for 60 seconds.
+        async.elapse(const Duration(seconds: 60));
+        // Fail the second connection.
+        streams.last.addError(const SseConnectionError('transport error'));
+        // Wait until the longest normal wait ends.
+        async.elapse(const Duration(seconds: 1));
+        // The failure waits only the normal backoff.
+        expect(clients.length, 3);
+      });
     });
   });
 
