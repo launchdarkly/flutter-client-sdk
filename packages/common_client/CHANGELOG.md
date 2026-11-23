@@ -2,6 +2,20 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.17.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.16.3...launchdarkly_common_client-v1.17.0) (2026-11-23)
+
+
+### Features
+
+* Replace SseClientBuilder with SseClientFactory and SseClientOptions ([86e7954](https://github.com/launchdarkly/flutter-client-sdk/commit/86e7954ac8c956e0c3d04cb0ebb23ca211724db7))
+
+
+### Bug Fixes
+
+* Retry FDv1 polling after every failure ([#394](https://github.com/launchdarkly/flutter-client-sdk/issues/394)) ([e1f297c](https://github.com/launchdarkly/flutter-client-sdk/commit/e1f297c9e38de3d8b5a6f5c1cdd59e789ed37160))
+* Return the default value for a flag that has no value ([#386](https://github.com/launchdarkly/flutter-client-sdk/issues/386)) ([68cce15](https://github.com/launchdarkly/flutter-client-sdk/commit/68cce153507c7685cf6a32982fe083537737e87e))
+* Update launchdarkly_event_source_client to version 3.3.0 ([#403](https://github.com/launchdarkly/flutter-client-sdk/issues/403)) ([e4eec9b](https://github.com/launchdarkly/flutter-client-sdk/commit/e4eec9ba5c7c3986e5e5eaf04e8eee28fbc78891))
+
 ## [1.16.3](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.16.2...launchdarkly_common_client-v1.16.3) (2026-11-19)
 
 
