@@ -41,7 +41,7 @@ jobs:
           exit 1
 
       - name: Run SSE contract tests
-        uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests-v1
+        uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests/v1
         with:
           repo: sse-contract-tests
           branch: main
