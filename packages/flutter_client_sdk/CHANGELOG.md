@@ -2,6 +2,18 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.23.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.22.1...4.23.0) (2026-11-23)
+
+
+### Features
+
+* Replace SseClientBuilder with SseClientFactory and SseClientOptions ([86e7954](https://github.com/launchdarkly/flutter-client-sdk/commit/86e7954ac8c956e0c3d04cb0ebb23ca211724db7))
+
+
+### Bug Fixes
+
+* Update launchdarkly_common_client to version 1.17.0 ([#404](https://github.com/launchdarkly/flutter-client-sdk/issues/404)) ([94ad0c8](https://github.com/launchdarkly/flutter-client-sdk/commit/94ad0c8400c09f1ba55e4f6c05298b47bc7571d2))
+
 ## [4.22.1](https://github.com/launchdarkly/flutter-client-sdk/compare/4.22.0...4.22.1) (2026-11-19)
 
 
