@@ -2,6 +2,13 @@
 
 All notable changes to the LaunchDarkly Event Source Client SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [3.3.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v3.2.0...launchdarkly_event_source_client-v3.3.0) (2026-11-23)
+
+
+### Features
+
+* Replace SseClientBuilder with SseClientFactory and SseClientOptions ([86e7954](https://github.com/launchdarkly/flutter-client-sdk/commit/86e7954ac8c956e0c3d04cb0ebb23ca211724db7))
+
 ## [3.2.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_event_source_client-v3.1.0...launchdarkly_event_source_client-v3.2.0) (2026-11-19)
 
 
