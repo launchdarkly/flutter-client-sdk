@@ -127,7 +127,7 @@ final class Entity {
               ? null
               : Duration(milliseconds: flushIntervalMs),
           disabled: events == null,
-          diagnosticOptOut: !(events?['enableDiagnostics'] as bool? ?? true)),
+          diagnosticOptOut: !(events?['enableDiagnostics'] as bool? ?? false)),
       allAttributesPrivate: events?['allAttributesPrivate'] as bool? ?? false,
       globalPrivateAttributes:
           (events?['globalPrivateAttributes'] as List<dynamic>?)
