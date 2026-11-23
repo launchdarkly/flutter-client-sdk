@@ -35,6 +35,7 @@ final class Entity {
     'polling-gzip',
     'client-event-source-http-errors',
     'client-use-post',
+    'diagnostic-events',
   ];
 
   final Map<int, LDClient> _clients = {};
