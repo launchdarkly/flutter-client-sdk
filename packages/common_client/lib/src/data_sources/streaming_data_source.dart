@@ -29,7 +29,7 @@ final class StreamingDataSource implements DataSource {
 
   final StreamingDataSourceConfig _dataSourceConfig;
 
-  final SseClientBuilder _clientBuilder;
+  final SseClientFactory _clientFactory;
 
   late final Uri _uri;
 
@@ -58,11 +58,11 @@ final class StreamingDataSource implements DataSource {
   /// Used to track if there has been an unrecoverable error.
   bool _permanentShutdown = false;
 
-  /// The builder that [start] uses for the SSE client.
+  /// The factory that [start] uses for the SSE client.
   @visibleForTesting
-  SseClientBuilder get eventSource => _clientBuilder;
+  SseClientFactory get eventSource => _clientFactory;
 
-  /// [eventSource] builds the SSE client. When it is null, the data source
+  /// [eventSource] creates the SSE client. When it is null, the data source
   /// uses the default client for the platform. Tests inject a fake client.
   /// The [streamingReportSupported] parameter overrides whether the client
   /// can send REPORT. Tests set it. The [httpClientFactory] parameter is for
@@ -75,12 +75,12 @@ final class StreamingDataSource implements DataSource {
       required StreamingDataSourceConfig dataSourceConfig,
       required PollingDataSourceConfig pollingDataSourceConfig,
       required HttpProperties httpProperties,
-      SseClientBuilder? eventSource,
+      SseClientFactory? eventSource,
       bool? streamingReportSupported,
       HttpClientFactory? httpClientFactory})
       : _logger = logger.subLogger('StreamingDataSource'),
         _dataSourceConfig = dataSourceConfig,
-        _clientBuilder = eventSource ?? SSEClient.new,
+        _clientFactory = eventSource ?? SSEClient.new,
         _httpProperties = httpProperties,
         _credential = credential {
     final plainContextString =
@@ -130,12 +130,13 @@ final class StreamingDataSource implements DataSource {
     }
     _stopped = false;
     _logger.debug('Establishing new streaming connection, uri: $_uri');
-    final client = _clientBuilder(
-        _uri, const {_putEvent, _patchEvent, _delete, _pingEvent},
+    final client = _clientFactory(SseClientOptions(
+        uri: _uri,
+        eventTypes: const {_putEvent, _patchEvent, _delete, _pingEvent},
         headers: streamingRequestHeaders(_httpProperties),
         body: _useReport ? _contextString : null,
         httpMethod: _useReport ? SseHttpMethod.report : SseHttpMethod.get,
-        logger: LDLoggerToEventSourceAdapter(_logger));
+        logger: LDLoggerToEventSourceAdapter(_logger)));
     _client = client;
 
     _subscription = client.stream.listen((event) async {

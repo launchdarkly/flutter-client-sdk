@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 void main() {
   group('streamingCustomMethodSupported', () {
     test(
-        'is true with and without a supplied builder, because the default '
+        'is true with and without a supplied factory, because the default '
         'client is HTTP-based', () {
       expect(streamingCustomMethodSupported(eventSource: null), isTrue);
       expect(

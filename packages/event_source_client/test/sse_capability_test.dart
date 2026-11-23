@@ -6,7 +6,8 @@ import 'package:test/test.dart';
 void main() {
   group('default HTTP SSE client', () {
     test('reports SSECapability.requestHeaders as supported', () {
-      final client = SSEClient(Uri.parse('https://example.test'), {'put'});
+      final client = SSEClient(SseClientOptions(
+          uri: Uri.parse('https://example.test'), eventTypes: {'put'}));
       try {
         expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
       } finally {
@@ -17,7 +18,8 @@ void main() {
 
   group('SSEClient.http', () {
     test('reports SSECapability.requestHeaders as supported', () {
-      final client = SSEClient.http(Uri.parse('https://example.test'), {'put'});
+      final client = SSEClient.http(SseClientOptions(
+          uri: Uri.parse('https://example.test'), eventTypes: {'put'}));
       try {
         expect(client.hasCapability(SSECapability.requestHeaders), isTrue);
       } finally {

@@ -41,12 +41,12 @@ final class FDv2DataSystem {
   final DataSourceStatusManager _statusManager;
   final Map<ConnectionModeId, ModeDefinition> _connectionModeOverrides;
   final CachedFlagsReader _cachedFlagsReader;
-  final SseClientBuilder _sseClientBuilder;
+  final SseClientFactory _sseClientFactory;
   final HttpClientFactory? _httpClientFactory;
 
-  /// The builder that the streaming synchronizers use.
+  /// The factory that the streaming synchronizers use.
   @visibleForTesting
-  SseClientBuilder get eventSource => _sseClientBuilder;
+  SseClientFactory get eventSource => _sseClientFactory;
 
   Selector _selector = Selector.empty;
 
@@ -60,9 +60,9 @@ final class FDv2DataSystem {
     required Duration defaultPollingInterval,
     required DataSourceStatusManager statusManager,
     required CachedFlagsReader cachedFlagsReader,
-    // Builds the SSE client. When it is null, the data system uses the
+    // Creates the SSE client. When it is null, the data system uses the
     // default client for the platform. Tests inject a fake.
-    SseClientBuilder? eventSource,
+    SseClientFactory? eventSource,
     HttpClientFactory? httpClientFactory,
     // Whether the streaming client can send a POST request. Defaults to the
     // capability of the selected client. Tests override it.
@@ -78,7 +78,7 @@ final class FDv2DataSystem {
         _defaultPollingInterval = defaultPollingInterval,
         _statusManager = statusManager,
         _cachedFlagsReader = cachedFlagsReader,
-        _sseClientBuilder = eventSource ?? SSEClient.new,
+        _sseClientFactory = eventSource ?? SSEClient.new,
         _httpClientFactory = httpClientFactory,
         _connectionModeOverrides = config.connectionModes {
     if (_usePost && !_streamingPostSupported) {
@@ -186,7 +186,7 @@ final class FDv2DataSystem {
 
       final synchronizerSlots = buildSynchronizerFactories(
               modeDefinition.synchronizers, factoryContext,
-              sseClientBuilder: _sseClientBuilder)
+              sseClientFactory: _sseClientFactory)
           .map((factory) => SynchronizerSlot(factory: factory))
           .toList();
 
