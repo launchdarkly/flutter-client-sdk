@@ -37,6 +37,7 @@ class TestApiImpl extends SdkTestApi {
     'track-hooks',
     'hook-environment-id',
     'polling-gzip',
+    'diagnostic-events',
     'tls:verify-peer',
     'retry-conformance-fdv1-polling',
   ];
@@ -112,7 +113,7 @@ class TestApiImpl extends SdkTestApi {
           },
           disabled: body.configuration?.events == null,
           diagnosticOptOut:
-              !(body.configuration?.events?.enableDiagnostics ?? true)),
+              !(body.configuration?.events?.enableDiagnostics ?? false)),
       allAttributesPrivate:
           body.configuration?.events?.allAttributesPrivate ?? false,
       globalPrivateAttributes:
