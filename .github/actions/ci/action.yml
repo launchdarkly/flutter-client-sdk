@@ -86,7 +86,7 @@ runs:
       run: |
         pushd apps/flutter_client_contract_test_service
         flutter test bin/contract_test_service.dart > test-service.log 2>&1 & disown
-    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests/v1.3.0
+    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests/v1
       with:
         test_service_port: 8080
         token: ${{ inputs.github_token }}
@@ -100,7 +100,7 @@ runs:
       run: |
         pushd apps/flutter_client_contract_test_service
         flutter test bin/contract_test_service.dart > test-service-fdv2.log 2>&1 & disown
-    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests/v1.3.0
+    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests/v1
       with:
         test_service_port: 8080
         token: ${{ inputs.github_token }}
@@ -114,7 +114,7 @@ runs:
       run: |
         pushd apps/sse_contract_test_service
         dart run bin/sse_contract_test_service.dart > test-service.log 2>&1 & disown
-    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests/v1.3.0
+    - uses: launchdarkly/gh-actions/actions/contract-tests@contract-tests/v1
       with:
         repo: 'sse-contract-tests'
         branch: 'v2.0.0'
