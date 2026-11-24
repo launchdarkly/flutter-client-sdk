@@ -350,6 +350,42 @@ void main() {
     expect(statusManager.status.state, DataSourceState.valid);
   });
 
+  test('a failure without a shutdown does not fail a pending identify',
+      () async {
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(startEvents: [
+            StatusEvent(ErrorKind.networkError, null, 'connection dropped'),
+            PutEvent({}),
+          ]),
+    };
+    final manager = makeManager(context, factories);
+
+    // Identify while the data source fails once and then delivers data.
+    final completer = Completer<void>();
+    manager.identify(context, completer);
+
+    // The identify completes on the data instead of failing.
+    await completer.future;
+  });
+
+  test('a failure with a shutdown fails a pending identify', () async {
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(startEvents: [
+            StatusEvent(ErrorKind.unknown, null, 'stopped', shutdown: true),
+          ]),
+    };
+    final manager = makeManager(context, factories);
+
+    // Identify while the data source stops for good.
+    final completer = Completer<void>();
+    manager.identify(context, completer);
+
+    // The identify fails.
+    await expectLater(completer.future, throwsException);
+  });
+
   test('an identify requiring fresh data does not resolve on cache alone',
       () async {
     final context = LDContextBuilder().kind('user', 'bob').build();

@@ -218,8 +218,10 @@ final class DataSourceManager {
           _maybeCompleteIdentify();
           return MessageStatus.messageHandled;
         case StatusEvent():
-          if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {
-            _identifyCompleter!.completeError(Exception(event.message));
+          // A pending identify fails only when the data source shuts down.
+          if (_identifyCompleter case final completer?
+              when event.shutdown && !completer.isCompleted) {
+            completer.completeError(Exception(event.message));
             _identifyCompleter = null;
           }
           if (event.statusCode != null) {

@@ -18,8 +18,10 @@ abstract interface class DataManager {
   /// When [waitForNetworkResults] is true the returned future resolves
   /// only once network (or otherwise fresh) data has arrived; otherwise it
   /// may resolve as soon as cached data is available.
+  ///
+  /// The returned future also completes normally when [cancelled] completes.
   Future<void> identify(LDContext context,
-      {required bool waitForNetworkResults});
+      {required bool waitForNetworkResults, required Future<void> cancelled});
 }
 
 final class FDv1DataManager implements DataManager {
@@ -30,14 +32,15 @@ final class FDv1DataManager implements DataManager {
 
   @override
   Future<void> identify(LDContext context,
-      {required bool waitForNetworkResults}) async {
+      {required bool waitForNetworkResults,
+      required Future<void> cancelled}) async {
     final completer = Completer<void>();
     final loadedFromCache = await _flagManager.loadCached(context);
     _dataSourceManager.identify(context, completer);
     if (loadedFromCache && !waitForNetworkResults) {
       return;
     }
-    return completer.future;
+    return Future.any([completer.future, cancelled]);
   }
 }
 
@@ -49,13 +52,13 @@ final class FDv2DataManager implements DataManager {
 
   @override
   Future<void> identify(LDContext context,
-      {required bool waitForNetworkResults}) {
+      {required bool waitForNetworkResults, required Future<void> cancelled}) {
     _clearSelector();
     final completer = Completer<void>();
     _dataSourceManager.identify(context, completer,
         minimumDataAvailability: waitForNetworkResults
             ? DataAvailability.fresh
             : DataAvailability.cached);
-    return completer.future;
+    return Future.any([completer.future, cancelled]);
   }
 }

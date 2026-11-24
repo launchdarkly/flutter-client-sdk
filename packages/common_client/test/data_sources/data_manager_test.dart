@@ -29,6 +29,9 @@ DataSourceManager _managerWithoutFactories() {
 
 LDContext _ctx(String key) => LDContextBuilder().kind('user', key).build();
 
+/// A cancellation that never happens.
+final Future<void> _neverCancelled = Completer<void>().future;
+
 void main() {
   group('FDv2DataManager', () {
     test('clears the selector on every identify', () {
@@ -38,9 +41,12 @@ void main() {
 
       // The returned futures never complete (no factory delivers data); we
       // only care that each identify starts fresh.
-      unawaited(manager.identify(_ctx('a'), waitForNetworkResults: false));
-      unawaited(manager.identify(_ctx('a'), waitForNetworkResults: false));
-      unawaited(manager.identify(_ctx('b'), waitForNetworkResults: false));
+      unawaited(manager.identify(_ctx('a'),
+          waitForNetworkResults: false, cancelled: _neverCancelled));
+      unawaited(manager.identify(_ctx('a'),
+          waitForNetworkResults: false, cancelled: _neverCancelled));
+      unawaited(manager.identify(_ctx('b'),
+          waitForNetworkResults: false, cancelled: _neverCancelled));
 
       // Every identify clears, including re-identifying the same context.
       expect(clears, 3);
@@ -54,13 +60,28 @@ void main() {
       final dataSourceManager = _managerWithoutFactories();
       final manager = FDv2DataManager(dataSourceManager, () => clears++);
 
-      unawaited(manager.identify(_ctx('a'), waitForNetworkResults: false));
+      unawaited(manager.identify(_ctx('a'),
+          waitForNetworkResults: false, cancelled: _neverCancelled));
       dataSourceManager.setMode(const ResolvedOffline(OfflineSetOffline()));
-      unawaited(manager.identify(_ctx('b'), waitForNetworkResults: false));
+      unawaited(manager.identify(_ctx('b'),
+          waitForNetworkResults: false, cancelled: _neverCancelled));
       dataSourceManager.setMode(const ResolvedStreaming());
 
       // Two identifies cleared; the offline/streaming switches did not.
       expect(clears, 2);
+    });
+
+    test('cancelling an identify ends its wait', () async {
+      final manager = FDv2DataManager(_managerWithoutFactories(), () {});
+      final cancellation = Completer<void>();
+
+      // Identify with no data source to deliver data, and then cancel it.
+      final identified = manager.identify(_ctx('a'),
+          waitForNetworkResults: true, cancelled: cancellation.future);
+      cancellation.complete();
+
+      // The identify completes without data.
+      await identified;
     });
   });
 }

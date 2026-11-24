@@ -157,8 +157,10 @@ interface class LDClient {
   /// flag changes should be listened to. It the client is set to offline mode,
   /// then this option is ignored.
   ///
-  /// If [waitForNetworkResults] is true, and an error is encountered, then
-  /// false may be returned even if cached values were loaded.
+  /// A data source failure does not end the wait, because the SDK keeps
+  /// retrying. The wait ends when data arrives or when [identify] is called,
+  /// and then [start] returns true. [start] returns false only when the SDK
+  /// cannot start, for instance when the context is not valid.
   Future<bool> start({bool waitForNetworkResults = false}) async {
     return _client.start(waitForNetworkResults: waitForNetworkResults);
   }
@@ -192,15 +194,17 @@ interface class LDClient {
   /// flag changes should be listened to. It the client is set to offline mode,
   /// then this option is ignored.
   ///
-  /// If [waitForNetworkResults] is true, and an error is encountered, then
-  /// [IdentifyError] may be returned even if cached values were loaded.
+  /// A data source failure does not end the wait, because the SDK keeps
+  /// retrying. The wait ends when data arrives or when [identify] is called
+  /// again.
   ///
   /// The identify will complete with 1 of three possible values:
   /// [IdentifyComplete], [IdentifySuperseded], or [IdentifyError].
   ///
   /// [IdentifyComplete] means that the SDK has managed to identify the user
   /// and either is using cached values or has received new values from
-  /// LaunchDarkly.
+  /// LaunchDarkly. It is also the result if a later [identify] call ends the
+  /// wait.
   ///
   /// [IdentifySuperseded] means that additional [identify] calls have been made
   /// and this specific call has been cancelled. If identify multiple contexts
@@ -210,7 +214,7 @@ interface class LDClient {
   /// last one. The intermediates would be cancelled for performance.
   ///
   /// [IdentifyError] this means that the identify has permanently failed. For
-  /// instance the SDK key is no longer valid.
+  /// instance, the context is not valid.
   Future<IdentifyResult> identify(LDContext context,
       {bool waitForNetworkResults = false}) async {
     return _client.identify(context,
