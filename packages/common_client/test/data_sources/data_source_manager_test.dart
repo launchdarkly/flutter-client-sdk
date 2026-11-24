@@ -384,6 +384,35 @@ void main() {
     expect(completerB.isCompleted, isFalse);
   });
 
+  test(
+      'data that arrives for an earlier identify of the same context '
+      'completes a later one', () async {
+    final gate = Completer<void>();
+    final context = LDContextBuilder().kind('user', 'a').build();
+    final sameContext = LDContextBuilder().kind('user', 'a').build();
+    var created = 0;
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      // Only the first data source sends a put.
+      const FDv2Streaming(): (_) =>
+          MockDataSource(startEvents: created++ == 0 ? [PutEvent({})] : []),
+    };
+    final manager = makeManager(context, factories,
+        persistence: GatedPersistence(gate.future));
+
+    manager.identify(context, Completer<void>());
+    // The first put starts, and waits on persistence.
+    await pumpEventQueue();
+
+    final completer = Completer<void>();
+    manager.identify(sameContext, completer);
+    // The first put finishes after the second identify.
+    gate.complete();
+    await pumpEventQueue();
+
+    // The put completes the identify for the same context.
+    expect(completer.isCompleted, isTrue);
+  });
+
   test('an identify requiring fresh data does not resolve on cache alone',
       () async {
     final context = LDContextBuilder().kind('user', 'bob').build();

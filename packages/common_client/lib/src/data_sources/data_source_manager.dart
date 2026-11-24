@@ -116,7 +116,8 @@ final class DataSourceManager {
   /// the first call completes it.
   void _maybeCompleteIdentify(LDContext context) {
     final completer = _identifyCompleter;
-    if (completer == null || !identical(context, _activeContext)) {
+    if (completer == null ||
+        context.canonicalKey != _activeContext?.canonicalKey) {
       return;
     }
     if (!completer.isCompleted) {
