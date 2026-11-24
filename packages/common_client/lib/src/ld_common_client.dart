@@ -62,7 +62,8 @@ enum VariationMethodNames {
 sealed class IdentifyResult {}
 
 /// The identify has been completed. Either the identify completed with
-/// cached data, or new data was fetched from LaunchDarkly.
+/// cached data, or new data was fetched from LaunchDarkly. It is also the
+/// result if a later identify ends the wait.
 final class IdentifyComplete implements IdentifyResult {
   IdentifyComplete();
 }
@@ -247,6 +248,9 @@ final class LDCommonClient {
   Completer<IdentifyResult>? _startCompleter;
   Future<IdentifyResult>? _startFuture;
 
+  /// Completes to end the wait of the latest identify or start.
+  Completer<void>? _identifyCancellation;
+
   Stream<DataSourceStatus> get dataSourceStatusChanges {
     return _dataSourceStatusManager.changes;
   }
@@ -370,6 +374,8 @@ final class LDCommonClient {
     _startFuture = _startCompleter!.future;
 
     Function(IdentifyResult)? afterIdentify;
+    final cancellation = Completer<void>();
+    _identifyCancellation = cancellation;
 
     // The setup of modifiers and other items must be done in the identify
     // queue to ensure that identifies cannot be done without those items
@@ -379,7 +385,9 @@ final class LDCommonClient {
 
       await _identifyInternal(_initialUndecoratedContext, (cb) {
         afterIdentify = cb;
-      }, waitForNetworkResults: waitForNetworkResults);
+      },
+          waitForNetworkResults: waitForNetworkResults,
+          cancelled: cancellation.future);
     }).then((res) {
       final identifyResult = _mapIdentifyResult(res);
       afterIdentify?.call(identifyResult);
@@ -553,11 +561,17 @@ final class LDCommonClient {
       _logger.warn(message);
       return IdentifyError(Exception(message));
     }
+    // End the wait of the previous identify or start.
+    _identifyCancellation?.complete();
+    final cancellation = Completer<void>();
+    _identifyCancellation = cancellation;
     Function(IdentifyResult)? afterRunner;
     final res = await _identifyQueue.execute(() async {
       await _identifyInternal(context, (cb) {
         afterRunner = cb;
-      }, waitForNetworkResults: waitForNetworkResults);
+      },
+          waitForNetworkResults: waitForNetworkResults,
+          cancelled: cancellation.future);
     });
     final identifyResult = _mapIdentifyResult(res);
     afterRunner?.call(identifyResult);
@@ -577,7 +591,8 @@ final class LDCommonClient {
 
   Future<void> _identifyInternal(
       LDContext context, Function(Function(IdentifyResult)) hookCallback,
-      {bool waitForNetworkResults = false}) async {
+      {bool waitForNetworkResults = false,
+      required Future<void> cancelled}) async {
     if (!context.valid) {
       const message =
           'LDClient was provided an invalid context. The context will be ignored. Existing flags will be used for evaluations until identify is called with a valid context.';
@@ -600,7 +615,7 @@ final class LDCommonClient {
     }
 
     return _dataManager.identify(_context,
-        waitForNetworkResults: waitForNetworkResults);
+        waitForNetworkResults: waitForNetworkResults, cancelled: cancelled);
   }
 
   /// Returns the value of flag [flagKey] for the current context as a bool.

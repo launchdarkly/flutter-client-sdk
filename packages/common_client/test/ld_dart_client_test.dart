@@ -36,7 +36,8 @@ final class TestDataSource implements DataSource {
   final StreamController<DataSourceEvent> _eventController = StreamController();
 
   /// The data of the put event that this data source sends when it starts.
-  final String payload;
+  /// When it is null, the data source sends nothing.
+  final String? payload;
 
   TestDataSource({this.payload = defaultPayload});
 
@@ -48,9 +49,11 @@ final class TestDataSource implements DataSource {
 
   @override
   void start() {
-    Timer(Duration(milliseconds: 10), () {
-      _eventController.sink.add(parsePut(payload, LDLogger()));
-    });
+    if (payload case final payload?) {
+      Timer(Duration(milliseconds: 10), () {
+        _eventController.sink.add(parsePut(payload, LDLogger()));
+      });
+    }
   }
 
   @override
@@ -299,6 +302,53 @@ void main() {
       await client.start(waitForNetworkResults: true);
       final res = client.stringVariation('flagA', 'default');
       expect(res, 'datasource');
+    });
+  });
+
+  group('given a context that never gets data', () {
+    final noData = LDContextBuilder().kind('user', 'no-data').build();
+    final joe = LDContextBuilder().kind('user', 'joe').build();
+
+    LDCommonClient makeClient(LDContext initialContext) => LDCommonClient(
+            TestConfig('the-sdk-key', AutoEnvAttributes.disabled),
+            CommonPlatform(),
+            initialContext,
+            DiagnosticSdkData(name: '', version: ''), dataSourceFactories:
+                (LDCommonConfig config, LDLogger logger,
+                    HttpProperties properties) {
+          DataSource create(LDContext context) => TestDataSource(
+              payload: context.keys['user'] == 'no-data'
+                  ? null
+                  : TestDataSource.defaultPayload);
+          return {
+            ConnectionMode.streaming: create,
+            ConnectionMode.polling: create,
+          };
+        });
+
+    test('a new identify ends the wait of start', () async {
+      final client = makeClient(noData);
+
+      // Start without data, and then identify a context that gets data.
+      final started = client.start();
+      final identified = client.identify(joe);
+
+      // Start succeeds, and the identify completes.
+      expect(await started, isTrue);
+      expect(await identified, isA<IdentifyComplete>());
+    });
+
+    test('a new identify ends the wait of an earlier identify', () async {
+      final client = makeClient(joe);
+      await client.start();
+
+      // Identify a context without data, and then one that gets data.
+      final first = client.identify(noData);
+      final second = client.identify(joe);
+
+      // Both identifies complete.
+      expect(await first, isA<IdentifyComplete>());
+      expect(await second, isA<IdentifyComplete>());
     });
   });
 

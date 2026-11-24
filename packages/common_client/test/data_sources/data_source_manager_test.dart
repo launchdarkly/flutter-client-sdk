@@ -49,6 +49,25 @@ final class MockDataSource implements DataSource {
   }
 }
 
+/// A persistence whose calls finish only after [gate] completes.
+final class GatedPersistence implements Persistence {
+  final Future<void> gate;
+
+  GatedPersistence(this.gate);
+
+  @override
+  Future<String?> read(String namespace, String key) async {
+    await gate;
+    return null;
+  }
+
+  @override
+  Future<void> remove(String namespace, String key) => gate;
+
+  @override
+  Future<void> set(String namespace, String key, String data) => gate;
+}
+
 Map<FDv2ConnectionMode, DataSourceFactory> defaultFactories(
     Map<FDv2ConnectionMode, MockDataSource> dataSources) {
   return {
@@ -72,11 +91,14 @@ Map<FDv2ConnectionMode, DataSourceFactory> defaultFactories(
 
 DataSourceManager makeManager(
     LDContext context, Map<FDv2ConnectionMode, DataSourceFactory> factories,
-    {DataSourceStatusManager? inStatusManager}) {
+    {DataSourceStatusManager? inStatusManager, Persistence? persistence}) {
   final statusManager = inStatusManager ?? DataSourceStatusManager();
   final logger = LDLogger();
-  final flagManager =
-      FlagManager(sdkKey: 'sdk-key', maxCachedContexts: 5, logger: logger);
+  final flagManager = FlagManager(
+      persistence: persistence,
+      sdkKey: 'sdk-key',
+      maxCachedContexts: 5,
+      logger: logger);
   final dataSourceEventHandler = DataSourceEventHandler(
       flagManager: flagManager, statusManager: statusManager, logger: logger);
   final manager = DataSourceManager(
@@ -348,6 +370,70 @@ void main() {
     await completer.future;
 
     expect(statusManager.status.state, DataSourceState.valid);
+  });
+
+  test('a failure without a shutdown does not fail a pending identify',
+      () async {
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(startEvents: [
+            StatusEvent(ErrorKind.networkError, null, 'connection dropped'),
+            PutEvent({}),
+          ]),
+    };
+    final manager = makeManager(context, factories);
+
+    // Identify while the data source fails once and then delivers data.
+    final completer = Completer<void>();
+    manager.identify(context, completer);
+
+    // The identify completes on the data instead of failing.
+    await completer.future;
+  });
+
+  test('a failure with a shutdown fails a pending identify', () async {
+    final context = LDContextBuilder().kind('user', 'bob').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      const FDv2Streaming(): (_) => MockDataSource(startEvents: [
+            StatusEvent(ErrorKind.unknown, null, 'stopped', shutdown: true),
+          ]),
+    };
+    final manager = makeManager(context, factories);
+
+    // Identify while the data source stops for good.
+    final completer = Completer<void>();
+    manager.identify(context, completer);
+
+    // The identify fails.
+    await expectLater(completer.future, throwsException);
+  });
+
+  test(
+      'data that arrives for an earlier identify does not complete a later one',
+      () async {
+    final gate = Completer<void>();
+    final contextA = LDContextBuilder().kind('user', 'a').build();
+    final contextB = LDContextBuilder().kind('user', 'b').build();
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      // Only the data source for A sends a put.
+      const FDv2Streaming(): (context) => MockDataSource(
+          startEvents: context.keys['user'] == 'a' ? [PutEvent({})] : []),
+    };
+    final manager = makeManager(contextA, factories,
+        persistence: GatedPersistence(gate.future));
+
+    manager.identify(contextA, Completer<void>());
+    // A's put starts, and waits on persistence.
+    await pumpEventQueue();
+
+    final completerB = Completer<void>();
+    manager.identify(contextB, completerB);
+    // A's put finishes after the identify for B.
+    gate.complete();
+    await pumpEventQueue();
+
+    // A's put does not complete the identify for B.
+    expect(completerB.isCompleted, isFalse);
   });
 
   test('an identify requiring fresh data does not resolve on cache alone',

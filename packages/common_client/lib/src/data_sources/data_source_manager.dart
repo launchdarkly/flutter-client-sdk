@@ -111,11 +111,12 @@ final class DataSourceManager {
     _activeDataSource = null;
   }
 
-  /// Resolves the pending identify, if any. Idempotent: only the first call
-  /// completes it.
-  void _maybeCompleteIdentify() {
+  /// Resolves the pending identify, if any, with data for [context]. Data for
+  /// a context that is no longer active does not resolve it. Idempotent: only
+  /// the first call completes it.
+  void _maybeCompleteIdentify(LDContext context) {
     final completer = _identifyCompleter;
-    if (completer == null) {
+    if (completer == null || !identical(context, _activeContext)) {
       return;
     }
     if (!completer.isCompleted) {
@@ -124,10 +125,12 @@ final class DataSourceManager {
     _identifyCompleter = null;
   }
 
-  /// Resolves the pending identify if [status] shows that the data applied.
-  MessageStatus _completeIdentifyIfHandled(MessageStatus status) {
+  /// Resolves the pending identify if [status] shows that the data for
+  /// [context] applied.
+  MessageStatus _completeIdentifyIfHandled(
+      LDContext context, MessageStatus status) {
     if (status == MessageStatus.messageHandled) {
-      _maybeCompleteIdentify();
+      _maybeCompleteIdentify(context);
     }
     return status;
   }
@@ -174,7 +177,9 @@ final class DataSourceManager {
 
     _activeDataSource = _createDataSource(_activeConnectionMode);
     _subscription = _activeDataSource?.events.asyncMap((event) async {
-      if (_activeContext == null) {
+      // The context that this event applies to.
+      final context = _activeContext;
+      if (context == null) {
         _logger.error(
             'No active context when handling an event from a data source.'
             ' This most likely represents a bug in the SDK.');
@@ -182,18 +187,23 @@ final class DataSourceManager {
       }
       switch (event) {
         case PutEvent():
-          return _completeIdentifyIfHandled(await _dataSourceEventHandler
-              .handlePut(_activeContext!, event.flags,
+          return _completeIdentifyIfHandled(
+              context,
+              await _dataSourceEventHandler.handlePut(context, event.flags,
                   environmentId: event.environmentId));
         case PatchEvent():
-          return _completeIdentifyIfHandled(await _dataSourceEventHandler
-              .handlePatch(_activeContext!, event.key, event.flag));
+          return _completeIdentifyIfHandled(
+              context,
+              await _dataSourceEventHandler.handlePatch(
+                  context, event.key, event.flag));
         case DeleteEvent():
-          return _completeIdentifyIfHandled(await _dataSourceEventHandler
-              .handleDelete(_activeContext!, event.key, event.version));
+          return _completeIdentifyIfHandled(
+              context,
+              await _dataSourceEventHandler.handleDelete(
+                  context, event.key, event.version));
         case PayloadEvent():
           var handled = await _dataSourceEventHandler.handlePayload(
-              _activeContext!, event.changeSet,
+              context, event.changeSet,
               environmentId: event.environmentId);
           if (handled == MessageStatus.messageHandled) {
             // Applying any change set from a live source marks it valid --
@@ -206,7 +216,7 @@ final class DataSourceManager {
             // identify waits for the orchestrator's InitializedEvent
             // instead.
             if (_minimumDataAvailability == DataAvailability.cached) {
-              _maybeCompleteIdentify();
+              _maybeCompleteIdentify(context);
             }
           }
           return handled;
@@ -215,11 +225,13 @@ final class DataSourceManager {
           // exhaustion, or the first synchronizer change set). Resolves a
           // wait-for-network identify; a cached identify has usually resolved
           // already on earlier data.
-          _maybeCompleteIdentify();
+          _maybeCompleteIdentify(context);
           return MessageStatus.messageHandled;
         case StatusEvent():
-          if (_identifyCompleter != null && !_identifyCompleter!.isCompleted) {
-            _identifyCompleter!.completeError(Exception(event.message));
+          // A pending identify fails only when the data source shuts down.
+          if (_identifyCompleter case final completer?
+              when event.shutdown && !completer.isCompleted) {
+            completer.completeError(Exception(event.message));
             _identifyCompleter = null;
           }
           if (event.statusCode != null) {
