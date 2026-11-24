@@ -13,60 +13,8 @@ import 'package:launchdarkly_common_client/src/item_descriptor.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
-final class MockDataSource implements DataSource {
-  final StreamController<DataSourceEvent> controller = StreamController();
-  final List<DataSourceEvent> _startEvents;
-
-  bool startCalled = false;
-  bool stopCalled = false;
-  bool restartCalled = false;
-
-  MockDataSource({List<DataSourceEvent>? startEvents})
-      : _startEvents = startEvents ?? [PutEvent({})];
-
-  @override
-  Stream<DataSourceEvent> get events => controller.stream;
-
-  @override
-  void start() {
-    startCalled = true;
-    for (final event in _startEvents) {
-      controller.sink.add(event);
-    }
-  }
-
-  @override
-  void stop() {
-    stopCalled = true;
-    controller.close();
-  }
-
-  @override
-  void restart() {
-    restartCalled = true;
-    Future.delayed(Duration(milliseconds: 10))
-        .then((_) => controller.sink.add(PutEvent({})));
-  }
-}
-
-/// A persistence whose calls finish only after [gate] completes.
-final class GatedPersistence implements Persistence {
-  final Future<void> gate;
-
-  GatedPersistence(this.gate);
-
-  @override
-  Future<String?> read(String namespace, String key) async {
-    await gate;
-    return null;
-  }
-
-  @override
-  Future<void> remove(String namespace, String key) => gate;
-
-  @override
-  Future<void> set(String namespace, String key, String data) => gate;
-}
+import '../mock_persistence.dart';
+import 'mock_data_source.dart';
 
 Map<FDv2ConnectionMode, DataSourceFactory> defaultFactories(
     Map<FDv2ConnectionMode, MockDataSource> dataSources) {
