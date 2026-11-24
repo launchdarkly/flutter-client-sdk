@@ -34,6 +34,7 @@ final class FlutterStateDetector implements StateDetector {
 
   late final LDAppLifecycleListener _lifecycleListener;
   late final StreamSubscription<dynamic> _connectivitySubscription;
+  bool _disposed = false;
 
   FlutterStateDetector()
       : initialApplicationState =
@@ -66,6 +67,11 @@ final class FlutterStateDetector implements StateDetector {
       };
 
   void _setConnectivity(dynamic connectivityResult) {
+    // One-shot connectivity checks can complete after dispose.
+    if (_disposed) {
+      return;
+    }
+
     // TODO: This is a temporary fix to handle the breaking change in
     // connectivity_plus v6
     final resultsList =
@@ -132,6 +138,7 @@ final class FlutterStateDetector implements StateDetector {
 
   @override
   void dispose() {
+    _disposed = true;
     _lifecycleListener.close();
     _applicationStateController.close();
     _networkStateController.close();
