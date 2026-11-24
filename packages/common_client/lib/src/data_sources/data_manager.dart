@@ -35,8 +35,8 @@ final class FDv1DataManager implements DataManager {
       {required bool waitForNetworkResults,
       required Future<void> cancelled}) async {
     final completer = Completer<void>();
-    final loadedFromCache = await _flagManager.loadCached(context);
     _dataSourceManager.identify(context, completer);
+    final loadedFromCache = await _flagManager.loadCached(context);
     if (loadedFromCache && !waitForNetworkResults) {
       return;
     }

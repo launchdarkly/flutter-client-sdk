@@ -13,60 +13,8 @@ import 'package:launchdarkly_common_client/src/item_descriptor.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import 'package:test/test.dart';
 
-final class MockDataSource implements DataSource {
-  final StreamController<DataSourceEvent> controller = StreamController();
-  final List<DataSourceEvent> _startEvents;
-
-  bool startCalled = false;
-  bool stopCalled = false;
-  bool restartCalled = false;
-
-  MockDataSource({List<DataSourceEvent>? startEvents})
-      : _startEvents = startEvents ?? [PutEvent({})];
-
-  @override
-  Stream<DataSourceEvent> get events => controller.stream;
-
-  @override
-  void start() {
-    startCalled = true;
-    for (final event in _startEvents) {
-      controller.sink.add(event);
-    }
-  }
-
-  @override
-  void stop() {
-    stopCalled = true;
-    controller.close();
-  }
-
-  @override
-  void restart() {
-    restartCalled = true;
-    Future.delayed(Duration(milliseconds: 10))
-        .then((_) => controller.sink.add(PutEvent({})));
-  }
-}
-
-/// A persistence whose calls finish only after [gate] completes.
-final class GatedPersistence implements Persistence {
-  final Future<void> gate;
-
-  GatedPersistence(this.gate);
-
-  @override
-  Future<String?> read(String namespace, String key) async {
-    await gate;
-    return null;
-  }
-
-  @override
-  Future<void> remove(String namespace, String key) => gate;
-
-  @override
-  Future<void> set(String namespace, String key, String data) => gate;
-}
+import '../mock_persistence.dart';
+import 'mock_data_source.dart';
 
 Map<FDv2ConnectionMode, DataSourceFactory> defaultFactories(
     Map<FDv2ConnectionMode, MockDataSource> dataSources) {
@@ -434,6 +382,35 @@ void main() {
 
     // A's put does not complete the identify for B.
     expect(completerB.isCompleted, isFalse);
+  });
+
+  test(
+      'data that arrives for an earlier identify of the same context '
+      'completes a later one', () async {
+    final gate = Completer<void>();
+    final context = LDContextBuilder().kind('user', 'a').build();
+    final sameContext = LDContextBuilder().kind('user', 'a').build();
+    var created = 0;
+    final factories = <FDv2ConnectionMode, DataSourceFactory>{
+      // Only the first data source sends a put.
+      const FDv2Streaming(): (_) =>
+          MockDataSource(startEvents: created++ == 0 ? [PutEvent({})] : []),
+    };
+    final manager = makeManager(context, factories,
+        persistence: GatedPersistence(gate.future));
+
+    manager.identify(context, Completer<void>());
+    // The first put starts, and waits on persistence.
+    await pumpEventQueue();
+
+    final completer = Completer<void>();
+    manager.identify(sameContext, completer);
+    // The first put finishes after the second identify.
+    gate.complete();
+    await pumpEventQueue();
+
+    // The put completes the identify for the same context.
+    expect(completer.isCompleted, isTrue);
   });
 
   test('an identify requiring fresh data does not resolve on cache alone',

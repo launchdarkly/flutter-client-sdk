@@ -103,6 +103,41 @@ void main() {
           reason: 'a rejected apply must not write the cache');
     });
 
+    test('a cache write does not store the flags of a newer context', () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 5,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(0));
+
+      final contextA = LDContextBuilder().kind('user', 'a').build();
+      final contextB = LDContextBuilder().kind('user', 'b').build();
+      final dataB = {
+        'flagC': ItemDescriptor(
+            version: 1,
+            flag: LDEvaluationResult(
+                version: 1,
+                detail: LDEvaluationDetail(
+                    LDValue.ofString('b'), 0, LDEvaluationReason.off())))
+      };
+      // A's cache write waits on persistence.
+      final writeA = flagPersistence.init(contextA, basicData);
+      // B's flags replace A's in the store before A's write finishes.
+      await flagPersistence.init(contextB, dataB);
+      await writeA;
+
+      final persistenceKeyA =
+          sha256.convert(utf8.encode(contextA.canonicalKey)).toString();
+      expect(mockPersistence.storage[sdkKeyPersistence]![persistenceKeyA],
+          isNot(contains('flagC')),
+          reason: "A's cache must not hold B's flags");
+    });
+
     test('it skips the cache write for an empty partial applyChanges',
         () async {
       final flagStore = FlagStore();
