@@ -618,6 +618,21 @@ void main() {
       });
     });
 
+    test('a 3xx reconnects after the normal backoff', () {
+      fakeAsync((async) {
+        final (dataSource, _) = make();
+
+        dataSource.start();
+        // Reject the connection with a 300.
+        streams.single
+            .addError(const SseHttpError(300, {}, recoverable: false));
+        // Look when the longest wait ends.
+        async.elapse(const Duration(seconds: 1));
+        // One new client connects.
+        expect(clients.length, 2);
+      });
+    });
+
     test('a message that does not parse reconnects after the normal backoff',
         () {
       fakeAsync((async) {

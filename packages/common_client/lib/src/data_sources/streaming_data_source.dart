@@ -216,7 +216,9 @@ final class StreamingDataSource implements DataSource {
     };
     _logger.error('${status.message}, will retry');
     _dataController.sink.add(status);
-    _reconnect(unexpected: err is SseHttpError && !err.recoverable);
+    _reconnect(
+        unexpected:
+            err is SseHttpError && !isHttpGloballyRecoverable(err.statusCode));
   }
 
   /// Emits [event], and reconnects if the message did not parse.
