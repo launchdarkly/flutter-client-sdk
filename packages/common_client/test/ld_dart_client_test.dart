@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv1_payloads.dart';
 import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart'
     show ConcreteEnvReporter;
 import 'package:test/test.dart';
@@ -48,7 +49,7 @@ final class TestDataSource implements DataSource {
   @override
   void start() {
     Timer(Duration(milliseconds: 10), () {
-      _eventController.sink.add(DataEvent('put', payload));
+      _eventController.sink.add(parsePut(payload, LDLogger()));
     });
   }
 

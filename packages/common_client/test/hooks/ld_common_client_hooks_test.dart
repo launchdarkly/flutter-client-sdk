@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:test/test.dart';
 import 'package:launchdarkly_common_client/launchdarkly_common_client.dart';
 import 'package:launchdarkly_common_client/src/data_sources/data_source.dart';
+import 'package:launchdarkly_common_client/src/data_sources/fdv1_payloads.dart';
 
 import '../ld_dart_client_test.dart' show TestConfig;
 
@@ -88,15 +89,15 @@ final class TestDataSourceWithEnvironmentId implements DataSource {
   @override
   void start() {
     Timer(Duration(milliseconds: 10), () {
-      _eventController.sink.add(DataEvent(
-          'put',
+      _eventController.sink.add(parsePut(
           '{"test-flag":{'
-              '"version":1,'
-              '"flagVersion":1,'
-              '"value":"test-value",'
-              '"variation":0,'
-              '"reason":{"kind":"FALLTHROUGH"}'
-              '}}',
+          '"version":1,'
+          '"flagVersion":1,'
+          '"value":"test-value",'
+          '"variation":0,'
+          '"reason":{"kind":"FALLTHROUGH"}'
+          '}}',
+          LDLogger(),
           environmentId: environmentId));
     });
   }

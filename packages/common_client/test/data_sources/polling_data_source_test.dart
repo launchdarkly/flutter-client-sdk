@@ -56,8 +56,6 @@ class MockLogAdapter extends Mock implements LDLogAdapter {}
 
   polling.events.asyncMap((event) async {
     switch (event) {
-      case DataEvent():
-        return eventHandler.handleMessage(context, event.type, event.data);
       case PutEvent():
         return eventHandler.handlePut(context, event.flags,
             environmentId: event.environmentId);
@@ -69,6 +67,8 @@ class MockLogAdapter extends Mock implements LDLogAdapter {}
           statusManager.setErrorByKind(event.kind, event.message,
               shutdown: event.shutdown);
         }
+      case PatchEvent():
+      case DeleteEvent():
       case PayloadEvent():
       case InitializedEvent():
         break;
@@ -481,10 +481,6 @@ void main() {
 
     polling.events.asyncMap((event) async {
       switch (event) {
-        case DataEvent():
-          receivedEnvironmentId = event.environmentId ?? '';
-          return eventHandler.handleMessage(context, event.type, event.data,
-              environmentId: event.environmentId);
         case PutEvent():
           receivedEnvironmentId = event.environmentId ?? '';
           return eventHandler.handlePut(context, event.flags,
@@ -497,6 +493,8 @@ void main() {
             statusManager.setErrorByKind(event.kind, event.message,
                 shutdown: event.shutdown);
           }
+        case PatchEvent():
+        case DeleteEvent():
         case PayloadEvent():
         case InitializedEvent():
           break;
@@ -549,10 +547,6 @@ void main() {
 
     polling.events.asyncMap((event) async {
       switch (event) {
-        case DataEvent():
-          receivedEnvironmentId = event.environmentId ?? 'null-received';
-          return eventHandler.handleMessage(context, event.type, event.data,
-              environmentId: event.environmentId);
         case PutEvent():
           receivedEnvironmentId = event.environmentId ?? 'null-received';
           return eventHandler.handlePut(context, event.flags,
@@ -565,6 +559,8 @@ void main() {
             statusManager.setErrorByKind(event.kind, event.message,
                 shutdown: event.shutdown);
           }
+        case PatchEvent():
+        case DeleteEvent():
         case PayloadEvent():
         case InitializedEvent():
           break;

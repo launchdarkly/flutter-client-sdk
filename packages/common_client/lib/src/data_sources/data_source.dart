@@ -5,20 +5,28 @@ import 'fdv2/payload.dart';
 
 sealed class DataSourceEvent {}
 
-final class DataEvent implements DataSourceEvent {
-  final String type;
-  final String data;
-  final String? environmentId;
-
-  DataEvent(this.type, this.data, {this.environmentId});
-}
-
 /// A parsed FDv1 payload that replaces every flag.
 final class PutEvent implements DataSourceEvent {
   final Map<String, LDEvaluationResult> flags;
   final String? environmentId;
 
   PutEvent(this.flags, {this.environmentId});
+}
+
+/// A parsed FDv1 payload that adds or replaces one flag.
+final class PatchEvent implements DataSourceEvent {
+  final String key;
+  final LDEvaluationResult flag;
+
+  PatchEvent(this.key, this.flag);
+}
+
+/// A parsed FDv1 payload that deletes one flag.
+final class DeleteEvent implements DataSourceEvent {
+  final String key;
+  final int version;
+
+  DeleteEvent(this.key, this.version);
 }
 
 /// An FDv2 change set produced by the data source orchestrator. Carries

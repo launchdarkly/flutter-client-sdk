@@ -288,7 +288,7 @@ void main() {
           httpProperties: HttpProperties(),
           eventSource: (options) => _ScriptedClient(events.stream));
       final firstData =
-          dataSource.events.firstWhere((event) => event is DataEvent);
+          dataSource.events.firstWhere((event) => event is PutEvent);
 
       dataSource.start();
       // The browser exposes only the headers the CORS policy allows.
@@ -296,7 +296,7 @@ void main() {
           headers: UnmodifiableMapView({'content-type': 'text/event-stream'})));
       events.sink.add(MessageEvent('put', '{}', null));
 
-      expect((await firstData as DataEvent).environmentId, 'the-credential');
+      expect((await firstData as PutEvent).environmentId, 'the-credential');
       dataSource.stop();
       await events.close();
     });

@@ -6,7 +6,8 @@ import 'package:launchdarkly_dart_common/launchdarkly_dart_common.dart';
 import '../config/data_source_config.dart';
 import 'data_source.dart';
 import 'data_source_status.dart';
-import 'polling_retry_state.dart';
+import 'fdv1_payloads.dart';
+import 'retry_state.dart';
 import 'requestor.dart';
 
 HttpClient _defaultHttpClientFactory(HttpProperties httpProperties) {
@@ -102,7 +103,8 @@ final class PollingDataSource implements DataSource {
         // response.
         _retry.recordSuccess();
       case PollPayload():
-        final parsed = _parse(result);
+        final parsed =
+            parsePut(result.body, _logger, environmentId: result.environmentId);
         _eventController.sink.add(parsed);
         if (parsed is PutEvent) {
           _retry.recordSuccess();
@@ -123,26 +125,6 @@ final class PollingDataSource implements DataSource {
     }
 
     _schedulePoll();
-  }
-
-  /// Parses the body of [payload], or describes why it is unusable.
-  DataSourceEvent _parse(PollPayload payload) {
-    final dynamic json;
-    try {
-      json = jsonDecode(payload.body);
-    } catch (err) {
-      _logger.error('polling response contained invalid json: $err');
-      return StatusEvent(
-          ErrorKind.invalidData, null, 'Could not parse PUT message');
-    }
-    try {
-      return PutEvent(LDEvaluationResultsSerialization.fromJson(json),
-          environmentId: payload.environmentId);
-    } catch (err) {
-      _logger.error('polling response contained an invalid payload: $err');
-      return StatusEvent(
-          ErrorKind.invalidData, null, 'PUT message contained invalid data');
-    }
   }
 
   void _schedulePoll() {

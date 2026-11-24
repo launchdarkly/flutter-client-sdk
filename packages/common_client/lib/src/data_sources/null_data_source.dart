@@ -10,7 +10,7 @@ final class NullDataSource implements DataSource {
 
   @override
   void start() {
-    _controller.sink.add(DataEvent('put', '{}'));
+    _controller.sink.add(PutEvent({}));
   }
 
   @override
