@@ -138,6 +138,37 @@ void main() {
           reason: "A's cache must not hold B's flags");
     });
 
+    test('a cache write for an inactive context does not evict another one',
+        () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      var time = 0;
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 2,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(time++));
+
+      final contextX = LDContextBuilder().kind('user', 'x').build();
+      final contextA = LDContextBuilder().kind('user', 'a').build();
+      final contextB = LDContextBuilder().kind('user', 'b').build();
+      await flagPersistence.init(contextX, basicData);
+      // A's cache write waits on persistence.
+      final writeA = flagPersistence.init(contextA, basicData);
+      // B's flags replace A's in the store before A's write finishes.
+      await flagPersistence.init(contextB, basicData);
+      await writeA;
+
+      final persistenceKeyX =
+          sha256.convert(utf8.encode(contextX.canonicalKey)).toString();
+      expect(
+          mockPersistence.storage[sdkKeyPersistence], contains(persistenceKeyX),
+          reason: "A's write must not take X's place in the cache");
+    });
+
     test('it skips the cache write for an empty partial applyChanges',
         () async {
       final flagStore = FlagStore();

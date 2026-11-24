@@ -153,21 +153,16 @@ final class FlagPersistence {
     // Will be set via _loadIndex non-conditionally.
     assert(_contextIndex != null);
 
-    final contextPersistenceKey = encodePersistenceKey(context.canonicalKey);
-    _contextIndex!.notice(contextPersistenceKey, _stamper());
-
-    final pruned = _contextIndex!.prune(maxCachedContexts);
-    for (var id in pruned) {
-      await _persistence?.remove(_environmentKey, id);
-    }
-
-    await _persistence?.set(
-        _environmentKey, _indexKey, jsonEncode(_contextIndex!.toJson()));
-
-    // Skip the flag write when the store holds another context's flags.
+    // Skip the write when the store holds another context's flags.
     if (!_updater.isActive(context)) {
       return;
     }
+
+    // The store can change during the writes, so compute their data first.
+    final contextPersistenceKey = encodePersistenceKey(context.canonicalKey);
+    _contextIndex!.notice(contextPersistenceKey, _stamper());
+    final pruned = _contextIndex!.prune(maxCachedContexts);
+    final jsonIndex = jsonEncode(_contextIndex!.toJson());
     final allFlags = _store.getAll();
     final filteredFlags = <String, LDEvaluationResult>{};
     // We only persist the non-deleted flags as LDEvaluationResult.
@@ -178,15 +173,22 @@ final class FlagPersistence {
     }
     final jsonAll =
         jsonEncode(LDEvaluationResultsSerialization.toJson(filteredFlags));
+    final environmentId = _store.environmentId;
+
+    for (var id in pruned) {
+      await _persistence?.remove(_environmentKey, id);
+    }
+
+    await _persistence?.set(_environmentKey, _indexKey, jsonIndex);
+
     // Only write the persistence if we allow caching of contexts. The index
     // is always written.
     if (maxCachedContexts > 0) {
       await _persistence?.set(_environmentKey, contextPersistenceKey, jsonAll);
       // There will be a singular environment ID for a given environment key
       // (credential).
-      if (_store.environmentId != null) {
-        await _persistence?.set(
-            _environmentKey, _envIdKey, _store.environmentId!);
+      if (environmentId != null) {
+        await _persistence?.set(_environmentKey, _envIdKey, environmentId);
       }
     }
   }
