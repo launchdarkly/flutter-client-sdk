@@ -114,14 +114,19 @@ final class FlagPersistence {
     if (cached == null) {
       return false;
     }
+    applyCached(context, cached);
+    return true;
+  }
 
+  /// Applies the flags that [readCached] returned for [context].
+  void applyCached(LDContext context,
+      ({Map<String, LDEvaluationResult> flags, String? environmentId}) cached) {
     _updater.initCached(
         context,
         cached.flags.map((key, value) =>
             MapEntry(key, ItemDescriptor(version: value.version, flag: value))),
         environmentId: cached.environmentId);
     _logger.debug('Loaded a cached flag config from persistence.');
-    return true;
   }
 
   Future<void> _loadIndex() async {

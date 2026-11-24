@@ -353,11 +353,10 @@ final class LDCommonClient {
     return _config.httpProperties.withHeaders(additionalHeaders);
   }
 
-  Future<void> _setAndDecorateContext(LDContext context) async {
-    _context = await _modifiers.asyncReduce(
-        (reducer, accumulator) async => await reducer.decorate(accumulator),
-        context);
-  }
+  Future<LDContext> _decorateContext(LDContext context) =>
+      _modifiers.asyncReduce(
+          (reducer, accumulator) async => await reducer.decorate(accumulator),
+          context);
 
   /// This instructs the SDK to start connecting to LaunchDarkly. Ideally
   /// this is called before any other methods. Variation calls before the SDK
@@ -600,7 +599,15 @@ final class LDCommonClient {
       throw Exception(message);
     }
 
-    await _setAndDecorateContext(context);
+    // Stop waiting for decoration if the identify is cancelled.
+    final decorated = await Future.any([
+      _decorateContext(context),
+      cancelled.then((_) => null),
+    ]);
+    if (decorated == null) {
+      return;
+    }
+    _context = decorated;
     final afterIdentify = _hookRunner.identify(_context);
     hookCallback(afterIdentify);
 

@@ -352,6 +352,33 @@ void main() {
     });
   });
 
+  group('given persistence that never responds', () {
+    test('a new identify ends the wait of a start that decorates its context',
+        () async {
+      final client = LDCommonClient(
+          TestConfig('the-sdk-key', AutoEnvAttributes.disabled),
+          CommonPlatform(
+              persistence: GatedPersistence(Completer<void>().future)),
+          // The key for this anonymous context comes from persistence.
+          LDContextBuilder().kind('user').anonymous(true).build(),
+          DiagnosticSdkData(name: '', version: ''), dataSourceFactories:
+              (LDCommonConfig config, LDLogger logger,
+                  HttpProperties properties) {
+        return {
+          ConnectionMode.streaming: (LDContext context) => TestDataSource(),
+          ConnectionMode.polling: (LDContext context) => TestDataSource(),
+        };
+      });
+
+      final started = client.start();
+      unawaited(
+          client.identify(LDContextBuilder().kind('user', 'joe').build()));
+
+      // Start succeeds while its context decoration waits.
+      expect(await started, isTrue);
+    });
+  });
+
   group('given an invalid context', () {
     test('start returns false with invalid context', () async {
       final invalidClient = LDCommonClient(

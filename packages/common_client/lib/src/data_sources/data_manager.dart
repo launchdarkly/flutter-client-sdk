@@ -36,9 +36,23 @@ final class FDv1DataManager implements DataManager {
       required Future<void> cancelled}) async {
     final completer = Completer<void>();
     _dataSourceManager.identify(context, completer);
-    final loadedFromCache = await _flagManager.loadCached(context);
-    if (loadedFromCache && !waitForNetworkResults) {
+    var isCancelled = false;
+    // Stop waiting for the cache if the identify is cancelled.
+    final cached = await Future.any([
+      _flagManager.readCached(context),
+      cancelled.then((_) {
+        isCancelled = true;
+        return null;
+      }),
+    ]);
+    if (isCancelled) {
       return;
+    }
+    if (cached != null) {
+      _flagManager.applyCached(context, cached);
+      if (!waitForNetworkResults) {
+        return;
+      }
     }
     return Future.any([completer.future, cancelled]);
   }
