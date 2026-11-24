@@ -159,6 +159,10 @@ final class FlagPersistence {
     await _persistence?.set(
         _environmentKey, _indexKey, jsonEncode(_contextIndex!.toJson()));
 
+    // Skip the flag write when the store holds another context's flags.
+    if (!_updater.isActive(context)) {
+      return;
+    }
     final allFlags = _store.getAll();
     final filteredFlags = <String, LDEvaluationResult>{};
     // We only persist the non-deleted flags as LDEvaluationResult.

@@ -54,6 +54,9 @@ final class FlagUpdater {
       : _flagStore = flagStore,
         _logger = logger.subLogger('FlagUpdater');
 
+  /// Whether the store holds the flags of [context].
+  bool isActive(LDContext context) => _activeContextKey == context.canonicalKey;
+
   void init(LDContext context, Map<String, ItemDescriptor> newFlags,
       {String? environmentId}) {
     _activeContextKey = context.canonicalKey;
