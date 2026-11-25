@@ -84,10 +84,6 @@ final class FlagPersistence {
   /// Reads the cached flag state for [context] from persistence without
   /// applying it to the store. Returns null on a cache miss, an
   /// unreadable entry, or a parse failure.
-  ///
-  /// The FDv2 data system loads the cache through its cache initializer
-  /// rather than the [loadCached] apply-at-identify path, so it needs the
-  /// parsed flags back rather than a side effect on the store.
   Future<({Map<String, LDEvaluationResult> flags, String? environmentId})?>
       readCached(LDContext context) async {
     final json = await _persistence?.read(
@@ -109,24 +105,23 @@ final class FlagPersistence {
     }
   }
 
-  Future<bool> loadCached(LDContext context) async {
-    final cached = await readCached(context);
+  Future<bool> loadCached(LDContext context, {Future<void>? cancelled}) async {
+    // Stop waiting for the read if the load is cancelled.
+    final cached = await Future.any([
+      readCached(context),
+      if (cancelled != null) cancelled.then((_) => null),
+    ]);
     if (cached == null) {
       return false;
     }
-    applyCached(context, cached);
-    return true;
-  }
 
-  /// Applies the flags that [readCached] returned for [context].
-  void applyCached(LDContext context,
-      ({Map<String, LDEvaluationResult> flags, String? environmentId}) cached) {
     _updater.initCached(
         context,
         cached.flags.map((key, value) =>
             MapEntry(key, ItemDescriptor(version: value.version, flag: value))),
         environmentId: cached.environmentId);
     _logger.debug('Loaded a cached flag config from persistence.');
+    return true;
   }
 
   Future<void> _loadIndex() async {
@@ -175,21 +170,22 @@ final class FlagPersistence {
         jsonEncode(LDEvaluationResultsSerialization.toJson(filteredFlags));
     final environmentId = _store.environmentId;
 
-    for (var id in pruned) {
-      await _persistence?.remove(_environmentKey, id);
+    final persistence = _persistence;
+    if (persistence == null) {
+      return;
     }
-
-    await _persistence?.set(_environmentKey, _indexKey, jsonIndex);
-
-    // Only write the persistence if we allow caching of contexts. The index
-    // is always written.
-    if (maxCachedContexts > 0) {
-      await _persistence?.set(_environmentKey, contextPersistenceKey, jsonAll);
+    // Start every write before awaiting, so a later call's writes land last.
+    await Future.wait([
+      for (var id in pruned) persistence.remove(_environmentKey, id),
+      persistence.set(_environmentKey, _indexKey, jsonIndex),
+      // Only write the persistence if we allow caching of contexts. The index
+      // is always written.
+      if (maxCachedContexts > 0)
+        persistence.set(_environmentKey, contextPersistenceKey, jsonAll),
       // There will be a singular environment ID for a given environment key
       // (credential).
-      if (environmentId != null) {
-        await _persistence?.set(_environmentKey, _envIdKey, environmentId);
-      }
-    }
+      if (maxCachedContexts > 0 && environmentId != null)
+        persistence.set(_environmentKey, _envIdKey, environmentId),
+    ]);
   }
 }

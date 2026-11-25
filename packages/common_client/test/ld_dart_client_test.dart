@@ -377,6 +377,22 @@ void main() {
       // Start succeeds while its context decoration waits.
       expect(await started, isTrue);
     });
+
+    test('a new identify ends the wait of an offline start', () async {
+      final client = LDCommonClient(
+          TestConfig('the-sdk-key', AutoEnvAttributes.disabled, offline: true),
+          CommonPlatform(
+              persistence: GatedPersistence(Completer<void>().future)),
+          LDContextBuilder().kind('user', 'bob').build(),
+          DiagnosticSdkData(name: '', version: ''));
+
+      final started = client.start();
+      unawaited(
+          client.identify(LDContextBuilder().kind('user', 'joe').build()));
+
+      // Start succeeds while its cache load waits.
+      expect(await started, isTrue);
+    });
   });
 
   group('given an invalid context', () {
@@ -415,6 +431,44 @@ void main() {
 
       final identifyResult = await invalidClient.identify(validContext);
       expect(identifyResult, isA<IdentifyComplete>());
+    });
+
+    test('an identify with an invalid context does not stop start', () async {
+      final persistence = MockPersistence();
+      persistence.storage[
+          'LaunchDarkly_${sha256.convert(utf8.encode('the-sdk-key'))}'] = {
+        sha256.convert(utf8.encode('bob')).toString(): '{"flagA":{'
+            '"version":1,"value":"storage","variation":0,'
+            '"reason":{"kind":"OFF"}}}'
+      };
+      final connected = <LDContext>[];
+      final client = LDCommonClient(
+          TestConfig('the-sdk-key', AutoEnvAttributes.disabled),
+          CommonPlatform(persistence: persistence),
+          LDContextBuilder().kind('user', 'bob').build(),
+          DiagnosticSdkData(name: '', version: ''), dataSourceFactories:
+              (LDCommonConfig config, LDLogger logger,
+                  HttpProperties properties) {
+        DataSource create(LDContext context) {
+          connected.add(context);
+          return TestDataSource(payload: null);
+        }
+
+        return {
+          ConnectionMode.streaming: create,
+          ConnectionMode.polling: create,
+        };
+      });
+
+      final started = client.start();
+      final identified =
+          client.identify(LDContextBuilder().kind('invalid#kind', '').build());
+
+      // The identify fails, and start still connects and applies its cache.
+      expect(await identified, isA<IdentifyError>());
+      expect(await started, isTrue);
+      expect(connected, isNotEmpty);
+      expect(client.stringVariation('flagA', 'default'), 'storage');
     });
   });
 

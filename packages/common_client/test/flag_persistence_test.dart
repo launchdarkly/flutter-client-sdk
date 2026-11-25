@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -167,6 +168,47 @@ void main() {
       expect(
           mockPersistence.storage[sdkKeyPersistence], contains(persistenceKeyX),
           reason: "A's write must not take X's place in the cache");
+    });
+
+    test('a newer cache write lands after an older one', () async {
+      final flagStore = FlagStore();
+      final persistence = GatedPersistence(Future.value());
+      var time = 0;
+      final flagPersistence = FlagPersistence(
+          persistence: persistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 1,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(time++));
+
+      final contextX = LDContextBuilder().kind('user', 'x').build();
+      final contextA = LDContextBuilder().kind('user', 'a').build();
+      await flagPersistence.init(contextX, basicData);
+
+      final gate = Completer<void>();
+      persistence.gate = gate.future;
+      // Pruning X's cache gives A's write one more call than the next write.
+      final olderWrite = flagPersistence.init(contextA, basicData);
+      // The older write takes its data, and then waits on the gate.
+      await pumpEventQueue();
+      final updated = LDEvaluationResult(
+          version: 3,
+          detail: LDEvaluationDetail(
+              LDValue.ofString('updated'), 0, LDEvaluationReason.off()));
+      // A newer write for A starts while the older one waits.
+      final newerWrite = flagPersistence.upsert(
+          contextA, 'flagA', ItemDescriptor(version: 3, flag: updated));
+      gate.complete();
+      await olderWrite;
+      await newerWrite;
+
+      final persistenceKeyA =
+          sha256.convert(utf8.encode(contextA.canonicalKey)).toString();
+      expect(persistence.storage[sdkKeyPersistence]![persistenceKeyA],
+          contains('updated'),
+          reason: "the newer write's flags must be the ones cached");
     });
 
     test('it skips the cache write for an empty partial applyChanges',

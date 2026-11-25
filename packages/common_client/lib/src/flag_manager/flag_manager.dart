@@ -67,9 +67,10 @@ final class FlagManager {
       _flagPersistence.applyChanges(context, updates, type,
           environmentId: environmentId);
 
-  /// Asynchronously load cached values from persistence.
-  Future<bool> loadCached(LDContext context) async {
-    return _flagPersistence.loadCached(context);
+  /// Asynchronously loads cached values from persistence, and returns whether
+  /// any loaded. Loads nothing if [cancelled] completes before the read ends.
+  Future<bool> loadCached(LDContext context, {Future<void>? cancelled}) async {
+    return _flagPersistence.loadCached(context, cancelled: cancelled);
   }
 
   /// Reads cached values from persistence without applying them to the
@@ -78,15 +79,6 @@ final class FlagManager {
       readCached(LDContext context) async {
     return _flagPersistence.readCached(context);
   }
-
-  /// Applies the cached values that [readCached] returned for [context].
-  void applyCached(
-          LDContext context,
-          ({
-            Map<String, LDEvaluationResult> flags,
-            String? environmentId
-          }) cached) =>
-      _flagPersistence.applyCached(context, cached);
 
   /// A broadcast stream which emits events as flag changes occur based either
   /// on loading cached values or updates from the data source.
