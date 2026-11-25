@@ -2,6 +2,20 @@
 
 All notable changes to the LaunchDarkly Common Client will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.18.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.17.0...launchdarkly_common_client-v1.18.0) (2026-11-25)
+
+
+### Features
+
+* Keep identify and start waiting through data source failures ([#406](https://github.com/launchdarkly/flutter-client-sdk/issues/406)) ([d687a53](https://github.com/launchdarkly/flutter-client-sdk/commit/d687a53e015a8dda0f24da1b92fea9dca4ae59a6))
+* Retry FDv1 streaming after every failure ([#405](https://github.com/launchdarkly/flutter-client-sdk/issues/405)) ([5c67416](https://github.com/launchdarkly/flutter-client-sdk/commit/5c674166c803ae9271bf6b0478574019f5a8b72c))
+
+
+### Bug Fixes
+
+* Let a new identify end a wait on persistence ([#413](https://github.com/launchdarkly/flutter-client-sdk/issues/413)) ([5395df5](https://github.com/launchdarkly/flutter-client-sdk/commit/5395df510dd1e47215e7e20e873a09e9bfc6ec33))
+* Stop the previous data source before loading the cache in identify ([#409](https://github.com/launchdarkly/flutter-client-sdk/issues/409)) ([a586ba0](https://github.com/launchdarkly/flutter-client-sdk/commit/a586ba0594428745947c6e2c0d8c98feb35ae6ce))
+
 ## [1.17.0](https://github.com/launchdarkly/flutter-client-sdk/compare/launchdarkly_common_client-v1.16.3...launchdarkly_common_client-v1.17.0) (2026-11-23)
 
 
