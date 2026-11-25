@@ -2,6 +2,19 @@
 
 All notable changes to the LaunchDarkly Flutter client-side SDK will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [4.24.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.23.0...4.24.0) (2026-11-25)
+
+
+### Features
+
+* Keep identify and start waiting through data source failures ([#406](https://github.com/launchdarkly/flutter-client-sdk/issues/406)) ([d687a53](https://github.com/launchdarkly/flutter-client-sdk/commit/d687a53e015a8dda0f24da1b92fea9dca4ae59a6))
+
+
+### Bug Fixes
+
+* Prevent a StateError when a connectivity check completes after the client closes ([#410](https://github.com/launchdarkly/flutter-client-sdk/issues/410)) ([f62c04e](https://github.com/launchdarkly/flutter-client-sdk/commit/f62c04e304aedc384df71f759c60a1ece3a9955b))
+* Update launchdarkly_common_client to version 1.18.0 ([#415](https://github.com/launchdarkly/flutter-client-sdk/issues/415)) ([7b4d60d](https://github.com/launchdarkly/flutter-client-sdk/commit/7b4d60dad97a400b2f3580e6009b91c3bcaa44a2))
+
 ## [4.23.0](https://github.com/launchdarkly/flutter-client-sdk/compare/4.22.1...4.23.0) (2026-11-23)
 
 
