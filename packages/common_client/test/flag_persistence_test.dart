@@ -211,8 +211,7 @@ void main() {
           reason: "the newer write's flags must be the ones cached");
     });
 
-    test('a cache write skips the flags of a context that it prunes',
-        () async {
+    test('a cache write skips the flags of a context that it prunes', () async {
       final flagStore = FlagStore();
       final mockPersistence = MockPersistence();
       var time = 10;
