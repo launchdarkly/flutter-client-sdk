@@ -27,7 +27,7 @@ class DefaultEventPaths {
   }
 
   String getDiagnosticEventsPath(String credential) {
-    return '/events/bulk/$credential';
+    return '/events/diagnostic/$credential';
   }
 }
 
