@@ -211,6 +211,37 @@ void main() {
           reason: "the newer write's flags must be the ones cached");
     });
 
+    test('a cache write skips the flags of a context that it prunes',
+        () async {
+      final flagStore = FlagStore();
+      final mockPersistence = MockPersistence();
+      var time = 10;
+      final flagPersistence = FlagPersistence(
+          persistence: mockPersistence,
+          updater: FlagUpdater(flagStore: flagStore, logger: logger),
+          store: flagStore,
+          sdkKey: sdkKey,
+          maxCachedContexts: 1,
+          logger: logger,
+          stamper: () => DateTime.fromMillisecondsSinceEpoch(time));
+
+      final contextX = LDContextBuilder().kind('user', 'x').build();
+      final contextA = LDContextBuilder().kind('user', 'a').build();
+      // Cache X's flags at time 10.
+      await flagPersistence.init(contextX, basicData);
+      // Move the clock back to before X's write.
+      time = 5;
+      // A's timestamp is older than X's, so A's write prunes A.
+      await flagPersistence.init(contextA, basicData);
+
+      final persistenceKeyA =
+          sha256.convert(utf8.encode(contextA.canonicalKey)).toString();
+      // Persistence holds no flags for A.
+      expect(mockPersistence.storage[sdkKeyPersistence],
+          isNot(contains(persistenceKeyA)),
+          reason: 'the index does not hold A, so its flags must not be stored');
+    });
+
     test('it skips the cache write for an empty partial applyChanges',
         () async {
       final flagStore = FlagStore();

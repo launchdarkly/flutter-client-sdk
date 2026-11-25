@@ -157,6 +157,8 @@ final class FlagPersistence {
     final contextPersistenceKey = encodePersistenceKey(context.canonicalKey);
     _contextIndex!.notice(contextPersistenceKey, _stamper());
     final pruned = _contextIndex!.prune(maxCachedContexts);
+    // Whether this context is still in the index after the prune.
+    final indexed = !pruned.contains(contextPersistenceKey);
     final jsonIndex = jsonEncode(_contextIndex!.toJson());
     final allFlags = _store.getAll();
     final filteredFlags = <String, LDEvaluationResult>{};
@@ -178,13 +180,11 @@ final class FlagPersistence {
     await Future.wait([
       for (var id in pruned) persistence.remove(_environmentKey, id),
       persistence.set(_environmentKey, _indexKey, jsonIndex),
-      // Only write the persistence if we allow caching of contexts. The index
-      // is always written.
-      if (maxCachedContexts > 0)
+      if (indexed)
         persistence.set(_environmentKey, contextPersistenceKey, jsonAll),
       // There will be a singular environment ID for a given environment key
       // (credential).
-      if (maxCachedContexts > 0 && environmentId != null)
+      if (indexed && environmentId != null)
         persistence.set(_environmentKey, _envIdKey, environmentId),
     ]);
   }
