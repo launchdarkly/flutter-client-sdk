@@ -14,11 +14,14 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
   late Completer<List<String>> pendingCheck;
+  late int checkCalls;
 
   setUp(() {
     pendingCheck = Completer();
+    checkCalls = 0;
     messenger.setMockMethodCallHandler(methodChannel, (call) async {
       if (call.method == 'check') {
+        checkCalls++;
         return pendingCheck.future;
       }
       return null;
@@ -37,6 +40,7 @@ void main() {
       final detector = FlutterStateDetector();
       // Let the constructor's checkConnectivity call reach the platform.
       await Future<void>.delayed(Duration.zero);
+      expect(checkCalls, 1);
 
       detector.dispose();
       pendingCheck.complete(['wifi']);
