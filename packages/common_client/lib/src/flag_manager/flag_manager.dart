@@ -67,14 +67,14 @@ final class FlagManager {
       _flagPersistence.applyChanges(context, updates, type,
           environmentId: environmentId);
 
-  /// Asynchronously load cached values from persistence.
-  Future<bool> loadCached(LDContext context) async {
-    return _flagPersistence.loadCached(context);
+  /// Asynchronously loads cached values from persistence, and returns whether
+  /// any loaded. Loads nothing if [cancelled] completes before the read ends.
+  Future<bool> loadCached(LDContext context, {Future<void>? cancelled}) async {
+    return _flagPersistence.loadCached(context, cancelled: cancelled);
   }
 
   /// Reads cached values from persistence without applying them to the
-  /// store. Used by the FDv2 cache initializer, which loads the cache
-  /// through the data source pipeline rather than at identify time.
+  /// store.
   Future<({Map<String, LDEvaluationResult> flags, String? environmentId})?>
       readCached(LDContext context) async {
     return _flagPersistence.readCached(context);

@@ -35,9 +35,14 @@ final class FDv1DataManager implements DataManager {
       {required bool waitForNetworkResults,
       required Future<void> cancelled}) async {
     final completer = Completer<void>();
+    // A shutdown can fail the completer when nothing waits on it.
+    completer.future.ignore();
     _dataSourceManager.identify(context, completer);
-    final loadedFromCache = await _flagManager.loadCached(context);
-    if (loadedFromCache && !waitForNetworkResults) {
+    var isCancelled = false;
+    final loadedFromCache = await _flagManager.loadCached(context,
+        cancelled: cancelled.then((_) => isCancelled = true));
+    // A cancelled identify returns at once, even if its data source failed.
+    if (isCancelled || (loadedFromCache && !waitForNetworkResults)) {
       return;
     }
     return Future.any([completer.future, cancelled]);

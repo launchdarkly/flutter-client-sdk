@@ -28,6 +28,7 @@ final class MockPersistence implements Persistence {
 
 /// A persistence whose calls finish only after [gate] completes.
 final class GatedPersistence implements Persistence {
+  final storage = <String, Map<String, String>>{};
   Future<void> gate;
 
   GatedPersistence(this.gate);
@@ -35,12 +36,18 @@ final class GatedPersistence implements Persistence {
   @override
   Future<String?> read(String namespace, String key) async {
     await gate;
-    return null;
+    return storage[namespace]?[key];
   }
 
   @override
-  Future<void> remove(String namespace, String key) => gate;
+  Future<void> remove(String namespace, String key) async {
+    await gate;
+    storage[namespace]?.remove(key);
+  }
 
   @override
-  Future<void> set(String namespace, String key, String data) => gate;
+  Future<void> set(String namespace, String key, String data) async {
+    await gate;
+    (storage[namespace] ??= {})[key] = data;
+  }
 }

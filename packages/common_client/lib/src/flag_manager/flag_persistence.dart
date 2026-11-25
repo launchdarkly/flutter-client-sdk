@@ -84,10 +84,6 @@ final class FlagPersistence {
   /// Reads the cached flag state for [context] from persistence without
   /// applying it to the store. Returns null on a cache miss, an
   /// unreadable entry, or a parse failure.
-  ///
-  /// The FDv2 data system loads the cache through its cache initializer
-  /// rather than the [loadCached] apply-at-identify path, so it needs the
-  /// parsed flags back rather than a side effect on the store.
   Future<({Map<String, LDEvaluationResult> flags, String? environmentId})?>
       readCached(LDContext context) async {
     final json = await _persistence?.read(
@@ -109,8 +105,12 @@ final class FlagPersistence {
     }
   }
 
-  Future<bool> loadCached(LDContext context) async {
-    final cached = await readCached(context);
+  Future<bool> loadCached(LDContext context, {Future<void>? cancelled}) async {
+    // Stop waiting for the read if the load is cancelled.
+    final cached = await Future.any([
+      readCached(context),
+      if (cancelled != null) cancelled.then((_) => null),
+    ]);
     if (cached == null) {
       return false;
     }
@@ -148,21 +148,18 @@ final class FlagPersistence {
     // Will be set via _loadIndex non-conditionally.
     assert(_contextIndex != null);
 
-    final contextPersistenceKey = encodePersistenceKey(context.canonicalKey);
-    _contextIndex!.notice(contextPersistenceKey, _stamper());
-
-    final pruned = _contextIndex!.prune(maxCachedContexts);
-    for (var id in pruned) {
-      await _persistence?.remove(_environmentKey, id);
-    }
-
-    await _persistence?.set(
-        _environmentKey, _indexKey, jsonEncode(_contextIndex!.toJson()));
-
-    // Skip the flag write when the store holds another context's flags.
+    // Skip the write when the store holds another context's flags.
     if (!_updater.isActive(context)) {
       return;
     }
+
+    // The store can change during the writes, so compute their data first.
+    final contextPersistenceKey = encodePersistenceKey(context.canonicalKey);
+    _contextIndex!.notice(contextPersistenceKey, _stamper());
+    final pruned = _contextIndex!.prune(maxCachedContexts);
+    // Whether this context is still in the index after the prune.
+    final indexed = !pruned.contains(contextPersistenceKey);
+    final jsonIndex = jsonEncode(_contextIndex!.toJson());
     final allFlags = _store.getAll();
     final filteredFlags = <String, LDEvaluationResult>{};
     // We only persist the non-deleted flags as LDEvaluationResult.
@@ -173,16 +170,22 @@ final class FlagPersistence {
     }
     final jsonAll =
         jsonEncode(LDEvaluationResultsSerialization.toJson(filteredFlags));
-    // Only write the persistence if we allow caching of contexts. The index
-    // is always written.
-    if (maxCachedContexts > 0) {
-      await _persistence?.set(_environmentKey, contextPersistenceKey, jsonAll);
+    final environmentId = _store.environmentId;
+
+    final persistence = _persistence;
+    if (persistence == null) {
+      return;
+    }
+    // Start every write before awaiting, so a later call's writes land last.
+    await Future.wait([
+      for (var id in pruned) persistence.remove(_environmentKey, id),
+      persistence.set(_environmentKey, _indexKey, jsonIndex),
+      if (indexed)
+        persistence.set(_environmentKey, contextPersistenceKey, jsonAll),
       // There will be a singular environment ID for a given environment key
       // (credential).
-      if (_store.environmentId != null) {
-        await _persistence?.set(
-            _environmentKey, _envIdKey, _store.environmentId!);
-      }
-    }
+      if (indexed && environmentId != null)
+        persistence.set(_environmentKey, _envIdKey, environmentId),
+    ]);
   }
 }

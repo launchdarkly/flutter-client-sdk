@@ -57,6 +57,9 @@ enum VariationMethodNames {
   }
 }
 
+const _invalidContextMessage =
+    'LDClient was provided an invalid context. The context will be ignored. Existing flags will be used for evaluations until identify is called with a valid context.';
+
 /// Base class used for all identify results. Using a sealed class allows for
 /// exhaustive matching the the return from identify operations.
 sealed class IdentifyResult {}
@@ -353,11 +356,10 @@ final class LDCommonClient {
     return _config.httpProperties.withHeaders(additionalHeaders);
   }
 
-  Future<void> _setAndDecorateContext(LDContext context) async {
-    _context = await _modifiers.asyncReduce(
-        (reducer, accumulator) async => await reducer.decorate(accumulator),
-        context);
-  }
+  Future<LDContext> _decorateContext(LDContext context) =>
+      _modifiers.asyncReduce(
+          (reducer, accumulator) async => await reducer.decorate(accumulator),
+          context);
 
   /// This instructs the SDK to start connecting to LaunchDarkly. Ideally
   /// this is called before any other methods. Variation calls before the SDK
@@ -561,6 +563,10 @@ final class LDCommonClient {
       _logger.warn(message);
       return IdentifyError(Exception(message));
     }
+    if (!context.valid) {
+      _logger.warn(_invalidContextMessage);
+      return IdentifyError(Exception(_invalidContextMessage));
+    }
     // End the wait of the previous identify or start.
     _identifyCancellation?.complete();
     final cancellation = Completer<void>();
@@ -594,13 +600,19 @@ final class LDCommonClient {
       {bool waitForNetworkResults = false,
       required Future<void> cancelled}) async {
     if (!context.valid) {
-      const message =
-          'LDClient was provided an invalid context. The context will be ignored. Existing flags will be used for evaluations until identify is called with a valid context.';
-      _logger.warn(message);
-      throw Exception(message);
+      _logger.warn(_invalidContextMessage);
+      throw Exception(_invalidContextMessage);
     }
 
-    await _setAndDecorateContext(context);
+    // Stop waiting for decoration if the identify is cancelled.
+    final decorated = await Future.any([
+      _decorateContext(context),
+      cancelled.then((_) => null),
+    ]);
+    if (decorated == null) {
+      return;
+    }
+    _context = decorated;
     final afterIdentify = _hookRunner.identify(_context);
     hookCallback(afterIdentify);
 
@@ -610,7 +622,7 @@ final class LDCommonClient {
       // Fully offline: there is no data source to run, so load the cache
       // directly to serve flags. (Distinct from the offline connection
       // mode, whose pipeline loads the cache for the FDv2 data system.)
-      await _flagManager.loadCached(_context);
+      await _flagManager.loadCached(_context, cancelled: cancelled);
       return;
     }
 
